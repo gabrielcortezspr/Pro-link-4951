@@ -1,0 +1,291 @@
+numero,tipo,contratante,objeto
+AM20269999001,OBRA,João Silva LTDA,Reforma Estrutural
+AM20269999002,OBRA,João Silva LTDA,Manutenção Preventiva
+AM20269999003,OBRA,João Silva LTDA,Reforma Estrutural
+AM20269999004,OBRA,Prefeitura Municipal,Construção de Edifício
+AM20269999005,OBRA,Indústria ABC S.A.,Construção de Edifício
+AM20269999006,OBRA,Indústria ABC S.A.,Projeto Elétrico e Execução
+AM20269999007,OBRA,Prefeitura Municipal,Reforma Estrutural
+AM20269999008,OBRA,João Silva LTDA,Construção de Edifício
+AM20269999009,OBRA,Indústria ABC S.A.,Manutenção Preventiva
+AM20269999010,OBRA,Governo do Estado,Manutenção Preventiva
+AM20269999011,OBRA,João Silva LTDA,Projeto Elétrico e Execução
+AM20269999012,OBRA,Condomínio Residencial,Projeto Elétrico e Execução
+AM20269999013,OBRA,Prefeitura Municipal,Manutenção Preventiva
+AM20269999014,OBRA,Condomínio Residencial,Laudo Técnico de Instalação
+AM20269999015,OBRA,Governo do Estado,Laudo Técnico de Instalação
+AM20269999016,OBRA,Condomínio Residencial,Reforma Estrutural
+AM20269999017,OBRA,Prefeitura Municipal,Reforma Estrutural
+AM20269999018,OBRA,João Silva LTDA,Manutenção Preventiva
+AM20269999019,OBRA,Governo do Estado,Projeto Elétrico e Execução
+AM20269999020,OBRA,Governo do Estado,Projeto Elétrico e Execução
+AM20269999021,OBRA,Condomínio Residencial,Reforma Estrutural
+AM20269999022,OBRA,Governo do Estado,Manutenção Preventiva
+AM20269999023,OBRA,Governo do Estado,Reforma Estrutural
+AM20269999024,OBRA,João Silva LTDA,Laudo Técnico de Instalação
+AM20269999025,OBRA,Governo do Estado,Manutenção Preventiva
+AM20269999026,OBRA,Condomínio Residencial,Reforma Estrutural
+AM20269999027,OBRA,João Silva LTDA,Projeto Elétrico e Execução
+AM20269999028,OBRA,Prefeitura Municipal,Projeto Elétrico e Execução
+AM20269999029,OBRA,João Silva LTDA,Projeto Elétrico e Execução
+AM20269999030,OBRA,Condomínio Residencial,Reforma Estrutural
+AM20269999031,OBRA,Indústria ABC S.A.,Projeto Elétrico e Execução
+AM20269999032,OBRA,Condomínio Residencial,Projeto Elétrico e Execução
+AM20269999033,OBRA,Condomínio Residencial,Laudo Técnico de Instalação
+AM20269999034,OBRA,Condomínio Residencial,Projeto Elétrico e Execução
+AM20269999035,OBRA,Governo do Estado,Laudo Técnico de Instalação
+AM20269999036,OBRA,Prefeitura Municipal,Projeto Elétrico e Execução
+AM20269999037,OBRA,Governo do Estado,Projeto Elétrico e Execução
+AM20269999038,OBRA,Prefeitura Municipal,Construção de Edifício
+AM20269999039,OBRA,Governo do Estado,Reforma Estrutural
+AM20269999040,OBRA,João Silva LTDA,Laudo Técnico de Instalação
+AM20269999041,OBRA,João Silva LTDA,Reforma Estrutural
+AM20269999042,OBRA,Indústria ABC S.A.,Manutenção Preventiva
+AM20269999043,OBRA,Indústria ABC S.A.,Construção de Edifício
+AM20269999044,OBRA,Indústria ABC S.A.,Construção de Edifício
+AM20269999045,OBRA,João Silva LTDA,Reforma Estrutural
+AM20269999046,OBRA,Prefeitura Municipal,Reforma Estrutural
+AM20269999047,OBRA,Condomínio Residencial,Manutenção Preventiva
+AM20269999048,OBRA,João Silva LTDA,Construção de Edifício
+AM20269999049,OBRA,Condomínio Residencial,Projeto Elétrico e Execução
+AM20269999050,OBRA,Prefeitura Municipal,Reforma Estrutural
+AM20269999051,OBRA,Indústria ABC S.A.,Reforma Estrutural
+AM20269999052,OBRA,Prefeitura Municipal,Laudo Técnico de Instalação
+AM20269999053,OBRA,João Silva LTDA,Construção de Edifício
+AM20269999054,OBRA,Indústria ABC S.A.,Reforma Estrutural
+AM20269999055,OBRA,Prefeitura Municipal,Construção de Edifício
+AM20269999056,OBRA,Indústria ABC S.A.,Reforma Estrutural
+AM20269999057,OBRA,Prefeitura Municipal,Manutenção Preventiva
+AM20269999058,OBRA,Governo do Estado,Laudo Técnico de Instalação
+AM20269999059,OBRA,Governo do Estado,Manutenção Preventiva
+AM20269999060,OBRA,Indústria ABC S.A.,Projeto Elétrico e Execução
+AM20269999061,OBRA,Indústria ABC S.A.,Projeto Elétrico e Execução
+AM20269999062,OBRA,Indústria ABC S.A.,Laudo Técnico de Instalação
+AM20269999063,OBRA,Condomínio Residencial,Reforma Estrutural
+AM20269999064,OBRA,João Silva LTDA,Construção de Edifício
+AM20269999065,OBRA,Governo do Estado,Construção de Edifício
+AM20269999066,OBRA,Condomínio Residencial,Laudo Técnico de Instalação
+AM20269999067,OBRA,Indústria ABC S.A.,Projeto Elétrico e Execução
+AM20269999068,OBRA,Condomínio Residencial,Projeto Elétrico e Execução
+AM20269999069,OBRA,Condomínio Residencial,Manutenção Preventiva
+AM20269999070,OBRA,Prefeitura Municipal,Reforma Estrutural
+AM20269999071,OBRA,Indústria ABC S.A.,Projeto Elétrico e Execução
+AM20269999072,OBRA,João Silva LTDA,Projeto Elétrico e Execução
+AM20269999073,OBRA,Condomínio Residencial,Reforma Estrutural
+AM20269999074,OBRA,Governo do Estado,Manutenção Preventiva
+AM20269999075,OBRA,João Silva LTDA,Laudo Técnico de Instalação
+AM20269999076,OBRA,Governo do Estado,Laudo Técnico de Instalação
+AM20269999077,OBRA,João Silva LTDA,Laudo Técnico de Instalação
+AM20269999078,OBRA,João Silva LTDA,Reforma Estrutural
+AM20269999079,OBRA,Prefeitura Municipal,Laudo Técnico de Instalação
+AM20269999080,OBRA,Indústria ABC S.A.,Reforma Estrutural
+AM20269999081,OBRA,Indústria ABC S.A.,Construção de Edifício
+AM20269999082,OBRA,Condomínio Residencial,Laudo Técnico de Instalação
+AM20269999083,OBRA,Prefeitura Municipal,Laudo Técnico de Instalação
+AM20269999084,OBRA,João Silva LTDA,Manutenção Preventiva
+AM20269999085,OBRA,Condomínio Residencial,Manutenção Preventiva
+AM20269999086,OBRA,Prefeitura Municipal,Reforma Estrutural
+AM20269999087,OBRA,Indústria ABC S.A.,Manutenção Preventiva
+AM20269999088,OBRA,Governo do Estado,Laudo Técnico de Instalação
+AM20269999089,OBRA,Prefeitura Municipal,Laudo Técnico de Instalação
+AM20269999090,OBRA,João Silva LTDA,Projeto Elétrico e Execução
+AM20269999091,OBRA,Indústria ABC S.A.,Laudo Técnico de Instalação
+AM20269999092,OBRA,Prefeitura Municipal,Reforma Estrutural
+AM20269999093,OBRA,João Silva LTDA,Laudo Técnico de Instalação
+AM20269999094,OBRA,Governo do Estado,Reforma Estrutural
+AM20269999095,OBRA,João Silva LTDA,Manutenção Preventiva
+AM20269999096,OBRA,Condomínio Residencial,Reforma Estrutural
+AM20269999097,OBRA,Condomínio Residencial,Laudo Técnico de Instalação
+AM20269999098,OBRA,Indústria ABC S.A.,Laudo Técnico de Instalação
+AM20269999099,OBRA,Prefeitura Municipal,Reforma Estrutural
+AM20269999100,OBRA,Indústria ABC S.A.,Manutenção Preventiva
+AM20269999101,OBRA,João Silva LTDA,Construção de Edifício
+AM20269999102,OBRA,Prefeitura Municipal,Reforma Estrutural
+AM20269999103,OBRA,Indústria ABC S.A.,Projeto Elétrico e Execução
+AM20269999104,OBRA,Indústria ABC S.A.,Laudo Técnico de Instalação
+AM20269999105,OBRA,Condomínio Residencial,Laudo Técnico de Instalação
+AM20269999106,OBRA,Governo do Estado,Reforma Estrutural
+AM20269999107,OBRA,Indústria ABC S.A.,Laudo Técnico de Instalação
+AM20269999108,OBRA,Condomínio Residencial,Laudo Técnico de Instalação
+AM20269999109,OBRA,Condomínio Residencial,Reforma Estrutural
+AM20269999110,OBRA,Condomínio Residencial,Reforma Estrutural
+AM20269999111,OBRA,Indústria ABC S.A.,Construção de Edifício
+AM20269999112,OBRA,Governo do Estado,Projeto Elétrico e Execução
+AM20269999113,OBRA,Governo do Estado,Manutenção Preventiva
+AM20269999114,OBRA,Governo do Estado,Construção de Edifício
+AM20269999115,OBRA,João Silva LTDA,Laudo Técnico de Instalação
+AM20269999116,OBRA,Prefeitura Municipal,Construção de Edifício
+AM20269999117,OBRA,Condomínio Residencial,Construção de Edifício
+AM20269999118,OBRA,Governo do Estado,Construção de Edifício
+AM20269999119,OBRA,Prefeitura Municipal,Projeto Elétrico e Execução
+AM20269999120,OBRA,Condomínio Residencial,Construção de Edifício
+AM20269999121,OBRA,Governo do Estado,Manutenção Preventiva
+AM20269999122,OBRA,Condomínio Residencial,Construção de Edifício
+AM20269999123,OBRA,Indústria ABC S.A.,Projeto Elétrico e Execução
+AM20269999124,OBRA,Condomínio Residencial,Laudo Técnico de Instalação
+AM20269999125,OBRA,Condomínio Residencial,Construção de Edifício
+AM20269999126,OBRA,Indústria ABC S.A.,Construção de Edifício
+AM20269999127,OBRA,Indústria ABC S.A.,Manutenção Preventiva
+AM20269999128,OBRA,Governo do Estado,Reforma Estrutural
+AM20269999129,OBRA,Governo do Estado,Reforma Estrutural
+AM20269999130,OBRA,João Silva LTDA,Manutenção Preventiva
+AM20269999131,OBRA,João Silva LTDA,Manutenção Preventiva
+AM20269999132,OBRA,Indústria ABC S.A.,Manutenção Preventiva
+AM20269999133,OBRA,Condomínio Residencial,Laudo Técnico de Instalação
+AM20269999134,OBRA,Indústria ABC S.A.,Reforma Estrutural
+AM20269999135,OBRA,Indústria ABC S.A.,Construção de Edifício
+AM20269999136,OBRA,Condomínio Residencial,Laudo Técnico de Instalação
+AM20269999137,OBRA,Governo do Estado,Construção de Edifício
+AM20269999138,OBRA,Prefeitura Municipal,Manutenção Preventiva
+AM20269999139,OBRA,Condomínio Residencial,Projeto Elétrico e Execução
+AM20269999140,OBRA,João Silva LTDA,Manutenção Preventiva
+AM20269999141,OBRA,Indústria ABC S.A.,Reforma Estrutural
+AM20269999142,OBRA,Indústria ABC S.A.,Manutenção Preventiva
+AM20269999143,OBRA,João Silva LTDA,Laudo Técnico de Instalação
+AM20269999144,OBRA,Governo do Estado,Construção de Edifício
+AM20269999145,OBRA,Condomínio Residencial,Projeto Elétrico e Execução
+AM20269999146,OBRA,Prefeitura Municipal,Manutenção Preventiva
+AM20269999147,OBRA,Condomínio Residencial,Laudo Técnico de Instalação
+AM20269999148,OBRA,Condomínio Residencial,Laudo Técnico de Instalação
+AM20269999149,OBRA,Indústria ABC S.A.,Laudo Técnico de Instalação
+AM20269999150,OBRA,Condomínio Residencial,Construção de Edifício
+AM20269999151,OBRA,Prefeitura Municipal,Laudo Técnico de Instalação
+AM20269999152,OBRA,Condomínio Residencial,Reforma Estrutural
+AM20269999153,OBRA,Condomínio Residencial,Manutenção Preventiva
+AM20269999154,OBRA,Prefeitura Municipal,Construção de Edifício
+AM20269999155,OBRA,Condomínio Residencial,Manutenção Preventiva
+AM20269999156,OBRA,João Silva LTDA,Reforma Estrutural
+AM20269999157,OBRA,Prefeitura Municipal,Laudo Técnico de Instalação
+AM20269999158,OBRA,Condomínio Residencial,Reforma Estrutural
+AM20269999159,OBRA,João Silva LTDA,Construção de Edifício
+AM20269999160,OBRA,Governo do Estado,Laudo Técnico de Instalação
+AM20269999161,OBRA,Prefeitura Municipal,Projeto Elétrico e Execução
+AM20269999162,OBRA,Condomínio Residencial,Manutenção Preventiva
+AM20269999163,OBRA,Indústria ABC S.A.,Construção de Edifício
+AM20269999164,OBRA,Governo do Estado,Projeto Elétrico e Execução
+AM20269999165,OBRA,Prefeitura Municipal,Construção de Edifício
+AM20269999166,OBRA,Condomínio Residencial,Reforma Estrutural
+AM20269999167,OBRA,Condomínio Residencial,Projeto Elétrico e Execução
+AM20269999168,OBRA,João Silva LTDA,Construção de Edifício
+AM20269999169,OBRA,Prefeitura Municipal,Reforma Estrutural
+AM20269999170,OBRA,Indústria ABC S.A.,Reforma Estrutural
+AM20269999171,OBRA,Condomínio Residencial,Projeto Elétrico e Execução
+AM20269999172,OBRA,Indústria ABC S.A.,Laudo Técnico de Instalação
+AM20269999173,OBRA,Governo do Estado,Reforma Estrutural
+AM20269999174,OBRA,Prefeitura Municipal,Construção de Edifício
+AM20269999175,OBRA,Indústria ABC S.A.,Construção de Edifício
+AM20269999176,OBRA,Condomínio Residencial,Projeto Elétrico e Execução
+AM20269999177,OBRA,João Silva LTDA,Laudo Técnico de Instalação
+AM20269999178,OBRA,Governo do Estado,Reforma Estrutural
+AM20269999179,OBRA,Condomínio Residencial,Laudo Técnico de Instalação
+AM20269999180,OBRA,João Silva LTDA,Manutenção Preventiva
+AM20269999181,OBRA,Prefeitura Municipal,Reforma Estrutural
+AM20269999182,OBRA,Indústria ABC S.A.,Reforma Estrutural
+AM20269999183,OBRA,João Silva LTDA,Manutenção Preventiva
+AM20269999184,OBRA,João Silva LTDA,Laudo Técnico de Instalação
+AM20269999185,OBRA,João Silva LTDA,Projeto Elétrico e Execução
+AM20269999186,OBRA,Governo do Estado,Construção de Edifício
+AM20269999187,OBRA,João Silva LTDA,Reforma Estrutural
+AM20269999188,OBRA,Indústria ABC S.A.,Manutenção Preventiva
+AM20269999189,OBRA,Governo do Estado,Laudo Técnico de Instalação
+AM20269999190,OBRA,Governo do Estado,Laudo Técnico de Instalação
+AM20269999191,OBRA,Prefeitura Municipal,Laudo Técnico de Instalação
+AM20269999192,OBRA,João Silva LTDA,Reforma Estrutural
+AM20269999193,OBRA,Condomínio Residencial,Projeto Elétrico e Execução
+AM20269999194,OBRA,Indústria ABC S.A.,Laudo Técnico de Instalação
+AM20269999195,OBRA,Indústria ABC S.A.,Laudo Técnico de Instalação
+AM20269999196,OBRA,Prefeitura Municipal,Laudo Técnico de Instalação
+AM20269999197,OBRA,Condomínio Residencial,Projeto Elétrico e Execução
+AM20269999198,OBRA,Condomínio Residencial,Projeto Elétrico e Execução
+AM20269999199,OBRA,João Silva LTDA,Construção de Edifício
+AM20269999200,OBRA,Governo do Estado,Projeto Elétrico e Execução
+AM20269999201,OBRA,Prefeitura Municipal,Laudo Técnico de Instalação
+AM20269999202,OBRA,Condomínio Residencial,Reforma Estrutural
+AM20269999203,OBRA,Indústria ABC S.A.,Manutenção Preventiva
+AM20269999204,OBRA,Condomínio Residencial,Construção de Edifício
+AM20269999205,OBRA,João Silva LTDA,Reforma Estrutural
+AM20269999206,OBRA,Indústria ABC S.A.,Projeto Elétrico e Execução
+AM20269999207,OBRA,Indústria ABC S.A.,Reforma Estrutural
+AM20269999208,OBRA,Governo do Estado,Manutenção Preventiva
+AM20269999209,OBRA,Indústria ABC S.A.,Construção de Edifício
+AM20269999210,OBRA,João Silva LTDA,Reforma Estrutural
+AM20269999211,OBRA,Indústria ABC S.A.,Reforma Estrutural
+AM20269999212,OBRA,Governo do Estado,Laudo Técnico de Instalação
+AM20269999213,OBRA,Governo do Estado,Laudo Técnico de Instalação
+AM20269999214,OBRA,Prefeitura Municipal,Manutenção Preventiva
+AM20269999215,OBRA,Prefeitura Municipal,Projeto Elétrico e Execução
+AM20269999216,OBRA,Indústria ABC S.A.,Projeto Elétrico e Execução
+AM20269999217,OBRA,Indústria ABC S.A.,Reforma Estrutural
+AM20269999218,OBRA,Governo do Estado,Laudo Técnico de Instalação
+AM20269999219,OBRA,Governo do Estado,Laudo Técnico de Instalação
+AM20269999220,OBRA,João Silva LTDA,Laudo Técnico de Instalação
+AM20269999221,OBRA,Condomínio Residencial,Construção de Edifício
+AM20269999222,OBRA,Indústria ABC S.A.,Manutenção Preventiva
+AM20269999223,OBRA,João Silva LTDA,Manutenção Preventiva
+AM20269999224,OBRA,Prefeitura Municipal,Construção de Edifício
+AM20269999225,OBRA,Indústria ABC S.A.,Projeto Elétrico e Execução
+AM20269999226,OBRA,Prefeitura Municipal,Manutenção Preventiva
+AM20269999227,OBRA,Condomínio Residencial,Manutenção Preventiva
+AM20269999228,OBRA,Governo do Estado,Laudo Técnico de Instalação
+AM20269999229,OBRA,Governo do Estado,Laudo Técnico de Instalação
+AM20269999230,OBRA,Indústria ABC S.A.,Construção de Edifício
+AM20269999231,OBRA,Prefeitura Municipal,Reforma Estrutural
+AM20269999232,OBRA,Condomínio Residencial,Manutenção Preventiva
+AM20269999233,OBRA,João Silva LTDA,Projeto Elétrico e Execução
+AM20269999234,OBRA,Condomínio Residencial,Reforma Estrutural
+AM20269999235,OBRA,Governo do Estado,Reforma Estrutural
+AM20269999236,OBRA,João Silva LTDA,Reforma Estrutural
+AM20269999237,OBRA,Indústria ABC S.A.,Laudo Técnico de Instalação
+AM20269999238,OBRA,João Silva LTDA,Reforma Estrutural
+AM20269999239,OBRA,João Silva LTDA,Construção de Edifício
+AM20269999240,OBRA,João Silva LTDA,Manutenção Preventiva
+AM20269999241,OBRA,João Silva LTDA,Projeto Elétrico e Execução
+AM20269999242,OBRA,Indústria ABC S.A.,Construção de Edifício
+AM20269999243,OBRA,Indústria ABC S.A.,Manutenção Preventiva
+AM20269999244,OBRA,Indústria ABC S.A.,Manutenção Preventiva
+AM20269999245,OBRA,João Silva LTDA,Projeto Elétrico e Execução
+AM20269999246,OBRA,Prefeitura Municipal,Construção de Edifício
+AM20269999247,OBRA,Condomínio Residencial,Construção de Edifício
+AM20269999248,OBRA,Condomínio Residencial,Construção de Edifício
+AM20269999249,OBRA,João Silva LTDA,Manutenção Preventiva
+AM20269999250,OBRA,Condomínio Residencial,Laudo Técnico de Instalação
+AM20269999251,OBRA,João Silva LTDA,Construção de Edifício
+AM20269999252,OBRA,Governo do Estado,Construção de Edifício
+AM20269999253,OBRA,Indústria ABC S.A.,Laudo Técnico de Instalação
+AM20269999254,OBRA,Indústria ABC S.A.,Laudo Técnico de Instalação
+AM20269999255,OBRA,Condomínio Residencial,Construção de Edifício
+AM20269999256,OBRA,Indústria ABC S.A.,Laudo Técnico de Instalação
+AM20269999257,OBRA,Indústria ABC S.A.,Projeto Elétrico e Execução
+AM20269999258,OBRA,Indústria ABC S.A.,Manutenção Preventiva
+AM20269999259,OBRA,João Silva LTDA,Manutenção Preventiva
+AM20269999260,OBRA,Condomínio Residencial,Manutenção Preventiva
+AM20269999261,OBRA,Condomínio Residencial,Construção de Edifício
+AM20269999262,OBRA,Prefeitura Municipal,Laudo Técnico de Instalação
+AM20269999263,OBRA,Governo do Estado,Manutenção Preventiva
+AM20269999264,OBRA,Indústria ABC S.A.,Projeto Elétrico e Execução
+AM20269999265,OBRA,Condomínio Residencial,Manutenção Preventiva
+AM20269999266,OBRA,Governo do Estado,Laudo Técnico de Instalação
+AM20269999267,OBRA,Prefeitura Municipal,Laudo Técnico de Instalação
+AM20269999268,OBRA,Condomínio Residencial,Laudo Técnico de Instalação
+AM20269999269,OBRA,Condomínio Residencial,Laudo Técnico de Instalação
+AM20269999270,OBRA,João Silva LTDA,Reforma Estrutural
+AM20269999271,OBRA,Indústria ABC S.A.,Projeto Elétrico e Execução
+AM20269999272,OBRA,Governo do Estado,Laudo Técnico de Instalação
+AM20269999273,OBRA,Prefeitura Municipal,Construção de Edifício
+AM20269999274,OBRA,Indústria ABC S.A.,Construção de Edifício
+AM20269999275,OBRA,Condomínio Residencial,Laudo Técnico de Instalação
+AM20269999276,OBRA,Indústria ABC S.A.,Construção de Edifício
+AM20269999277,OBRA,Indústria ABC S.A.,Laudo Técnico de Instalação
+AM20269999278,OBRA,Prefeitura Municipal,Projeto Elétrico e Execução
+AM20269999279,OBRA,Prefeitura Municipal,Manutenção Preventiva
+AM20269999280,OBRA,Indústria ABC S.A.,Laudo Técnico de Instalação
+AM20269999281,OBRA,João Silva LTDA,Laudo Técnico de Instalação
+AM20269999282,OBRA,Indústria ABC S.A.,Manutenção Preventiva
+AM20269999283,OBRA,Governo do Estado,Laudo Técnico de Instalação
+AM20269999284,OBRA,João Silva LTDA,Reforma Estrutural
+AM20269999285,OBRA,Indústria ABC S.A.,Reforma Estrutural
+AM20269999286,OBRA,João Silva LTDA,Reforma Estrutural
+AM20269999287,OBRA,Prefeitura Municipal,Manutenção Preventiva
+AM20269999288,OBRA,Condomínio Residencial,Reforma Estrutural
+AM20269999289,OBRA,Governo do Estado,Construção de Edifício
+AM20269999290,OBRA,João Silva LTDA,Reforma Estrutural

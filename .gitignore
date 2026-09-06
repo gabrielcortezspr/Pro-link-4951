@@ -1,0 +1,23 @@
+# segredos — nunca versionar
+.env
+.env.local
+
+# dependências
+/vendor/
+/node_modules/
+
+# ambiente
+.DS_Store
+*.log
+/docker/data/
+
+# python (scripts de apoio)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# runtime
+/storage/cache/*
+/storage/logs/*
+!/storage/*/.gitkeep

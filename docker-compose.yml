@@ -1,0 +1,62 @@
+# Ambiente reproduzível para a banca — edital, item 8.8.
+# Nenhum segredo neste arquivo: tudo vem do .env (copiado de .env.example).
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: prolink-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      php:
+        condition: service_started
+    restart: unless-stopped
+
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: prolink-php
+    volumes:
+      - ./:/var/www/html
+    env_file:
+      - .env
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mariadb:
+    image: mariadb:10.11
+    container_name: prolink-mariadb
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MARIADB_DATABASE: ${DB_DATABASE:-prolink}
+      MARIADB_USER: ${DB_USERNAME:-prolink}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mariadb-data:/var/lib/mysql
+      # Carga estrutural automática na primeira subida (edital 8.8: banco já carregado)
+      - ./_arq/estrutura.sql:/docker-entrypoint-initdb.d/01-estrutura.sql:ro
+      - ./_arq/carga-inicial.sql:/docker-entrypoint-initdb.d/02-carga-inicial.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: prolink-mailpit
+    ports:
+      - "8025:8025"   # interface web para conferir os e-mails da RF07 em desenvolvimento
+    restart: unless-stopped
+
+volumes:
+  mariadb-data:

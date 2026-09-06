@@ -1,0 +1,33 @@
+/* Pro-Link — ajustes sobre o Bootstrap 5.
+   Dado verificado pela API e dado autodeclarado nunca se confundem visualmente:
+   é a tradução em CSS do compromisso central da proposta. */
+
+:root {
+    --pl-verificado: #0f5132;
+    --pl-verificado-bg: #d1e7dd;
+    --pl-declarado: #664d03;
+    --pl-declarado-bg: #fff3cd;
+}
+
+.selo-art {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .8125rem;
+    font-weight: 600;
+    padding: .15rem .5rem;
+    border-radius: 999px;
+    color: var(--pl-verificado);
+    background: var(--pl-verificado-bg);
+}
+
+.dado-declarado {
+    border-left: 3px solid var(--pl-declarado);
+    background: var(--pl-declarado-bg);
+    padding: .5rem .75rem;
+}
+
+/* Sinalização de perfil em construção — inclui sem igualar ao experiente. */
+.perfil-em-construcao {
+    border-left: 3px solid #6c757d;
+}
