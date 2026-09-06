@@ -142,18 +142,6 @@ deixaria o sistema inconsistente:
 
 ## Onde o desenvolvimento continua
 
-O esqueleto tem front controller, roteador, camada de apresentação, conexão, cifragem, o cliente
-da API e as primitivas do motor. Falta implementar, na ordem do backlog:
-
-| Ordem | Bloco | RF |
-|---|---|---|
-| 1 | cadastro, login, RBAC, recuperação de senha, consentimento | RF01 |
-| 2 | validação de ART/CAT, portfólio, selo, visibilidade granular | RF02, RF03 |
-| 3 | publicação de demanda, seleção de códigos TOS | RF04 |
-| 4 | motor: pool, semente, explicação de critérios | RF04 |
-| 5 | manifestação, snapshot, canal de mensagem | RF05 |
-| 6 | painel admin, auditoria, denúncias, indicadores | RF06 |
-| 7 | notificações SMTP | RF07 |
-
-Os seis cenários mínimos do Anexo I, item 7, são a definição de pronto: cada um precisa rodar de
-ponta a ponta na demonstração ao vivo.
+A sequência de etapas, com datas, responsáveis, critério de pronto e o que cortar se apertar,
+está em `../docs/backlog.md`. A definição de pronto do MVP são os seis cenários mínimos do
+Anexo I, item 7, rodando ao vivo.

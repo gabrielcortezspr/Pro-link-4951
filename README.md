@@ -20,6 +20,7 @@ Guia completo de instalação, atualização e problemas comuns: [`_arq/README.m
 | Leia | Quando |
 |---|---|
 | [`docs/estado.md`](docs/estado.md) | ao retomar: onde parou e o próximo passo |
+| [`docs/backlog.md`](docs/backlog.md) | a sequência de etapas até a entrega, com critério de pronto |
 | [`docs/edital-requisitos.md`](docs/edital-requisitos.md) | antes de qualquer decisão de escopo, estrutura ou nomenclatura |
 | [`_arq/arquitetura.md`](_arq/arquitetura.md) | vai mexer no código: camadas, módulos, segurança, backlog |
 | [`_arq/estrutura-diretorios.md`](_arq/estrutura-diretorios.md) | onde cada coisa mora |
