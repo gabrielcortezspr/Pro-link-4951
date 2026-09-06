@@ -1,0 +1,82 @@
+{#
+  Macros de formulário. Acessibilidade embutida (edital 12.1): todo campo tem <label for>,
+  o erro é ligado ao campo por aria-describedby, e o estado inválido usa aria-invalid.
+
+  Uso:
+    {% import 'layout/_form.html.twig' as form %}
+    <form method="post">
+      {{ form.csrf() }}
+      {{ form.campo('email', 'E-mail', 'email', valores.email|default(''), erros.email|default(null), {autocomplete: 'email', required: true}) }}
+      {{ form.senha('senha', 'Senha', erros.senha|default(null)) }}
+      {{ form.selecao('perfil', 'Perfil', {'PROFISSIONAL': 'Profissional', 'EMPRESA': 'Empresa'}, valores.perfil|default(''), erros.perfil|default(null)) }}
+      {{ form.caixa('aceite', 'Li e aceito os Termos de Uso', valores.aceite|default(false), erros.aceite|default(null)) }}
+      {{ form.botao('Entrar') }}
+    </form>
+#}
+
+{% macro csrf() %}
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+{% endmacro %}
+
+{% macro campo(nome, rotulo, tipo = 'text', valor = '', erro = null, attrs = {}, ajuda = null) %}
+    {% set id = 'campo-' ~ nome %}
+    <div class="mb-3">
+        <label for="{{ id }}" class="form-label">{{ rotulo }}{% if attrs.required|default(false) %} <span class="text-danger" aria-hidden="true">*</span>{% endif %}</label>
+        <input type="{{ tipo }}" name="{{ nome }}" id="{{ id }}" value="{{ valor }}"
+               class="form-control{% if erro %} is-invalid{% endif %}"
+               {% if erro %}aria-invalid="true" aria-describedby="{{ id }}-erro"{% elseif ajuda %}aria-describedby="{{ id }}-ajuda"{% endif %}
+               {% for k, v in attrs %}{% if v is same as(true) %}{{ k }} {% elseif v is not same as(false) %}{{ k }}="{{ v }}" {% endif %}{% endfor %}>
+        {% if erro %}<div id="{{ id }}-erro" class="invalid-feedback">{{ erro }}</div>{% endif %}
+        {% if ajuda and not erro %}<div id="{{ id }}-ajuda" class="form-text">{{ ajuda }}</div>{% endif %}
+    </div>
+{% endmacro %}
+
+{% macro senha(nome, rotulo, erro = null, attrs = {}, ajuda = null) %}
+    {{ _self.campo(nome, rotulo, 'password', '', erro, {autocomplete: 'current-password', required: true}|merge(attrs), ajuda) }}
+{% endmacro %}
+
+{% macro area(nome, rotulo, valor = '', erro = null, attrs = {}, ajuda = null) %}
+    {% set id = 'campo-' ~ nome %}
+    <div class="mb-3">
+        <label for="{{ id }}" class="form-label">{{ rotulo }}{% if attrs.required|default(false) %} <span class="text-danger" aria-hidden="true">*</span>{% endif %}</label>
+        <textarea name="{{ nome }}" id="{{ id }}" rows="{{ attrs.rows|default(4) }}"
+                  class="form-control{% if erro %} is-invalid{% endif %}"
+                  {% if erro %}aria-invalid="true" aria-describedby="{{ id }}-erro"{% elseif ajuda %}aria-describedby="{{ id }}-ajuda"{% endif %}
+                  {% if attrs.required|default(false) %}required{% endif %}>{{ valor }}</textarea>
+        {% if erro %}<div id="{{ id }}-erro" class="invalid-feedback">{{ erro }}</div>{% endif %}
+        {% if ajuda and not erro %}<div id="{{ id }}-ajuda" class="form-text">{{ ajuda }}</div>{% endif %}
+    </div>
+{% endmacro %}
+
+{% macro selecao(nome, rotulo, opcoes, valor = '', erro = null, attrs = {}, vazio = 'Selecione…') %}
+    {% set id = 'campo-' ~ nome %}
+    <div class="mb-3">
+        <label for="{{ id }}" class="form-label">{{ rotulo }}{% if attrs.required|default(false) %} <span class="text-danger" aria-hidden="true">*</span>{% endif %}</label>
+        <select name="{{ nome }}" id="{{ id }}" class="form-select{% if erro %} is-invalid{% endif %}"
+                {% if erro %}aria-invalid="true" aria-describedby="{{ id }}-erro"{% endif %}
+                {% if attrs.required|default(false) %}required{% endif %}>
+            {% if vazio %}<option value="">{{ vazio }}</option>{% endif %}
+            {% for chave, texto in opcoes %}
+                <option value="{{ chave }}"{% if chave == valor %} selected{% endif %}>{{ texto }}</option>
+            {% endfor %}
+        </select>
+        {% if erro %}<div id="{{ id }}-erro" class="invalid-feedback">{{ erro }}</div>{% endif %}
+    </div>
+{% endmacro %}
+
+{% macro caixa(nome, rotulo, marcado = false, erro = null, attrs = {}) %}
+    {% set id = 'campo-' ~ nome %}
+    <div class="mb-3 form-check">
+        <input type="checkbox" name="{{ nome }}" id="{{ id }}" value="1"
+               class="form-check-input{% if erro %} is-invalid{% endif %}"
+               {% if marcado %}checked{% endif %}
+               {% if erro %}aria-invalid="true" aria-describedby="{{ id }}-erro"{% endif %}
+               {% if attrs.required|default(false) %}required{% endif %}>
+        <label for="{{ id }}" class="form-check-label">{{ rotulo|raw }}</label>
+        {% if erro %}<div id="{{ id }}-erro" class="invalid-feedback">{{ erro }}</div>{% endif %}
+    </div>
+{% endmacro %}
+
+{% macro botao(texto, tipo = 'primary', attrs = {}) %}
+    <button type="submit" class="btn btn-{{ tipo }}"{% for k, v in attrs %} {{ k }}="{{ v }}"{% endfor %}>{{ texto }}</button>
+{% endmacro %}

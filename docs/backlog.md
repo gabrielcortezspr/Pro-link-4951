@@ -40,14 +40,16 @@ Coisas pequenas que toda etapa seguinte usa. Fazer antes de qualquer RF.
   completo (8.7, 8.8). Quanto antes existir, mais histórico a banca vê.
 - `Support/Auditoria::registrar(acao, entidade, id, campo, antes, depois)` — todo serviço
   escreve por aqui. Insert-only já está garantido pelo trigger.
-- `Support/Sessao` — quem está logado, perfil, helpers `exigirPerfil()` e `usuarioAtual()`.
-  Middleware no front controller que lê o `$perfil` da rota e barra quem não pode.
+- `Support/Sessao` — quem está logado, perfil, expiração por inatividade, regeneração de id no
+  login. Middleware no front controller que lê os perfis da rota e barra quem não pode.
+- `Support/Requisicao` — IP e user agent num critério só, para auditoria e força bruta.
 - `Support/Flash` — mensagens de sucesso/erro entre requisições.
 - `templates/layout/_form.html.twig` — macros de campo com erro, label, `_csrf` embutido.
 - `tests/` com PHPUnit rodando: um teste de `Tos::afinidade` e um de `Crypto`. Não é exigido,
   mas "maturidade" vale 10 pontos e custa vinte minutos.
 
-**Pronto quando:** `composer test` passa, e uma rota marcada `ADMIN` devolve 403 para anônimo.
+**Pronto quando:** `composer test` passa; rota marcada `ADMIN` devolve 401 para anônimo e 403
+(com registro em `sis_auditoria`) para usuário de outro perfil.
 
 ---
 

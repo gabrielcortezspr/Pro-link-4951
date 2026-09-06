@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/_config.php';
 
-use ProLink\Support\Crypto;
+use ProLink\Support\Auditoria;
 use ProLink\Support\Database;
 
 function perguntar(string $rotulo, bool $oculto = false): string
@@ -84,18 +84,8 @@ Database::transacao(function (PDO $pdo) use ($nome, $email, $senha, $perfilId): 
 
     $usuarioId = (int) $pdo->lastInsertId();
 
-    $auditoria = $pdo->prepare(
-        'INSERT INTO sis_auditoria (aud_usu_id, aud_ip, aud_acao, aud_entidade, aud_entidade_id)
-         VALUES (:usuario, :ip, :acao, :entidade, :entidade_id)'
-    );
-
-    $auditoria->execute([
-        ':usuario'     => $usuarioId,
-        ':ip'          => 'cli',
-        ':acao'        => 'CRIAR_ADMIN',
-        ':entidade'    => 'sis_usuarios',
-        ':entidade_id' => $usuarioId,
-    ]);
+    Auditoria::registrar(Auditoria::CRIAR, 'sis_usuarios', $usuarioId, null, null,
+        ['perfil' => 'ADMIN', 'email' => $email], $usuarioId, $pdo);
 });
 
 fwrite(STDOUT, "Administrador criado. Entre em " . APP_URL . "/login\n");

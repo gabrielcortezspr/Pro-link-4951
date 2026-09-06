@@ -119,10 +119,10 @@ Nenhum campo vedado pelo item 12.2 existe no modelo.
 | Prepared statements em toda query | `Support/Database.php` + repositórios | 8.5c |
 | Escape de saída automático | Twig, `autoescape: html` | 8.5d |
 | Token CSRF em toda escrita | `Support/Csrf.php`, front controller | 8.5e |
-| Segregação de perfis | `sis_perfis` + perfil por rota no `Router` | 8.5f |
-| Trilha de auditoria imutável | `sis_auditoria` + triggers que bloqueiam UPDATE/DELETE | 8.5g |
+| Segregação de perfis | `sis_perfis`; perfis por rota no `Router`, conferidos a cada requisição em `public/index.php` via `Support/Sessao` | 8.5f |
+| Trilha de auditoria imutável | `Support/Auditoria` é o único caminho de escrita em `sis_auditoria`; triggers bloqueiam UPDATE/DELETE | 8.5g |
 | Cifragem em repouso de CPF/CNPJ | `Support/Crypto.php`, AES-256-GCM | 11.3 |
-| Expiração de sessão e bloqueio por tentativas | `sis_sessoes`, `sis_usuarios` | 11.3 |
+| Expiração de sessão e bloqueio por tentativas | `Support/Sessao` (inatividade, regeneração de id), `sis_sessoes`, `sis_usuarios` | 11.3 |
 | Consentimento revogável | `sis_consentimentos` | 11.3 |
 | Exclusão lógica | `_status = 'X'` em todas as tabelas | 8.6j |
 

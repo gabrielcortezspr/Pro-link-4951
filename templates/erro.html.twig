@@ -7,6 +7,9 @@
         <div class="col-lg-6 text-center py-5">
             <p class="display-6 mb-1">{{ codigo }}</p>
             <p class="text-body-secondary">{{ mensagem }}</p>
+            {% if codigo == 401 %}
+                <a class="btn btn-primary mt-3" href="{{ app_url }}/login">Entrar</a>
+            {% endif %}
             <a class="btn btn-outline-secondary mt-3" href="{{ app_url }}">Voltar ao início</a>
         </div>
     </div>

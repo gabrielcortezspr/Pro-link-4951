@@ -9,15 +9,17 @@ Máximo de ~30 linhas: se passar disso, algo aqui deveria estar num commit ou nu
 
 ## Onde parou
 
-Esqueleto validado de ponta a ponta no Docker (28 tabelas + view, front controller, cliente da
-API, primitivas do motor). Docs corrigidos contra a API real, configuração deduplicada, sistema de
-retomada montado e commitado. Nenhuma linha de RF escrita ainda.
+E0 concluída: `Sessao` (expiração, regeneração de id), `Flash`, `Auditoria` (caminho único de
+escrita), `Requisicao`, roteador com perfis múltiplos, autorização por requisição no front
+controller (401 anônimo / 403 perfil errado + auditoria), macros de formulário acessíveis,
+PHPUnit com 28 testes. Nenhuma linha de RF ainda.
 
 ## Próximo passo
 
-E0 do `docs/backlog.md`: criar o repositório no GitHub, `Support/Auditoria`, `Support/Sessao`
-com o middleware de perfil, `Support/Flash`, macros de formulário e o PHPUnit rodando. Meio dia.
-Depois E1 (RF01).
+E1 do `docs/backlog.md` (RF01). Começar por `src/Repository/UsuarioRepository.php` e
+`src/Service/AutenticacaoService.php`; primeira tela `templates/auth/cadastro.html.twig`
+usando as macros de `layout/_form.html.twig`. Aí a rota POST existe e o 419 do CSRF vira
+testável por HTTP.
 
 ## Decisões pendentes
 

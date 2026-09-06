@@ -24,10 +24,18 @@ final class Tos
         return array_map('intval', explode('.', $limpo));
     }
 
-    /** Ordena códigos pela hierarquia numérica, não pelo texto. */
+    /**
+     * Ordena códigos pela hierarquia numérica, não pelo texto.
+     *
+     * Armadilha do PHP: `<=>` entre arrays compara o TAMANHO antes dos elementos, então
+     * [1,1,2,1] seria "maior" que [10,1,1]. Preenchemos com zero até quatro níveis para a
+     * comparação ser elemento a elemento, como em Python. Pego por tests/Support/TosTest.php.
+     */
     public static function ordenar(array $codigos): array
     {
-        usort($codigos, static fn (string $a, string $b): int => self::niveis($a) <=> self::niveis($b));
+        $chave = static fn (string $c): array => array_pad(self::niveis($c), 4, 0);
+
+        usort($codigos, static fn (string $a, string $b): int => $chave($a) <=> $chave($b));
 
         return $codigos;
     }

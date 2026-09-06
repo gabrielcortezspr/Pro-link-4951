@@ -25,10 +25,12 @@ pro-link/
 ├── src/                     código da aplicação, namespace ProLink\
 │   ├── Controller/          recebe requisição, devolve resposta; sem regra de negócio
 │   ├── Service/             regra de negócio e integrações
-│   └── Support/             infraestrutura: Database, Router, View, Crypto, Csrf, Tos
+│   └── Support/             infraestrutura: Database, Router, View, Sessao, Flash, Auditoria,
+│                            Requisicao, Crypto, Csrf, Tos
 │
 ├── templates/               Twig (item 8.2: sem PHP no HTML)
-│   └── layout/              esqueleto e componentes reaproveitados
+│   ├── layout/              esqueleto, macros de formulário (_form) e componentes
+│   └── admin/               painel administrativo
 │
 ├── docker/                  Dockerfile do PHP, php.ini, virtual host do nginx
 ├── docs/                    documentação de projeto, edital e proposta
@@ -39,6 +41,5 @@ pro-link/
 ```
 
 Diretórios que entram conforme o backlog: `src/Repository/` e `src/Model/` (primeiro repositório
-da RF01), `templates/auth|perfil|demanda|admin/` (primeira tela de cada bloco), `tests/`
-(primeiro teste), `_arq/mer/` (quando o MER for gerado) e `_arq/migracoes/` (primeira alteração
-de schema após a entrega inicial).
+da RF01), `templates/auth|perfil|demanda/` (primeira tela de cada bloco), `_arq/mer/` (quando o
+MER for gerado) e `_arq/migracoes/` (primeira alteração de schema após a entrega inicial).

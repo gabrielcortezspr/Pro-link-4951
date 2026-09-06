@@ -24,18 +24,20 @@ final class View
         }
 
         $twig = new Environment(new FilesystemLoader(PATH_TEMPLATES), [
-            'cache'       => APP_DEBUG ? false : PATH_CACHE . '/twig',
-            'debug'       => APP_DEBUG,
-            'autoescape'  => 'html',
+            'cache'            => APP_DEBUG ? false : PATH_CACHE . '/twig',
+            'debug'            => APP_DEBUG,
+            'autoescape'       => 'html',
             'strict_variables' => APP_DEBUG,
         ]);
 
         $twig->addGlobal('app_url', APP_URL);
         $twig->addGlobal('url_img', URL_IMG);
         $twig->addGlobal('url_assets', URL_ASSETS);
-        $twig->addGlobal('usuario', $_SESSION['usuario'] ?? null);
 
+        // Funções, não globais: o valor é lido no momento do render, depois do login/logout.
+        $twig->addFunction(new TwigFunction('usuario', [Sessao::class, 'usuarioAtual']));
         $twig->addFunction(new TwigFunction('csrf_token', [Csrf::class, 'token']));
+        $twig->addFunction(new TwigFunction('flashes', [Flash::class, 'consumir']));
 
         self::$twig = $twig;
 
@@ -45,5 +47,19 @@ final class View
     public static function render(string $template, array $dados = []): string
     {
         return self::motor()->render($template, $dados);
+    }
+
+    /** Resposta de erro padronizada: status HTTP + template. */
+    public static function erro(int $codigo, string $mensagem): string
+    {
+        http_response_code($codigo);
+
+        return self::render('erro.html.twig', ['codigo' => $codigo, 'mensagem' => $mensagem]);
+    }
+
+    public static function redirecionar(string $caminho): never
+    {
+        header('Location: ' . APP_URL . $caminho, true, 303);
+        exit;
     }
 }
