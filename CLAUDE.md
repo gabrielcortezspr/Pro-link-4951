@@ -74,13 +74,14 @@ com trigger.
 - `aat_descricao` e `art_objeto` não discriminam ninguém. Só `tos_codigo` discrimina.
 - `tos_complementar` e `qut_dt_fim` nulos chegam como `null`, não string vazia.
 
-## Estado
+## Estado e retomada
 
-Proposta (Fase 1) aprovada. API testada de ponta a ponta em 06/09/2026, documentação corrigida
-contra as respostas reais, esqueleto do projeto validado no Docker (28 tabelas + 1 view, front
-controller, cliente da API, primitivas do motor). Implementação das RFs começa por RF01.
-O backlog ordenado está no fim de `_arq/arquitetura.md`.
+O estado vivo — onde parou, próximo passo, pendências — fica em `docs/estado.md`, sobrescrito a
+cada fechamento com `/encerrar`. O hook `SessionStart` (`.claude/settings.json` →
+`scripts/retomar.sh`) imprime esse arquivo, os últimos commits e o `git status` na abertura de
+toda sessão. Não repita nada disso aqui: `CLAUDE.md` é para o que não muda.
 
 Princípio de manutenção: **cada fato é escrito num lugar só.** Configuração de infraestrutura no
 `.env`, parâmetros do motor em `sis_parametros`, índice de documentação no `README.md`, regras de
-negócio do motor em `docs/matching.md`. Diretório só é criado quando o primeiro arquivo entra.
+negócio do motor em `docs/matching.md`, estado em `docs/estado.md`. Diretório só é criado quando
+o primeiro arquivo entra.

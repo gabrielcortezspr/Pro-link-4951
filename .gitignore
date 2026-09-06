@@ -1,6 +1,7 @@
 # segredos — nunca versionar
 .env
 .env.local
+.claude/settings.local.json
 
 # dependências
 /vendor/
