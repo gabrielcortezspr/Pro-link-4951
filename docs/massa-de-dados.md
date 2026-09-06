@@ -14,7 +14,6 @@ Use estes valores em todo teste: são eles que fazem a API responder.
 | `data/csv/cats.csv` | 100 |
 | `data/csv/modalidades.csv` | 25 |
 | `data/csv/tos.csv` | 2000 |
-| `data/prolink-massa-de-dados.xlsx` | tudo acima, em abas, para inspeção manual |
 
 Ao importar, force o tipo string nas colunas de identificador:
 

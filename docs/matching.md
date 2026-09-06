@@ -193,28 +193,16 @@ ter guardado o CPF (cifrado). É uma decisão de LGPD consciente, não um descui
 
 ## Índice local
 
-```
-candidato
-  tipo            profissional | empresa
-  id              rnp | registro_crea      (string)
+É a view `crea_evidencias` em `_arq/estrutura.sql`: uma linha por (candidato, código TOS, ART,
+CAT), com os quatro níveis do código em colunas. Não é tabela — deriva de `crea_arts`,
+`crea_art_atividades`, `crea_tos`, `crea_cat_arts` e `crea_quadro_tecnico`, então nunca sai de
+sincronia e não tem código de manutenção. A regra de herança da empresa (só vínculo vigente,
+`qut_dt_fim IS NULL`) mora na view e em nenhum outro lugar.
 
-evidencia
-  candidato_id
-  tos_codigo                                TOS_1.1.2.1
-  nivel1..nivel4                            inteiros, indexados
-  art_numero
-  art_situacao, art_forma_registro
-  art_local_uf, art_local_municipio         só profissional; o CAO não traz
-  cat_numero (nulo se não certificada)
-  cat_dt_validade
-  pro_rnp                                   dono da ART, relevante para empresa
-  qut_dt_fim                                nulo = vínculo vigente
-  fetched_at
-```
-
-Com os quatro níveis em colunas indexadas, a seleção do pool vira query em vez de varredura, e o
-motor roda inteiro local. A API só é chamada em dois momentos: no cadastro ou atualização de um
-candidato, e na validação de um documento que alguém informou manualmente.
+Com os níveis em colunas, a seleção do pool vira uma query com `WHERE evi_nivel1 = ? AND
+evi_nivel2 = ?` sobre índices existentes, e o motor roda inteiro local. A API só é chamada em
+dois momentos: no cadastro ou atualização de um candidato, e na validação de um documento
+informado manualmente.
 
 ## Cenários de demonstração
 

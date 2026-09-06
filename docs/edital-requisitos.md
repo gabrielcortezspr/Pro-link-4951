@@ -1,6 +1,6 @@
 # Requisitos do Edital
 
-Destilado de `Edital-CREA.pdf` (25 páginas) e do seu Anexo I — Termo de Referência. O que está
+Destilado de `edital.pdf` (25 páginas) e do seu Anexo I — Termo de Referência. O que está
 aqui é obrigatório ou avaliado. A numeração é a do edital, para citar na documentação de entrega.
 
 ## Prazos

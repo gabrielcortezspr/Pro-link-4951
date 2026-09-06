@@ -5,47 +5,32 @@ Plataforma que liga demandas técnicas a profissionais e empresas registrados no
 
 Desafio CREA Pro-Link · II CENATEC 2026 · CREA-AM.
 
-## Subir o projeto
-
 ```bash
-cp .env.example .env      # preencha APP_KEY, DB_PASSWORD e PROLINK_API_TOKEN
+cp .env.example .env      # preencha APP_KEY, DB_PASSWORD, DB_ROOT_PASSWORD e PROLINK_API_TOKEN
 docker compose up -d --build
 docker compose exec php composer install
 docker compose exec php php scripts/criar-admin.php
 curl -s http://localhost:8080/saude
 ```
 
-O passo a passo completo, com requisitos e solução de problemas, está em
-[`_arq/README.md`](_arq/README.md).
-
-## Onde está o quê
-
-| Caminho | Conteúdo |
-|---|---|
-| `_arq/` | documentação de entrega exigida pelo edital: SQL, MER, README, arquitetura, dependências |
-| `_config.php` | configuração central (item 8.3.1 do edital) |
-| `public/` | document root; front controller |
-| `src/` | Controller, Service, Repository, Model, Support |
-| `templates/` | Twig |
-| `docker/` | ambiente reproduzível |
-| `docs/` | documentação de projeto: API, modelo de dados, motor, requisitos do edital |
-| `data/` | massa fictícia da organização |
-| `fixtures/` | respostas reais da API, para desenvolver sem chamá-la |
-| `scripts/` | utilitários de linha de comando |
+Guia completo de instalação, atualização e problemas comuns: [`_arq/README.md`](_arq/README.md).
 
 ## Documentação
 
-| Arquivo | Quando ler |
+| Leia | Quando |
 |---|---|
-| [`CLAUDE.md`](CLAUDE.md) | orientação para qualquer agente que abrir o repositório |
-| [`docs/edital-requisitos.md`](docs/edital-requisitos.md) | o que o edital exige, destilado |
-| [`docs/glossario.md`](docs/glossario.md) | ART, CAT, CAO, RNP, TOS |
-| [`docs/api.md`](docs/api.md) | base URL, token, paginação, erros |
+| [`docs/edital-requisitos.md`](docs/edital-requisitos.md) | antes de qualquer decisão de escopo, estrutura ou nomenclatura |
+| [`_arq/arquitetura.md`](_arq/arquitetura.md) | vai mexer no código: camadas, módulos, segurança, backlog |
+| [`_arq/estrutura-diretorios.md`](_arq/estrutura-diretorios.md) | onde cada coisa mora |
+| [`_arq/estrutura.sql`](_arq/estrutura.sql) | nome de tabela, coluna ou view |
+| [`docs/matching.md`](docs/matching.md) | vai mexer no motor de compatibilização |
+| [`docs/api.md`](docs/api.md) | vai chamar a API: base, token, paginação, erros |
 | [`docs/endpoints.md`](docs/endpoints.md) | os 10 endpoints com respostas reais |
 | [`docs/modelo-de-dados.md`](docs/modelo-de-dados.md) | entidades da API e anatomia do código TOS |
 | [`docs/massa-de-dados.md`](docs/massa-de-dados.md) | o que existe na base fictícia |
-| [`docs/matching.md`](docs/matching.md) | desenho do motor de compatibilização |
-| [`_arq/arquitetura.md`](_arq/arquitetura.md) | como a aplicação está construída |
+| [`docs/glossario.md`](docs/glossario.md) | ART, CAT, CAO, RNP, TOS |
+| [`fixtures/`](fixtures/) | uma resposta real por endpoint, para desenvolver sem chamar a API |
+| [`docs/edital.pdf`](docs/edital.pdf) · [`docs/proposta-fase1.pdf`](docs/proposta-fase1.pdf) | os originais |
 
 ## Equipe
 

@@ -36,11 +36,12 @@ final class Tos
      * Afinidade entre um código da demanda e um do acervo: quantos componentes iniciais
      * coincidem. Coincidência total dos dois códigos é o caso máximo, tratado à parte porque
      * TOS_1.1.6 (três níveis) e TOS_1.1.6.2 (quatro) não são a mesma atividade.
+     *
+     * @param array<int, float> $pesos índice 0..4 = componentes iguais; vem de sis_parametros
+     *                                 (chave match.afinidade.niveis), nunca de constante.
      */
-    public static function afinidade(string $demanda, string $acervo, ?array $pesos = null): float
+    public static function afinidade(string $demanda, string $acervo, array $pesos): float
     {
-        $pesos = $pesos ?? MATCH_PESOS_AFINIDADE;
-
         $a = self::niveis($demanda);
         $b = self::niveis($acervo);
 
@@ -62,11 +63,16 @@ final class Tos
         return (float) $pesos[min($iguais, 3)];
     }
 
-    /** Normaliza texto para comparação: sem acento, sem caixa. */
+    /**
+     * Normaliza texto para comparação: NFD, remove marcas diacríticas, casefold.
+     * Mesmo procedimento do exemplo em docs/api.md. Não usar iconv//TRANSLIT: no Alpine (musl)
+     * ele devolve "amaz^onia" em vez de "amazonia".
+     */
     public static function normalizar(string $texto): string
     {
-        $semAcento = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $texto);
+        $decomposto = \Normalizer::normalize($texto, \Normalizer::FORM_D) ?: $texto;
+        $semMarcas  = preg_replace('/\p{Mn}+/u', '', $decomposto) ?? $decomposto;
 
-        return mb_strtolower(trim($semAcento === false ? $texto : $semAcento), 'UTF-8');
+        return mb_strtolower(trim($semMarcas), 'UTF-8');
     }
 }

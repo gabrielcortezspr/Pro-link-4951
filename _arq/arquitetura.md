@@ -3,8 +3,8 @@
 Exigido pelo edital, Anexo I, item 8.3.2d: arquitetura, componentes, módulos, integrações e
 principais regras de negócio.
 
-A estrutura de pastas e o desenho em camadas estão em `estrutura-diretorios.md`. Este documento
-trata do que a aplicação faz e por quê.
+A árvore de diretórios está em `estrutura-diretorios.md`. Este documento trata de como a
+aplicação é construída e por quê.
 
 ## Visão geral
 
@@ -40,16 +40,34 @@ Necessidade → Atividade TOS → Capacidade comprovada → Profissional / Empre
 | `mariadb` | MariaDB 10.11 | persistência; carga inicial automática |
 | `mailpit` | Mailpit | captura de e-mail em desenvolvimento |
 
+## Camadas
+
+O edital exige MVC ou equivalente com separação de apresentação, regra de negócio e acesso a
+dados (itens 8.1.1c e 8.2). Adotamos MVC com **camada de serviço**:
+
+```
+public/index.php  →  Controller  →  Service  →  Repository  →  MariaDB
+                          ↓             ↓
+                        Twig     CreaApiClient → API oficial
+```
+
+O motor de compatibilização, o cliente da API, a auditoria e o selo de integridade têm lógica
+demais para caber num controller. Controllers ficam finos; serviços concentram regra e limites
+de segurança; repositórios são o único lugar que escreve SQL, sempre com prepared statement.
+
+Cada camada só conhece a de baixo. Nada volta para cima: repositório não instancia controller,
+serviço não monta HTML. Dependência externa entra por construtor.
+
 ## Módulos do banco
 
 | Prefixo | O quê | Tabelas |
 |---|---|---|
 | `sis_` | identidade, privacidade, auditoria, parâmetros | 9 |
-| `crea_` | cache das respostas da API oficial | 8 |
+| `crea_` | cache das respostas da API oficial | 7 + view `crea_evidencias` |
 | `pro_` | domínio: perfis, demandas, manifestações, moderação | 10 |
 | `mat_` | sessões do motor, com semente e pool auditáveis | 2 |
 
-O MER está em `mer/`. O script completo, com índices, chaves e triggers, em `estrutura.sql`.
+O script completo, com índices, chaves, a view e os triggers, está em `estrutura.sql`. O MER entra em `mer/` quando for gerado.
 
 ## Integração com a API oficial (RF02)
 
@@ -57,25 +75,11 @@ O MER está em `mer/`. O script completo, com índices, chaves e triggers, em `e
 endpoints. Os formatos e comportamentos foram confirmados contra a API real e estão detalhados
 em `../docs/endpoints.md`, com uma resposta de referência por endpoint em `../fixtures/`.
 
-Quatro regras que o cliente impõe por construção:
-
-**Identificador é string.** `pro_rnp` (`"0412340011"`) e `emp_cnpj` (`"00123001000123"`) têm zero
-à esquerda; convertidos a inteiro, a busca devolve 404.
-
-**Não existe método de listagem em massa.** O item 10.4 do edital proíbe coleta automatizada e
-toda chamada é registrada pela organização. A API é consultada em dois momentos apenas: quando
-um candidato se cadastra ou pede atualização, e quando alguém informa um documento para validar.
-
-**`200 []` e `404` significam coisas diferentes.** Array vazio quer dizer que a chave é válida
-mas nada casou — na validação de documento, é uma reprovação legítima ("essa ART não é sua").
-`404` quer dizer que o identificador não existe na base do CREA. A interface trata os dois de
-forma distinta; o cliente devolve `null` no primeiro caso e lança `NaoEncontradoException` no
-segundo.
-
-**O cache não substitui a API.** `crea_*` guarda o que a API respondeu, com `_dt_consulta` e hash
-de integridade, e é reconstruível a partir dela. Nenhuma consulta de validação é atendida pelo
-cache. O item 8.4 do edital veda base própria que **simule** os dados da API; cache de resposta
-real, documentado como tal e datado, é outra coisa — mas vale a distinção estar escrita.
+O cliente impõe por construção que identificador é string, que não existe listagem em massa (item
+10.4 do edital) e que `200 []` e `404` são coisas diferentes — devolve `null` no primeiro caso e
+lança `NaoEncontradoException` no segundo. As tabelas `crea_*` são cache datado e com hash da
+resposta real, reconstruível; nunca fonte para validação de documento (item 8.4). As regras e o
+raciocínio estão em `../docs/api.md`.
 
 ### Selo ART (integridade)
 
@@ -94,35 +98,18 @@ específico é registrado em `sis_consentimentos` com a finalidade `CONSULTA_API
 
 ## Motor de compatibilização (RF04)
 
-O desenho completo está em `../docs/matching.md`. O resumo do que o código faz:
+Desenho completo, pesos e justificativas em `../docs/matching.md`. O que o código faz:
 
-1. A demanda vira um conjunto de códigos TOS (`pro_demanda_tos`), com peso por código.
-2. Cada candidato tem seu acervo indexado em `crea_evidencias`, com os quatro níveis do código
-   em colunas separadas e indexadas.
-3. A afinidade entre dois códigos é o número de componentes iniciais iguais — `src/Support/Tos.php`.
-4. Seis dimensões viram um score composto: competência via ART/CAT, área de atuação e
-   localização (verificadas pela API) somam 0.70; experiência declarada, tipo de contrato e
-   disponibilidade (autodeclaradas) somam 0.30.
-5. Score acima do limiar entra no pool. **O score não ordena.**
+1. A demanda vira códigos TOS (`pro_demanda_tos`), com peso por código.
+2. O acervo de cada candidato é lido da view `crea_evidencias`, com os níveis do código em
+   colunas indexadas.
+3. A afinidade entre dois códigos é o número de componentes iniciais iguais — `Support\Tos`.
+4. Seis dimensões (item 3.2 do edital) viram um score composto; acima do limiar entra no pool.
+5. **O score não ordena** — o item 10.1 veda ranking. A semente da sessão ordena, e `mat_sessoes`
+   guarda semente, limiar, pesos e pool para o administrador reproduzir qualquer sessão.
 
-### Por que não há ranking
-
-O item 10.1 do edital veda "ranking de profissionais", e o 10.2 diz que a correspondência é
-apenas indicativa. Ordenar por score é ranking, com outro nome. Então:
-
-```
-score      →  decide QUEM ENTRA no pool (limiar)
-semente    →  decide EM QUE ORDEM o pool aparece
-critérios  →  mostram POR QUE cada um entrou
-```
-
-A semente é gerada por sessão e gravada em `mat_sessoes` junto com limiar, pesos vigentes e
-`pool_ids`. Qualquer sessão passada é reproduzível pelo administrador — atende de uma vez os
-itens 10.1, 12.3 e 8.5g. Os pesos e o limiar são editáveis em `sis_parametros` pelo painel
-administrativo, o que satisfaz a exigência de supervisão humana do item 12.3.
-
-O item 12.2 veda correspondência por raça, cor, sexo, gênero, deficiência, idade, religião,
-origem ou condição social. Nenhum desses campos existe no modelo de dados.
+Pesos e limiar vivem em `sis_parametros`, editáveis pelo painel — supervisão humana do item 12.3.
+Nenhum campo vedado pelo item 12.2 existe no modelo.
 
 ## Segurança
 

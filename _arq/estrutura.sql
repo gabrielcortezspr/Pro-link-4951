@@ -15,6 +15,7 @@
 --   sis_   identidade, privacidade, auditoria e parâmetros
 --   pro_   domínio Pro-Link: perfis, demandas, manifestações, moderação
 --   crea_  cache das respostas da API oficial (reconstruível — ver docs/matching.md)
+--          + a view crea_evidencias, que o motor consulta
 --   mat_   sessões do motor de compatibilização (semente e pool auditáveis)
 -- =====================================================================================
 
@@ -346,37 +347,6 @@ CREATE TABLE crea_quadro_tecnico (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
--- Índice de evidência: uma linha por (candidato, código TOS, ART). É a tabela que o motor
--- consulta. Desnormalizada de propósito — com os quatro níveis indexados, a seleção do pool
--- vira uma query em vez de varredura em PHP.
-CREATE TABLE crea_evidencias (
-  evi_id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  evi_candidato_tipo CHAR(1)     NOT NULL COMMENT 'P = profissional, E = empresa',
-  evi_candidato_id   BIGINT UNSIGNED NOT NULL COMMENT 'prf_id ou emp_id',
-  evi_tos_codigo     VARCHAR(30) NOT NULL,
-  evi_nivel1         SMALLINT UNSIGNED NOT NULL,
-  evi_nivel2         SMALLINT UNSIGNED NULL,
-  evi_nivel3         SMALLINT UNSIGNED NULL,
-  evi_nivel4         SMALLINT UNSIGNED NULL,
-  evi_art_numero     VARCHAR(20) NOT NULL,
-  evi_art_situacao   VARCHAR(30) NULL,
-  evi_art_local_uf   CHAR(2)     NULL,
-  evi_art_local_municipio VARCHAR(120) NULL,
-  evi_cat_numero     VARCHAR(20) NULL COMMENT 'NULL = ART não certificada por CAT',
-  evi_cat_dt_validade DATE       NULL,
-  evi_pro_rnp        VARCHAR(10) NOT NULL COMMENT 'dono da ART; para empresa, quem do quadro',
-  evi_dt_consulta    DATETIME    NOT NULL,
-  evi_dt_registro    DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  evi_log            TEXT        NULL,
-  evi_status         CHAR(1)     NOT NULL DEFAULT 'A',
-  CONSTRAINT pk_evi_id PRIMARY KEY (evi_id),
-  CONSTRAINT uq_evi_candidato_tos_art UNIQUE (evi_candidato_tipo, evi_candidato_id, evi_tos_codigo, evi_art_numero),
-  INDEX ix_evi_hierarquia (evi_nivel1, evi_nivel2, evi_nivel3, evi_nivel4),
-  INDEX ix_evi_candidato (evi_candidato_tipo, evi_candidato_id),
-  INDEX ix_evi_tos (evi_tos_codigo)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
 -- =====================================================================================
 -- MÓDULO pro — domínio Pro-Link
 -- =====================================================================================
@@ -620,6 +590,63 @@ CREATE TABLE mat_sessao_pool (
   CONSTRAINT uq_msp_sessao_candidato UNIQUE (msp_mts_id, msp_candidato_tipo, msp_candidato_id),
   CONSTRAINT fk_msp_mts_id FOREIGN KEY (msp_mts_id) REFERENCES mat_sessoes (mts_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- =====================================================================================
+-- VIEW crea_evidencias — o que o motor de compatibilização consulta
+--
+-- Uma linha por (candidato, código TOS, ART, CAT). Não é tabela: é derivada das tabelas
+-- crea_* e pro_* acima, logo nunca sai de sincronia e não precisa de código de manutenção.
+-- Os índices ix_ata_tos, ix_tos_hierarquia, ix_art_rnp e ix_qut_pro servem a ela.
+--
+-- A regra de herança da empresa mora aqui e só aqui: a empresa vê a ART de um profissional
+-- apenas enquanto o vínculo de quadro técnico está vigente (qut_dt_fim IS NULL).
+-- =====================================================================================
+
+CREATE OR REPLACE VIEW crea_evidencias AS
+SELECT
+  'P'                     AS evi_candidato_tipo,
+  p.prf_id                AS evi_candidato_id,
+  t.tos_codigo            AS evi_tos_codigo,
+  t.tos_nivel1            AS evi_nivel1,
+  t.tos_nivel2            AS evi_nivel2,
+  t.tos_nivel3            AS evi_nivel3,
+  t.tos_nivel4            AS evi_nivel4,
+  a.art_numero            AS evi_art_numero,
+  a.art_situacao          AS evi_art_situacao,
+  a.art_local_uf          AS evi_art_local_uf,
+  a.art_local_municipio   AS evi_art_local_municipio,
+  c.cat_numero            AS evi_cat_numero,
+  c.cat_dt_validade       AS evi_cat_dt_validade,
+  a.art_pro_rnp           AS evi_pro_rnp,
+  a.art_dt_consulta       AS evi_dt_consulta
+FROM crea_arts a
+JOIN crea_art_atividades ata ON ata.ata_art_id = a.art_id AND ata.ata_status = 'A'
+JOIN crea_tos t              ON t.tos_codigo = ata.ata_tos_codigo
+JOIN pro_profissionais p     ON p.prf_rnp = a.art_pro_rnp AND p.prf_status = 'A'
+LEFT JOIN crea_cat_arts cta  ON cta.cta_art_id = a.art_id AND cta.cta_status = 'A'
+LEFT JOIN crea_cats c        ON c.cat_id = cta.cta_cat_id AND c.cat_status = 'A'
+WHERE a.art_status = 'A'
+
+UNION ALL
+
+SELECT
+  'E',
+  e.emp_id,
+  t.tos_codigo,
+  t.tos_nivel1, t.tos_nivel2, t.tos_nivel3, t.tos_nivel4,
+  a.art_numero, a.art_situacao, a.art_local_uf, a.art_local_municipio,
+  c.cat_numero, c.cat_dt_validade,
+  a.art_pro_rnp,
+  a.art_dt_consulta
+FROM crea_arts a
+JOIN crea_art_atividades ata ON ata.ata_art_id = a.art_id AND ata.ata_status = 'A'
+JOIN crea_tos t              ON t.tos_codigo = ata.ata_tos_codigo
+JOIN crea_quadro_tecnico q   ON q.qut_pro_rnp = a.art_pro_rnp AND q.qut_status = 'A' AND q.qut_dt_fim IS NULL
+JOIN pro_empresas e          ON e.emp_registro_crea = q.qut_emp_registro_crea AND e.emp_status = 'A'
+LEFT JOIN crea_cat_arts cta  ON cta.cta_art_id = a.art_id AND cta.cta_status = 'A'
+LEFT JOIN crea_cats c        ON c.cat_id = cta.cta_cat_id AND c.cat_status = 'A'
+WHERE a.art_status = 'A';
 
 
 -- =====================================================================================

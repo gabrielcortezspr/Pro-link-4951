@@ -117,25 +117,6 @@ define('LOGIN_LOCKOUT_MINUTES', (int) env('LOGIN_LOCKOUT_MINUTES', 15));
 /** Algoritmo de hash de senha — edital 8.5b exige password_hash(). */
 define('PASSWORD_ALGO', PASSWORD_ARGON2ID);
 
-// ---------------------------------------------------------------- motor de compatibilização
-//
-// Padrões de arranque. Em execução, quem manda é a tabela sis_parametros, editável pelo
-// administrador — o item 12.3 do edital exige supervisão humana sobre os critérios.
-
-define('MATCH_LIMIAR', (float) env('MATCH_LIMIAR', 0.35));
-
-const MATCH_PESOS_DIMENSAO = [
-    'competencia'     => 0.40,   // afinidade TOS sobre ART/CAT — verificado pela API
-    'area'            => 0.15,   // modalidade x grupo TOS       — verificado pela API
-    'localizacao'     => 0.15,   // local da ART x local da demanda — verificado pela API
-    'experiencia'     => 0.10,   // autodeclarado
-    'contrato'        => 0.10,   // autodeclarado
-    'disponibilidade' => 0.10,   // autodeclarado
-];
-
-/** Peso da afinidade por número de componentes iniciais iguais do código TOS. Ver docs/matching.md. */
-const MATCH_PESOS_AFINIDADE = [0 => 0.00, 1 => 0.15, 2 => 0.40, 3 => 0.75, 4 => 1.00];
-
 // ---------------------------------------------------------------- constantes de domínio
 
 const PERFIL_PUBLICO      = 'PUBLICO';

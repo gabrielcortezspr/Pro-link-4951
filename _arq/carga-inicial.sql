@@ -26,8 +26,8 @@ INSERT INTO sis_perfis (per_codigo, per_nome, per_descricao) VALUES
   ('ADMIN',        'Administrador',            'Painel de moderação, auditoria e configuração');
 
 -- ------------------------------------------------------------------ parâmetros da aplicação
--- Os pesos e o limiar do motor são editáveis pelo administrador: o item 12.3 do edital exige
--- supervisão humana sobre os critérios de recomendação.
+-- Única fonte dos parâmetros do motor. Editáveis pelo administrador — o item 12.3 do edital exige
+-- supervisão humana sobre os critérios. Infraestrutura (banco, SMTP, sessão) fica no .env.
 INSERT INTO sis_parametros (par_chave, par_valor, par_tipo, par_grupo, par_descricao, par_sensivel) VALUES
   ('match.limiar',                  '0.35',  'NUMERO', 'MATCHING',  'Score mínimo para entrar no pool de compatíveis', 0),
   ('match.peso.competencia',        '0.40',  'NUMERO', 'MATCHING',  'Peso da afinidade TOS sobre ARTs e CATs (verificado)', 0),
@@ -38,14 +38,7 @@ INSERT INTO sis_parametros (par_chave, par_valor, par_tipo, par_grupo, par_descr
   ('match.peso.disponibilidade',    '0.10',  'NUMERO', 'MATCHING',  'Peso da disponibilidade geográfica (autodeclarada)', 0),
   ('match.afinidade.niveis',        '[0.00,0.15,0.40,0.75,1.00]', 'JSON', 'MATCHING', 'Peso por número de componentes iniciais iguais do código TOS', 0),
   ('match.early_career.min_arts',   '3',     'NUMERO', 'MATCHING',  'Abaixo disso o perfil é sinalizado como em construção, sem sair do pool', 0),
-  ('seguranca.sessao.minutos',      '120',   'NUMERO', 'SEGURANCA', 'Tempo de vida da sessão', 0),
-  ('seguranca.login.tentativas',    '5',     'NUMERO', 'SEGURANCA', 'Tentativas antes do bloqueio temporário', 0),
-  ('seguranca.login.bloqueio_min',  '15',    'NUMERO', 'SEGURANCA', 'Duração do bloqueio por força bruta', 0),
-  ('api.sincronizacao.horas',       '24',    'NUMERO', 'GERAL',     'Intervalo mínimo entre sincronizações de status do profissional', 0),
-  ('smtp.host',                     '',      'TEXTO',  'SMTP',      'Servidor SMTP (sobrescreve o .env quando preenchido)', 0),
-  ('smtp.porta',                    '587',   'NUMERO', 'SMTP',      'Porta SMTP', 0),
-  ('smtp.usuario',                  '',      'TEXTO',  'SMTP',      'Usuário SMTP', 0),
-  ('smtp.senha',                    '',      'TEXTO',  'SMTP',      'Senha SMTP', 1);
+  ('api.sincronizacao.horas',       '24',    'NUMERO', 'GERAL',     'Intervalo mínimo entre sincronizações de status do profissional', 0);
 
 -- ------------------------------------------------------------------ termos (placeholder)
 INSERT INTO sis_termos (ter_tipo, ter_versao, ter_conteudo, ter_dt_vigencia) VALUES

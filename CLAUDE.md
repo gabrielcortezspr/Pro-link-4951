@@ -25,18 +25,7 @@ Tudo isso é exigência do edital, não escolha. Python em `scripts/` é só fer
 
 ## Índice
 
-| Arquivo | Quando ler |
-|---|---|
-| `docs/edital-requisitos.md` | Antes de qualquer decisão de escopo, estrutura ou nomenclatura |
-| `docs/glossario.md` | Não sabe o que é ART, CAT, CAO, RNP, TOS |
-| `docs/api.md` | Vai fazer uma chamada: base URL, token, paginação, erros |
-| `docs/endpoints.md` | Precisa do endpoint certo e do formato **real** da resposta |
-| `docs/modelo-de-dados.md` | Precisa entender como as entidades se ligam e como o código TOS é montado |
-| `docs/massa-de-dados.md` | Vai testar e precisa de identificadores que existem |
-| `docs/matching.md` | Vai mexer no motor de compatibilização |
-| `_arq/arquitetura.md` | Vai mexer no código e precisa saber onde cada coisa mora |
-| `_arq/estrutura.sql` | Precisa de nome de tabela ou coluna |
-| `fixtures/` | Precisa de uma resposta real da API sem chamá-la |
+A tabela "leia X quando Y" está no `README.md`. Não a duplique aqui.
 
 ## Regras que não podem ser quebradas
 
@@ -88,6 +77,10 @@ com trigger.
 ## Estado
 
 Proposta (Fase 1) aprovada. API testada de ponta a ponta em 06/09/2026, documentação corrigida
-contra as respostas reais, esqueleto do projeto pronto (Docker, schema com 29 tabelas, front
+contra as respostas reais, esqueleto do projeto validado no Docker (28 tabelas + 1 view, front
 controller, cliente da API, primitivas do motor). Implementação das RFs começa por RF01.
 O backlog ordenado está no fim de `_arq/arquitetura.md`.
+
+Princípio de manutenção: **cada fato é escrito num lugar só.** Configuração de infraestrutura no
+`.env`, parâmetros do motor em `sis_parametros`, índice de documentação no `README.md`, regras de
+negócio do motor em `docs/matching.md`. Diretório só é criado quando o primeiro arquivo entra.
