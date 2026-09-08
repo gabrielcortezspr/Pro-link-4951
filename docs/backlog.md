@@ -94,6 +94,8 @@ por 15 minutos; a exportação devolve JSON; `sis_auditoria` mostra tudo isso.
 > mescla que não apaga campo preenchido e Selo ART cobrindo as atividades (D17, D18). Verificado
 > por `scripts/verificar-e2.php`: 28 conferências contra o banco, sem gastar chamada da API.
 >
+> A herança pelo CAO ficou destravada de graça: a regra é binária e a view já a implementa (D19).
+>
 > Falta, na ordem: cadastro de Profissional e de Empresa chamando a API (`prf_*`, `pro_empresas`,
 > modalidades), CATs, herança de acervo pelo CAO, visibilidade granular, perfil público com o
 > selo na tela, experiência autodeclarada e `sincronizar-status.php`.
