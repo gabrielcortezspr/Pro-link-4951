@@ -22,7 +22,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | Fundação (antes da E0) | D01, D02, D03, D04, D05 |
 | E0 — fundação que faltou | D06 |
 | E1 — identidade e consentimento | D07, D08, D09, D10, D11, D12 |
-| E2 — integração com a API | D13, D14, D15, D16, D17, D18 |
+| E2 — integração com a API | D13, D14, D15, D16, D17, D18, D19 |
 
 ---
 
@@ -492,3 +492,37 @@ dentro de transação.
 Na mesma decisão entrou a ordem das duas chamadas de `associarArt`: `validarArt` antes de
 `atividadesDaArt`, porque o endpoint de atividades não pede RNP e responde para qualquer número
 válido. Invertida, alguém traria para o próprio portfólio o escopo de uma ART alheia.
+
+---
+
+## D19 · A herança de acervo pela empresa é binária, porque a API não datar ART não deixa alternativa
+
+`08/09/2026` · E2 · commit a seguir · `_arq/estrutura.sql` (view `crea_evidencias`), `docs/matching.md`
+
+**Contexto.** Três documentos nossos afirmavam que a empresa só herda a ART registrada **enquanto
+o vínculo do profissional estava vigente**. É a regra correta no mundo real, e soa bem numa
+apresentação. Ao escrever o `PortfolioService` fomos conferir os campos para implementá-la:
+nenhum endpoint da API devolve data de ART. Nem `?p=profissionais/{rnp}/arts`, nem o CAO, nem
+`?p=arts&rnp=&art_numero=`. Os campos são número, tipo, forma de registro, contratante, objeto,
+local e situação — e só. Sem data de ART, `qut_dt_fim` não tem com o que ser comparado.
+
+**Decisão.** A regra é binária e vale para o presente: vínculo com `qut_dt_fim IS NULL` herda o
+acervo daquele profissional; vínculo encerrado não herda nada dele. Está implementada na view
+`crea_evidencias` e em nenhum outro lugar. As três afirmações de recorte temporal foram
+corrigidas em `endpoints.md`, `modelo-de-dados.md` e `matching.md`, e o comentário da view
+passou a avisar por que não se deve tentar refinar.
+
+**Alternativa recusada.** Inferir a data da ART. Havia dois caminhos e os dois foram descartados.
+O primeiro, ler o ano embutido no número (`AM` **2026** `9999001`): daria só o ano, e nesta massa
+as 290 ARTs são todas de 2026, então não separaria nada. O segundo, usar `cat_dt_emissao` da CAT
+que agrupa a ART como limite superior — as CATs são a única parte da API que traz data útil — mas
+seria um palpite apresentado como fato num índice de evidência, cobriria apenas ARTs certificadas
+por CAT, e nesta massa todas as 100 CATs têm emissão em `2026-01-15`, o que empata todo mundo.
+Escrever um filtro temporal sobre data inferida seria pior do que não ter filtro: daria a impressão
+de rigor sem o rigor.
+
+**Consequência.** Nenhuma linha de código muda — a view já era binária; o que estava errado era a
+prosa, e ela estava prestes a virar código. A limitação passa a ser declarável em vez de
+escondida, o que interessa para a declaração de limitações do item 12.3. E fica registrado o
+padrão: quando um documento nosso e a API discordarem, a API ganha e o documento é corrigido com
+a data — foi o mesmo caminho da D07 e da estrutura do CAO.

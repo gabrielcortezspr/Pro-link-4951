@@ -84,9 +84,14 @@ atividades aninhadas, mais o local de cada uma. `?p=profissionais/{rnp}/cats` ma
 chamada, com o quadro técnico e as ARTs de cada profissional. Complementar com
 `?p=empresas/{registro}/quadro-tecnico`, que traz `qut_dt_inicio` e `qut_dt_fim`.
 
-**Regra de herança do acervo da empresa:** a empresa só herda a ART de um profissional cujo
-vínculo estava vigente. `qut_dt_fim` não nulo encerra o vínculo, e o CAO não filtra isso sozinho
-— o filtro é nosso.
+**Regra de herança do acervo da empresa:** a empresa herda a ART de um profissional cujo vínculo
+está vigente hoje. `qut_dt_fim` não nulo encerra o vínculo, e o CAO não filtra isso sozinho — o
+filtro é nosso.
+
+É binária de propósito, e não por simplificação: "ART registrada durante a vigência" precisaria
+de uma data de ART que a API não devolve em endpoint nenhum. Quem tem data são as CATs
+(`cat_dt_emissao`, `cat_dt_validade`) e o próprio vínculo (`qut_dt_inicio`, `qut_dt_fim`) —
+nenhuma delas diz quando a ART foi registrada. Ver D19.
 
 ## Etapa 3: similaridade por prefixo
 
@@ -196,8 +201,8 @@ ter guardado o CPF (cifrado). É uma decisão de LGPD consciente, não um descui
 É a view `crea_evidencias` em `_arq/estrutura.sql`: uma linha por (candidato, código TOS, ART,
 CAT), com os quatro níveis do código em colunas. Não é tabela — deriva de `crea_arts`,
 `crea_art_atividades`, `crea_tos`, `crea_cat_arts` e `crea_quadro_tecnico`, então nunca sai de
-sincronia e não tem código de manutenção. A regra de herança da empresa (só vínculo vigente,
-`qut_dt_fim IS NULL`) mora na view e em nenhum outro lugar.
+sincronia e não tem código de manutenção. A regra de herança da empresa (vínculo vigente,
+`qut_dt_fim IS NULL`, sem recorte temporal — D19) mora na view e em nenhum outro lugar.
 
 Com os níveis em colunas, a seleção do pool vira uma query com `WHERE evi_nivel1 = ? AND
 evi_nivel2 = ?` sobre índices existentes, e o motor roda inteiro local. A API só é chamada em

@@ -178,9 +178,14 @@ Profissionais vinculados à empresa. Sem parâmetros.
 ```
 
 **`qut_dt_fim` existe e vem `null` quando o vínculo está ativo.** Dá para saber pela API se um
-vínculo foi encerrado, e a regra correta é: empresa só herda o acervo de ART registrada enquanto
-o vínculo do profissional estava vigente. Versões anteriores deste documento afirmavam o contrário
-e declaravam isso como limitação conhecida — era erro nosso, não da API.
+vínculo foi encerrado, e a empresa não herda acervo de vínculo encerrado.
+
+**A regra só pode ser binária, e não temporal.** "Herda a ART registrada enquanto o vínculo
+estava vigente" exigiria comparar `qut_dt_fim` com a data de registro da ART, e **nenhum endpoint
+da API devolve data de ART** — nem esta lista, nem o CAO, nem `?p=arts`. Os campos de ART são
+`art_numero`, `art_tipo`, `art_forma_registro`, `art_contratante_nome`, `art_objeto`,
+`art_local_uf`, `art_local_municipio` e `art_situacao`. Sem data não há o que comparar. Duas
+versões anteriores deste documento erraram aqui, uma em cada direção; o registro está na D19.
 
 Note o prefixo: os campos são `qut_*`, não `eqt_*`. E `qut_dt_inicio` é `date` (`2020-01-01`),
 não `datetime`.

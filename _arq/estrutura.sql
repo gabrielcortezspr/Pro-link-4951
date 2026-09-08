@@ -327,7 +327,7 @@ CREATE TABLE crea_cat_arts (
 
 
 -- Quadro técnico da empresa. qut_dt_fim NÃO nulo encerra o vínculo: a empresa deixa de
--- herdar o acervo daquele profissional (ver docs/matching.md, etapa 2).
+-- herdar o acervo daquele profissional, inteiro (ver docs/matching.md, etapa 2, e D19).
 CREATE TABLE crea_quadro_tecnico (
   qut_id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   qut_emp_registro_crea VARCHAR(10) NOT NULL,
@@ -600,7 +600,9 @@ CREATE TABLE mat_sessao_pool (
 -- Os índices ix_ata_tos, ix_tos_hierarquia, ix_art_rnp e ix_qut_pro servem a ela.
 --
 -- A regra de herança da empresa mora aqui e só aqui: a empresa vê a ART de um profissional
--- apenas enquanto o vínculo de quadro técnico está vigente (qut_dt_fim IS NULL).
+-- cujo vínculo de quadro técnico está vigente (qut_dt_fim IS NULL). Binária, sem recorte por
+-- data: a API não devolve data de ART em endpoint nenhum, então não há o que comparar com
+-- qut_dt_fim. Ver D19 em docs/decisoes.md antes de tentar refinar isto.
 -- =====================================================================================
 
 CREATE OR REPLACE VIEW crea_evidencias AS

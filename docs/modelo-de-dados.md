@@ -18,7 +18,7 @@ Como as entidades da API se ligam. Descreve o banco por trás da API, não o nos
 
 ## Ligações
 
-**`api_quadro_tecnico`**: empresa para profissional, com tipo, função e datas de início e fim. Na resposta da API os campos são `qut_tipo` (`"R"`), `qut_funcao` (`"Responsável Técnico"`), `qut_dt_inicio` (date) e `qut_dt_fim` (`null` quando o vínculo está ativo). **A data de fim é exposta** — dá para saber se um vínculo foi encerrado, e a empresa só deve herdar acervo de ART registrada durante a vigência do vínculo.
+**`api_quadro_tecnico`**: empresa para profissional, com tipo, função e datas de início e fim. Na resposta da API os campos são `qut_tipo` (`"R"`), `qut_funcao` (`"Responsável Técnico"`), `qut_dt_inicio` (date) e `qut_dt_fim` (`null` quando o vínculo está ativo). **A data de fim é exposta** — dá para saber se um vínculo foi encerrado, e a empresa não herda acervo de vínculo encerrado. A regra é binária: filtrar por data de registro da ART seria impossível, porque a API não devolve data de ART em endpoint nenhum (D19).
 
 **`api_prof_modalidade`**: profissional para modalidade, N para N.
 

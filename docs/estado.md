@@ -21,15 +21,11 @@ Cadastro de Profissional consultando a API: `AutenticacaoService::cadastrar` cha
 já está verificado. CPF que não está na API vira Terceiro PF, com aviso. Depois disso o cenário 1
 tem começo, meio e fim.
 
-**Antes de tocar no CAO**, resolver a pendência anotada abaixo sobre a regra temporal de vínculo.
+A herança de acervo pelo CAO já está destravada: a regra é binária (D19), a view `crea_evidencias`
+já a implementa e os documentos que prometiam recorte temporal foram corrigidos.
 
 ## Decisões pendentes
 
-- **A regra temporal de herança de acervo não é implementável.** O `endpoints.md` afirmava que a
-  empresa só herda ART registrada enquanto o vínculo estava vigente, mas **nenhum endpoint da API
-  devolve data de ART** — nem a lista, nem o CAO, nem a validação. Sem data não há o que comparar
-  com `qut_dt_fim`. Dá para aplicar só a regra binária: vínculo encerrado não herda nada daquele
-  profissional. Decidir isso antes de escrever a herança pelo CAO, e corrigir a frase do doc.
 
 - MER (`_arq/mer/`): gerar do MySQL Workbench ou de ferramenta de linha de comando? Obrigatório
   na entrega (edital 8.3.2b).
