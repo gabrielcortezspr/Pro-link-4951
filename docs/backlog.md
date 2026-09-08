@@ -61,8 +61,8 @@ Coisas pequenas que toda etapa seguinte usa. Fazer antes de qualquer RF.
 > **Concluída** em 08/09. Critério verificado por `php scripts/verificar-e1.php`: 71
 > verificações por HTTP, todas passando. Decisões D07, D09, D10, D11 e D12. Fora da lista
 > original: validação de CPF/CNPJ e separação da massa cadastrável (D07), e o próprio script de
-> verificação (D12). `estrutura.sql` mudou — `con_dt_concessao` aceita nulo (D10), então banco
-> antigo precisa ser recriado.
+> verificação (D12). `estrutura.sql` mudou — `con_dt_concessao` aceita nulo (D10); banco antigo
+> se ajusta com um `ALTER`, sem recriar o volume.
 
 **Cobre:** RF01; edital 8.5a/b/f/g, 11.3; proposta cenário 01 (base).
 
@@ -177,6 +177,9 @@ card abre e mostra ART, código e CAT. Mesma semente, mesma ordem.
 - `NotificacaoService` completo: fila em `sis_notificacoes`, envio por PHPMailer com SMTP do
   `.env`, eventos cadastro / recuperação / manifestação / atualização de demanda / denúncia.
   Em desenvolvimento cai no Mailpit (`:8025`).
+- **Gatilho da fila**, herdado da E1: `despachar()` existe e funciona, mas nada o chama — hoje o
+  e-mail só sai à mão. Decidir entre cron no container e despacho pós-resposta, e pôr teto em
+  `not_tentativas`: `pendentes()` hoje retenta uma falha permanente em toda execução.
 - Rate limit de manifestações por usuário/hora (proposta, A04).
 
 **Pronto quando:** cenário 4 roda — profissional manifesta, e-mail chega no Mailpit, empresa

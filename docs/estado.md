@@ -25,7 +25,20 @@ Meia hora, e destrava escrever a E2 inteira offline. Só depois começar `Portfo
 
 ## Lembrar
 
-- **`estrutura.sql` mudou** (D10): recrie o banco com `docker compose down -v && up -d`.
+- Banco local já alinhado ao `estrutura.sql` (D10 aplicada por `ALTER` em 08/09, sem perder o
+  admin de desenvolvimento). Clone novo cria o schema certo direto do arquivo.
+- **A fila de notificação não tem gatilho.** `enfileirar()` grava em `sis_notificacoes` dentro da
+  transação, mas ninguém chama `despachar()` — os e-mails ficam parados. Esvaziar à mão com
+  `docker compose exec php php -r 'require "/var/www/html/_config.php"; var_export((new ProLink\Service\NotificacaoService())->despachar());'`
+  e conferir no Mailpit (`:8025`). O gatilho e o teto de tentativas (hoje `pendentes()` retenta
+  falha para sempre) ficam para a E5, que é quando a RF07 entra em cenário de demonstração.
+- `verificar-e1.php` rodado dentro do container precisa da URL do nginx:
+  `docker compose exec php php scripts/verificar-e1.php http://nginx`. O padrão `APP_URL` é o
+  endereço visto do host.
+- **`verificar-e1.php` roda uma vez por volume.** Ele cadastra quatro documentos fixos da massa e
+  encerra as contas com `_status = 'X'`, mas `documentoEmUso()` não filtra status, de propósito —
+  então a segunda execução falha nos quatro cadastros. Para rodar de novo hoje: `docker compose
+  down -v && up -d` e `criar-admin.php`. Corrigir escolhendo documento livre por execução.
 - Capture local uma fixture que pagine de verdade — `?p=profissionais/{rnp}/arts&limit=2`, duas
   páginas — senão o laço de paginação da E2 fica sem cobertura.
 - `sis_termos` tem texto de espaço reservado. As decisões D03 e D05 precisam estar na Política de
