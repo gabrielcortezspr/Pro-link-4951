@@ -71,6 +71,9 @@ com trigger.
 - O quadro técnico expõe `qut_dt_fim`. Vínculo encerrado não herda acervo.
 - Os vínculos ART → TOS da massa são **aleatórios**. Nenhum cenário de demonstração pode
   assumir coerência temática. Escolha a demanda depois de olhar o índice, não antes.
+- 85 dos 100 CNPJs da massa têm dígito verificador quebrado. A validação está correta e recusa
+  todos eles — só 15 empresas se cadastram, e são elas que a demonstração pode usar. Lista e
+  motivo em `docs/massa-de-dados.md`; contagem travada em `tests/Dados/MassaDeDadosTest.php`.
 - `aat_descricao` e `art_objeto` não discriminam ninguém. Só `tos_codigo` discrimina.
 - `tos_complementar` e `qut_dt_fim` nulos chegam como `null`, não string vazia.
 
@@ -80,6 +83,10 @@ O estado vivo — onde parou, próximo passo, pendências — fica em `docs/esta
 cada fechamento com `/encerrar`. O hook `SessionStart` (`.claude/settings.json` →
 `scripts/retomar.sh`) imprime esse arquivo, os últimos commits e o `git status` na abertura de
 toda sessão. Não repita nada disso aqui: `CLAUDE.md` é para o que não muda.
+
+Toda decisão com alternativa real entra em `docs/decisoes.md`, que só cresce — é de lá que sai a
+declaração de IA, vieses e limitações exigida na entrega (12.3 e Anexo VI). Decisão revista ganha
+entrada nova citando a antiga; nunca reescreva uma entrada.
 
 Princípio de manutenção: **cada fato é escrito num lugar só.** Configuração de infraestrutura no
 `.env`, parâmetros do motor em `sis_parametros`, índice de documentação no `README.md`, regras de

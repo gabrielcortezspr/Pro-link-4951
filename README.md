@@ -11,6 +11,7 @@ docker compose up -d --build
 docker compose exec php composer install
 docker compose exec php php scripts/criar-admin.php
 curl -s http://localhost:8080/saude
+docker compose exec php php scripts/verificar-e1.php   # 71 verificações da RF01, por HTTP
 ```
 
 Guia completo de instalação, atualização e problemas comuns: [`_arq/README.md`](_arq/README.md).
@@ -21,6 +22,7 @@ Guia completo de instalação, atualização e problemas comuns: [`_arq/README.m
 |---|---|
 | [`docs/estado.md`](docs/estado.md) | ao retomar: onde parou e o próximo passo |
 | [`docs/backlog.md`](docs/backlog.md) | a sequência de etapas até a entrega, com critério de pronto |
+| [`docs/decisoes.md`](docs/decisoes.md) | por que algo é como é, e qual alternativa foi recusada |
 | [`docs/edital-requisitos.md`](docs/edital-requisitos.md) | antes de qualquer decisão de escopo, estrutura ou nomenclatura |
 | [`_arq/arquitetura.md`](_arq/arquitetura.md) | vai mexer no código: camadas, módulos, segurança, backlog |
 | [`_arq/estrutura-diretorios.md`](_arq/estrutura-diretorios.md) | onde cada coisa mora |

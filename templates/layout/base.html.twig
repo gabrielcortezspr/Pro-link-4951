@@ -27,7 +27,14 @@
                     {% if u %}
                         {% if u.perfil == 'ADMIN' %}<li class="nav-item"><a class="nav-link" href="{{ app_url }}/admin">Administração</a></li>{% endif %}
                         <li class="nav-item"><span class="nav-link text-body-secondary">{{ u.nome }}</span></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ app_url }}/sair">Sair</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ app_url }}/privacidade">Privacidade</a></li>
+                        <li class="nav-item">
+                            {# Logout é POST com token: link GET seria escrita de estado sem CSRF (8.5e). #}
+                            <form method="post" action="{{ app_url }}/sair" class="d-inline">
+                                <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                                <button type="submit" class="nav-link border-0 bg-transparent">Sair</button>
+                            </form>
+                        </li>
                     {% else %}
                         <li class="nav-item"><a class="nav-link" href="{{ app_url }}/login">Entrar</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ app_url }}/cadastro">Cadastrar</a></li>

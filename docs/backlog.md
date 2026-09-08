@@ -34,6 +34,9 @@ são Should — mas os cenários 5 e 6 são obrigatórios na demo, então E6 nã
 
 ## E0 — Fundação que faltou (07/09, meio dia)
 
+> **Concluída** em 06/09, commit `502f5f4`. Critério verificado por HTTP em 08/09: 401 anônimo,
+> 403 de perfil errado com linha em `sis_auditoria`. O repositório no GitHub existe.
+
 Coisas pequenas que toda etapa seguinte usa. Fazer antes de qualquer RF.
 
 - **Repositório no GitHub** e push. O edital exige o endereço na plataforma com histórico
@@ -54,6 +57,12 @@ Coisas pequenas que toda etapa seguinte usa. Fazer antes de qualquer RF.
 ---
 
 ## E1 — Identidade, consentimento e auditoria (07–08/09)
+
+> **Concluída** em 08/09. Critério verificado por `php scripts/verificar-e1.php`: 71
+> verificações por HTTP, todas passando. Decisões D07, D09, D10, D11 e D12. Fora da lista
+> original: validação de CPF/CNPJ e separação da massa cadastrável (D07), e o próprio script de
+> verificação (D12). `estrutura.sql` mudou — `con_dt_concessao` aceita nulo (D10), então banco
+> antigo precisa ser recriado.
 
 **Cobre:** RF01; edital 8.5a/b/f/g, 11.3; proposta cenário 01 (base).
 

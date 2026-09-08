@@ -63,6 +63,18 @@ final class Crypto
         return $texto;
     }
 
+    /**
+     * Hash de token de alta entropia: sessão (sis_sessoes) e recuperação de senha
+     * (sis_recuperacoes). SHA-256 simples basta — diferente de documento, que é de baixa entropia
+     * e precisa do pepper de hashBusca() para não ceder a dicionário.
+     *
+     * O banco guarda só o hash: vazamento de dump não entrega sessão nem link de redefinição.
+     */
+    public static function hashToken(string $token): string
+    {
+        return hash('sha256', $token);
+    }
+
     /** Hash cego para busca exata por documento, sem decifrar a coluna inteira. */
     public static function hashBusca(string $documento): string
     {

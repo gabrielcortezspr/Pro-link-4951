@@ -134,3 +134,35 @@ const STATUS_EXCLUIDO = 'X';
 const VISIBILIDADE_PRIVADO     = 'PRIVADO';
 const VISIBILIDADE_AUTENTICADO = 'AUTENTICADO';
 const VISIBILIDADE_PUBLICO     = 'PUBLICO';
+
+/** Perfis que exigem login. Rota de usuário autenticado, sem distinção de papel, usa esta lista. */
+const PERFIS_AUTENTICADOS = [PERFIL_PROFISSIONAL, PERFIL_EMPRESA, PERFIL_TERCEIRO, PERFIL_ADMIN];
+
+/**
+ * Tipos de cadastro oferecidos (RF01, edital Anexo I item 3). Não são perfis: TERCEIRO_PF e
+ * TERCEIRO_PJ viram o mesmo PERFIL_TERCEIRO, mudando só o tipo de pessoa e o documento exigido.
+ */
+const CADASTRO_PROFISSIONAL = 'PROFISSIONAL';
+const CADASTRO_EMPRESA      = 'EMPRESA';
+const CADASTRO_TERCEIRO_PF  = 'TERCEIRO_PF';
+const CADASTRO_TERCEIRO_PJ  = 'TERCEIRO_PJ';
+
+/**
+ * Finalidades de consentimento (LGPD; edital 11.3). Uma linha por finalidade em
+ * sis_consentimentos, revogável individualmente no painel de privacidade.
+ *
+ * ACEITE_TERMOS é o único que aponta para sis_termos (con_ter_id) e o único sem o qual não há
+ * conta. CONSULTA_API é exigido de quem se cadastra como profissional ou empresa, porque sem
+ * consultar a API não existe validação de registro no CREA — é execução do serviço, não
+ * conveniência nossa, e a tela diz isso.
+ */
+const FINALIDADE_ACEITE_TERMOS   = 'ACEITE_TERMOS';
+const FINALIDADE_CONSULTA_API    = 'CONSULTA_API';
+const FINALIDADE_EXIBICAO_PERFIL = 'EXIBICAO_PERFIL';
+const FINALIDADE_NOTIFICACOES    = 'NOTIFICACOES';
+
+/** Mínimo de caracteres da senha. Acima dos 8 usuais: o edital 8.5b pede autenticação segura. */
+define('SENHA_TAMANHO_MINIMO', (int) env('SENHA_TAMANHO_MINIMO', 12));
+
+/** Validade do link de recuperação de senha, em minutos. */
+define('RECUPERACAO_VALIDADE_MINUTOS', (int) env('RECUPERACAO_VALIDADE_MINUTOS', 60));

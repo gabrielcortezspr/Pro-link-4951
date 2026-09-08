@@ -1,0 +1,27 @@
+{% extends 'layout/base.html.twig' %}
+{% import 'layout/_form.html.twig' as form %}
+
+{% block titulo %}Recuperar senha — Pro-Link{% endblock %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <h1 class="h3 mb-1">Recuperar senha</h1>
+        <p class="text-body-secondary">
+            Informe o e-mail da conta. Se existir conta com esse endereço, enviamos um link de
+            redefinição.
+        </p>
+
+        <form method="post" action="{{ app_url }}/recuperar-senha" novalidate>
+            {{ form.csrf() }}
+
+            {{ form.campo('email', 'E-mail', 'email',
+                valores.email|default(''), erros.email|default(null),
+                {autocomplete: 'email', required: true}) }}
+
+            {{ form.botao('Enviar link') }}
+            <a class="btn btn-link" href="{{ app_url }}/login">Voltar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

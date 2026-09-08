@@ -132,7 +132,7 @@ CREATE TABLE sis_consentimentos (
   con_ter_id        INT UNSIGNED    NULL,
   con_finalidade    VARCHAR(80)     NOT NULL COMMENT 'CONSULTA_API|EXIBICAO_PERFIL|NOTIFICACOES|...',
   con_concedido     TINYINT(1)      NOT NULL DEFAULT 1,
-  con_dt_concessao  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  con_dt_concessao  DATETIME        NULL COMMENT 'nulo = nunca concedida; difere de concedida-e-revogada',
   con_dt_revogacao  DATETIME        NULL,
   con_ip            VARCHAR(45)     NULL,
   con_dt_registro   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
