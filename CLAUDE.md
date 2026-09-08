@@ -84,6 +84,10 @@ cada fechamento com `/encerrar`. O hook `SessionStart` (`.claude/settings.json` 
 `scripts/retomar.sh`) imprime esse arquivo, os últimos commits e o `git status` na abertura de
 toda sessão. Não repita nada disso aqui: `CLAUDE.md` é para o que não muda.
 
+Toda decisão com alternativa real entra em `docs/decisoes.md`, que só cresce — é de lá que sai a
+declaração de IA, vieses e limitações exigida na entrega (12.3 e Anexo VI). Decisão revista ganha
+entrada nova citando a antiga; nunca reescreva uma entrada.
+
 Princípio de manutenção: **cada fato é escrito num lugar só.** Configuração de infraestrutura no
 `.env`, parâmetros do motor em `sis_parametros`, índice de documentação no `README.md`, regras de
 negócio do motor em `docs/matching.md`, estado em `docs/estado.md`. Diretório só é criado quando

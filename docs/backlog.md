@@ -34,6 +34,9 @@ são Should — mas os cenários 5 e 6 são obrigatórios na demo, então E6 nã
 
 ## E0 — Fundação que faltou (07/09, meio dia)
 
+> **Concluída** em 06/09, commit `502f5f4`. Critério verificado por HTTP em 08/09: 401 anônimo,
+> 403 de perfil errado com linha em `sis_auditoria`. O repositório no GitHub existe.
+
 Coisas pequenas que toda etapa seguinte usa. Fazer antes de qualquer RF.
 
 - **Repositório no GitHub** e push. O edital exige o endereço na plataforma com histórico
@@ -54,6 +57,9 @@ Coisas pequenas que toda etapa seguinte usa. Fazer antes de qualquer RF.
 ---
 
 ## E1 — Identidade, consentimento e auditoria (07–08/09)
+
+> **Em andamento** desde 08/09. Fora da lista original e já feito: validação de CPF/CNPJ
+> (`Documento`) e a separação da massa cadastrável — decisão D07.
 
 **Cobre:** RF01; edital 8.5a/b/f/g, 11.3; proposta cenário 01 (base).
 
