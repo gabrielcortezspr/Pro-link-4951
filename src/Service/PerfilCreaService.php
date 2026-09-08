@@ -38,6 +38,15 @@ use ProLink\Support\Database;
  * `pro_profissionais` **é** o estado pendente — e como nada é público por padrão e o motor só
  * enxerga quem tem evidência em `crea_evidencias`, um perfil pendente não aparece para ninguém.
  * Fica invisível até ser validado, que é exatamente o comportamento seguro.
+ *
+ * ## Meia validação também é um estado, e ele tem carimbo
+ *
+ * A API pode responder ao CPF e cair na importação do acervo. Aí o perfil existe e o acervo está
+ * vazio — indistinguível de um profissional que genuinamente não tem ART. Por isso
+ * `prf_dt_sincronizacao` só é carimbada quando as **duas** metades entram: nula (ou velha)
+ * significa "tentar de novo", e é o mesmo campo que `api.sincronizacao.horas` vai comparar.
+ * Acervo pela metade não existe — `importarArts` lê todas as páginas antes de abrir a transação
+ * (D18), então ou entram todas as ARTs ou nenhuma.
  */
 final class PerfilCreaService
 {
@@ -136,12 +145,19 @@ final class PerfilCreaService
         try {
             $acervo = $this->portfolio->importarArts($usuarioId, $rnp);
         } catch (ApiIndisponivelException) {
+            // Sem carimbo de sincronização: `prf_dt_sincronizacao` nulo é o que diferencia
+            // "importamos e ele não tem ART" de "não conseguimos importar". Sem isso, os dois
+            // estados ficam idênticos no banco — zero linhas em crea_arts — e nem o botão de
+            // revalidar nem o sincronizar-status.php saberiam que precisam tentar de novo.
+            $this->atualizarEmConstrucao($profissionalId, $rnp);
+
             return $this->desfecho(self::VINCULADO, $rnp, $modalidades, 0,
                 'Seu registro foi validado, mas não conseguimos importar suas ARTs agora. '
                 . 'Tente de novo pelo seu perfil em alguns minutos.');
         }
 
         $this->atualizarEmConstrucao($profissionalId, $rnp);
+        $this->profissionais->marcarSincronizado($profissionalId);
 
         return $this->desfecho(self::VINCULADO, $rnp, $modalidades, $acervo['arts'], null);
     }

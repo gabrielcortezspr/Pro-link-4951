@@ -22,7 +22,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | Fundação (antes da E0) | D01, D02, D03, D04, D05 |
 | E0 — fundação que faltou | D06 |
 | E1 — identidade e consentimento | D07, D08, D09, D10, D11, D12 |
-| E2 — integração com a API | D13, D14, D15, D16, D17, D18, D19, D20 |
+| E2 — integração com a API | D13, D14, D15, D16, D17, D18, D19, D20, D21 |
 
 ---
 
@@ -570,3 +570,35 @@ KEY UPDATE` do repositório reescreveria a linha de outra conta se dois usuário
 RNP. Não deveria acontecer — CPF já é único —, mas o efeito seria o acervo de uma pessoa
 respondendo por outra. Agora é recusa explícita com registro em auditoria. E `pro_profissionais`
 ganhou `uq_prf_usu`: um usuário tem um CPF, logo um RNP, logo um perfil CREA.
+
+---
+
+## D21 · `prf_dt_sincronizacao` marca sucesso completo, não a gravação do perfil
+
+`08/09/2026` · E2 · commit a seguir · `src/Repository/ProfissionalRepository.php`
+
+**Contexto.** A validação do registro tem duas metades: consultar o CPF e importar o acervo. A
+segunda pode falhar sozinha, e aí sobra um perfil com zero ARTs — que no banco é **idêntico** ao
+de um profissional que genuinamente não tem ART nenhuma. Sabíamos da diferença no instante da
+falha, e jogávamos a informação fora: virava mensagem na tela e sumia. Nem o botão de revalidar
+nem o `sincronizar-status.php` teriam como saber que precisam tentar de novo. A pergunta que
+expôs isso foi do Gabriel: "o problema é que não conseguimos saber quando ela cai durante?".
+
+**Decisão.** O carimbo sai de `salvar()` e vira `marcarSincronizado()`, chamado só quando as duas
+metades entram. `prf_dt_sincronizacao` passa a significar **última sincronização completa**: nula
+é "nunca deu certo até o fim", e uma data velha é "deu certo até ali". Falha posterior preserva a
+data anterior em vez de zerá-la — o que interessa é quando foi o último sucesso, que é
+exatamente o que `api.sincronizacao.horas` compara.
+
+**Alternativa recusada.** Uma coluna nova de estado, tipo `prf_validacao_pendente`. Seria mais
+explícita e é o reflexo natural, mas duplica em booleano o que a data já diz, e coluna de estado
+derivada de outra é o começo de duas fontes discordarem — o mesmo erro que a D01 evitou. A outra
+alternativa, deixar como estava e recarimbar na próxima sincronização periódica, adiaria a
+correção para um script que ainda não existe e deixaria o buraco aberto até a E7.
+
+**Consequência.** Acervo pela metade continua não existindo, por causa da D18: `importarArts` lê
+todas as páginas antes de abrir a transação, então ou entram todas as ARTs ou nenhuma. Somando as
+duas decisões, os estados possíveis viraram quatro e todos são legíveis no banco: sem linha em
+`pro_profissionais` (nem o CPF foi consultado), linha com carimbo nulo (perfil validado, acervo
+não), linha com carimbo velho (sincronizou um dia, falhou depois) e linha com carimbo recente
+(completo). É o que a tela de "validar meu registro" vai consultar.

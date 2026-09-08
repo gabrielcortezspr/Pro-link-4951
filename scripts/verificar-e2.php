@@ -271,6 +271,61 @@ conferir('revincular atualiza em vez de criar linha nova (uq_prf_usu)',
     $revinculo['situacao'] === PerfilCreaService::VINCULADO
         && (int) $profissionais->porUsuario($usuario)['prf_id'] === (int) $prf['prf_id']);
 
+conferir('sincronização completa carimba prf_dt_sincronizacao',
+    $profissionais->porUsuario($usuario)['prf_dt_sincronizacao'] !== null);
+
+// ---------------------------------------------------------------- meia validação
+secao('API responde o CPF e cai na importação do acervo');
+
+// Transporte que responde tudo pela fixture, menos as ARTs. É o recorte exato do problema:
+// o perfil entra, o acervo não, e o banco fica com zero linhas em crea_arts — indistinguível de
+// um profissional que genuinamente não tem ART, se ninguém carimbar a diferença.
+$meiaApi = new CreaApiClient(new class (new TransporteFixture()) implements Transporte {
+    public function __construct(private readonly TransporteFixture $completo)
+    {
+    }
+
+    public function get(array $params): RespostaHttp
+    {
+        if (str_contains((string) ($params['p'] ?? ''), '/arts')) {
+            throw new ApiIndisponivelException('Caiu no meio da importação do acervo.');
+        }
+
+        return $this->completo->get($params);
+    }
+});
+
+$meioPerfil = new PerfilCreaService(
+    $meiaApi, $profissionais, new UsuarioRepository($pdo), new ConsentimentoRepository($pdo),
+    new ParametroRepository($pdo),
+    new PortfolioService($meiaApi, new AcervoRepository($pdo), new ConsentimentoRepository($pdo)),
+);
+
+// Nunca sincronizado: o carimbo tem de continuar nulo depois da falha.
+$pdo->prepare('UPDATE pro_profissionais SET prf_dt_sincronizacao = NULL WHERE prf_usu_id = :u')
+    ->execute([':u' => $usuario]);
+
+$meio = $meioPerfil->vincularProfissional($usuario, CPF);
+
+conferir('o perfil é validado mesmo com a importação falhando',
+    $meio['situacao'] === PerfilCreaService::VINCULADO);
+conferir('mas prf_dt_sincronizacao continua nula: precisa tentar de novo',
+    $profissionais->porUsuario($usuario)['prf_dt_sincronizacao'] === null);
+conferir('e a mensagem manda tentar pelo perfil',
+    str_contains((string) $meio['aviso'], 'Tente de novo'));
+
+// Já sincronizado antes: a falha não pode apagar a data da última sincronização boa.
+$pdo->prepare('UPDATE pro_profissionais SET prf_dt_sincronizacao = :d WHERE prf_usu_id = :u')
+    ->execute([':d' => '2026-09-01 10:00:00', ':u' => $usuario]);
+
+$meioPerfil->vincularProfissional($usuario, CPF);
+
+conferir('falha posterior preserva a data da última sincronização bem-sucedida',
+    str_starts_with((string) $profissionais->porUsuario($usuario)['prf_dt_sincronizacao'], '2026-09-01'));
+
+// Restaura o estado bom para o resto do script.
+$perfilCrea->vincularProfissional($usuario, CPF);
+
 // ---------------------------------------------------------------- CPF sem registro
 secao('CPF válido que o CREA não conhece (200 [])');
 

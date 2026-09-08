@@ -363,7 +363,7 @@ CREATE TABLE pro_profissionais (
   prf_tipo_contrato    VARCHAR(40)  NULL COMMENT 'autodeclarado: CLT|PJ|OBRA_CERTA|...',
   prf_disponibilidade  VARCHAR(120) NULL COMMENT 'autodeclarado: raio ou municípios',
   prf_em_construcao    TINYINT(1)   NOT NULL DEFAULT 0 COMMENT 'início de carreira; nunca exclui do pool',
-  prf_dt_sincronizacao DATETIME     NULL,
+  prf_dt_sincronizacao DATETIME     NULL COMMENT 'última sincronização COMPLETA (perfil + acervo); nulo = nunca',
   prf_dt_registro      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   prf_log              TEXT         NULL,
   prf_status           CHAR(1)      NOT NULL DEFAULT 'A',

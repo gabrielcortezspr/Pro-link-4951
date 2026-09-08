@@ -119,6 +119,12 @@ por 15 minutos; a exportação devolve JSON; `sis_auditoria` mostra tudo isso.
   API = "essa ART não é sua", `NaoEncontradoException` = "RNP não existe". Mensagens distintas.
 - **Selo ART**: na exibição, recalcula o HMAC da linha e compara com `art_hash`. Confere →
   selo; não confere → aviso de divergência e registro em auditoria. Nunca uma flag.
+- **Defeito latente, acorda com a tela da RF03:** `associarArt` muda a contagem de ARTs e não
+  atualiza `prf_em_construcao`, então quem associa ARTs à mão até passar do limiar continua
+  marcado como iniciante. Hoje não afeta ninguém porque nenhuma rota chama o método. A correção
+  mínima é chamar `PerfilCreaService::atualizarEmConstrucao` depois de associar — mas é o mesmo
+  padrão frágil que já falhou uma vez, e a alternativa é derivar a marca na leitura em vez de
+  guardá-la em coluna, como a D01 fez com o índice de evidência. Decidir junto com a tela.
 - Experiência autodeclarada (`pro_experiencias`), com ou sem ART. Template mostra dado da API
   e dado declarado com estilos distintos (`.selo-art` / `.dado-declarado`).
 - Visibilidade granular (`pro_visibilidade`): por campo do perfil e por ART. **Nada público
@@ -171,6 +177,14 @@ Desenho em `matching.md`; não reinventar aqui.
   "compatível porque ART AM…001 cobre TOS_x (mesma obra/serviço) e está na CAT 999001/2026".
 - Busca ativa (Público, Empresa, Terceiro): especialidade (modalidade/grupo TOS), experiência,
   nome. Filtro "incluir perfis em construção", desligado por padrão.
+- **Decidir o valor de `match.early_career.min_arts` antes de escrever estas duas telas.** Hoje
+  vale `3`, número escolhido por nós: não vem do edital, e a proposta descreve o recurso quatro
+  vezes sem citar quantidade. Ele não é cosmético — decide quem leva o rótulo no feed (onde
+  ajuda, porque contextualiza) e quem some da busca ativa por padrão (onde atrapalha). A massa
+  tem 290 ARTs para 100 profissionais, média 2,9: se a distribuição for uniforme, o limiar 3
+  marca perto de metade da plataforma, e rótulo que serve para metade não informa nada. Não dá
+  para medir a distribuição real sem consultar os 100 RNPs, o que o item 10.4 proíbe. O valor
+  mora em `sis_parametros` e o administrador troca pelo painel, sem deploy.
 - Perfil fechado (`EXIBICAO_PERFIL` revogado ou `prf_status_api != 'A'`) nunca entra no pool.
 - Administrador: `/admin/sessoes/{id}` reproduz a sessão a partir da semente gravada.
 - Testes do motor: afinidade, retorno decrescente, limiar, determinismo da semente.
@@ -238,6 +252,11 @@ Metade da nota depende disto. Não é "se sobrar tempo".
 
 **Acessibilidade e responsivo (12.1, Anexo I item 5)**
 - Labels em todo campo, navegação por teclado, contraste, foco visível; conferir no celular.
+- Baixar o Bootstrap para `public/assets/`. Hoje vem de CDN, e a demonstração é presencial: a
+  plataforma não pode depender da rede do auditório para ter aparência.
+- Escrever o texto real de `sis_termos`, hoje espaço reservado. As decisões D03 (guardamos o CPF
+  cifrado) e D05 (exclusão lógica com revogação de acesso) precisam estar na Política de
+  Privacidade, não só no código — é o que o item 11.3 cobra.
 
 **Documentação de entrega (`_arq/`)**
 - MER em PDF/PNG (`_arq/mer/`) — gerar do banco real.

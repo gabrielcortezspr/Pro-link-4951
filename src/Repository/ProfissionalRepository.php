@@ -51,6 +51,9 @@ final class ProfissionalRepository extends Repositorio
      * `prf_rnp`). Os campos autodeclarados — resumo, tipo de contrato, disponibilidade — não
      * aparecem aqui de propósito: sincronizar com o CREA não pode apagar o que a pessoa escreveu.
      *
+     * `prf_dt_sincronizacao` também não aparece: gravar o perfil é metade do trabalho, e o
+     * carimbo pertence a `marcarSincronizado()`, chamado só quando o acervo também entrou.
+     *
      * @param array{usuario_id: int, rnp: string, registro_crea: ?string, nome_api: ?string,
      *              status_api: ?string} $dados
      */
@@ -58,16 +61,14 @@ final class ProfissionalRepository extends Repositorio
     {
         $stmt = $this->pdo->prepare(
             'INSERT INTO pro_profissionais
-                (prf_usu_id, prf_rnp, prf_registro_crea, prf_nome_api, prf_status_api,
-                 prf_dt_sincronizacao, prf_status)
+                (prf_usu_id, prf_rnp, prf_registro_crea, prf_nome_api, prf_status_api, prf_status)
              VALUES
-                (:usuario, :rnp, :registro, :nome, :situacao, NOW(), :ativo)
+                (:usuario, :rnp, :registro, :nome, :situacao, :ativo)
              ON DUPLICATE KEY UPDATE
-                prf_registro_crea    = VALUES(prf_registro_crea),
-                prf_nome_api         = VALUES(prf_nome_api),
-                prf_status_api       = VALUES(prf_status_api),
-                prf_dt_sincronizacao = VALUES(prf_dt_sincronizacao),
-                prf_status           = VALUES(prf_status)'
+                prf_registro_crea = VALUES(prf_registro_crea),
+                prf_nome_api      = VALUES(prf_nome_api),
+                prf_status_api    = VALUES(prf_status_api),
+                prf_status        = VALUES(prf_status)'
         );
 
         $stmt->execute([
@@ -147,6 +148,21 @@ final class ProfissionalRepository extends Repositorio
         $stmt->execute([':ativo' => STATUS_ATIVO]);
 
         return array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
+    }
+
+    /**
+     * Carimba a sincronização como completa. Chamado só quando perfil **e** acervo entraram.
+     *
+     * É o que distingue "importamos e ele não tem ART" de "não conseguimos importar" — dois
+     * estados que, sem este carimbo, ficam idênticos no banco: zero linhas em `crea_arts`.
+     * Falha parcial deixa o valor anterior intacto, e não o zera: o que interessa é quando foi a
+     * última sincronização **bem-sucedida**, que é o que `api.sincronizacao.horas` compara.
+     */
+    public function marcarSincronizado(int $profissionalId): void
+    {
+        $this->pdo->prepare(
+            'UPDATE pro_profissionais SET prf_dt_sincronizacao = NOW() WHERE prf_id = :prf'
+        )->execute([':prf' => $profissionalId]);
     }
 
     public function marcarEmConstrucao(int $profissionalId, bool $emConstrucao): void

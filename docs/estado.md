@@ -27,20 +27,20 @@ Pouca coisa, e completa o desfecho que hoje só tem metade. Depois: cadastro de 
 
 ## Decisões pendentes
 
-- MER (`_arq/mer/`): MySQL Workbench ou ferramenta de linha de comando? Obrigatório na entrega
-  (edital 8.3.2b).
-- Liberar `desafio-prolink.crea-am.org.br` na rede do ambiente da nuvem, ou desenvolver contra
-  fixtures e validar só na máquina do Gabriel?
+- `match.early_career.min_arts` vale `3`, número escolhido por nós. Decidir antes das telas de
+  feed e busca ativa — o porquê e os números estão na E4 do `backlog.md`.
+- `prf_em_construcao` é derivado guardado em coluna e já causou um defeito: derivar na leitura
+  (como a D01) ou ponto único de escrita? O caso pendente está na E2 do `backlog.md`.
+- MER (`_arq/mer/`): Workbench ou linha de comando? Obrigatório na entrega (8.3.2b).
+- Liberar `desafio-prolink.crea-am.org.br` na rede da nuvem, ou seguir contra fixtures?
 
 ## Lembrar
 
-- **Nenhum e-mail sai sozinho**: `despachar()` existe mas nada o chama. Esvaziar a fila à mão e
-  conferir no Mailpit (`:8025`). O gatilho é item da E5 no backlog.
-- `sis_termos` tem texto de espaço reservado. D03 e D05 precisam estar na Política de Privacidade
-  antes da entrega, não só no código.
-- Bootstrap vem de CDN; baixar para `public/assets/` antes da entrega.
-- `estrutura.sql` ganhou `uq_prf_usu` (D20). Banco existente:
-  `ALTER TABLE pro_profissionais ADD CONSTRAINT uq_prf_usu UNIQUE (prf_usu_id)` — já aplicado aqui.
-- Documento da massa usado uma vez fica consumido para sempre (D15), inclusive por conta excluída.
-  Para demonstrar, escolha um CPF livre do CSV — `12312300109`, `290`, `370` e `451` já foram.
+- **Nenhum e-mail sai sozinho**: `despachar()` existe e nada o chama. Esvaziar a fila à mão,
+  conferir no Mailpit (`:8025`). O gatilho é item da E5.
+- `estrutura.sql` ganhou `uq_prf_usu` (D20): `ALTER TABLE pro_profissionais ADD CONSTRAINT
+  uq_prf_usu UNIQUE (prf_usu_id)` — já aplicado aqui, falta nas outras máquinas.
+- Documento da massa usado uma vez fica consumido para sempre (D15), inclusive por conta
+  excluída. Para demonstrar, use um CPF livre do CSV — `...109`, `...290`, `...370` e `...451` já
+  foram.
 - Se a sessão abrir sem o bloco "Retomada": rode `/hooks` uma vez ou reinicie o Claude Code.
