@@ -22,7 +22,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | Fundação (antes da E0) | D01, D02, D03, D04, D05 |
 | E0 — fundação que faltou | D06 |
 | E1 — identidade e consentimento | D07, D08, D09, D10, D11, D12 |
-| E2 — integração com a API | D13, D14, D15, D16, D17, D18, D19 |
+| E2 — integração com a API | D13, D14, D15, D16, D17, D18, D19, D20 |
 
 ---
 
@@ -526,3 +526,47 @@ prosa, e ela estava prestes a virar código. A limitação passa a ser declaráv
 escondida, o que interessa para a declaração de limitações do item 12.3. E fica registrado o
 padrão: quando um documento nosso e a API discordarem, a API ganha e o documento é corrigido com
 a data — foi o mesmo caminho da D07 e da estrutura do CAO.
+
+---
+
+## D20 · API fora do ar não custa o cadastro: pendente é um estado, não um erro
+
+`08/09/2026` · E2 · commit a seguir · `src/Service/PerfilCreaService.php`, `src/Controller/AuthController.php`
+
+**Contexto.** O cadastro de Profissional passa a consultar o CREA. A API é de terceiro, o edital
+não promete disponibilidade, e o Demo Day é presencial numa rede que não controlamos. Se a
+consulta faz parte da transação de cadastro, uma oscilação de rede vira "não foi possível criar
+sua conta" — e, na demonstração, vira o cenário 1 morrendo na frente da banca.
+
+**Decisão.** Cadastro em dois passos, com a conta primeiro. `AutenticacaoService::cadastrar` cria
+identidade, termos e consentimentos numa transação; só então `PerfilCreaService` consulta o CREA.
+A consulta tem três desfechos, e nenhum deles desfaz a conta:
+
+- **VINCULADO** — perfil montado, modalidades gravadas, acervo importado.
+- **SEM_REGISTRO** (`200 []`) — CPF válido sem registro no CREA: a conta vira Terceiro PF, porque
+  manter o perfil Profissional prometeria um registro que não existe.
+- **API_INDISPONIVEL** — a conta fica **pendente de validação** e a pessoa é avisada.
+
+A pendência não precisou de coluna: usuário com perfil PROFISSIONAL e **sem linha em
+`pro_profissionais`** já é o estado pendente, porque `prf_rnp` é obrigatório e só a API o fornece.
+E como nada é público por padrão e o motor só enxerga quem aparece em `crea_evidencias`, um perfil
+pendente é invisível até ser validado — o desenho falha fechado sozinho.
+
+**Alternativa recusada.** Duas. Falhar o cadastro e pedir para tentar de novo: mais simples, sem
+estado parcial, mas perde a inscrição por causa de terceiro, e é o único desfecho irreversível da
+tela. E tratar indisponibilidade como CPF não encontrado, rebaixando para Terceiro PF: reusaria
+um caminho que já existe, mas confunde "esta pessoa não tem registro" com "não deu para verificar
+agora" — o primeiro é fato, o segundo é temporário, e a pessoa teria de se recadastrar.
+
+**Consequência.** O controller passa a orquestrar dois passos, e a segunda etapa **nunca lança**:
+qualquer falha vira mensagem, porque devolver o formulário faria a pessoa tentar de novo com um
+e-mail já cadastrado e concluir que o cadastro falhou quando ele deu certo. Fica devendo a tela de
+"validar meu registro" para resolver a pendência — `vincularProfissional` já aceita ser chamada
+sem CPF em claro, decifrando de `usu_documento_cif`, que é o mesmo caminho do
+`sincronizar-status.php`.
+
+Entrou junto uma guarda que a modelagem não tinha: `uq_prf_rnp` é global, então o `ON DUPLICATE
+KEY UPDATE` do repositório reescreveria a linha de outra conta se dois usuários chegassem ao mesmo
+RNP. Não deveria acontecer — CPF já é único —, mas o efeito seria o acervo de uma pessoa
+respondendo por outra. Agora é recusa explícita com registro em auditoria. E `pro_profissionais`
+ganhou `uq_prf_usu`: um usuário tem um CPF, logo um RNP, logo um perfil CREA.

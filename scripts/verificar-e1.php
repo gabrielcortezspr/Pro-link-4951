@@ -20,6 +20,12 @@ declare(strict_types=1);
  *
  * Dentro do container, passe a URL do nginx: o APP_URL padrão é o endereço visto do host.
  *
+ * **Custa uma chamada à API oficial por execução.** Desde a D20 o cadastro de Profissional
+ * consulta o CREA, e este script cadastra um. Não dá para evitar sem colocar um interruptor de
+ * fixtures na aplicação, que a D13 recusa — e uma chamada por execução é preço baixo por
+ * verificar o caminho real. Se estiver sem rede, o script continua passando: a falha de consulta
+ * vira aviso e a conta permanece.
+ *
  *     docker compose exec php php scripts/verificar-e1.php
  *     php scripts/verificar-e1.php http://127.0.0.1:8099
  */
@@ -274,8 +280,18 @@ foreach ($criados as $tipo => $conta) {
     conferir("{$tipo}: documento cifrado em repouso (AES-256-GCM)", strlen($cif) >= 29);
     conferir("{$tipo}: hash cego gravado para busca sem decifrar",
         strlen((string) $linha['usu_documento_hash']) === 64);
-    conferir("{$tipo}: perfil de acesso coerente com o tipo",
-        $linha['per_codigo'] === \ProLink\Service\AutenticacaoService::perfilDe($tipo));
+    // O perfil de Profissional deixou de ser decidido só pelo formulário: desde a D20, o cadastro
+    // consulta o CREA, e CPF sem registro lá vira Terceiro PF. Como este script gera documentos
+    // que o CREA nunca conheceu (D15), a conta de Profissional termina como Terceiro quando a API
+    // responde, e como Profissional quando ela não responde — os dois desfechos estão corretos, e
+    // qual deles ocorre não é assunto da RF01. Quem verifica isso de forma determinística, contra
+    // fixtures e sem rede, é o `verificar-e2.php`.
+    $esperado = \ProLink\Service\AutenticacaoService::perfilDe($tipo);
+    $aceitos  = $tipo === CADASTRO_PROFISSIONAL ? [$esperado, PERFIL_TERCEIRO] : [$esperado];
+
+    conferir("{$tipo}: perfil de acesso é um dos coerentes com o tipo",
+        in_array($linha['per_codigo'], $aceitos, true),
+        'veio ' . $linha['per_codigo']);
 }
 
 if ($criados === []) {

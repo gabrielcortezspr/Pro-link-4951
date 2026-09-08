@@ -67,6 +67,19 @@ final class UsuarioRepository extends Repositorio
         return $stmt->fetchColumn() !== false;
     }
 
+    /**
+     * Troca o perfil do usuário. Hoje só num caminho: quem se cadastrou como Profissional mas
+     * cujo CPF a API não conhece vira Terceiro PF, para não ficar com um perfil que promete um
+     * registro no CREA que não existe.
+     */
+    public function trocarPerfil(int $usuarioId, int $perfilId): void
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE sis_usuarios SET usu_per_id = :perfil WHERE usu_id = :usuario'
+        );
+        $stmt->execute([':perfil' => $perfilId, ':usuario' => $usuarioId]);
+    }
+
     public function perfilIdPorCodigo(string $codigo): ?int
     {
         $stmt = $this->pdo->prepare('SELECT per_id FROM sis_perfis WHERE per_codigo = :codigo AND per_status = :ativo');

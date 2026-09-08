@@ -6,7 +6,9 @@ namespace ProLink\Controller;
 
 use ProLink\Repository\TermoRepository;
 use ProLink\Service\AutenticacaoService;
+use ProLink\Service\PerfilCreaService;
 use ProLink\Service\ValidacaoException;
+use ProLink\Support\Crypto;
 use ProLink\Support\Flash;
 use ProLink\Support\Sessao;
 use ProLink\Support\View;
@@ -25,6 +27,7 @@ final class AuthController
     public function __construct(
         private readonly AutenticacaoService $autenticacao = new AutenticacaoService(),
         private readonly TermoRepository $termos = new TermoRepository(),
+        private readonly PerfilCreaService $perfilCrea = new PerfilCreaService(),
     ) {
     }
 
@@ -35,16 +38,62 @@ final class AuthController
         return $this->renderizarCadastro();
     }
 
+    /**
+     * Cadastro em dois passos, e a ordem importa.
+     *
+     * Primeiro a conta existe; só depois se consulta o CREA. Se a segunda etapa falhar por
+     * qualquer motivo, a conta **permanece** e o usuário é avisado — devolver o formulário aqui
+     * faria a pessoa tentar de novo com um e-mail que já está cadastrado, e ela concluiria que o
+     * cadastro deu errado quando na verdade deu certo. Perder uma inscrição por causa de um
+     * serviço de terceiro é o único desfecho irreversível desta tela.
+     */
     public function cadastrar(): string
     {
         try {
-            $this->autenticacao->cadastrar($_POST);
+            $usuarioId = $this->autenticacao->cadastrar($_POST);
         } catch (ValidacaoException $e) {
             return $this->renderizarCadastro($e->erros(), $e->getMessage());
         }
 
         Flash::sucesso('Conta criada. Entre com seu e-mail e senha.');
+
+        if (($_POST['tipo_cadastro'] ?? '') === CADASTRO_PROFISSIONAL) {
+            $this->vincularAoCrea($usuarioId, Crypto::apenasDigitos((string) ($_POST['documento'] ?? '')));
+        }
+
         View::redirecionar('/login');
+    }
+
+    /**
+     * Segunda etapa do cadastro de Profissional. Nunca lança: os três desfechos da consulta ao
+     * CREA viram mensagem, e qualquer falha inesperada também — a conta já existe.
+     */
+    private function vincularAoCrea(int $usuarioId, string $cpf): void
+    {
+        try {
+            $perfil = $this->perfilCrea->vincularProfissional($usuarioId, $cpf);
+        } catch (\Throwable $e) {
+            error_log('Falha ao vincular o usuário ' . $usuarioId . ' ao CREA: ' . $e->getMessage());
+            Flash::aviso('Sua conta foi criada, mas não conseguimos validar seu registro no CREA '
+                . 'agora. Entre e tente novamente pelo seu perfil.');
+
+            return;
+        }
+
+        if ($perfil['aviso'] !== null) {
+            Flash::aviso($perfil['aviso']);
+
+            return;
+        }
+
+        if ($perfil['situacao'] === PerfilCreaService::VINCULADO) {
+            Flash::info(sprintf(
+                'Registro validado no CREA (RNP %s). Importamos %d %s do seu acervo.',
+                $perfil['rnp'],
+                $perfil['arts'],
+                $perfil['arts'] === 1 ? 'ART' : 'ARTs',
+            ));
+        }
     }
 
     // ---------------------------------------------------------------- login e logout

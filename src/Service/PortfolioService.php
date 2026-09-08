@@ -191,6 +191,12 @@ final class PortfolioService
         return $confere;
     }
 
+    /** Quantas ARTs o profissional tem no acervo local. Alimenta o "perfil em construção". */
+    public function contarArts(string $rnp): int
+    {
+        return $this->acervo->contarPorRnp($rnp);
+    }
+
     // ---------------------------------------------------------------- interno
 
     /**

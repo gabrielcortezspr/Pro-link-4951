@@ -96,9 +96,14 @@ por 15 minutos; a exportação devolve JSON; `sis_auditoria` mostra tudo isso.
 >
 > A herança pelo CAO ficou destravada de graça: a regra é binária e a view já a implementa (D19).
 >
-> Falta, na ordem: cadastro de Profissional e de Empresa chamando a API (`prf_*`, `pro_empresas`,
-> modalidades), CATs, herança de acervo pelo CAO, visibilidade granular, perfil público com o
-> selo na tela, experiência autodeclarada e `sincronizar-status.php`.
+> Também pronto: **cadastro de Profissional consultando a API** (`PerfilCreaService`, D20), com os
+> três desfechos da consulta e importação do acervo no mesmo fluxo. Conferido de ponta a ponta
+> pelo formulário contra a API real: PEDRO HENRIQUE ALVES entrou com RNP `0412340046`, modalidade,
+> 2 ARTs seladas e `prf_em_construcao = 1` — o limiar de 3 ARTs funcionando sem ninguém forçar.
+>
+> Falta, na ordem: tela de "validar meu registro" (resolve a pendência da D20), cadastro de
+> Empresa (`pro_empresas`), CATs, herança de acervo pelo CAO, visibilidade granular, perfil
+> público com o selo na tela, experiência autodeclarada e `sincronizar-status.php`.
 
 **Cobre:** RF02, RF03; edital 8.4, Anexo I item 6; proposta cenários 01 e 03A, diferenciais 2
 (dado verificado) e "perfil em construção". **Destrava o cenário 1.**

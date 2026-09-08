@@ -369,6 +369,9 @@ CREATE TABLE pro_profissionais (
   prf_status           CHAR(1)      NOT NULL DEFAULT 'A',
   CONSTRAINT pk_prf_id PRIMARY KEY (prf_id),
   CONSTRAINT uq_prf_rnp UNIQUE (prf_rnp),
+  -- Um usuário tem um CPF, logo um RNP, logo um perfil CREA. A unicidade por usuário existe
+  -- para a revalidação depois de indisponibilidade da API criar linha nova em vez de atualizar.
+  CONSTRAINT uq_prf_usu UNIQUE (prf_usu_id),
   CONSTRAINT fk_prf_usu_id FOREIGN KEY (prf_usu_id) REFERENCES sis_usuarios (usu_id),
   INDEX ix_prf_status_api (prf_status_api)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

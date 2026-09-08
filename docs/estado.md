@@ -10,18 +10,20 @@ Máximo de ~30 linhas: se passar disso, algo aqui deveria estar num commit ou nu
 
 ## Onde parou
 
-E1 concluída. Na E2, prontos o transporte injetável do `CreaApiClient` e o `PortfolioService`
-inteiro — importação do acervo, associação de ART à mão, mescla que não apaga campo preenchido e
-Selo ART cobrindo as atividades TOS (D13 a D19). Quatro critérios de pronto, todos repetíveis:
-103 testes offline, `verificar-e2.php` (28, sem gastar API), `verificar-api.php` (38, contra a
-API oficial) e `verificar-e1.php http://nginx` (74).
+E1 concluída. Na E2, prontos o transporte injetável, o `PortfolioService` e o **cadastro de
+Profissional consultando a API** (`PerfilCreaService`, D13 a D20). Conferido pelo formulário
+contra a API real: PEDRO HENRIQUE ALVES entrou com RNP, modalidade, 2 ARTs seladas e
+`prf_em_construcao = 1`.
+
+Quatro critérios repetíveis: 103 testes offline, `verificar-e2.php` (52, sem rede),
+`verificar-api.php` (38, contra a API) e `verificar-e1.php http://nginx` (74, uma chamada).
 
 ## Próximo passo
 
-Cadastro de Profissional consultando a API, em `src/Service/AutenticacaoService.php`: chamar
-`profissionalPorCpf`, gravar `pro_profissionais` e as modalidades, e então
-`PortfolioService::importarArts`, que já existe e já está verificado. CPF ausente na API vira
-Terceiro PF, com aviso. Fecha o cenário 1.
+Tela de "validar meu registro", que fecha a pendência criada pela D20: usuário com perfil
+PROFISSIONAL e sem linha em `pro_profissionais` — API fora do ar no cadastro — precisa de um botão
+chamando `PerfilCreaService::vincularProfissional($usuarioId)`, sem CPF, que ele decifra sozinho.
+Pouca coisa, e completa o desfecho que hoje só tem metade. Depois: cadastro de Empresa.
 
 ## Decisões pendentes
 
@@ -37,4 +39,8 @@ Terceiro PF, com aviso. Fecha o cenário 1.
 - `sis_termos` tem texto de espaço reservado. D03 e D05 precisam estar na Política de Privacidade
   antes da entrega, não só no código.
 - Bootstrap vem de CDN; baixar para `public/assets/` antes da entrega.
+- `estrutura.sql` ganhou `uq_prf_usu` (D20). Banco existente:
+  `ALTER TABLE pro_profissionais ADD CONSTRAINT uq_prf_usu UNIQUE (prf_usu_id)` — já aplicado aqui.
+- Documento da massa usado uma vez fica consumido para sempre (D15), inclusive por conta excluída.
+  Para demonstrar, escolha um CPF livre do CSV — `12312300109`, `290`, `370` e `451` já foram.
 - Se a sessão abrir sem o bloco "Retomada": rode `/hooks` uma vez ou reinicie o Claude Code.
