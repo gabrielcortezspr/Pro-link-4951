@@ -1,36 +1,34 @@
 # Estado do projeto
 
-Sobrescrito a cada fechamento de sessão (`/encerrar`). Nunca acrescentado — histórico é `git log`.
-Máximo de ~30 linhas: se passar disso, algo aqui deveria estar num commit ou num doc.
-
 ## Última sessão
 
-06/09/2026 — Gabriel, com Claude Code. Três commits: `6c067e3`, `d032b51`, `0328df0`.
+08/09/2026 — Gabriel, com Claude Code. Commits `27b05d8`, `d85318b`, `bbd38e1`.
 
 ## Onde parou
 
-E0 concluída: `Sessao` (expiração, regeneração de id), `Flash`, `Auditoria` (caminho único de
-escrita), `Requisicao`, roteador com perfis múltiplos, autorização por requisição no front
-controller (401 anônimo / 403 perfil errado + auditoria), macros de formulário acessíveis,
-PHPUnit com 28 testes. Nenhuma linha de RF ainda.
+**E1 concluída** (RF01): cadastro nos quatro tipos, login com bloqueio, recuperação de senha,
+painel de privacidade com revogação, portabilidade e exclusão, tudo auditado. Camada
+`src/Repository/` criada — SQL só mora lá. 62 testes e 71 verificações HTTP passando.
 
 ## Próximo passo
 
-E1 do `docs/backlog.md` (RF01). Começar por `src/Repository/UsuarioRepository.php` e
-`src/Service/AutenticacaoService.php`; primeira tela `templates/auth/cadastro.html.twig`
-usando as macros de `layout/_form.html.twig`. Aí a rota POST existe e o 419 do CSRF vira
-testável por HTTP.
+Transporte injetável no `src/Service/CreaApiClient.php` (decisão D08): extrair o cURL do método
+privado `obter()` para uma interface, com implementação de produção e outra que lê de `fixtures/`.
+Meia hora, e destrava escrever a E2 inteira offline. Só depois começar `PortfolioService`.
 
 ## Decisões pendentes
 
 - MER (`_arq/mer/`): gerar do MySQL Workbench ou de ferramenta de linha de comando? Obrigatório
   na entrega (edital 8.3.2b).
-- Repositório remoto no GitHub ainda não existe. O edital exige o endereço informado na
-  plataforma, com histórico completo.
+- Liberar `desafio-prolink.crea-am.org.br` na política de rede do ambiente da nuvem, ou manter o
+  desenvolvimento contra fixtures e validar só na máquina do Gabriel?
 
 ## Lembrar
 
-- Se a sessão abrir sem o bloco "Retomada": rode `/hooks` uma vez ou reinicie o Claude Code.
-- Admin de dev: `admin@prolink.local`; senha definida em `criar-admin.php`, nunca versionar.
+- **`estrutura.sql` mudou** (D10): recrie o banco com `docker compose down -v && up -d`.
+- Capture local uma fixture que pagine de verdade — `?p=profissionais/{rnp}/arts&limit=2`, duas
+  páginas — senão o laço de paginação da E2 fica sem cobertura.
+- `sis_termos` tem texto de espaço reservado. As decisões D03 e D05 precisam estar na Política de
+  Privacidade antes da entrega, não só no código.
 - Bootstrap vem de CDN; baixar para `public/assets/` antes da entrega.
-- Docker reclamando de socket do Desktop → `docker context use default`.
+- Se a sessão abrir sem o bloco "Retomada": rode `/hooks` uma vez ou reinicie o Claude Code.
