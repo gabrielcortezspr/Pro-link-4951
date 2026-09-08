@@ -5,25 +5,26 @@ Máximo de ~30 linhas: se passar disso, algo aqui deveria estar num commit ou nu
 
 ## Última sessão
 
-08/09/2026 — Gabriel, com Claude Code. De `dc21111` a `HEAD`.
+08/09/2026 — Gabriel, com Claude Code. De `dc21111` a `HEAD`, onze commits.
 
 ## Onde parou
 
-E1 concluída. Na E2: cliente da API, `PortfolioService`, cadastro de Profissional consultando o
-CREA, camada de visibilidade e a **tela `/perfil`** (D13 a D22). A metade do profissional está de
-pé e clicável; a da empresa não começou.
+E1 concluída. Na E2, a metade do profissional está de pé e **clicável**: cliente da API com
+transporte injetável, `PortfolioService` com Selo ART, cadastro consultando o CREA, camada de
+visibilidade e a tela `/perfil` (D13 a D23). A metade da empresa não começou.
 
 120 testes offline · `verificar-e2.php` (57, sem rede) · `verificar-api.php` (38, contra a API) ·
 `verificar-e1.php http://nginx` (74, uma chamada). Todos repetíveis.
 
 ## Próximo passo
 
-**Experiência autodeclarada** (`pro_experiencias`): repositório, serviço e formulário na própria
-`/perfil`, com estilo visualmente distinto do dado verificado — é a promessa da proposta de não
-misturar o que a API confirma com o que a pessoa afirma.
+**Experiência autodeclarada** (`pro_experiencias`): repositório, serviço e formulário dentro da
+própria `/perfil`, com estilo visualmente distinto do dado verificado — a proposta promete não
+misturar o que a API confirma com o que a pessoa afirma, e é o que falta para o cenário 1.
 
-Depois, o perfil público `/perfil/{id}`, que é onde a `Visao` passa a filtrar para um espectador
-que não é o dono, e aí o cenário 1 fecha.
+Depois, na ordem, com a lista completa na E2 do `backlog.md`: perfil público `/perfil/{id}` (onde
+a `Visao` passa a filtrar para quem não é o dono, fechando o cenário 1) → cadastro de Empresa →
+CATs → herança de acervo pelo CAO → `sincronizar-status.php`.
 
 ## Decisões pendentes
 
@@ -44,4 +45,6 @@ que não é o dono, e aí o cenário 1 fecha.
   foram.
 - `ATTR_EMULATE_PREPARES` está desligado: placeholder nomeado **não** pode repetir na mesma query.
   Já mordeu duas vezes.
+- Conta de demonstração pronta: `pedro.alves@prolink.local` / `ProLinkDemo2026!` — profissional
+  com 2 ARTs reais, selo conferindo e perfil aberto.
 - Se a sessão abrir sem o bloco "Retomada": rode `/hooks` uma vez ou reinicie o Claude Code.

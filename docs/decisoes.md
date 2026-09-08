@@ -22,7 +22,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | Fundação (antes da E0) | D01, D02, D03, D04, D05 |
 | E0 — fundação que faltou | D06 |
 | E1 — identidade e consentimento | D07, D08, D09, D10, D11, D12 |
-| E2 — integração com a API | D13, D14, D15, D16, D17, D18, D19, D20, D21, D22 |
+| E2 — integração com a API | D13, D14, D15, D16, D17, D18, D19, D20, D21, D22, D23 |
 
 ---
 
@@ -650,3 +650,30 @@ sem passar pelo serviço.
 Fica devendo o outro lado do portão do CREA: `prf_status_api` deixando de ser `'A'` numa
 sincronização ainda não chama `fecharTudo`. A leitura já está correta, porque o portão é avaliado
 a cada visão; o que falta é o banco acompanhar, e o lugar disso é o `sincronizar-status.php`.
+
+---
+
+## D23 · Identidade não é ocultável; quem não quer ser encontrado fecha o perfil inteiro
+
+`08/09/2026` · E2 · commit a seguir · `src/Support/Visibilidade.php`, `src/Service/PerfilService.php`
+
+**Contexto.** A visibilidade é campo a campo (D22), e a pergunta natural ao montar a tela foi:
+quais campos entram na lista? A resposta preguiçosa é "todos", e ela parece a mais respeitosa com
+o titular.
+
+**Decisão.** `CAMPOS_DO_PERFIL` é lista fechada e **não inclui nome, RNP nem registro CREA**. Esses
+três sempre acompanham o perfil quando ele está visível. O que o titular controla é contato,
+resumo, modalidades, tipo de contrato e disponibilidade — mais cada ART, uma a uma.
+
+**Alternativa recusada.** Deixar o nome e o registro ocultáveis como qualquer outro campo. Um
+perfil sem nome e sem registro não identifica ninguém: o demandante veria um acervo de ARTs
+pertencente a uma pessoa que ele não pode nomear nem conferir no CREA, o que é o oposto da tese
+da plataforma — capacidade **comprovada**, e comprovação exige saber de quem. Pior, seria uma
+falsa escolha: o titular acharia que está protegido enquanto suas ARTs, com número e local,
+continuariam públicas e o identificariam de qualquer jeito.
+
+**Consequência.** Quem não quer ser encontrado tem um caminho melhor e mais honesto: revogar
+`EXIBICAO_PERFIL` no painel de privacidade, que fecha o perfil inteiro para todo mundo (D22). É
+uma escolha só, com efeito total, em vez de seis escolhas com efeito parcial e enganoso. A lista
+ser fechada também é defesa técnica: `deChave()` recusa campo fora dela, então um `name`
+adulterado no formulário não cria linha de visibilidade para coluna nenhuma do banco.
