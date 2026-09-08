@@ -20,6 +20,7 @@ final class Sessao
 {
     private const CHAVE_USUARIO   = 'usuario';
     private const CHAVE_ATIVIDADE = 'ultima_atividade';
+    private const CHAVE_TOKEN     = 'sessao_servidor';
 
     /** Abre a sessão com os parâmetros de cookie seguros e aplica a expiração por inatividade. */
     public static function iniciar(): void
@@ -91,6 +92,21 @@ final class Sessao
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_destroy();
         }
+    }
+
+    /**
+     * Hash da linha correspondente em sis_sessoes. Guardado aqui para que o front controller
+     * possa conferir, a cada requisição, se a sessão ainda está válida do lado do servidor —
+     * é o que faz o bloqueio de usuário pelo administrador (E6) derrubar quem já está logado.
+     */
+    public static function definirTokenServidor(string $hash): void
+    {
+        $_SESSION[self::CHAVE_TOKEN] = $hash;
+    }
+
+    public static function tokenServidor(): ?string
+    {
+        return $_SESSION[self::CHAVE_TOKEN] ?? null;
     }
 
     /** @return array{id: int, nome: string, perfil: string}|null */

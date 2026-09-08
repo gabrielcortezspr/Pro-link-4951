@@ -11,6 +11,7 @@ docker compose up -d --build
 docker compose exec php composer install
 docker compose exec php php scripts/criar-admin.php
 curl -s http://localhost:8080/saude
+docker compose exec php php scripts/verificar-e1.php   # 71 verificações da RF01, por HTTP
 ```
 
 Guia completo de instalação, atualização e problemas comuns: [`_arq/README.md`](_arq/README.md).

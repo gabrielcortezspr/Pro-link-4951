@@ -58,8 +58,11 @@ Coisas pequenas que toda etapa seguinte usa. Fazer antes de qualquer RF.
 
 ## E1 — Identidade, consentimento e auditoria (07–08/09)
 
-> **Em andamento** desde 08/09. Fora da lista original e já feito: validação de CPF/CNPJ
-> (`Documento`) e a separação da massa cadastrável — decisão D07.
+> **Concluída** em 08/09. Critério verificado por `php scripts/verificar-e1.php`: 71
+> verificações por HTTP, todas passando. Decisões D07, D09, D10, D11 e D12. Fora da lista
+> original: validação de CPF/CNPJ e separação da massa cadastrável (D07), e o próprio script de
+> verificação (D12). `estrutura.sql` mudou — `con_dt_concessao` aceita nulo (D10), então banco
+> antigo precisa ser recriado.
 
 **Cobre:** RF01; edital 8.5a/b/f/g, 11.3; proposta cenário 01 (base).
 

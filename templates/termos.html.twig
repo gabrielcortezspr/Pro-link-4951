@@ -1,0 +1,16 @@
+{% extends 'layout/base.html.twig' %}
+
+{% block titulo %}{{ titulo }} — Pro-Link{% endblock %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <h1 class="h3 mb-1">{{ titulo }}</h1>
+        <p class="text-body-secondary">
+            Versão {{ termo.ter_versao }}, em vigor desde {{ termo.ter_dt_vigencia }}.
+        </p>
+
+        <div class="mt-4">{{ termo.ter_conteudo|nl2br }}</div>
+    </div>
+</div>
+{% endblock %}

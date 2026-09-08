@@ -1,0 +1,103 @@
+{% extends 'layout/base.html.twig' %}
+{% import 'layout/_form.html.twig' as form %}
+
+{% block titulo %}Criar conta — Pro-Link{% endblock %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <h1 class="h3 mb-1">Criar conta</h1>
+        <p class="text-body-secondary">
+            Profissionais e empresas registrados no CREA-AM têm o registro validado na API oficial.
+            Quem não tem registro pode participar como Terceiro, publicando demandas.
+        </p>
+
+        {% if aviso|default(null) %}<div class="alert alert-danger" role="alert">{{ aviso }}</div>{% endif %}
+
+        <form method="post" action="{{ app_url }}/cadastro" novalidate>
+            {{ form.csrf() }}
+
+            <fieldset class="mb-4">
+                <legend class="h6 text-uppercase text-body-secondary">Tipo de cadastro</legend>
+                {{ form.selecao('tipo_cadastro', 'Como você vai usar a plataforma', {
+                    'PROFISSIONAL': 'Profissional registrado no CREA-AM (CPF)',
+                    'EMPRESA':      'Empresa registrada no CREA-AM (CNPJ)',
+                    'TERCEIRO_PF':  'Pessoa física sem registro no CREA (CPF)',
+                    'TERCEIRO_PJ':  'Pessoa jurídica sem registro no CREA (CNPJ)'
+                }, valores.tipo_cadastro|default(''), erros.tipo_cadastro|default(null), {required: true}) }}
+            </fieldset>
+
+            <fieldset class="mb-4">
+                <legend class="h6 text-uppercase text-body-secondary">Identificação</legend>
+
+                {{ form.campo('nome', 'Nome completo ou razão social', 'text',
+                    valores.nome|default(''), erros.nome|default(null),
+                    {autocomplete: 'name', maxlength: 150, required: true}) }}
+
+                {{ form.campo('documento', 'CPF ou CNPJ', 'text',
+                    valores.documento|default(''), erros.documento|default(null),
+                    {inputmode: 'numeric', maxlength: 18, required: true},
+                    'Só números ou com pontuação — tanto faz.') }}
+
+                {{ form.campo('telefone', 'Telefone (opcional)', 'tel',
+                    valores.telefone|default(''), erros.telefone|default(null),
+                    {autocomplete: 'tel', maxlength: 20}) }}
+            </fieldset>
+
+            <fieldset class="mb-4">
+                <legend class="h6 text-uppercase text-body-secondary">Acesso</legend>
+
+                {{ form.campo('email', 'E-mail', 'email',
+                    valores.email|default(''), erros.email|default(null),
+                    {autocomplete: 'email', maxlength: 190, required: true}) }}
+
+                {{ form.senha('senha', 'Senha', erros.senha|default(null),
+                    {autocomplete: 'new-password'},
+                    'Pelo menos 12 caracteres.') }}
+
+                {{ form.senha('senha_confirmacao', 'Repita a senha',
+                    erros.senha_confirmacao|default(null), {autocomplete: 'new-password'}) }}
+            </fieldset>
+
+            <fieldset class="mb-4">
+                <legend class="h6 text-uppercase text-body-secondary">Termos e consentimentos</legend>
+                <p class="form-text mt-0">
+                    Você escolhe cada finalidade separadamente e pode revogar qualquer uma depois,
+                    na página de privacidade. Nada do seu perfil é público por padrão.
+                </p>
+
+                {{ form.caixa('aceite_uso',
+                    'Li e aceito os <a href="' ~ app_url ~ '/termos/uso" target="_blank" rel="noopener">Termos de Uso</a>'
+                    ~ (termos.USO is defined ? ' (versão ' ~ termos.USO.ter_versao ~ ')' : ''),
+                    valores.aceite_uso|default(false), erros.aceite_uso|default(null), {required: true}) }}
+
+                {{ form.caixa('aceite_privacidade',
+                    'Li e aceito a <a href="' ~ app_url ~ '/termos/privacidade" target="_blank" rel="noopener">Política de Privacidade</a>'
+                    ~ (termos.PRIVACIDADE is defined ? ' (versão ' ~ termos.PRIVACIDADE.ter_versao ~ ')' : ''),
+                    valores.aceite_privacidade|default(false), erros.aceite_privacidade|default(null), {required: true}) }}
+
+                <hr class="my-3">
+
+                {{ form.caixa('consentimento_api',
+                    'Autorizo consultar a <strong>API oficial do CREA-AM</strong> com meu CPF ou CNPJ, para validar meu registro e importar minhas ARTs e CATs',
+                    valores.consentimento_api|default(false), erros.consentimento_api|default(null)) }}
+                <p class="form-text mt-n2 mb-3">
+                    Obrigatório para os cadastros de profissional e de empresa: sem a consulta não
+                    há como comprovar o registro. Terceiros podem deixar desmarcado.
+                </p>
+
+                {{ form.caixa('consentimento_perfil',
+                    'Autorizo <strong>exibir meu perfil</strong> para demandantes e na busca da plataforma',
+                    valores.consentimento_perfil|default(false), erros.consentimento_perfil|default(null)) }}
+
+                {{ form.caixa('consentimento_notificacoes',
+                    'Quero receber <strong>notificações por e-mail</strong> sobre demandas compatíveis e manifestações',
+                    valores.consentimento_notificacoes|default(false), erros.consentimento_notificacoes|default(null)) }}
+            </fieldset>
+
+            {{ form.botao('Criar conta') }}
+            <a class="btn btn-link" href="{{ app_url }}/login">Já tenho conta</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

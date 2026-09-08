@@ -21,7 +21,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 |---|---|
 | Fundação (antes da E0) | D01, D02, D03, D04, D05 |
 | E0 — fundação que faltou | D06 |
-| E1 — identidade e consentimento | D07, D08 |
+| E1 — identidade e consentimento | D07, D08, D09, D10, D11, D12 |
 
 ---
 
@@ -214,3 +214,96 @@ desenho independentemente do bloqueio.
 1, então o laço de paginação não tem contra o que ser verificado. Resolve-se com uma captura de
 `?p=profissionais/{rnp}/arts&limit=2` em duas páginas, feita na máquina do Gabriel. Enquanto isso
 o laço fica sem cobertura — está anotado como pendência da E2, não como feito.
+
+---
+
+## D09 · A sessão tem respaldo no servidor, conferido a cada requisição
+
+`08/09/2026` · E1 · commit a seguir · `src/Repository/SessaoRepository.php`, `public/index.php`
+
+**Contexto.** A sessão do PHP vive num arquivo no disco do servidor. Derrubar quem já está logado
+— porque o administrador bloqueou a conta (E6), porque o titular excluiu a conta, ou porque a
+senha foi trocada — exigiria achar e apagar esse arquivo. Na prática, ninguém faz isso, e o
+usuário bloqueado continua navegando até o cookie vencer.
+
+**Decisão.** Cada login grava uma linha em `sis_sessoes` com o **hash** do identificador de
+sessão, e o front controller confere em toda requisição autenticada se aquela linha existe, não
+está revogada e não expirou. Revogar é um `UPDATE` numa coluna; o efeito é na requisição seguinte.
+Troca de senha e exclusão de conta já derrubam todas as sessões do usuário.
+
+**Alternativa recusada.** Confiar na expiração do cookie e na limpeza de sessão do PHP. Significa
+que "bloquear usuário", a operação atômica 5 da proposta, não bloquearia nada por até duas horas —
+o pior momento possível para uma plataforma que existe para mediar contratação técnica.
+
+**Consequência.** Uma consulta por requisição autenticada, em rota não pública. É o custo de poder
+revogar, e torna a E6 uma tela em cima de mecanismo que já funciona em vez de um problema novo.
+Guardar só o hash significa que dump do banco não entrega sessão de ninguém.
+
+---
+
+## D10 · "Nunca concedido" é estado distinto de "concedido e revogado"
+
+`08/09/2026` · E1 · commit a seguir · `_arq/estrutura.sql`, `src/Repository/ConsentimentoRepository.php`
+
+**Contexto.** `sis_consentimentos.con_dt_concessao` nascera `NOT NULL DEFAULT CURRENT_TIMESTAMP`.
+Ao gravar uma finalidade que o titular **recusou** no cadastro, o banco rejeitou o `NULL` — e a
+saída fácil seria gravar a data de agora, fazendo a linha dizer "concedida e revogada no mesmo
+instante".
+
+**Decisão.** A coluna passou a aceitar `NULL`, com `NULL` significando "nunca concedida". Recusa
+no cadastro grava `con_concedido = 0`, `con_dt_concessao = NULL` e a data de revogação; revogação
+posterior preserva a data original de concessão.
+
+**Alternativa recusada.** Gravar a data de agora na recusa, para não mexer no schema. Produziria
+trilha falsa de consentimento — exatamente o registro que o item 11.3 existe para tornar
+confiável, e o tipo de coisa que não se quer explicar numa fiscalização.
+
+**Consequência.** `estrutura.sql` mudou, então quem tiver banco antigo precisa recriar (na
+prática, `docker compose down -v`). Em troca, a pergunta "este titular já consentiu com isso
+alguma vez?" tem resposta no dado, sem inferência.
+
+---
+
+## D11 · Logout é POST, e o menu tem formulário em vez de link
+
+`08/09/2026` · E1 · commit a seguir · `templates/layout/base.html.twig`, `public/index.php`
+
+**Contexto.** O layout já trazia `<a href="/sair">Sair</a>`, de antes de existir rota. Logout muda
+estado do servidor, e o item 8.5e exige proteção de CSRF em escrita — que um link GET não tem.
+
+**Decisão.** `/sair` é rota POST com token CSRF, e o item do menu é um formulário com botão
+estilizado como link.
+
+**Alternativa recusada.** Manter GET, argumentando que forçar logout de alguém é dano pequeno. É
+pequeno e é real: um `<img src>` numa página qualquer derrubaria a sessão de quem visitasse, e é
+um achado gratuito para quem for rodar o checklist OWASP da E7 contra a aplicação.
+
+**Consequência.** Um formulário no menu em vez de uma tag `<a>`, com o CSS cuidando da aparência.
+Nada mais muda — e fica o padrão: escrita nenhuma por GET em nenhuma tela nova.
+
+---
+
+## D12 · O critério de pronto da etapa é um script executável, não uma lista lida
+
+`08/09/2026` · E1 · commit a seguir · `scripts/verificar-e1.php`
+
+**Contexto.** O "Pronto quando" da E1 no backlog exige cadastro nos quatro perfis, bloqueio por
+tentativas, exportação em JSON e auditoria mostrando tudo. Nada disso é testável por teste
+unitário: depende de CSRF, cookie, sessão, redirecionamento e autorização por requisição — coisas
+que só existem numa requisição HTTP de verdade.
+
+**Decisão.** `scripts/verificar-e1.php` executa o critério por HTTP contra a aplicação rodando:
+71 verificações nomeadas, saída colorida, código de saída 1 se alguma falhar. Usa o banco para
+preparar cenário (liberar bloqueio) e conferir resultado (auditoria, cifragem em repouso). Cada
+execução usa e-mails com sufixo de hora, e as contas terminam marcadas como excluídas.
+
+**Alternativa recusada.** Testes de integração em PHPUnit com banco. `sis_auditoria` é insert-only
+por trigger (D04), então o `tearDown` não tem como limpar o que o teste escreveu — e um teste que
+não consegue desfazer o próprio efeito polui o banco de quem roda a suíte. Um script de
+verificação, explicitamente executado, é honesto sobre o que faz.
+
+**Consequência.** `composer test` segue rápido e sem dependência de banco (62 testes de lógica
+pura), e a prova de ponta a ponta é um comando separado que a banca pode rodar na frente da gente.
+Cada etapa seguinte ganha o seu `verificar-eN.php`. O primeiro bug achado pelo script, aliás, foi
+nele mesmo: PHP avalia argumentos antes da chamada, então buscar o token CSRF no mesmo argumento
+que zerava a sessão fazia as verificações negativas passarem pelo motivo errado.

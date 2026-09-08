@@ -1,0 +1,29 @@
+{% extends 'layout/base.html.twig' %}
+{% import 'layout/_form.html.twig' as form %}
+
+{% block titulo %}Nova senha — Pro-Link{% endblock %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <h1 class="h3 mb-1">Definir nova senha</h1>
+        <p class="text-body-secondary">
+            Ao confirmar, todas as suas sessões abertas serão encerradas.
+        </p>
+
+        {% if aviso|default(null) %}<div class="alert alert-danger" role="alert">{{ aviso }}</div>{% endif %}
+
+        <form method="post" action="{{ app_url }}/redefinir-senha/{{ token }}" novalidate>
+            {{ form.csrf() }}
+
+            {{ form.senha('senha', 'Nova senha', erros.senha|default(null),
+                {autocomplete: 'new-password'}, 'Pelo menos 12 caracteres.') }}
+
+            {{ form.senha('senha_confirmacao', 'Repita a nova senha',
+                erros.senha_confirmacao|default(null), {autocomplete: 'new-password'}) }}
+
+            {{ form.botao('Salvar senha') }}
+        </form>
+    </div>
+</div>
+{% endblock %}
