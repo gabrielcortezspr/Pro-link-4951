@@ -22,6 +22,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | Fundação (antes da E0) | D01, D02, D03, D04, D05 |
 | E0 — fundação que faltou | D06 |
 | E1 — identidade e consentimento | D07, D08, D09, D10, D11, D12 |
+| E2 — integração com a API | D13, D14, D15 |
 
 ---
 
@@ -307,3 +308,88 @@ pura), e a prova de ponta a ponta é um comando separado que a banca pode rodar 
 Cada etapa seguinte ganha o seu `verificar-eN.php`. O primeiro bug achado pelo script, aliás, foi
 nele mesmo: PHP avalia argumentos antes da chamada, então buscar o token CSRF no mesmo argumento
 que zerava a sessão fazia as verificações negativas passarem pelo motivo errado.
+
+---
+
+## D13 · O transporte devolve resposta crua, e nenhum `.env` troca um pelo outro
+
+`08/09/2026` · E2 · commit a seguir · `src/Support/Transporte.php`, `src/Service/CreaApiClient.php`
+
+**Contexto.** A D08 decidiu que o `CreaApiClient` teria transporte injetável. Faltava decidir duas
+coisas que ela não resolveu: qual é o contrato do transporte, e como se escolhe entre rede e
+fixtures em tempo de execução.
+
+**Decisão.** O transporte devolve `RespostaHttp`: status e corpo **string**, sem interpretar nada.
+Todo o significado — `200 []` é "não pertence", `404` é "não existe", `401`/`429` são
+indisponibilidade, corpo não-JSON é indisponibilidade — continua dentro do cliente, num lugar só.
+E a escolha do transporte é por injeção explícita: a produção usa cURL por ser o padrão do
+construtor, e o de fixtures só entra onde alguém o constrói de propósito.
+
+**Alternativa recusada.** Duas. A primeira, o transporte devolver array já decodificado: mais
+curto, mas o transporte de fixtures desviaria justamente do código que interpreta status, e os
+testes da E2 estariam verificando um caminho que a produção não percorre. A segunda,
+`PROLINK_API_TRANSPORTE=fixtures` no `.env`, que deixaria navegar as telas da E2 offline — é uma
+forma barata de a aplicação servir dado fictício achando que é da API, e o item 8.4 do edital é
+exatamente sobre isso. Uma variável de ambiente errada no dia da demonstração seria irrecuperável.
+
+**Consequência.** Clicar as telas da E2 sem rede exige um script que monte o cliente com o
+transporte de fixtures na mão. Custo aceito: é chato uma vez, e o risco que evita é o de mostrar
+dado inventado para a banca. O token também mudou de casa — vive no `TransporteCurl`, não no
+cliente, então a suíte roda em máquina sem credencial nenhuma.
+
+---
+
+## D14 · O fake deriva respostas, e a derivação é conferida contra a captura real
+
+`08/09/2026` · E2 · commit a seguir · `src/Support/TransporteFixture.php`, `tests/Service/CreaApiClientTest.php`
+
+**Contexto.** As catorze fixtures cobrem um caso cada: uma ART validada, uma página de ARTs, um
+CAO. A E2 precisa de mais — validar as quatro ARTs da profissional, percorrer páginas, distinguir
+ART que não é dela. Capturar uma fixture por caso significaria dezenas de chamadas a uma API que
+registra tudo e cujo edital proíbe coleta automatizada (10.4).
+
+**Decisão.** O `TransporteFixture` **deriva** o que falta a partir do que foi capturado: projeta a
+resposta de validação de ART a partir da lista de ARTs, tira as atividades de cada ART da mesma
+lista, e refatia envelopes no tamanho de página pedido. Para a derivação não virar ficção, a suíte
+compara o que o fake produz com as capturas reais nos casos em que as duas existem. E requisição
+sem captura levanta `LogicException` em vez de inventar um `404` — um 404 fabricado faria um teste
+passar pelo motivo errado.
+
+**Alternativa recusada.** Capturar tudo, o que custaria chamadas demais numa API observada; ou o
+fake devolver sempre o mesmo arquivo, ignorando os parâmetros, que faria a suíte inteira passar
+sem provar nada sobre a distinção `200 []` × `404` — que é a distinção da qual a RF03 depende.
+
+**Consequência.** A lacuna que a D08 deixou anotada está fechada: em 08/09 capturamos
+`?p=profissionais/0412340011/arts&limit=2` nas duas páginas, e o envelope refatiado pelo fake é
+igual, campo a campo, ao que o servidor devolveu — está no teste. Na mesma verificação, a captura
+de 06/09 do endpoint de CPF continua idêntica à resposta de hoje. Sobra uma ressalva viva: o
+comportamento de `?p=arts/{numero}/atividades` para ART inexistente segue não observado, e o fake
+falha alto em vez de escolher entre `404` e `200 []`.
+
+---
+
+## D15 · O script de verificação gera os próprios documentos (revisa a D12)
+
+`08/09/2026` · E2 · commit a seguir · `scripts/verificar-e1.php`
+
+**Contexto.** A D12 afirmou que sufixo de hora no e-mail bastava para o script rodar de novo sem
+colidir. Não bastava, e só apareceu ao rodar duas vezes na mesma máquina: os quatro cadastros
+usavam documentos fixos da massa, e `documentoEmUso()` não filtra status de propósito — conta
+excluída continua segurando o CPF dela, que é o que impede recadastrar um documento para zerar
+histórico. A segunda execução falhava nos quatro cadastros, e o critério de pronto da E1 era, na
+prática, de uso único por banco.
+
+**Decisão.** O script gera CPF e CNPJ válidos a partir do relógio. A conta do dígito verificador
+está escrita de novo dentro do script, e não importada de `Support\Documento`: são duas
+implementações independentes do mesmo módulo 11, e o cadastro só aceita se concordarem —
+divergência vira falha visível. A massa oficial continua conferida, agora pelo validador, sem
+consumir documento em cadastro.
+
+**Alternativa recusada.** Escolher um documento livre da massa a cada execução: os CNPJs válidos
+são quinze (D07), então o script se esgotaria em quinze execuções. Ou apagar fisicamente as contas
+criadas, que violaria a exclusão lógica do item 8.6j e esbarraria no insert-only da auditoria (D04).
+
+**Consequência.** 74 verificações, executáveis quantas vezes se queira — rodadas três vezes
+seguidas para confirmar. A verificação de documento repetido ficou melhor do que era: usa o
+documento cadastrado na própria execução, então prova a unicidade contra o que acabou de entrar,
+e não contra resíduo de uma execução anterior.

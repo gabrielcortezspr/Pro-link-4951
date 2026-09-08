@@ -14,8 +14,11 @@ declare(strict_types=1);
  * de verdade. Os testes de PHPUnit cobrem a lógica pura; este cobre o caminho completo.
  *
  * Usa o banco para preparar e conferir (liberar bloqueio, ler auditoria), porque é o banco da
- * própria aplicação. Cada execução usa e-mails com sufixo de tempo, então rodar de novo não
- * colide; as contas criadas terminam excluídas ('X').
+ * própria aplicação. Cada execução gera e-mails e documentos próprios, derivados do relógio, então
+ * rodar de novo não colide com o que a execução anterior deixou; as contas criadas terminam
+ * excluídas ('X') — e continuam segurando o documento delas, que é o comportamento correto.
+ *
+ * Dentro do container, passe a URL do nginx: o APP_URL padrão é o endereço visto do host.
  *
  *     docker compose exec php php scripts/verificar-e1.php
  *     php scripts/verificar-e1.php http://127.0.0.1:8099
@@ -117,6 +120,47 @@ function secao(string $titulo): void
     printf("\n%s\n", $titulo);
 }
 
+/**
+ * CPF e CNPJ válidos e inéditos, derivados do relógio.
+ *
+ * Por que não usar a massa oficial aqui: `documentoEmUso()` não filtra status, de propósito —
+ * conta excluída continua segurando o documento dela (é o que impede alguém recadastrar um CPF
+ * para zerar histórico). Um script que cadastrasse os mesmos quatro documentos da massa só
+ * rodaria uma vez por banco, e o critério de pronto da E1 precisa rodar sempre.
+ *
+ * A conta do dígito verificador está escrita aqui de novo, e não importada de `Support\Documento`.
+ * Não é duplicação por descuido: são duas implementações independentes do mesmo módulo 11, e o
+ * cadastro só aceita se as duas concordarem. Discordância vira falha visível neste script.
+ */
+function dv(string $base, array $pesos): string
+{
+    $soma = 0;
+
+    foreach (str_split($base) as $i => $digito) {
+        $soma += (int) $digito * $pesos[$i];
+    }
+
+    $resto = $soma % 11;
+
+    return (string) ($resto < 2 ? 0 : 11 - $resto);
+}
+
+function cpfValido(int $serie): string
+{
+    $base = str_pad((string) ($serie % 1000000000), 9, '0', STR_PAD_LEFT);
+    $base .= dv($base, [10, 9, 8, 7, 6, 5, 4, 3, 2]);
+
+    return $base . dv($base, [11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+}
+
+function cnpjValido(int $serie): string
+{
+    $base = str_pad((string) ($serie % 100000000), 8, '0', STR_PAD_LEFT) . '0001';
+    $base .= dv($base, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+
+    return $base . dv($base, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+}
+
 /** Cadastra e devolve o id, ou null se a aplicação recusou. */
 function cadastrar(string $tipo, string $nome, string $documento, string $email): ?int
 {
@@ -188,15 +232,16 @@ conferir('POST com token inválido é recusado com 419', $tokenErrado['status'] 
     "HTTP {$tokenErrado['status']}");
 
 // ---------------------------------------------------------------- os quatro tipos de cadastro
-secao('Cadastro nos quatro tipos, com documento da massa oficial');
+secao('Cadastro nos quatro tipos');
 
-// CPF e CNPJ reais da massa fictícia. Os CNPJs são dois dos 15 com dígito verificador válido
-// (decisão D07); os outros 85 são recusados de propósito, e isso é conferido adiante.
+// Documentos válidos e inéditos a cada execução — ver o comentário de cpfValido(). A massa
+// oficial entra na seção de validação, onde é conferida sem consumir documento.
+$serie  = (int) substr(date('ymdHis'), -9);
 $contas = [
-    CADASTRO_PROFISSIONAL => ['Ana Clara Costa',      '12312300109',    "prof.{$marca}@verificacao.local"],
-    CADASTRO_EMPRESA      => ['Amazônia Construções', '00123001000123', "empresa.{$marca}@verificacao.local"],
-    CADASTRO_TERCEIRO_PF  => ['João Miguel Santos',   '12312300290',    "terceiropf.{$marca}@verificacao.local"],
-    CADASTRO_TERCEIRO_PJ  => ['Norte Obras',          '00123002000178', "terceiropj.{$marca}@verificacao.local"],
+    CADASTRO_PROFISSIONAL => ['Ana Clara Costa',      cpfValido($serie),      "prof.{$marca}@verificacao.local"],
+    CADASTRO_EMPRESA      => ['Amazônia Construções', cnpjValido($serie),     "empresa.{$marca}@verificacao.local"],
+    CADASTRO_TERCEIRO_PF  => ['João Miguel Santos',   cpfValido($serie + 1),  "terceiropf.{$marca}@verificacao.local"],
+    CADASTRO_TERCEIRO_PJ  => ['Norte Obras',          cnpjValido($serie + 1), "terceiropj.{$marca}@verificacao.local"],
 ];
 
 $criados = [];
@@ -274,12 +319,22 @@ $cpfInventado = cadastrar(CADASTRO_TERCEIRO_PF, 'Cpf Falso', '11111111111',
     "cpffalso.{$marca}@verificacao.local");
 conferir('CPF com todos os dígitos iguais é recusado', $cpfInventado === null);
 
-$emailRepetido = cadastrar(CADASTRO_TERCEIRO_PF, 'Repetido', '12312300370', $primeira['email']);
+$emailRepetido = cadastrar(CADASTRO_TERCEIRO_PF, 'Repetido', cpfValido($serie + 2), $primeira['email']);
 conferir('e-mail já cadastrado é recusado', $emailRepetido === null);
 
-$documentoRepetido = cadastrar(CADASTRO_TERCEIRO_PF, 'Documento Repetido', '12312300109',
+// O documento da própria execução: prova que a unicidade vale contra o que acabou de entrar.
+$documentoRepetido = cadastrar(CADASTRO_TERCEIRO_PF, 'Documento Repetido', $contas[CADASTRO_PROFISSIONAL][1],
     "docrepetido.{$marca}@verificacao.local");
 conferir('documento já cadastrado é recusado', $documentoRepetido === null);
+
+// A massa oficial continua conferida, mas pelo validador, sem gastar documento em cadastro.
+conferir('CPF da massa oficial passa no validador',
+    ProLink\Support\Documento::ehCpf('12312300109'));
+conferir('CNPJ da massa com DV válido passa no validador',
+    ProLink\Support\Documento::ehCnpj('00123001000123'));
+conferir('a conta de DV deste script concorda com a de Support\\Documento',
+    ProLink\Support\Documento::ehCpf(cpfValido($serie + 3))
+        && ProLink\Support\Documento::ehCnpj(cnpjValido($serie + 3)));
 
 // ---------------------------------------------------------------- login, sessão e logout
 secao('Login, sessão no servidor e logout');

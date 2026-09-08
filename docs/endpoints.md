@@ -11,6 +11,7 @@ Todos são `GET` e todos exigem o header de autorização. Base e regras gerais 
 |---|---|---|---|---|
 | `profissionais` | `cpf` | cadastro + modalidades | não | `profissional_cpf.json` |
 | `profissionais/{rnp}/arts` | RNP | ARTs com atividades TOS | sim (20) | `profissional_arts.json` |
+| ↳ mesma chamada com `limit=2` | RNP | as 4 ARTs em 2 páginas | — | `profissional_arts_limite2_p1.json`, `_p2.json` |
 | `profissionais/{rnp}/cats` | RNP | CATs, sem as ARTs | sim (20) | `profissional_cats.json` |
 | `empresas` | `cnpj` | cadastro | não | `empresa_cnpj.json` |
 | `empresas/{registro}/quadro-tecnico` | registro CREA | profissionais + função + datas | não | `empresa_quadro_tecnico.json` |
@@ -99,6 +100,12 @@ curl -H "Authorization: Bearer $PROLINK_API_TOKEN" \
 
 Este é o endpoint mais importante pro motor: é dele que sai a evidência de um profissional.
 É também o **único** que traz `art_local_uf` e `art_local_municipio` — o CAO não traz.
+
+**A paginação foi confirmada em 08/09/2026** com `&limit=2`: página 1 traz `AM20269999001` e
+`AM20269999101`, página 2 traz `AM20269999102` e `AM20269999103`, e as duas repetem
+`total_registros: 4` e `total_paginas: 2`. Ou seja, `pagina_atual` e `total_paginas` são
+confiáveis para encerrar o laço, e `data` vazio não é a única parada. Na mesma data, a captura de
+06/09 do endpoint de CPF foi reconferida contra a API e voltou idêntica.
 
 ### `?p=profissionais/{pro_rnp}/cats`
 

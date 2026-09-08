@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace ProLink\Service;
 
+use Generator;
 use ProLink\Support\Crypto;
+use ProLink\Support\Transporte;
+use ProLink\Support\TransporteCurl;
 use RuntimeException;
 
 /**
@@ -23,17 +26,18 @@ use RuntimeException;
  *   3. Distinção entre "não encontrado" e "não pertence": 200 [] significa que a chave é
  *      válida mas nada casou (uma reprovação legítima na validação de documento); 404
  *      significa que o identificador não existe.
+ *   4. O transporte é injetado (decisão D08). Toda a leitura de status e corpo continua aqui,
+ *      num lugar só; o que muda por injeção é apenas de onde a resposta vem — rede em produção,
+ *      `fixtures/` no teste. Quem troca o transporte não desvia de nenhuma regra acima.
  */
 final class CreaApiClient
 {
+    /** Teto de páginas por profissional. Ver todasArtsDoProfissional(). */
+    private const MAX_PAGINAS = 100;
+
     public function __construct(
-        private readonly string $base = API_BASE,
-        private readonly string $token = API_TOKEN,
-        private readonly int $timeout = API_TIMEOUT,
+        private readonly Transporte $transporte = new TransporteCurl(),
     ) {
-        if ($this->token === '') {
-            throw new RuntimeException('PROLINK_API_TOKEN não configurado no .env.');
-        }
     }
 
     // ---------------------------------------------------------------- profissionais
@@ -142,36 +146,111 @@ final class CreaApiClient
         return $this->obter($params);
     }
 
+    // ---------------------------------------------------------------- acervo completo de um candidato
+
+    /**
+     * Todas as ARTs de UM profissional, página a página.
+     *
+     * Isto não contradiz a regra 2 do cabeçalho. Varredura é percorrer a base do CREA atrás de
+     * gente; aqui o laço é limitado ao acervo de um candidato que se cadastrou na plataforma e
+     * consentiu com a consulta — o mesmo dado que ele veria na própria certidão. O que continua
+     * não existindo é método que liste profissionais ou empresas.
+     *
+     * Generator para o serviço poder gravar enquanto lê, sem montar 290 ARTs na memória.
+     *
+     * @return Generator<int, array<string, mixed>>
+     * @throws RuntimeException se o número de páginas passar do teto — melhor falhar alto do que
+     *                          truncar o acervo de alguém em silêncio, ou martelar uma API que
+     *                          registra toda chamada.
+     */
+    public function todasArtsDoProfissional(string $rnp, int $limite = 20): Generator
+    {
+        yield from $this->percorrer("profissionais/{$rnp}/arts", $limite);
+    }
+
+    /**
+     * Todas as CATs de UM profissional. Mesmas ressalvas de todasArtsDoProfissional().
+     *
+     * @return Generator<int, array<string, mixed>>
+     */
+    public function todasCatsDoProfissional(string $rnp, int $limite = 20): Generator
+    {
+        yield from $this->percorrer("profissionais/{$rnp}/cats", $limite);
+    }
+
+    /**
+     * O laço de paginação, num lugar só.
+     *
+     * Três paradas, porque uma só não basta: a página voltou vazia, o contador alcançou
+     * `total_paginas`, ou estourou o teto. A primeira protege contra `total_paginas` vindo
+     * errado; a segunda evita uma requisição a mais por profissional — sem ela seria preciso
+     * uma página vazia para descobrir que acabou.
+     *
+     * @return Generator<int, array<string, mixed>>
+     */
+    private function percorrer(string $recurso, int $limite): Generator
+    {
+        $pagina = 1;
+
+        do {
+            $envelope = $this->obter(['p' => $recurso, 'page' => $pagina, 'limit' => $limite]);
+            $linhas   = $this->linhasDoEnvelope($envelope, $recurso);
+
+            // `yield` item a item, e não `yield from $linhas`: `yield from` sobre uma lista
+            // reinicia as chaves a cada página, e aí duas ARTs de páginas diferentes colidem
+            // em `iterator_to_array()`. Assim o contador do generator segue contínuo.
+            foreach ($linhas as $linha) {
+                yield $linha;
+            }
+
+            $ultima = $pagina >= (int) ($envelope['total_paginas'] ?? 1);
+            $pagina++;
+
+            if ($pagina > self::MAX_PAGINAS) {
+                throw new RuntimeException(
+                    "Paginação de {$recurso} passou de " . self::MAX_PAGINAS
+                    . ' páginas. Interrompido: ou a API mudou o envelope, ou há laço.'
+                );
+            }
+        } while ($linhas !== [] && !$ultima);
+    }
+
+    /**
+     * Extrai `data` de um envelope paginado, recusando o que não tem a forma documentada.
+     *
+     * Envelope sem `data` significa que a API mudou de formato debaixo de nós. Devolver lista
+     * vazia nesse caso seria gravar "este profissional não tem ART nenhuma" — que é pior do que
+     * falhar, porque entra no índice e some.
+     *
+     * @param array<string, mixed> $envelope
+     * @return list<array<string, mixed>>
+     */
+    private function linhasDoEnvelope(array $envelope, string $recurso): array
+    {
+        if (!isset($envelope['data']) || !is_array($envelope['data'])) {
+            throw new ApiIndisponivelException(
+                "Envelope inesperado em {$recurso}: sem a chave 'data'. Formato da API mudou?"
+            );
+        }
+
+        return array_values($envelope['data']);
+    }
+
     // ---------------------------------------------------------------- transporte
 
     /**
-     * @return array Corpo decodificado. Envelopes paginados voltam inteiros, com
-     *               pagina_atual, total_paginas e data.
+     * Pede ao transporte e interpreta a resposta. Toda a semântica de status mora aqui, e é a
+     * mesma independentemente de a resposta ter vindo da rede ou de uma fixture.
+     *
+     * @param array<string, string|int> $params
+     * @return array<mixed> Corpo decodificado. Envelopes paginados voltam inteiros, com
+     *                      pagina_atual, total_paginas e data.
      */
     private function obter(array $params): array
     {
-        $url = $this->base . '?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
-
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => $this->timeout,
-            CURLOPT_HTTPHEADER     => [
-                'Authorization: Bearer ' . $this->token,
-                'Accept: application/json',
-            ],
-        ]);
-
-        $corpo   = curl_exec($ch);
-        $status  = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        $erroCurl = curl_error($ch);
-        curl_close($ch);
-
-        if ($corpo === false) {
-            throw new ApiIndisponivelException('Falha de transporte com a API oficial: ' . $erroCurl);
-        }
-
-        $dados = json_decode((string) $corpo, true);
+        $resposta = $this->transporte->get($params);
+        $dados    = json_decode($resposta->corpo, true);
+        $status   = $resposta->status;
 
         if (!is_array($dados)) {
             throw new ApiIndisponivelException("Resposta não-JSON da API (HTTP {$status}).");

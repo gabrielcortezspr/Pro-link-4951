@@ -89,6 +89,11 @@ por 15 minutos; a exportação devolve JSON; `sis_auditoria` mostra tudo isso.
 
 ## E2 — Integração com a API e portfólio (09–10/09)
 
+> **Em andamento.** O transporte injetável do `CreaApiClient` está feito (D08, D13, D14): 24
+> testes cobrem o cliente sem rede e sem token, a paginação foi confirmada contra a API real e a
+> lacuna de fixture que a D08 anotou está fechada. Falta tudo o que consome o cliente, da lista
+> abaixo — começar por `PortfolioService`.
+
 **Cobre:** RF02, RF03; edital 8.4, Anexo I item 6; proposta cenários 01 e 03A, diferenciais 2
 (dado verificado) e "perfil em construção". **Destrava o cenário 1.**
 

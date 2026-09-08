@@ -6,15 +6,17 @@
 
 ## Onde parou
 
-**E1 concluída** (RF01): cadastro nos quatro tipos, login com bloqueio, recuperação de senha,
-painel de privacidade com revogação, portabilidade e exclusão, tudo auditado. Camada
-`src/Repository/` criada — SQL só mora lá. 62 testes e 71 verificações HTTP passando.
+E1 concluída (RF01) e a **E2 começada pelo transporte**: `Support\Transporte` com implementação
+cURL e implementação de fixtures (D08, D13, D14). O cliente da API tem 24 testes, roda sem rede e
+sem token, e o laço de paginação foi confirmado contra a API real. 86 testes e 74 verificações
+HTTP passando, estas últimas agora repetíveis (D15).
 
 ## Próximo passo
 
-Transporte injetável no `src/Service/CreaApiClient.php` (decisão D08): extrair o cURL do método
-privado `obter()` para uma interface, com implementação de produção e outra que lê de `fixtures/`.
-Meia hora, e destrava escrever a E2 inteira offline. Só depois começar `PortfolioService`.
+`src/Service/PortfolioService.php`, operação atômica 1 da proposta: `associarArt(rnp, numero)` →
+`validarArt` → `atividadesDaArt` → grava `crea_arts` + `crea_art_atividades` + `art_hash` numa
+transação só. O cliente já entrega tudo isso; o que não existe ainda é o repositório de gravação.
+Escrever contra `TransporteFixture`, com `Crypto::selo` para o HMAC da linha.
 
 ## Decisões pendentes
 
@@ -35,12 +37,11 @@ Meia hora, e destrava escrever a E2 inteira offline. Só depois começar `Portfo
 - `verificar-e1.php` rodado dentro do container precisa da URL do nginx:
   `docker compose exec php php scripts/verificar-e1.php http://nginx`. O padrão `APP_URL` é o
   endereço visto do host.
-- **`verificar-e1.php` roda uma vez por volume.** Ele cadastra quatro documentos fixos da massa e
-  encerra as contas com `_status = 'X'`, mas `documentoEmUso()` não filtra status, de propósito —
-  então a segunda execução falha nos quatro cadastros. Para rodar de novo hoje: `docker compose
-  down -v && up -d` e `criar-admin.php`. Corrigir escolhendo documento livre por execução.
-- Capture local uma fixture que pagine de verdade — `?p=profissionais/{rnp}/arts&limit=2`, duas
-  páginas — senão o laço de paginação da E2 fica sem cobertura.
+- **Fica sem observação**: `?p=arts/{numero}/atividades` para ART inexistente. O
+  `TransporteFixture` falha alto nesse caso de propósito, em vez de escolher entre 404 e 200 [].
+  Se der, capture — é uma chamada.
+- Clicar as telas da E2 sem rede exige montar o cliente com `TransporteFixture` na mão: não há
+  interruptor no `.env`, e a D13 explica por quê.
 - `sis_termos` tem texto de espaço reservado. As decisões D03 e D05 precisam estar na Política de
   Privacidade antes da entrega, não só no código.
 - Bootstrap vem de CDN; baixar para `public/assets/` antes da entrega.
