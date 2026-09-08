@@ -17,6 +17,7 @@ require_once dirname(__DIR__) . '/_config.php';
 use ProLink\Controller\AdminController;
 use ProLink\Controller\AuthController;
 use ProLink\Controller\HomeController;
+use ProLink\Controller\PerfilController;
 use ProLink\Controller\PrivacidadeController;
 use ProLink\Controller\SaudeController;
 use ProLink\Controller\TermoController;
@@ -53,6 +54,10 @@ $router->post('/redefinir-senha/{token}', AuthController::class, 'redefinir');
 $router->post('/sair',                AuthController::class, 'sair', PERFIS_AUTENTICADOS);
 
 // ---------------------------------------------------------------- privacidade do titular (11.3)
+$router->get('/perfil',                       PerfilController::class, 'index', PERFIS_AUTENTICADOS);
+$router->post('/perfil/visibilidade',        PerfilController::class, 'definirVisibilidade', PERFIS_AUTENTICADOS);
+$router->post('/perfil/validar-registro',    PerfilController::class, 'validarRegistro', PERFIL_PROFISSIONAL);
+
 $router->get('/privacidade',                  PrivacidadeController::class, 'index', PERFIS_AUTENTICADOS);
 $router->post('/privacidade/consentimento',   PrivacidadeController::class, 'definirConsentimento', PERFIS_AUTENTICADOS);
 $router->get('/privacidade/exportar',         PrivacidadeController::class, 'exportar', PERFIS_AUTENTICADOS);

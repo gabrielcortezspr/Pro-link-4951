@@ -125,4 +125,40 @@ final class Visibilidade
     {
         return $entidade . ':' . ($entidadeId ?? '-') . ':' . ($campo ?? '-');
     }
+
+    /**
+     * O caminho de volta: chave vinda do formulário → alvo, ou null se não for uma chave nossa.
+     *
+     * Devolve null em vez de lançar porque a entrada é de fora: um `name` adulterado no HTML é
+     * requisição inválida a ser ignorada, não erro do sistema. Entidade fora da lista fechada e
+     * campo fora de `CAMPOS_DO_PERFIL` não passam daqui.
+     *
+     * @return array{entidade: string, id: int|null, campo: string|null}|null
+     */
+    public static function deChave(string $chave): ?array
+    {
+        $partes = explode(':', $chave);
+
+        if (count($partes) !== 3) {
+            return null;
+        }
+
+        [$entidade, $id, $campo] = $partes;
+
+        if (!in_array($entidade, [self::PERFIL, self::ART, self::CAT, self::EXPERIENCIA], true)) {
+            return null;
+        }
+
+        $campo = $campo === '-' ? null : $campo;
+
+        if ($entidade === self::PERFIL && $campo !== null && !self::campoValido($campo)) {
+            return null;
+        }
+
+        return [
+            'entidade' => $entidade,
+            'id'       => $id === '-' ? null : (ctype_digit($id) ? (int) $id : null),
+            'campo'    => $campo,
+        ];
+    }
 }

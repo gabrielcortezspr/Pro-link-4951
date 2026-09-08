@@ -147,6 +147,59 @@ final class AcervoRepository extends Repositorio
         return ['ativas' => count($atividades), 'encerradas' => max(0, $encerradas - count($atividades))];
     }
 
+    /**
+     * O acervo do profissional, com as atividades de cada ART, em duas consultas.
+     *
+     * Duas e não N+1: a tela do perfil mostra toda ART com seus códigos TOS, e uma consulta por
+     * ART transformaria a página num problema de desempenho conforme o acervo cresce — e um
+     * acervo grande é justamente o de quem a plataforma mais quer mostrar.
+     *
+     * @return list<array<string, mixed>> cada ART com a chave `atividades`
+     */
+    public function porRnp(string $rnp): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT art_id, art_numero, art_pro_rnp, art_tipo, art_forma_registro,
+                    art_contratante_nome, art_objeto, art_local_uf, art_local_municipio,
+                    art_situacao, art_hash, art_dt_consulta
+               FROM crea_arts
+              WHERE art_pro_rnp = :rnp AND art_status = :ativo
+              ORDER BY art_numero'
+        );
+        $stmt->execute([':rnp' => $rnp, ':ativo' => STATUS_ATIVO]);
+        $arts = $stmt->fetchAll();
+
+        if ($arts === []) {
+            return [];
+        }
+
+        $ids    = array_column($arts, 'art_id');
+        $marcas = implode(',', array_fill(0, count($ids), '?'));
+
+        $atividades = $this->pdo->prepare(
+            "SELECT ata_art_id, ata_tos_codigo AS tos_codigo, ata_descricao AS descricao
+               FROM crea_art_atividades
+              WHERE ata_art_id IN ({$marcas}) AND ata_status = ?
+              ORDER BY ata_id"
+        );
+        $atividades->execute([...$ids, STATUS_ATIVO]);
+
+        $porArt = [];
+
+        foreach ($atividades->fetchAll() as $linha) {
+            $porArt[(int) $linha['ata_art_id']][] = [
+                'tos_codigo' => $linha['tos_codigo'],
+                'descricao'  => $linha['descricao'],
+            ];
+        }
+
+        foreach ($arts as $i => $art) {
+            $arts[$i]['atividades'] = $porArt[(int) $art['art_id']] ?? [];
+        }
+
+        return $arts;
+    }
+
     /** Quantas ARTs ativas o profissional tem no acervo. Alimenta `prf_em_construcao`. */
     public function contarPorRnp(string $rnp): int
     {

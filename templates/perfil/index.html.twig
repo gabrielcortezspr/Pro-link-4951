@@ -1,0 +1,159 @@
+{% extends 'layout/base.html.twig' %}
+{% import 'layout/_form.html.twig' as form %}
+
+{% block titulo %}Meu perfil — Pro-Link{% endblock %}
+
+{% block conteudo %}
+{% set p = perfil %}
+
+<h1 class="h3 mb-1">{{ p.identidade.nome }}</h1>
+<p class="text-body-secondary">
+    {% if p.identidade.rnp %}
+        RNP {{ p.identidade.rnp }} · Registro CREA {{ p.identidade.registro_crea }}
+    {% else %}
+        Registro no CREA ainda não validado
+    {% endif %}
+</p>
+
+{% if p.validacao_pendente %}
+    <div class="alert alert-warning d-flex flex-wrap gap-3 align-items-center" role="alert">
+        <div class="flex-grow-1">
+            <strong>Seu registro no CREA ainda não foi validado.</strong>
+            A API oficial não respondeu quando você criou a conta. Enquanto isso, seu perfil não
+            aparece para ninguém.
+        </div>
+        <form method="post" action="{{ app_url }}/perfil/validar-registro">
+            {{ form.csrf() }}
+            <button type="submit" class="btn btn-warning">Validar meu registro</button>
+        </form>
+    </div>
+{% elseif p.sincronizacao_incompleta %}
+    <div class="alert alert-warning d-flex flex-wrap gap-3 align-items-center" role="alert">
+        <div class="flex-grow-1">
+            <strong>Seu acervo não foi importado.</strong>
+            Seu registro está validado, mas não conseguimos ler suas ARTs no CREA.
+        </div>
+        <form method="post" action="{{ app_url }}/perfil/validar-registro">
+            {{ form.csrf() }}
+            <button type="submit" class="btn btn-warning">Importar minhas ARTs</button>
+        </form>
+    </div>
+{% endif %}
+
+{% if not p.perfil_aberto %}
+    <div class="alert alert-secondary" role="alert">
+        <strong>Seu perfil está fechado.</strong>
+        Ninguém além de você o enxerga, mesmo o que estiver marcado como público. Isso acontece
+        quando o consentimento de exibição está revogado
+        (<a href="{{ app_url }}/privacidade">painel de privacidade</a>)
+        ou quando seu registro não está regular no CREA.
+    </div>
+{% endif %}
+
+{% if p.em_construcao %}
+    <p class="mb-3">
+        <span class="badge text-bg-info">Perfil em construção</span>
+        <span class="text-body-secondary">Seu acervo está começando. Você continua aparecendo nas
+        recomendações — a marca só dá contexto a quem te encontrar.</span>
+    </p>
+{% endif %}
+
+<div class="row g-4 mt-1">
+    <div class="col-lg-7">
+        <h2 class="h5">Acervo técnico</h2>
+
+        {% if p.arts is empty %}
+            <p class="text-body-secondary">Nenhuma ART no seu acervo ainda.</p>
+        {% else %}
+            <p class="text-body-secondary">
+                {{ p.arts|length }} ART(s) importada(s) da API oficial do CREA.
+            </p>
+
+            {% for art in p.arts %}
+                <article class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                            <div>
+                                <h3 class="h6 mb-1">{{ art.numero }}</h3>
+                                <p class="mb-1">{{ art.objeto }}</p>
+                            </div>
+                            {% if art.selo_confere %}
+                                <span class="badge text-bg-success" title="O conteúdo desta ART não mudou desde que foi importado da API oficial.">
+                                    Selo ART conferido
+                                </span>
+                            {% else %}
+                                <span class="badge text-bg-danger" title="O conteúdo gravado não corresponde ao selo. Isto foi registrado na auditoria.">
+                                    Selo divergente
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <dl class="row small mb-2">
+                            <dt class="col-sm-4">Contratante</dt>
+                            <dd class="col-sm-8">{{ art.contratante ?: '—' }}</dd>
+                            <dt class="col-sm-4">Local</dt>
+                            <dd class="col-sm-8">{{ art.local ?: '—' }}</dd>
+                            <dt class="col-sm-4">Situação</dt>
+                            <dd class="col-sm-8">{{ art.situacao ?: '—' }}</dd>
+                            <dt class="col-sm-4">Consultado em</dt>
+                            <dd class="col-sm-8">{{ art.dt_consulta }}</dd>
+                        </dl>
+
+                        <p class="small mb-1"><strong>Atividades (Tabela de Obras e Serviços)</strong></p>
+                        <ul class="small mb-0">
+                            {% for atividade in art.atividades %}
+                                <li><code>{{ atividade.tos_codigo }}</code>
+                                    {% if atividade.descricao %}— {{ atividade.descricao }}{% endif %}</li>
+                            {% else %}
+                                <li class="text-body-secondary">Sem atividades registradas.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </article>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <div class="col-lg-5">
+        <h2 class="h5">Quem vê o quê</h2>
+        <p class="text-body-secondary">
+            Nada fica visível sem você escolher. O padrão de tudo é <strong>Só eu</strong>.
+        </p>
+
+        <form method="post" action="{{ app_url }}/perfil/visibilidade">
+            {{ form.csrf() }}
+
+            <fieldset class="mb-3">
+                <legend class="h6">Dados do perfil</legend>
+                {% for campo in p.campos_do_perfil %}
+                    {% set chave = 'PERFIL:-:' ~ campo %}
+                    {{ form.selecao('nivel[' ~ chave ~ ']', campo|replace({'_': ' '})|capitalize,
+                        niveis_possiveis, p.niveis[chave]|default('PRIVADO'), null, {}, false) }}
+                {% endfor %}
+            </fieldset>
+
+            {% if p.arts is not empty %}
+                <fieldset class="mb-3">
+                    <legend class="h6">Cada ART, uma a uma</legend>
+                    {% for art in p.arts %}
+                        {% set chave = 'ART:' ~ art.id ~ ':-' %}
+                        {{ form.selecao('nivel[' ~ chave ~ ']', art.numero,
+                            niveis_possiveis, p.niveis[chave]|default('PRIVADO'), null, {}, false) }}
+                    {% endfor %}
+                </fieldset>
+            {% endif %}
+
+            {{ form.botao('Salvar visibilidade') }}
+        </form>
+
+        <h2 class="h5 mt-4">Modalidades</h2>
+        {% if p.modalidades is empty %}
+            <p class="text-body-secondary">Nenhuma modalidade vinda da API.</p>
+        {% else %}
+            <ul>
+                {% for modalidade in p.modalidades %}<li>{{ modalidade.mod_nome }}</li>{% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

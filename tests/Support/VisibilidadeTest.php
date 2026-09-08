@@ -179,6 +179,41 @@ final class VisibilidadeTest extends TestCase
         self::assertFalse(Visibilidade::campoValido('NOME'), 'perfil sem nome não identifica ninguém');
     }
 
+    // ---------------------------------------------------------------- chave vinda do formulário
+
+    #[Test]
+    public function a_chave_do_formulario_volta_a_ser_alvo(): void
+    {
+        self::assertSame(
+            ['entidade' => Visibilidade::PERFIL, 'id' => null, 'campo' => 'RESUMO'],
+            Visibilidade::deChave('PERFIL:-:RESUMO'),
+        );
+        self::assertSame(
+            ['entidade' => Visibilidade::ART, 'id' => 203, 'campo' => null],
+            Visibilidade::deChave('ART:203:-'),
+        );
+    }
+
+    #[Test]
+    public function chave_adulterada_no_html_e_ignorada(): void
+    {
+        // Entrada de fora: devolver null faz o controlador pular o alvo, e pular é o
+        // comportamento fechado — o alvo desconhecido continua privado.
+        self::assertNull(Visibilidade::deChave('USUARIOS:-:USU_SENHA_HASH'));
+        self::assertNull(Visibilidade::deChave('PERFIL:-:CAMPO_INVENTADO'));
+        self::assertNull(Visibilidade::deChave('PERFIL'));
+        self::assertNull(Visibilidade::deChave(''));
+    }
+
+    #[Test]
+    public function ida_e_volta_da_chave_sao_simetricas(): void
+    {
+        $chave = Visibilidade::chave(Visibilidade::ART, 42, null);
+        $alvo  = Visibilidade::deChave($chave);
+
+        self::assertSame($chave, Visibilidade::chave($alvo['entidade'], $alvo['id'], $alvo['campo']));
+    }
+
     #[Test]
     public function so_os_tres_niveis_sao_aceitos(): void
     {

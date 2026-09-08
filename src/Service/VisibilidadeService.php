@@ -93,6 +93,7 @@ final class VisibilidadeService
     /**
      * Grava a escolha do titular sobre um alvo.
      *
+     * @return bool true se algo mudou de fato — deixa o chamador dizer a verdade na mensagem
      * @throws ValidacaoException nível ou campo fora da lista fechada
      */
     public function definir(
@@ -101,7 +102,7 @@ final class VisibilidadeService
         ?int $entidadeId,
         ?string $campo,
         string $nivel,
-    ): void {
+    ): bool {
         if (!Visibilidade::nivelValido($nivel)) {
             throw new ValidacaoException('Nível de visibilidade inválido.');
         }
@@ -110,10 +111,15 @@ final class VisibilidadeService
             throw new ValidacaoException('Este campo do perfil não tem controle de visibilidade.');
         }
 
-        $anterior = $this->visibilidades->nivel($usuarioId, $entidade, $entidadeId, $campo);
+        // Ausência de linha e PRIVADO são o mesmo estado (D22), então precisam ser comparados
+        // como o mesmo. Sem isso, salvar o formulário uma vez criava linha para todo campo que o
+        // titular deixou como está — destruindo justamente o padrão-por-ausência que a decisão
+        // estabeleceu — e enchia `sis_auditoria` de "PRIVADO → PRIVADO".
+        $anterior = $this->visibilidades->nivel($usuarioId, $entidade, $entidadeId, $campo)
+            ?? VISIBILIDADE_PRIVADO;
 
         if ($anterior === $nivel) {
-            return;
+            return false;
         }
 
         Database::transacao(function (PDO $pdo) use ($usuarioId, $entidade, $entidadeId, $campo, $nivel, $anterior): void {
@@ -124,12 +130,14 @@ final class VisibilidadeService
                 'pro_visibilidade',
                 $entidadeId,
                 Visibilidade::chave($entidade, $entidadeId, $campo),
-                $anterior ?? VISIBILIDADE_PRIVADO,
+                $anterior,
                 $nivel,
                 $usuarioId,
                 $pdo,
             );
         });
+
+        return true;
     }
 
     /**

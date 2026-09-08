@@ -129,11 +129,16 @@ por 15 minutos; a exportação devolve JSON; `sis_auditoria` mostra tudo isso.
   e dado declarado com estilos distintos (`.selo-art` / `.dado-declarado`).
 - Visibilidade granular (`pro_visibilidade`): por campo do perfil e por ART. **Nada público
   por padrão.** Perfil público em `/perfil/{id}` respeita isso.
-  > **Camada pronta** (D22): `Support\Visibilidade` (regras), `Support\Visao` (decisão em
-  > memória), `VisibilidadeRepository` e `VisibilidadeService` com os dois portões globais.
-  > 14 testes. Falta o consumidor — a tela — e o `fecharTudo` no lado da sincronização de status.
+  > **Pronta e em uso** (D22): `Support\Visibilidade` (regras), `Support\Visao` (decisão em
+  > memória), repositório, serviço com os dois portões globais e os controles na tela do perfil.
+  > 17 testes. Falta o `fecharTudo` no lado da sincronização de status e o perfil público, que é
+  > onde a `Visao` passa a filtrar para um espectador que não é o dono.
 - Perfil em construção: menos de `match.early_career.min_arts` ARTs → `prf_em_construcao = 1`
   e sinalização visual. Nunca sai do pool.
+- **Tela `/perfil` pronta**: acervo com Selo ART reconferido a cada exibição, marca de perfil em
+  construção, aviso de perfil fechado, controles de visibilidade por campo e por ART, e o botão
+  que resolve a pendência da D20 e da D21 (`validar meu registro` / `importar minhas ARTs`).
+  Conferida no navegador contra dado real da API; sem rolagem horizontal a 390px.
 - `scripts/sincronizar-status.php`: reconsulta `profissionalPorCpf` (decifrando o CPF) para
   quem passou de `api.sincronizacao.horas`; `pro_status != 'A'` zera visibilidade. Sem cron
   na entrega — a banca roda o script; documentar como rotina agendável.

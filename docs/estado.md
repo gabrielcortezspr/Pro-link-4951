@@ -9,21 +9,21 @@ Máximo de ~30 linhas: se passar disso, algo aqui deveria estar num commit ou nu
 
 ## Onde parou
 
-E1 concluída. Na E2: cliente da API com transporte injetável, `PortfolioService`, cadastro de
-Profissional consultando o CREA e a **camada de visibilidade** (D13 a D22). Metade do profissional
-de pé; a da empresa não começou.
+E1 concluída. Na E2: cliente da API, `PortfolioService`, cadastro de Profissional consultando o
+CREA, camada de visibilidade e a **tela `/perfil`** (D13 a D22). A metade do profissional está de
+pé e clicável; a da empresa não começou.
 
-117 testes offline · `verificar-e2.php` (57, sem rede) · `verificar-api.php` (38, contra a API) ·
+120 testes offline · `verificar-e2.php` (57, sem rede) · `verificar-api.php` (38, contra a API) ·
 `verificar-e1.php http://nginx` (74, uma chamada). Todos repetíveis.
 
 ## Próximo passo
 
-**Tela de perfil do profissional** — o primeiro consumidor da visibilidade, e o primeiro template
-novo da E2. Mostra as ARTs importadas com o Selo ART conferido, a marca de "em construção", os
-controles de nível por campo e por ART, e o botão de "validar meu registro" para quem tem
-`prf_dt_sincronizacao` nula. Montar o que vai ao template pela `Visao`, nunca filtrar no Twig.
+**Experiência autodeclarada** (`pro_experiencias`): repositório, serviço e formulário na própria
+`/perfil`, com estilo visualmente distinto do dado verificado — é a promessa da proposta de não
+misturar o que a API confirma com o que a pessoa afirma.
 
-Depois: experiência autodeclarada, perfil público `/perfil/{id}` — e aí o cenário 1 fecha.
+Depois, o perfil público `/perfil/{id}`, que é onde a `Visao` passa a filtrar para um espectador
+que não é o dono, e aí o cenário 1 fecha.
 
 ## Decisões pendentes
 
