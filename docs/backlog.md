@@ -129,6 +129,9 @@ por 15 minutos; a exportação devolve JSON; `sis_auditoria` mostra tudo isso.
   e dado declarado com estilos distintos (`.selo-art` / `.dado-declarado`).
 - Visibilidade granular (`pro_visibilidade`): por campo do perfil e por ART. **Nada público
   por padrão.** Perfil público em `/perfil/{id}` respeita isso.
+  > **Camada pronta** (D22): `Support\Visibilidade` (regras), `Support\Visao` (decisão em
+  > memória), `VisibilidadeRepository` e `VisibilidadeService` com os dois portões globais.
+  > 14 testes. Falta o consumidor — a tela — e o `fecharTudo` no lado da sincronização de status.
 - Perfil em construção: menos de `match.early_career.min_arts` ARTs → `prf_em_construcao = 1`
   e sinalização visual. Nunca sai do pool.
 - `scripts/sincronizar-status.php`: reconsulta `profissionalPorCpf` (decifrando o CPF) para

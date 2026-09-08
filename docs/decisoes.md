@@ -22,7 +22,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | Fundação (antes da E0) | D01, D02, D03, D04, D05 |
 | E0 — fundação que faltou | D06 |
 | E1 — identidade e consentimento | D07, D08, D09, D10, D11, D12 |
-| E2 — integração com a API | D13, D14, D15, D16, D17, D18, D19, D20, D21 |
+| E2 — integração com a API | D13, D14, D15, D16, D17, D18, D19, D20, D21, D22 |
 
 ---
 
@@ -602,3 +602,51 @@ duas decisões, os estados possíveis viraram quatro e todos são legíveis no b
 `pro_profissionais` (nem o CPF foi consultado), linha com carimbo nulo (perfil validado, acervo
 não), linha com carimbo velho (sincronizou um dia, falhou depois) e linha com carimbo recente
 (completo). É o que a tela de "validar meu registro" vai consultar.
+
+---
+
+## D22 · "Nada público por padrão" é a ausência de registro, e o filtro acontece antes do template
+
+`08/09/2026` · E2 · commit a seguir · `src/Support/Visibilidade.php`, `src/Support/Visao.php`
+
+**Contexto.** A RF03 e o item 11.3 exigem visibilidade granular, por campo do perfil e por ART, e
+o backlog é explícito: **nada público por padrão**. Faltava decidir como essa afirmação vira
+código — e onde o filtro é aplicado.
+
+**Decisão.** Três coisas.
+
+Primeira: **alvo sem linha em `pro_visibilidade` é privado.** O padrão é a ausência, não linhas
+escritas no cadastro. A consequência que mais vale é que um campo novo, criado daqui a duas
+semanas, nasce invisível sem ninguém lembrar de escrever migração — o desenho falha fechado por
+construção, e não por disciplina de quem escreve a próxima tela.
+
+Segunda: **o filtro acontece na montagem, não na renderização.** O controlador entrega ao template
+só o que já passou pela `Visao`; o template não recebe o dado escondido e o esconde com `{% if %}`.
+Um `if` esquecido não vaza o que nunca chegou até lá.
+
+Terceira: **dois portões globais acima do controle por campo** — consentimento `EXIBICAO_PERFIL`
+vigente e, para profissional, `prf_status_api = 'A'`. Qualquer um deles fechado esconde tudo,
+inclusive o que estiver marcado como público. Mas nenhum dos dois apaga a escolha do titular: o
+perfil reabre como estava.
+
+**Alternativa recusada.** Escrever uma linha por campo no cadastro, todas em `PRIVADO`, que é o
+que a D10 nos fez fazer com o consentimento. Lá a distinção entre "nunca concedido" e "concedido e
+revogado" tem efeito jurídico — o titular precisa poder provar o que autorizou e quando. Aqui não
+existe diferença nenhuma entre "nunca marquei" e "marquei privado": o resultado é idêntico,
+ninguém vê. Guardar seis linhas por usuário para representar o padrão seria criar estado para
+manter, e cada campo novo viraria uma migração que alguém esquece — trocando um desenho que falha
+fechado por um que depende de memória.
+
+Também foi recusado dar passe livre ao administrador. Quem administra modera denúncia e conteúdo
+publicado; abrir o perfil fechado de alguém não é moderação, e a D06 já dizia que não há
+superusuário implícito.
+
+**Consequência.** O titular sempre enxerga o próprio dado, mesmo com o perfil fechado — senão
+revogar a exibição o trancaria para fora do próprio cadastro. E a revogação de `EXIBICAO_PERFIL`
+passou a fechar as linhas abertas, redundante com o portão de propósito: o portão decide o que a
+tela mostra agora, o fechamento deixa o banco coerente com a decisão para quem consultar a tabela
+sem passar pelo serviço.
+
+Fica devendo o outro lado do portão do CREA: `prf_status_api` deixando de ser `'A'` numa
+sincronização ainda não chama `fecharTudo`. A leitura já está correta, porque o portão é avaliado
+a cada visão; o que falta é o banco acompanhar, e o lugar disso é o `sincronizar-status.php`.

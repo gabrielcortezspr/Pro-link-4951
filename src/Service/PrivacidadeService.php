@@ -43,6 +43,7 @@ final class PrivacidadeService
         private readonly UsuarioRepository $usuarios = new UsuarioRepository(),
         private readonly ConsentimentoRepository $consentimentos = new ConsentimentoRepository(),
         private readonly SessaoRepository $sessoes = new SessaoRepository(),
+        private readonly VisibilidadeService $visibilidades = new VisibilidadeService(),
     ) {
     }
 
@@ -110,6 +111,14 @@ final class PrivacidadeService
                 $pdo,
             );
         });
+
+        // Revogar a exibição fecha o que já estava aberto. O portão global do
+        // `VisibilidadeService` sozinho já esconderia tudo, mas deixar `pro_visibilidade` com
+        // linhas PUBLICO depois de o titular ter revogado seria o banco discordando da decisão
+        // dele — e quem lesse a tabela sem passar pelo serviço leria a coisa errada.
+        if ($finalidade === FINALIDADE_EXIBICAO_PERFIL && !$concedido) {
+            $this->visibilidades->fecharTudo($usuarioId, 'consentimento de exibição revogado');
+        }
     }
 
     /**
