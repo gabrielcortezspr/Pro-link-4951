@@ -22,7 +22,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | Fundação (antes da E0) | D01, D02, D03, D04, D05 |
 | E0 — fundação que faltou | D06 |
 | E1 — identidade e consentimento | D07, D08, D09, D10, D11, D12 |
-| E2 — integração com a API | D13, D14, D15, D16 |
+| E2 — integração com a API | D13, D14, D15, D16, D17, D18 |
 
 ---
 
@@ -429,3 +429,66 @@ observado, a captura entra em fixtures/").
 Na mesma execução, **todas as sete fixtures comparáveis voltaram idênticas** às capturas de
 06/09 — profissional, empresa, quadro técnico, CAO, validação de ART e atividades. A massa não se
 mexeu em dois dias, e o CAO continua sem `cao_arts`, sem local de ART e sem `qut_dt_fim`.
+
+---
+
+## D17 · O Selo ART prova integridade em repouso, não procedência
+
+`08/09/2026` · E2 · commit a seguir · `src/Support/Acervo.php`
+
+**Contexto.** A proposta promete "dado verificado" e o schema descreve `art_hash` como HMAC da
+resposta canonicalizada. Faltava dizer o que exatamente é assinado e, mais importante, o que a
+assinatura permite afirmar na frente da banca.
+
+**Decisão.** O selo é HMAC-SHA256 sobre os campos da ART que vieram da API **mais a lista de
+atividades TOS**, ordenada pelo código, com a chave no servidor. É recalculado na exibição a
+partir da linha do banco e comparado com o gravado; divergência vira aviso na tela e
+`SELO_DIVERGENTE` em `sis_auditoria`, nunca exceção que derruba a página.
+
+As atividades entram no selo, e essa é a parte que importa. Sem elas, acrescentar um `tos_codigo`
+a uma ART direto no banco não quebraria nada — e `tos_codigo` é a única informação desta massa
+que discrimina um candidato de outro (`aat_descricao` e `art_objeto` não discriminam). Seria
+exatamente o lugar onde uma adulteração compensaria.
+
+**Alternativa recusada.** Assinar a resposta bruta da API e guardá-la. Pareceria mais forte, mas
+a mesma ART chega por três endpoints com campos diferentes, então a conferência dependeria de
+lembrar qual resposta gerou o selo — e o que precisamos verificar é a linha exibida, não o
+histórico de como ela foi montada. Também foi recusado assinar só os campos da ART, pelo motivo
+acima.
+
+**Consequência.** É preciso dizer com precisão o que o selo significa, porque a formulação
+natural é generosa demais. **Ele não prova que o dado veio do CREA.** Prova que ninguém mexeu
+nele depois que gravamos. Prova de procedência exigiria assinatura do próprio CREA, que a API não
+emite — e afirmar mais do que isso numa arguição seria indefensável. O selo também ignora
+`art_id`, `art_status` e datas nossas, senão uma exclusão lógica legítima quebraria a conferência.
+
+---
+
+## D18 · A rede fica fora da transação, e a importação drena a API antes de gravar
+
+`08/09/2026` · E2 · commit a seguir · `src/Service/PortfolioService.php`
+
+**Contexto.** `associarArt` é a operação atômica 1 da proposta: duas chamadas à API e uma
+gravação que precisa ser tudo-ou-nada. A importação do acervo no cadastro é a mesma coisa
+multiplicada por até 290 ARTs. O jeito curto de escrever as duas é abrir a transação, chamar a
+API dentro e gravar conforme as respostas chegam.
+
+**Decisão.** Toda chamada acontece **antes** do `beginTransaction`, e a transação envolve só a
+gravação. `importarArts` drena o generator do `CreaApiClient` inteiro antes de abrir a transação,
+mesmo custando memória, em vez de gravar página a página.
+
+**Alternativa recusada.** Gravar enquanto pagina, que era inclusive o motivo de o cliente expor
+um generator. Manteria a memória baixa e seguraria locks do InnoDB pelo tempo de uma requisição
+HTTP externa — que o `.env` permite chegar a 30 segundos por chamada. Numa importação de quinze
+páginas isso seria uma transação de minutos, prendendo conexão do pool por causa de latência de
+terceiro, e um timeout no meio deixaria o acervo pela metade dentro de uma transação viva.
+
+**Consequência.** O generator do cliente continua existindo e continua certo — quem quiser
+interromper cedo pode —, mas o `PortfolioService` escolhe não usar essa propriedade. A tensão
+está anotada no código para ninguém "otimizar" de volta sem ler o motivo. Para 290 ARTs o custo
+de memória é irrelevante; se um dia for relevante, a saída é lote por transação, nunca rede
+dentro de transação.
+
+Na mesma decisão entrou a ordem das duas chamadas de `associarArt`: `validarArt` antes de
+`atividadesDaArt`, porque o endpoint de atividades não pede RNP e responde para qualquer número
+válido. Invertida, alguém traria para o próprio portfólio o escopo de uma ART alheia.

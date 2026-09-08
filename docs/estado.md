@@ -6,20 +6,30 @@
 
 ## Onde parou
 
-E1 concluída (RF01) e a **E2 começada pelo transporte**: `Support\Transporte` com implementação
-cURL e implementação de fixtures (D08, D13, D14). O cliente da API foi verificado contra a API
-oficial de ponta a ponta — `scripts/verificar-api.php`, 38 verificações, todas as fixtures
-idênticas às capturas de 06/09 (D16). 87 testes offline e 74 verificações HTTP da E1, repetíveis
-(D15).
+E1 concluída (RF01). Na E2: transporte injetável (D08, D13, D14, D16) e **`PortfolioService`
+pronto e verificado** — importação do acervo, associação de ART à mão, mescla que não apaga campo
+preenchido e Selo ART cobrindo as atividades TOS (D17, D18).
+
+103 testes offline · 28 conferências da E2 contra o banco (`verificar-e2.php`, sem gastar API) ·
+38 contra a API real (`verificar-api.php`) · 74 da E1 por HTTP. Os três scripts são repetíveis.
 
 ## Próximo passo
 
-`src/Service/PortfolioService.php`, operação atômica 1 da proposta: `associarArt(rnp, numero)` →
-`validarArt` → `atividadesDaArt` → grava `crea_arts` + `crea_art_atividades` + `art_hash` numa
-transação só. O cliente já entrega tudo isso; o que não existe ainda é o repositório de gravação.
-Escrever contra `TransporteFixture`, com `Crypto::selo` para o HMAC da linha.
+Cadastro de Profissional consultando a API: `AutenticacaoService::cadastrar` chama
+`profissionalPorCpf`, grava `pro_profissionais` (`prf_rnp`, `prf_registro_crea`, `prf_nome_api`,
+`prf_status_api`) e as modalidades, e aí chama `PortfolioService::importarArts` — que já existe e
+já está verificado. CPF que não está na API vira Terceiro PF, com aviso. Depois disso o cenário 1
+tem começo, meio e fim.
+
+**Antes de tocar no CAO**, resolver a pendência anotada abaixo sobre a regra temporal de vínculo.
 
 ## Decisões pendentes
+
+- **A regra temporal de herança de acervo não é implementável.** O `endpoints.md` afirmava que a
+  empresa só herda ART registrada enquanto o vínculo estava vigente, mas **nenhum endpoint da API
+  devolve data de ART** — nem a lista, nem o CAO, nem a validação. Sem data não há o que comparar
+  com `qut_dt_fim`. Dá para aplicar só a regra binária: vínculo encerrado não herda nada daquele
+  profissional. Decidir isso antes de escrever a herança pelo CAO, e corrigir a frase do doc.
 
 - MER (`_arq/mer/`): gerar do MySQL Workbench ou de ferramenta de linha de comando? Obrigatório
   na entrega (edital 8.3.2b).

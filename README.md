@@ -12,6 +12,7 @@ docker compose exec php composer install
 docker compose exec php php scripts/criar-admin.php
 curl -s http://localhost:8080/saude
 docker compose exec php php scripts/verificar-e1.php http://nginx   # 74 verificações da RF01, por HTTP
+docker compose exec php php scripts/verificar-e2.php                # 28 verificações do portfólio, sem rede
 docker compose exec php php scripts/verificar-api.php              # 38 verificações contra a API oficial
 ```
 
