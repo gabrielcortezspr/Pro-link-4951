@@ -71,6 +71,9 @@ com trigger.
 - O quadro técnico expõe `qut_dt_fim`. Vínculo encerrado não herda acervo.
 - Os vínculos ART → TOS da massa são **aleatórios**. Nenhum cenário de demonstração pode
   assumir coerência temática. Escolha a demanda depois de olhar o índice, não antes.
+- 85 dos 100 CNPJs da massa têm dígito verificador quebrado. A validação está correta e recusa
+  todos eles — só 15 empresas se cadastram, e são elas que a demonstração pode usar. Lista e
+  motivo em `docs/massa-de-dados.md`; contagem travada em `tests/Dados/MassaDeDadosTest.php`.
 - `aat_descricao` e `art_objeto` não discriminam ninguém. Só `tos_codigo` discrimina.
 - `tos_complementar` e `qut_dt_fim` nulos chegam como `null`, não string vazia.
 

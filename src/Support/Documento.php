@@ -7,15 +7,17 @@ namespace ProLink\Support;
 /**
  * Validação e exibição de CPF e CNPJ.
  *
- * Por que o CNPJ não tem o dígito verificador exigido:
+ * A validação é a padrão e completa: formato mais dígito verificador, nas duas. Um cadastro
+ * brasileiro que aceita documento com DV quebrado está errado, e o fato de a massa fictícia do
+ * desafio conter documento quebrado não é razão para a plataforma passar a aceitá-lo.
  *
- * A massa fictícia da organização respeita o DV de CPF (100 de 100 conferem) mas não o de CNPJ
- * (15 de 100 conferem — `00123001000123` é o primeiro a falhar). Exigir o DV de CNPJ no cadastro
- * tornaria 85 das 100 empresas do desafio incadastráveis, e a plataforma indemonstrável.
+ * O que a massa impõe, e está medido em docs/massa-de-dados.md: os 100 CPFs fecham o DV, e
+ * apenas 15 dos 100 CNPJs fecham. Logo o cadastro de empresa só funciona com aqueles 15 — mais
+ * que suficiente para a demonstração, que pede quatro. `scripts/validar-massa.php` lista quais
+ * são e reconfere a contagem.
  *
- * A decisão, então: formato é barreira, DV de CNPJ é só sinal. Quem diz se o documento existe de
- * verdade é a API oficial na E2 — `empresaPorCnpj` devolvendo null é a reprovação que importa.
- * Um DV local nunca substituiria essa consulta, então não faz sentido ele barrar antes dela.
+ * O DV é barreira contra erro de digitação, não prova de existência. Quem atesta que o documento
+ * corresponde a alguém registrado no CREA é a API oficial, na E2.
  *
  * O documento sempre circula como string: `00123001000123` tem zero à esquerda, e virar número
  * quebra a requisição à API.
@@ -37,15 +39,16 @@ final class Documento
         return self::dvCpfConfere($cpf);
     }
 
-    /**
-     * CNPJ: 14 dígitos e não todos iguais. O DV não entra — ver o cabeçalho desta classe.
-     * Use cnpjDvConfere() quando quiser o sinal sem transformá-lo em barreira.
-     */
+    /** CNPJ: 14 dígitos, não todos iguais, e dígito verificador conferindo. */
     public static function ehCnpj(string $valor): bool
     {
         $cnpj = Crypto::apenasDigitos($valor);
 
-        return strlen($cnpj) === 14 && preg_match('/^(\d)\1{13}$/', $cnpj) !== 1;
+        if (strlen($cnpj) !== 14 || preg_match('/^(\d)\1{13}$/', $cnpj) === 1) {
+            return false;
+        }
+
+        return self::dvCnpjConfere($cnpj);
     }
 
     /** Valida conforme o tipo de pessoa do cadastro: 'F' exige CPF, 'J' exige CNPJ. */
@@ -56,8 +59,11 @@ final class Documento
             : self::ehCpf($valor);
     }
 
-    /** Sinal informativo, nunca barreira de cadastro. */
-    public static function cnpjDvConfere(string $valor): bool
+    /**
+     * Só o dígito verificador, sem a checagem de formato. Existe para relatório — é o que
+     * scripts/validar-massa.php usa para separar a massa — e não para afrouxar ehCnpj().
+     */
+    public static function dvCnpjConfere(string $valor): bool
     {
         $cnpj = Crypto::apenasDigitos($valor);
 

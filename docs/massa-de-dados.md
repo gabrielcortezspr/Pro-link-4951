@@ -68,6 +68,45 @@ A faixa é o par de dígitos em `001230NN0001XX`.
 | `00123092000100` | GÊNESIS ENGENHARIA DE SOFTWARES E AUTOMAÇÃO S.A. | 82940 |
 | `00123100000105` | OMEGA CONSULTORIA, PERÍCIAS E AVALIAÇÕES LTDA | 70575 |
 
+### Só 15 das 100 empresas se cadastram
+
+Os dois últimos dígitos de um CNPJ não são livres: são calculados a partir dos doze anteriores
+por módulo 11. A plataforma valida isso, como qualquer cadastro brasileiro deve. **A massa não
+respeita esse cálculo em 85 dos 100 CNPJs** — `00123007000190` está escrito com DV `90` onde a
+conta dá `09`. Os 100 CPFs, em contraste, fecham todos.
+
+Não é algo a afrouxar na validação: aceitar documento com DV quebrado seria um defeito nosso
+para acomodar um defeito do dado. A consequência é de roteiro, e é pequena — a demonstração
+precisa de quatro empresas, e existem quinze:
+
+| CNPJ | Registro CREA | Razão social |
+|---|---|---|
+| `00123001000123` | 61859 | AMAZÔNIA CONSTRUÇÕES E ENGENHARIA LTDA |
+| `00123002000178` | 52240 | NORTE OBRAS E PROJETOS S.A. |
+| `00123003000112` | 35222 | SOLIMÕES EDIFICAÇÕES EIRELI |
+| `00123004000167` | 72310 | CONSTRUTORA MANAUARA LTDA |
+| `00123005000101` | 50491 | RIO NEGRO ENGENHARIA CIVIL S.A. |
+| `00123006000156` | 73104 | BASE SÓLIDA CONSTRUÇÕES LTDA |
+| `00123008000145` | 19349 | ALFA ENGENHARIA E CONSULTORIA LTDA |
+| `00123020000150` | 21876 | FLORA SERVIÇOS AGRONÔMICOS LTDA |
+| `00123023000193` | 96428 | MECÂNICA SOLUÇÕES INDUSTRIAIS LTDA |
+| `00123025000182` | 24520 | INDÚSTRIA E COMÉRCIO DE MÁQUINAS AMAZONAS LTDA |
+| `00123027000171` | 64357 | CORRENTE CONTÍNUA ENGENHARIA LTDA |
+| `00123029000160` | 24369 | TECNOVOLT INSTALAÇÕES ELÉTRICAS LTDA |
+| `00123098000174` | 30283 | ENCONTRO DAS ÁGUAS ENGENHARIA FLUVIAL LTDA |
+| `00123099000119` | 65246 | LÚMEN ENGENHARIA DE ILUMINAÇÃO PÚBLICA LTDA |
+| `00123100000105` | 70575 | OMEGA CONSULTORIA, PERÍCIAS E AVALIAÇÕES LTDA |
+
+Regenere a lista com `php scripts/validar-massa.php`, ou `--csv` para alimentar outro script.
+A contagem é travada por `tests/Dados/MassaDeDadosTest.php`: se a organização corrigir a massa,
+`composer test` avisa antes da demonstração.
+
+**Atenção nas fixtures.** `fixtures/cao_66897.json` (ELETRONORTE) e `fixtures/cao_82940.json`
+(GÊNESIS) são de empresas com DV quebrado. Servem para testar o parser do CAO, e não como
+sujeito de demonstração — nenhuma das duas passa pelo formulário de cadastro. A de CAO que serve
+para o fluxo completo é `fixtures/empresa_cao.json`, da AMAZÔNIA. Fixtures novas devem sair das
+quinze acima.
+
 ---
 
 ## ARTs

@@ -9,11 +9,10 @@ use PHPUnit\Framework\TestCase;
 use ProLink\Support\Documento;
 
 /**
- * Trava a assimetria da massa fictícia: CPF tem dígito verificador válido, CNPJ não.
+ * Validação de CPF e CNPJ: formato e dígito verificador, nas duas.
  *
- * O teste de CNPJ existe para impedir que alguém "conserte" Documento::ehCnpj() adicionando a
- * checagem de DV. Se isso acontecer, 85 das 100 empresas do desafio deixam de ser cadastráveis
- * e a demonstração para de rodar. O motivo está no cabeçalho de Documento.
+ * A contagem de quantos documentos da massa fictícia sobrevivem a essa validação está em
+ * MassaDeDadosTest, que é o guardião daquele número.
  */
 final class DocumentoTest extends TestCase
 {
@@ -51,21 +50,18 @@ final class DocumentoTest extends TestCase
         ];
     }
 
-    /**
-     * O primeiro CNPJ da massa tem DV válido; o sétimo não. Os dois precisam ser aceitos —
-     * é exatamente esta linha que a demonstração depende.
-     */
-    public function testCnpjDaMassaEhAceitoComOuSemDvValido(): void
+    /** O primeiro CNPJ da massa fecha o DV; o sétimo não, e por isso é recusado. */
+    public function testCnpjEhAceitoSomenteComDvValido(): void
     {
-        self::assertTrue(Documento::ehCnpj('00123001000123'), 'DV confere');
-        self::assertTrue(Documento::ehCnpj('00123007000190'), 'DV não confere, e ainda assim vale');
+        self::assertTrue(Documento::ehCnpj('00123001000123'), 'AMAZÔNIA: DV confere');
+        self::assertFalse(Documento::ehCnpj('00123007000190'), 'DV quebrado não passa, nem vindo da massa');
 
-        self::assertTrue(Documento::cnpjDvConfere('00123001000123'));
-        self::assertFalse(Documento::cnpjDvConfere('00123007000190'), 'o sinal informativo sabe a diferença');
+        self::assertTrue(Documento::dvCnpjConfere('00123001000123'));
+        self::assertFalse(Documento::dvCnpjConfere('00123007000190'));
     }
 
     #[DataProvider('cnpjsInvalidos')]
-    public function testCnpjForaDeFormatoEhRecusado(string $cnpj, string $porque): void
+    public function testCnpjInvalidoEhRecusado(string $cnpj, string $porque): void
     {
         self::assertFalse(Documento::ehCnpj($cnpj), $porque);
     }
@@ -76,6 +72,7 @@ final class DocumentoTest extends TestCase
             ['0012300100012',   'treze dígitos'],
             ['001230010001234', 'quinze dígitos'],
             ['00000000000000',  'todos os dígitos iguais'],
+            ['00123007000190',  'dígito verificador quebrado'],
             ['',                'vazio'],
         ];
     }
@@ -85,8 +82,8 @@ final class DocumentoTest extends TestCase
         self::assertTrue(Documento::valido('12312300109', Documento::TIPO_FISICA));
         self::assertFalse(Documento::valido('12312300109', Documento::TIPO_JURIDICA), 'CPF não serve como CNPJ');
 
-        self::assertTrue(Documento::valido('00123007000190', Documento::TIPO_JURIDICA));
-        self::assertFalse(Documento::valido('00123007000190', Documento::TIPO_FISICA), 'CNPJ não serve como CPF');
+        self::assertTrue(Documento::valido('00123001000123', Documento::TIPO_JURIDICA));
+        self::assertFalse(Documento::valido('00123001000123', Documento::TIPO_FISICA), 'CNPJ não serve como CPF');
     }
 
     public function testPontuacaoEIgnorada(): void
