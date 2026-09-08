@@ -57,6 +57,11 @@ final class Validacao
         return $this->exigir($campo, in_array($valor, $permitidos, true), $mensagem);
     }
 
+    public function temErro(string $campo): bool
+    {
+        return isset($this->erros[$campo]);
+    }
+
     public function valido(): bool
     {
         return $this->erros === [];

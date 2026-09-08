@@ -143,21 +143,4 @@ final class UsuarioRepository extends Repositorio
         $stmt = $this->pdo->prepare('UPDATE sis_usuarios SET usu_status = :excluido WHERE usu_id = :id');
         $stmt->execute([':excluido' => STATUS_EXCLUIDO, ':id' => $id]);
     }
-
-    /** Ações do próprio usuário, para a exportação de dados do item 11.3. */
-    public function auditoriaDoUsuario(int $id, int $limite = 500): array
-    {
-        $stmt = $this->pdo->prepare(
-            'SELECT aud_acao, aud_entidade, aud_entidade_id, aud_campo, aud_ip, aud_dt_registro
-               FROM sis_auditoria
-              WHERE aud_usu_id = :id
-              ORDER BY aud_id DESC
-              LIMIT :limite'
-        );
-        $stmt->bindValue(':id', $id, \PDO::PARAM_INT);
-        $stmt->bindValue(':limite', $limite, \PDO::PARAM_INT);
-        $stmt->execute();
-
-        return $stmt->fetchAll();
-    }
 }

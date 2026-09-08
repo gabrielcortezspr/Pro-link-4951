@@ -62,7 +62,8 @@ Coisas pequenas que toda etapa seguinte usa. Fazer antes de qualquer RF.
 > verificações por HTTP, todas passando. Decisões D07, D09, D10, D11 e D12. Fora da lista
 > original: validação de CPF/CNPJ e separação da massa cadastrável (D07), e o próprio script de
 > verificação (D12). `estrutura.sql` mudou — `con_dt_concessao` aceita nulo (D10), então banco
-> antigo precisa ser recriado.
+> antigo precisa ser recriado. Revisada em seguida: D13 e D14 registram a auditoria da etapa, que
+> fechou duas violações das regras do `CLAUDE.md`. 72 verificações, 64 testes.
 
 **Cobre:** RF01; edital 8.5a/b/f/g, 11.3; proposta cenário 01 (base).
 

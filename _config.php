@@ -151,15 +151,26 @@ const CADASTRO_TERCEIRO_PJ  = 'TERCEIRO_PJ';
  * Finalidades de consentimento (LGPD; edital 11.3). Uma linha por finalidade em
  * sis_consentimentos, revogável individualmente no painel de privacidade.
  *
- * ACEITE_TERMOS é o único que aponta para sis_termos (con_ter_id) e o único sem o qual não há
- * conta. CONSULTA_API é exigido de quem se cadastra como profissional ou empresa, porque sem
+ * Os dois aceites de termo são os únicos que apontam para sis_termos (con_ter_id) e os únicos sem
+ * os quais não há conta. Cada documento gera a sua finalidade, em vez de uma só para os dois: o
+ * titular pode ter aceito a versão 1.0 de um e a 2.0 do outro, e a trilha precisa dizer qual. CONSULTA_API é exigido de quem se cadastra como profissional ou empresa, porque sem
  * consultar a API não existe validação de registro no CREA — é execução do serviço, não
  * conveniência nossa, e a tela diz isso.
  */
-const FINALIDADE_ACEITE_TERMOS   = 'ACEITE_TERMOS';
-const FINALIDADE_CONSULTA_API    = 'CONSULTA_API';
-const FINALIDADE_EXIBICAO_PERFIL = 'EXIBICAO_PERFIL';
-const FINALIDADE_NOTIFICACOES    = 'NOTIFICACOES';
+const FINALIDADE_ACEITE_USO         = 'ACEITE_TERMOS_USO';
+const FINALIDADE_ACEITE_PRIVACIDADE = 'ACEITE_TERMOS_PRIVACIDADE';
+const FINALIDADE_CONSULTA_API       = 'CONSULTA_API';
+const FINALIDADE_EXIBICAO_PERFIL    = 'EXIBICAO_PERFIL';
+const FINALIDADE_NOTIFICACOES       = 'NOTIFICACOES';
+
+/** Tipos de documento em sis_termos, e a finalidade de consentimento que cada aceite gera. */
+const TERMO_USO         = 'USO';
+const TERMO_PRIVACIDADE = 'PRIVACIDADE';
+
+const FINALIDADE_POR_TERMO = [
+    TERMO_USO         => FINALIDADE_ACEITE_USO,
+    TERMO_PRIVACIDADE => FINALIDADE_ACEITE_PRIVACIDADE,
+];
 
 /** Mínimo de caracteres da senha. Acima dos 8 usuais: o edital 8.5b pede autenticação segura. */
 define('SENHA_TAMANHO_MINIMO', (int) env('SENHA_TAMANHO_MINIMO', 12));

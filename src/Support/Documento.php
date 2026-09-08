@@ -80,8 +80,9 @@ final class Documento
 
     /**
      * Mascara para exibição: só os extremos aparecem (edital 11.3 — minimização na interface).
-     * CPF `12312300109` sai como `123.***.**1-09`; CNPJ mostra só os dois primeiros e os
-     * quatro últimos dígitos.
+     * Revela o mínimo que ainda permite o titular reconhecer o próprio documento: os três
+     * primeiros e os dois últimos dígitos do CPF, os dois primeiros e os dois últimos do CNPJ.
+     * `12312300109` sai como `123.***.***-09`.
      */
     public static function mascarar(string $valor): string
     {
@@ -89,13 +90,11 @@ final class Documento
         $tamanho = strlen($digitos);
 
         if ($tamanho === 11) {
-            return sprintf('%s.***.**%s-%s',
-                substr($digitos, 0, 3), substr($digitos, 8, 1), substr($digitos, 9, 2));
+            return sprintf('%s.***.***-%s', substr($digitos, 0, 3), substr($digitos, 9, 2));
         }
 
         if ($tamanho === 14) {
-            return sprintf('%s.***.***/**%s-%s',
-                substr($digitos, 0, 2), substr($digitos, 10, 2), substr($digitos, 12, 2));
+            return sprintf('%s.***.***/****-%s', substr($digitos, 0, 2), substr($digitos, 12, 2));
         }
 
         return str_repeat('*', max($tamanho, 3));

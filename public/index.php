@@ -20,7 +20,7 @@ use ProLink\Controller\HomeController;
 use ProLink\Controller\PrivacidadeController;
 use ProLink\Controller\SaudeController;
 use ProLink\Controller\TermoController;
-use ProLink\Service\AutenticacaoService;
+use ProLink\Repository\SessaoRepository;
 use ProLink\Support\Auditoria;
 use ProLink\Support\Csrf;
 use ProLink\Support\Flash;
@@ -80,9 +80,14 @@ try {
 
         // A sessão do navegador ainda tem linha válida em sis_sessoes? É o que faz a troca de
         // senha e o bloqueio administrativo (E6) derrubarem quem já estava logado.
-        if (!(new AutenticacaoService())->sessaoTemRespaldo()) {
-            Sessao::encerrar();
-            session_start();
+        //
+        // Consulta o repositório direto, e não o AutenticacaoService: o construtor do serviço monta
+        // sete objetos, o serviço de notificação incluído, e o roteador não tem o que fazer com
+        // nenhum deles para responder uma pergunta de uma linha.
+        $token = Sessao::tokenServidor();
+
+        if ($token === null || (new SessaoRepository())->ativa($token) === null) {
+            Sessao::reiniciar();
             Flash::aviso('Sua sessão foi encerrada. Entre novamente.');
             View::redirecionar('/login');
         }

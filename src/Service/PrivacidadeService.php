@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ProLink\Service;
 
 use PDO;
+use ProLink\Repository\AuditoriaRepository;
 use ProLink\Repository\ConsentimentoRepository;
 use ProLink\Repository\SessaoRepository;
 use ProLink\Repository\UsuarioRepository;
@@ -43,6 +44,7 @@ final class PrivacidadeService
         private readonly UsuarioRepository $usuarios = new UsuarioRepository(),
         private readonly ConsentimentoRepository $consentimentos = new ConsentimentoRepository(),
         private readonly SessaoRepository $sessoes = new SessaoRepository(),
+        private readonly AuditoriaRepository $auditoria = new AuditoriaRepository(),
     ) {
     }
 
@@ -143,7 +145,7 @@ final class PrivacidadeService
             ],
             'consentimentos' => $this->consentimentos->doUsuario($usuarioId),
             'sessoes_ativas' => $this->sessoes->ativasDoUsuario($usuarioId),
-            'minhas_acoes'   => $this->usuarios->auditoriaDoUsuario($usuarioId),
+            'minhas_acoes'   => $this->auditoria->doUsuario($usuarioId),
         ];
 
         Auditoria::registrar(Auditoria::EXPORTAR_DADOS, 'sis_usuarios', $usuarioId, null, null,
@@ -160,6 +162,22 @@ final class PrivacidadeService
      */
     public function excluirConta(int $usuarioId): void
     {
+        $usuario = $this->usuarios->porId($usuarioId);
+
+        if ($usuario === null) {
+            throw new ValidacaoException('Conta não encontrada.');
+        }
+
+        // Administrador não se autoexclui por aqui. O painel de privacidade é do titular comum; se
+        // o único administrador se excluísse, a plataforma perderia moderação e auditoria até
+        // alguém rodar scripts/criar-admin.php no servidor. Remoção de administrador é ato
+        // administrativo, com outro administrador no comando (E6).
+        if ($usuario['per_codigo'] === PERFIL_ADMIN) {
+            throw new ValidacaoException(
+                'Contas de administração não são excluídas por aqui. Peça a outro administrador.',
+            );
+        }
+
         Database::transacao(function (PDO $pdo) use ($usuarioId): void {
             $consentimentos = new ConsentimentoRepository($pdo);
 

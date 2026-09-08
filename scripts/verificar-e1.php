@@ -252,9 +252,9 @@ foreach ($stmt->fetchAll() as $linha) {
 }
 
 conferir('aceite dos Termos de Uso registrado e versionado',
-    ($consentimentos[FINALIDADE_ACEITE_TERMOS . '_USO'] ?? 0) === 1);
+    ($consentimentos[FINALIDADE_ACEITE_USO] ?? 0) === 1);
 conferir('aceite da Política de Privacidade registrado e versionado',
-    ($consentimentos[FINALIDADE_ACEITE_TERMOS . '_PRIVACIDADE'] ?? 0) === 1);
+    ($consentimentos[FINALIDADE_ACEITE_PRIVACIDADE] ?? 0) === 1);
 conferir('consentimento recusado fica gravado como recusa, não como ausência',
     array_key_exists(FINALIDADE_EXIBICAO_PERFIL, $consentimentos)
         && $consentimentos[FINALIDADE_EXIBICAO_PERFIL] === 0);
@@ -448,6 +448,27 @@ $stmt2 = $pdo->prepare('SELECT COUNT(*) FROM sis_sessoes WHERE ses_usu_id = :id 
 $stmt2->execute([':id' => $excluir['id']]);
 conferir('a exclusão encerra todas as sessões do titular', (int) $stmt2->fetchColumn() === 0);
 conferir('conta excluída não autentica mais', entrar($excluir['email']) === 200);
+
+// ---------------------------------------------------------------- administrador
+secao('Conta de administração');
+
+$stmt = $pdo->prepare(
+    "SELECT usu_id FROM sis_usuarios JOIN sis_perfis ON per_id = usu_per_id
+      WHERE per_codigo = ? AND usu_status = ? LIMIT 1"
+);
+$stmt->execute([PERFIL_ADMIN, STATUS_ATIVO]);
+$adminId = $stmt->fetchColumn();
+
+if ($adminId === false) {
+    printf("  (pulado: nenhum administrador ativo — rode scripts/criar-admin.php)\n");
+} else {
+    // O administrador é criado por script e não tem documento. O painel do titular precisa
+    // aguentar isso, porque é a conta que a banca vai usar na demonstração.
+    $stmt = $pdo->prepare('SELECT usu_documento_cif FROM sis_usuarios WHERE usu_id = :id');
+    $stmt->execute([':id' => $adminId]);
+    conferir('o administrador de fato não tem documento guardado',
+        ($stmt->fetchColumn() ?: null) === null);
+}
 
 // ---------------------------------------------------------------- trilha de auditoria
 secao('Trilha de auditoria (edital 8.5g)');

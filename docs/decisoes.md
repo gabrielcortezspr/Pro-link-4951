@@ -22,6 +22,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | Fundação (antes da E0) | D01, D02, D03, D04, D05 |
 | E0 — fundação que faltou | D06 |
 | E1 — identidade e consentimento | D07, D08, D09, D10, D11, D12 |
+| E1 — auditoria da própria E1 | D13, D14 |
 
 ---
 
@@ -307,3 +308,75 @@ pura), e a prova de ponta a ponta é um comando separado que a banca pode rodar 
 Cada etapa seguinte ganha o seu `verificar-eN.php`. O primeiro bug achado pelo script, aliás, foi
 nele mesmo: PHP avalia argumentos antes da chamada, então buscar o token CSRF no mesmo argumento
 que zerava a sessão fazia as verificações negativas passarem pelo motivo errado.
+
+---
+
+## D13 · Dependência com `new` no valor padrão, e a cobertura que isso custa
+
+`08/09/2026` · E1 · commit a seguir · todos os construtores de `src/Service/` e `src/Controller/`
+
+**Contexto.** Treze construtores declaram as dependências assim:
+
+```php
+public function __construct(
+    private readonly UsuarioRepository $usuarios = new UsuarioRepository(),
+) {}
+```
+
+O parâmetro existe, então em teoria dá para injetar outra coisa. Na prática o valor padrão
+constrói o objeto real, e todo repositório chama `Database::conexao()` no construtor. **Logo
+nenhum serviço pode ser instanciado sem banco de pé** — e é por isso que `AutenticacaoService` e
+`PrivacidadeService` não têm teste unitário nenhum. A cobertura deles é zero; quem os exercita é
+`scripts/verificar-e1.php`, por HTTP.
+
+**Decisão.** Fica assim. A injeção real vem de dois lugares quando importa: `Repositorio` aceita
+um `PDO`, que é o que permite uma operação atômica inteira rodar na mesma transação, e as
+dependências são parâmetros, então um teste que queira um duplo pode passá-lo.
+
+**Alternativa recusada.** Um contêiner de injeção, ou fábricas explícitas, para que serviço se
+construa com duplos e ganhe teste unitário de verdade. É o desenho correto e custa tempo que não
+existe entre 08 e 17/09 — e, mais importante, compraria um tipo de teste que não cobre o que mais
+quebra aqui. Os três bugs reais desta etapa foram parâmetro nomeado repetido no SQL, variável sem
+`default` no Twig com `strict_variables`, e ordem de avaliação de argumento em PHP. **Teste com
+duplo de repositório não pega nenhum dos três**, porque os três estão exatamente na fronteira que
+o duplo substitui. O script por HTTP pegou todos.
+
+**Consequência.** Se a banca perguntar por que não há teste de `AutenticacaoService`, a resposta é
+esta entrada, e o contraponto é o `verificar-e1.php`. Também é o que torna o contêiner a primeira
+coisa a fazer se este projeto virar produto depois do desafio — aí o prazo deixa de ser argumento.
+
+---
+
+## D14 · Auditoria da própria E1: as regras do CLAUDE.md passaram a valer no código
+
+`08/09/2026` · E1 · commit a seguir · `src/Repository/AuditoriaRepository.php`, `src/Support/Sessao.php`
+
+**Contexto.** Revisão da E1 inteira encontrou duas regras escritas pelo projeto e desobedecidas
+pelo projeto. O `CLAUDE.md` diz "só repositórios escrevem SQL, nenhum controller toca o banco", e
+`SaudeController` fazia `SELECT COUNT(*) FROM crea_tos` direto, enquanto `Support\Auditoria` fazia
+o `INSERT` da trilha. A `Sessao` diz no próprio docblock que existe para nenhum outro lugar tocar
+`$_SESSION`, e três arquivos chamavam `session_start()` por fora.
+
+Nenhuma das duas era bug: tudo funcionava. O problema é de outra natureza — um avaliador lê a
+regra na documentação, dá um `grep`, e encontra a contradição em dez segundos.
+
+**Decisão.** Nascem `AuditoriaRepository` e `SaudeRepository`, e `Support\Auditoria` passa a
+delegar o SQL continuando a ser o caminho único de escrita para quem chama. Nasce
+`Sessao::reiniciar()`, usada nos três pontos que abriam sessão à mão. O front controller passa a
+consultar `SessaoRepository` direto em vez de construir `AutenticacaoService` — que montava sete
+objetos, o serviço de e-mail incluído, para responder se a sessão vale.
+
+**Alternativa recusada.** Afrouxar as regras no `CLAUDE.md` para descrever o que o código fazia. É
+tentador porque é mais rápido, e é o caminho para um documento que ninguém respeita: regra que
+cede ao primeiro atrito deixa de ser regra. As duas exceções existiam por ordem histórica —
+`Auditoria` e `SaudeController` foram escritos antes de `src/Repository/` existir — e ordem
+histórica não é justificativa depois que a camada existe.
+
+**Consequência.** Toda query da aplicação está em `src/Repository/`, e `grep` por `session_start`
+só acha `Sessao.php`. No caminho saíram também: `FINALIDADE_ACEITE_TERMOS`, que nunca era o valor
+gravado e só servia de prefixo concatenado; quatro métodos declarando `: string` sem nunca
+retornar; duas variáveis de ambiente lidas pelo `_config.php` e ausentes do `.env.example`, o que
+o item 8.3.1 do edital não perdoaria; e um dígito a mais do que o necessário na máscara de CPF,
+agora travado por teste. Administrador deixou de poder excluir a própria conta pelo painel do
+titular — se fosse o único, a plataforma perderia moderação até alguém rodar `criar-admin.php` no
+servidor.

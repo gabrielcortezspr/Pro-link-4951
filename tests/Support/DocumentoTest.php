@@ -92,11 +92,33 @@ final class DocumentoTest extends TestCase
         self::assertTrue(Documento::ehCnpj('00.123.001/0001-23'));
     }
 
+    /**
+     * A máscara revela o mínimo que ainda permite o titular reconhecer o próprio documento.
+     * O limite está travado como número: cinco dígitos de onze no CPF, quatro de catorze no CNPJ.
+     * Se alguém alargar a máscara, este teste reclama.
+     */
     public function testMascararEscondeOMeioDoDocumento(): void
     {
-        self::assertSame('123.***.**1-09', Documento::mascarar('12312300109'));
-        self::assertStringNotContainsString('12312', Documento::mascarar('00123001000123'));
+        self::assertSame('123.***.***-09', Documento::mascarar('12312300109'));
+        self::assertSame('00.***.***/****-23', Documento::mascarar('00123001000123'));
         self::assertSame('***', Documento::mascarar('12'), 'tamanho inesperado não vaza nada');
+    }
+
+    /** @dataProvider documentosParaMascarar */
+    public function testMascaraNaoRevelaMaisDigitosDoQueOCombinado(string $documento, int $maximo): void
+    {
+        $visiveis = preg_match_all('/\d/', Documento::mascarar($documento));
+
+        self::assertLessThanOrEqual($maximo, $visiveis,
+            'máscara revelando mais dígitos do que o necessário');
+    }
+
+    public static function documentosParaMascarar(): array
+    {
+        return [
+            'CPF'  => ['12312300109', 5],
+            'CNPJ' => ['00123001000123', 4],
+        ];
     }
 
     public function testFormatarMontaAPontuacaoPadrao(): void

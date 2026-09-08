@@ -78,11 +78,11 @@ final class AuthController
     }
 
     /** POST, não GET: logout por link seria escrita sem proteção de CSRF (edital 8.5e). */
-    public function sair(): string
+    public function sair(): never
     {
         $this->autenticacao->encerrarSessao();
 
-        session_start();
+        Sessao::reiniciar();
         Flash::info('Você saiu da sua conta.');
         View::redirecionar('/');
     }
@@ -98,7 +98,7 @@ final class AuthController
      * Sempre responde igual, exista o e-mail ou não. Confirmar que um endereço tem conta é
      * vazamento de informação por si só (OWASP A07).
      */
-    public function solicitarRecuperacao(): string
+    public function solicitarRecuperacao(): never
     {
         $this->autenticacao->solicitarRecuperacao((string) ($_POST['email'] ?? ''));
 
