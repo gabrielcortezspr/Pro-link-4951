@@ -131,6 +131,19 @@ final class CreaApiClientTest extends TestCase
     }
 
     #[Test]
+    public function art_inexistente_em_atividades_levanta_nao_encontrado(): void
+    {
+        // 404, e não 200 [] — observado contra a API real em 08/09/2026. A distinção importa:
+        // aqui a ART não existe, enquanto `validarArt` com ART de outra pessoa devolve 200 [].
+        [$api] = $this->comFixtures();
+
+        $this->expectException(NaoEncontradoException::class);
+        $this->expectExceptionMessage('ART não encontrada');
+
+        $api->atividadesDaArt('AM20260000000');
+    }
+
+    #[Test]
     public function recurso_sem_captura_falha_alto_em_vez_de_inventar(): void
     {
         [$api] = $this->comFixtures();
@@ -138,7 +151,8 @@ final class CreaApiClientTest extends TestCase
         $this->expectException(LogicException::class);
         $this->expectExceptionMessage('não sabe responder');
 
-        $api->atividadesDaArt('AM20260000000');
+        // Endpoint que não existe na API: o fake não tem o que responder e diz isso.
+        $api->quadroTecnico('61859/inventado');
     }
 
     // ---------------------------------------------------------------- paginação

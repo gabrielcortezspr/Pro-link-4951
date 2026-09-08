@@ -7,9 +7,10 @@
 ## Onde parou
 
 E1 concluída (RF01) e a **E2 começada pelo transporte**: `Support\Transporte` com implementação
-cURL e implementação de fixtures (D08, D13, D14). O cliente da API tem 24 testes, roda sem rede e
-sem token, e o laço de paginação foi confirmado contra a API real. 86 testes e 74 verificações
-HTTP passando, estas últimas agora repetíveis (D15).
+cURL e implementação de fixtures (D08, D13, D14). O cliente da API foi verificado contra a API
+oficial de ponta a ponta — `scripts/verificar-api.php`, 38 verificações, todas as fixtures
+idênticas às capturas de 06/09 (D16). 87 testes offline e 74 verificações HTTP da E1, repetíveis
+(D15).
 
 ## Próximo passo
 
@@ -37,9 +38,6 @@ Escrever contra `TransporteFixture`, com `Crypto::selo` para o HMAC da linha.
 - `verificar-e1.php` rodado dentro do container precisa da URL do nginx:
   `docker compose exec php php scripts/verificar-e1.php http://nginx`. O padrão `APP_URL` é o
   endereço visto do host.
-- **Fica sem observação**: `?p=arts/{numero}/atividades` para ART inexistente. O
-  `TransporteFixture` falha alto nesse caso de propósito, em vez de escolher entre 404 e 200 [].
-  Se der, capture — é uma chamada.
 - Clicar as telas da E2 sem rede exige montar o cliente com `TransporteFixture` na mão: não há
   interruptor no `.env`, e a D13 explica por quê.
 - `sis_termos` tem texto de espaço reservado. As decisões D03 e D05 precisam estar na Política de

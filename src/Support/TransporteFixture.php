@@ -26,7 +26,9 @@ use LogicException;
  *
  * Requisição que não corresponde a nenhum comportamento observado levanta `LogicException` em
  * vez de inventar resposta. Um 404 fabricado faria um teste passar pelo motivo errado, e o
- * motivo errado é justamente o que não podemos levar para a banca.
+ * motivo errado é justamente o que não podemos levar para a banca. Quando o comportamento passa
+ * a ser observado, a captura entra em `fixtures/` e a recusa vira resposta — foi o que aconteceu
+ * com ART inexistente em `/atividades`, confirmada como 404 em 08/09/2026.
  */
 final class TransporteFixture implements Transporte
 {
@@ -134,10 +136,11 @@ final class TransporteFixture implements Transporte
         if (count($partes) === 3 && $partes[0] === 'arts' && $partes[2] === 'atividades') {
             $atividades = $this->atividadesDaArt($partes[1]);
 
-            // Número de ART fora da captura: a API não foi observada neste caso, e adivinhar
-            // entre 404 e 200 [] seria ensinar ao teste uma coisa que ninguém verificou.
+            // ART fora da captura responde 404, e não 200 [] — observado contra a API em
+            // 08/09/2026 por `scripts/verificar-api.php`, que é o que autoriza esta linha a
+            // existir. Antes disso o fake se recusava a escolher entre os dois.
             if ($atividades === null) {
-                throw $this->semFixture($p, 'o comportamento para ART desconhecida não foi observado');
+                return new RespostaHttp(404, $this->cru('erro_art_inexistente'));
             }
 
             return $this->ok($atividades);

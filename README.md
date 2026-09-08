@@ -11,8 +11,13 @@ docker compose up -d --build
 docker compose exec php composer install
 docker compose exec php php scripts/criar-admin.php
 curl -s http://localhost:8080/saude
-docker compose exec php php scripts/verificar-e1.php   # 71 verificações da RF01, por HTTP
+docker compose exec php php scripts/verificar-e1.php http://nginx   # 74 verificações da RF01, por HTTP
+docker compose exec php php scripts/verificar-api.php              # 38 verificações contra a API oficial
 ```
+
+Dentro do container, o `verificar-e1.php` precisa da URL do nginx: o `APP_URL` padrão é o
+endereço visto do host. O `verificar-api.php` gasta quinze chamadas à API oficial, que a
+organização registra — rode para confirmar que nada mudou do lado deles, não em laço.
 
 Guia completo de instalação, atualização e problemas comuns: [`_arq/README.md`](_arq/README.md).
 

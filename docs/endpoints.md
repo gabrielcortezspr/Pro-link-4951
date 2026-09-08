@@ -18,6 +18,7 @@ Todos são `GET` e todos exigem o header de autorização. Base e regras gerais 
 | `empresas/{registro}/cao` | registro CREA | árvore completa da empresa | não | `empresa_cao.json` |
 | `arts` | `rnp` + `art_numero` | ART, sem atividades | não | `art_validacao.json` |
 | `arts/{numero}/atividades` | número da ART | atividades TOS | não | `art_atividades.json` |
+| ↳ número inexistente | — | `404 {"error": ...}` | — | `erro_art_inexistente.json` |
 | `cats` | `rnp` + `cat_numero` | CAT com ARTs e atividades | não | `cat_validacao.json` |
 | `tos` | `search` | dicionário TOS | sim (50, máx 200) | `tos_amostra.json` |
 
@@ -290,6 +291,16 @@ Não traz as atividades nem o local. Pra as atividades, use o endpoint abaixo.
 Este endpoint não pede RNP: qualquer número de ART válido devolve as atividades. Para o fluxo de
 validação da RF03, chame `?p=arts&rnp=&art_numero=` **primeiro**, para confirmar a titularidade,
 e só depois busque as atividades.
+
+Número de ART inexistente devolve **`404`**, não `200 []` — observado em 08/09/2026:
+
+```json
+{ "error": "ART não encontrada para o número informado." }
+```
+
+Faz sentido com a regra geral: aqui o número está no caminho do recurso, como o RNP em
+`profissionais/{rnp}/arts`, e recurso inexistente é 404. O `200 []` fica para as buscas por
+filtro (`?p=arts&rnp=&art_numero=`), onde a chave é válida e a combinação é que não casa.
 
 ### `?p=cats&rnp=&cat_numero=`
 

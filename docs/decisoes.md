@@ -22,7 +22,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | Fundação (antes da E0) | D01, D02, D03, D04, D05 |
 | E0 — fundação que faltou | D06 |
 | E1 — identidade e consentimento | D07, D08, D09, D10, D11, D12 |
-| E2 — integração com a API | D13, D14, D15 |
+| E2 — integração com a API | D13, D14, D15, D16 |
 
 ---
 
@@ -393,3 +393,39 @@ criadas, que violaria a exclusão lógica do item 8.6j e esbarraria no insert-on
 seguidas para confirmar. A verificação de documento repetido ficou melhor do que era: usa o
 documento cadastrado na própria execução, então prova a unicidade contra o que acabou de entrar,
 e não contra resíduo de uma execução anterior.
+
+---
+
+## D16 · A E2 tem dois critérios de pronto: um sem rede e um contra a API real
+
+`08/09/2026` · E2 · commit a seguir · `scripts/verificar-api.php`
+
+**Contexto.** A D14 deixou o `TransporteFixture` provando que o cliente lê certo as respostas
+gravadas. Isso é metade do problema. A outra metade é se a API de hoje ainda responde como as
+capturas de 06/09 dizem — e nenhuma quantidade de teste offline responde a isso. Havia também uma
+pergunta em aberto que a D14 registrou como não observada: `?p=arts/{numero}/atividades` para uma
+ART inexistente devolve `404` ou `200 []`?
+
+**Decisão.** Dois critérios, com propósitos separados. O `composer test` roda offline, em qualquer
+máquina, sem token, e é o que trava regressão — 87 testes. O `scripts/verificar-api.php` exercita
+todo método do `CreaApiClient` contra a API oficial e compara cada resposta com a fixture
+correspondente: 38 verificações, quinze chamadas, sujeitos fixos da massa. É o que detecta
+mudança do lado deles.
+
+**Alternativa recusada.** Rodar a verificação contra a API dentro do `composer test`. Amarraria a
+suíte a rede e a token, e cada execução de teste viraria chamada registrada pela organização numa
+API cujo edital proíbe coleta automatizada (10.4) e cujo limite de taxa ninguém conhece. Um
+desenvolvedor rodando testes em laço viraria, sem querer, exatamente o padrão que não podemos ter
+nos logs deles.
+
+**Consequência.** A pergunta em aberto foi respondida na primeira execução: ART inexistente em
+`/atividades` devolve **404**, com `{"error": "ART não encontrada para o número informado."}`. Faz
+sentido com a regra geral — número no caminho do recurso se comporta como o RNP em
+`profissionais/{rnp}/arts`, e o `200 []` fica para busca por filtro. A resposta virou
+`fixtures/erro_art_inexistente.json`, e o `TransporteFixture` deixou de recusar o caso: agora
+devolve o 404 observado, o que a D14 já previa como caminho ("quando o comportamento passa a ser
+observado, a captura entra em fixtures/").
+
+Na mesma execução, **todas as sete fixtures comparáveis voltaram idênticas** às capturas de
+06/09 — profissional, empresa, quadro técnico, CAO, validação de ART e atividades. A massa não se
+mexeu em dois dias, e o CAO continua sem `cao_arts`, sem local de ART e sem `qut_dt_fim`.
