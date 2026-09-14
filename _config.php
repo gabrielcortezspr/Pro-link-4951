@@ -145,6 +145,12 @@ const PERFIS_AUTENTICADOS = [PERFIL_PROFISSIONAL, PERFIL_EMPRESA, PERFIL_TERCEIR
 const PERFIS_COM_REGISTRO_CREA = [PERFIL_PROFISSIONAL, PERFIL_EMPRESA];
 
 /**
+ * Quem publica demanda (Anexo I, item 3): empresa e terceiro contratam. O profissional recebe e
+ * responde oportunidades — publicar não está entre as necessidades do perfil dele no edital.
+ */
+const PERFIS_DEMANDANTES = [PERFIL_EMPRESA, PERFIL_TERCEIRO];
+
+/**
  * Tipos de cadastro oferecidos (RF01, edital Anexo I item 3). Não são perfis: TERCEIRO_PF e
  * TERCEIRO_PJ viram o mesmo PERFIL_TERCEIRO, mudando só o tipo de pessoa e o documento exigido.
  */

@@ -16,6 +16,7 @@ require_once dirname(__DIR__) . '/_config.php';
 
 use ProLink\Controller\AdminController;
 use ProLink\Controller\AuthController;
+use ProLink\Controller\DemandaController;
 use ProLink\Controller\HomeController;
 use ProLink\Controller\PerfilController;
 use ProLink\Controller\PrivacidadeController;
@@ -70,6 +71,19 @@ $router->get('/privacidade',                  PrivacidadeController::class, 'ind
 $router->post('/privacidade/consentimento',   PrivacidadeController::class, 'definirConsentimento', PERFIS_AUTENTICADOS);
 $router->get('/privacidade/exportar',         PrivacidadeController::class, 'exportar', PERFIS_AUTENTICADOS);
 $router->post('/privacidade/excluir',         PrivacidadeController::class, 'excluir', PERFIS_AUTENTICADOS);
+
+// ---------------------------------------------------------------- demandas (RF04)
+// A vitrine é de qualquer usuário autenticado — o profissional precisa ver o que existe para
+// manifestar interesse. Publicar é de empresa e terceiro (Anexo I, item 3).
+$router->get('/demandas/abertas',        DemandaController::class, 'abertas', PERFIS_AUTENTICADOS);
+$router->get('/demandas',                DemandaController::class, 'index', PERFIS_DEMANDANTES);
+$router->get('/demandas/nova',           DemandaController::class, 'formulario', PERFIS_DEMANDANTES);
+$router->post('/demandas',               DemandaController::class, 'criar', PERFIS_DEMANDANTES);
+$router->get('/demandas/{id}',           DemandaController::class, 'ver', PERFIS_AUTENTICADOS);
+$router->post('/demandas/{id}',          DemandaController::class, 'editar', PERFIS_DEMANDANTES);
+$router->post('/demandas/{id}/tos',      DemandaController::class, 'alterarTos', PERFIS_DEMANDANTES);
+$router->post('/demandas/{id}/publicar', DemandaController::class, 'publicar', PERFIS_DEMANDANTES);
+$router->post('/demandas/{id}/encerrar', DemandaController::class, 'encerrar', PERFIS_DEMANDANTES);
 
 // ---------------------------------------------------------------- administração (RF06)
 $router->get('/admin',                AdminController::class, 'index', PERFIL_ADMIN);

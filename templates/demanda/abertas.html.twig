@@ -1,0 +1,31 @@
+{% extends 'layout/base.html.twig' %}
+
+{% block titulo %}Demandas abertas — Pro-Link{% endblock %}
+
+{% block conteudo %}
+<h1 class="h3 mb-1">Demandas abertas</h1>
+<p class="text-body-secondary">
+    Demandas publicadas por empresas e contratantes. A correspondência entre perfil e demanda é
+    apenas indicativa — não há ranking nem recomendação institucional.
+</p>
+
+{% if demandas is empty %}
+    <p class="text-body-secondary">Nenhuma demanda publicada no momento.</p>
+{% else %}
+    {% for d in demandas %}
+        <article class="card mb-3">
+            <div class="card-body">
+                <h2 class="h6 mb-1">
+                    <a href="{{ app_url }}/demandas/{{ d.dem_id }}">{{ d.dem_titulo }}</a>
+                </h2>
+                <p class="small text-body-secondary mb-2">
+                    {% if d.dem_local_municipio %}{{ d.dem_local_municipio }}{% if d.dem_local_uf %}/{{ d.dem_local_uf }}{% endif %} · {% endif %}
+                    {{ d.dem_tipo_contrato ?: 'Contrato a combinar' }}
+                    {% if d.dem_situacao == 'COM_INTERESSADOS' %} · <span class="badge text-bg-success">Com interessados</span>{% endif %}
+                </p>
+                <p class="mb-0">{{ d.dem_escopo|slice(0, 240) }}{% if d.dem_escopo|length > 240 %}…{% endif %}</p>
+            </div>
+        </article>
+    {% endfor %}
+{% endif %}
+{% endblock %}
