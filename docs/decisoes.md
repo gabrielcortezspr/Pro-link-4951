@@ -24,6 +24,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E1 — identidade e consentimento | D07, D08, D09, D10, D11, D12 |
 | E2 — integração com a API | D13, D14, D15, D16, D17, D18, D19, D20, D21, D22, D23, D24, D25, D26, D27 |
 | Front — design system | D28, D29, D30, D31, D32, D33, D34 |
+| E6 — denúncias e painel | D35 |
 
 ---
 
@@ -990,3 +991,41 @@ justamente resistir a adulteração.
 **Consequência.** Vale como regra para as telas de erro que vierem: mensagem de falha de
 integridade ou de autenticação descreve o efeito, nunca o mecanismo nem o identificador interno.
 Entra na autoavaliação do Anexo VI na E7.
+
+---
+
+## D35 · O bloqueio administrativo tem efeito imediato sem tocar em `Sessao`
+
+`14/09/2026` · E6 · commit a seguir · `public/index.php` (88-95), `AutenticacaoService::sessaoTemRespaldo`,
+`SessaoRepository::revogarTodasDoUsuario`
+
+**Contexto.** A operação atômica 5 exige que bloquear uma conta tire o acesso de quem já está
+logado. A E7 do `backlog.md` afirmava que isso não era possível hoje: `Sessao::autenticar()` copia
+id, nome e perfil para `$_SESSION` e nunca reconfere contra o banco, então o bloqueio "só valeria no
+próximo login". Se fosse verdade, ou a operação atômica 5 não fecharia, ou seria preciso mexer em
+autenticação a três dias da entrega, com RF01 e RF02 completos e verificados em cima.
+
+**Decisão.** Bloquear é `usu_status = 'I'` mais revogar todas as sessões do usuário, e nada além
+disso. Nenhuma linha de `Sessao` muda.
+
+A afirmação do backlog estava errada, e a medição mostrou por quê: o front controller chama
+`sessaoTemRespaldo()` em **toda** requisição autenticada, e esse método procura a linha em
+`sis_sessoes` e devolve falso quando ela está revogada. O caminho já existia; faltava alguém ligar
+os dois fatos. Conferido com requisição real, não por leitura: sessão viva em `/privacidade`
+respondendo 200; depois de `usu_status = 'I'` e `ses_dt_revogacao = NOW()`, a mesma sessão recebeu
+303 para `/login`. Novo login com a conta bloqueada é recusado pela mensagem única de credencial
+inválida, porque `UsuarioRepository::porEmail()` filtra `usu_status = :ativo`.
+
+**Alternativa recusada.** Fazer `Sessao` reconferir o usuário no banco a cada requisição. Custaria
+uma consulta em toda requisição autenticada e código novo no caminho crítico de autenticação, para
+comprar um efeito que já existe. A terceira alternativa, adiar o efeito imediato para a E7 e exibir
+"vale a partir do próximo acesso", ficou dispensada pelo mesmo motivo, e teria enfraquecido o
+cenário 6 na demonstração, onde a parte convincente é o usuário caindo na hora.
+
+**Consequência.** A operação atômica 5 fecha hoje sem risco para RF01 e RF02, que seguem em 140
+testes e 108 verificações do portfólio. Fica uma limitação declarada, e ela é estreita: **troca de
+papel** em sessão aberta continua valendo só no próximo login, porque o perfil é lido de
+`$_SESSION`. Isso afeta o rebaixamento para Terceiro da D20 e da D26, não o bloqueio. O edital pede
+controle de perfis de acesso (8.5) e moderação (RF06), não reflexo imediato de mudança de papel.
+Fica registrado também o método: a afirmação do backlog tinha três meses de vida e nunca havia sido
+medida.
