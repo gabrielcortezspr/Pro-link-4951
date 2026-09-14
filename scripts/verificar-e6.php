@@ -22,6 +22,7 @@ use ProLink\Repository\UsuarioRepository;
 use ProLink\Service\DenunciaService;
 use ProLink\Service\ValidacaoException;
 use ProLink\Support\Database;
+use ProLink\Support\View;
 
 const EMAIL_ALVO  = 'cobaia@prolink.local';
 const EMAIL_AUTOR = 'camila@prolink.local';
@@ -221,6 +222,49 @@ conferir(
     'a ação do próprio administrador aparece na trilha',
     count($trilha->listar($autorId, 'MODERAR', null, null, 5)) >= 1,
 );
+
+secao('Render das telas');
+
+// A tela de auditoria subiu em 500 com as 16 verificações anteriores no verde: elas provavam
+// repositório e serviço, e nenhuma tocava o template. Render com dado real é o que falta para
+// a verificação valer como prova de que a tela existe. Compilação de todas as telas fica em
+// scripts/verificar-telas.php; aqui é a renderização das telas da E6.
+$telas = [
+    'admin/auditoria.html.twig' => [
+        'ativo'  => 'auditoria',
+        'linhas' => $trilha->listar(null, null, null, null, 20),
+        'total'  => $trilha->contar(null, null, null, null),
+        'acoes'  => $trilha->acoesDistintas(),
+        'filtro' => ['usuario' => null, 'acao' => null, 'dias' => 7],
+    ],
+    'admin/denuncias.html.twig' => [
+        'ativo'     => 'denuncias',
+        'fila'      => $servico->fila(null),
+        'situacao'  => null,
+        'situacoes' => DenunciaService::SITUACOES,
+        'tipos'     => DenunciaService::TIPOS,
+    ],
+    'admin/denuncia.html.twig' => [
+        'ativo'        => 'denuncias',
+        'denuncia'     => $servico->porId($id),
+        'tipos'        => DenunciaService::TIPOS,
+        'situacoes'    => DenunciaService::SITUACOES,
+        'providencias' => DenunciaService::PROVIDENCIAS,
+    ],
+];
+
+foreach ($telas as $tela => $dados) {
+    $erro = '';
+
+    try {
+        $html = View::render($tela, $dados);
+    } catch (Throwable $e) {
+        $html = '';
+        $erro = $e->getMessage();
+    }
+
+    conferir("{$tela} renderiza com dado do banco", $html !== '', $erro);
+}
 
 printf(
     "\n%s  %d aprovadas, %d falharam\n",
