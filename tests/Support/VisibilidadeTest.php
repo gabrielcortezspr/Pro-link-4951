@@ -220,4 +220,99 @@ final class VisibilidadeTest extends TestCase
         self::assertTrue(Visibilidade::nivelValido(VISIBILIDADE_PUBLICO));
         self::assertFalse(Visibilidade::nivelValido('SEMI_PUBLICO'));
     }
+
+    #[Test]
+    public function os_campos_da_empresa_sao_um_subconjunto_dos_do_perfil(): void
+    {
+        // A tela da empresa desenha menos controles, mas a validação continua sendo uma só:
+        // uma lista paralela criaria o dia em que a empresa manda um campo que `campoValido`
+        // recusa, e o formulário salvaria em silêncio sem gravar nada.
+        foreach (Visibilidade::CAMPOS_DA_EMPRESA as $campo) {
+            self::assertContains($campo, Visibilidade::CAMPOS_DO_PERFIL);
+            self::assertTrue(Visibilidade::campoValido($campo));
+        }
+    }
+
+    // ---------------------------------------------------------------- o lote do formulário
+
+    /** As chaves que uma tela desenharia para um titular com uma ART. */
+    private const PERMITIDAS = ['PERFIL:-:EMAIL', 'PERFIL:-:RESUMO', 'ART:7:-'];
+
+    #[Test]
+    public function o_lote_aceita_so_o_que_a_tela_desenhou(): void
+    {
+        $lote = Visibilidade::lote([
+            'PERFIL:-:EMAIL' => VISIBILIDADE_PUBLICO,
+            'ART:7:-'        => VISIBILIDADE_AUTENTICADO,
+        ], self::PERMITIDAS);
+
+        self::assertFalse($lote['nivel_invalido']);
+        self::assertCount(2, $lote['aceitos']);
+        self::assertSame('EMAIL', $lote['aceitos'][0]['campo']);
+        self::assertSame(7, $lote['aceitos'][1]['id']);
+    }
+
+    #[Test]
+    public function art_que_nao_e_do_titular_nao_entra_no_lote(): void
+    {
+        // O buraco que isto fecha: `deChave` sozinha aceita ART:999999, porque uma função sem
+        // banco não tem como saber de quem é a ART. Quem sabe é a tela que desenhou o controle.
+        $lote = Visibilidade::lote(['ART:999999:-' => VISIBILIDADE_PUBLICO], self::PERMITIDAS);
+
+        self::assertSame([], $lote['aceitos']);
+        self::assertFalse($lote['nivel_invalido']);
+    }
+
+    #[Test]
+    public function campo_que_a_tela_nao_desenhou_nao_entra_no_lote(): void
+    {
+        // Uma empresa mandando MODALIDADES: é campo válido no banco, mas não é dela.
+        $lote = Visibilidade::lote(['PERFIL:-:MODALIDADES' => VISIBILIDADE_PUBLICO], self::PERMITIDAS);
+
+        self::assertSame([], $lote['aceitos']);
+    }
+
+    #[Test]
+    public function nivel_invalido_contamina_o_lote_inteiro(): void
+    {
+        // Antes, o laço aplicava um a um e parava no primeiro erro: metade das escolhas ficava
+        // gravada e a tela dizia que tinha dado errado. Numa tela de privacidade é o pior
+        // desfecho possível — o titular não sabe o que valeu.
+        $lote = Visibilidade::lote([
+            'PERFIL:-:EMAIL'  => VISIBILIDADE_PUBLICO,
+            'ART:7:-'         => 'SEMI_PUBLICO',
+            'PERFIL:-:RESUMO' => VISIBILIDADE_PUBLICO,
+        ], self::PERMITIDAS);
+
+        self::assertTrue($lote['nivel_invalido']);
+    }
+
+    #[Test]
+    public function valor_que_nao_e_texto_nao_derruba_o_lote(): void
+    {
+        // `nivel[PERFIL:-:EMAIL][]=x` chega como array. Ignorar é o comportamento fechado.
+        $lote = Visibilidade::lote(['PERFIL:-:EMAIL' => ['array']], self::PERMITIDAS);
+
+        self::assertSame([], $lote['aceitos']);
+        self::assertFalse($lote['nivel_invalido']);
+    }
+
+    #[Test]
+    public function lote_vazio_nao_e_erro(): void
+    {
+        self::assertSame(
+            ['aceitos' => [], 'nivel_invalido' => false],
+            Visibilidade::lote([], self::PERMITIDAS),
+        );
+    }
+
+    #[Test]
+    public function a_empresa_nao_controla_campo_que_so_o_profissional_tem(): void
+    {
+        // Oferecer controle para um campo que nunca terá valor sugere que a empresa escondeu
+        // algo que na verdade não existe.
+        foreach (['MODALIDADES', 'TIPO_CONTRATO', 'DISPONIBILIDADE'] as $campo) {
+            self::assertNotContains($campo, Visibilidade::CAMPOS_DA_EMPRESA);
+        }
+    }
 }

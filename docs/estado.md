@@ -5,26 +5,26 @@ Máximo de ~30 linhas: se passar disso, algo aqui deveria estar num commit ou nu
 
 ## Última sessão
 
-08/09/2026 — Gabriel, com Claude Code. De `dc21111` a `HEAD`, onze commits.
+14/09/2026 — Gabriel, com Claude Code. A metade da empresa da E2, e a revisão que veio depois.
 
 ## Onde parou
 
-E1 concluída. Na E2, a metade do profissional está de pé e **clicável**: cliente da API com
-transporte injetável, `PortfolioService` com Selo ART, cadastro consultando o CREA, camada de
-visibilidade e a tela `/perfil` (D13 a D23). A metade da empresa não começou.
+E1 concluída. Na E2, as **duas metades** do perfil estão de pé e clicáveis. A da empresa é nova:
+identidade, quadro técnico e acervo pelo CAO, cada ART sob o RNP de quem a registrou (D24, D25,
+D26). A herança da D19 deixou de ser só SQL — encerrar o vínculo zera a evidência da empresa e não
+toca na da pessoa. A revisão de segurança do fim da sessão achou e corrigiu duas falhas na tela de
+visibilidade, herdadas da D22 (D27).
 
-120 testes offline · `verificar-e2.php` (57, sem rede) · `verificar-api.php` (38, contra a API) ·
-`verificar-e1.php http://nginx` (74, uma chamada). Todos repetíveis.
+140 testes offline · `verificar-e2.php` (108, sem rede) · `verificar-e1.php` (74, por HTTP) ·
+`verificar-api.php` (38, contra a API — **não foi rodado nesta sessão**, não há token aqui).
 
 ## Próximo passo
 
-**Experiência autodeclarada** (`pro_experiencias`): repositório, serviço e formulário dentro da
-própria `/perfil`, com estilo visualmente distinto do dado verificado — a proposta promete não
-misturar o que a API confirma com o que a pessoa afirma, e é o que falta para o cenário 1.
+**Experiência autodeclarada** (`pro_experiencias`): comece pelo `ExperienciaRepository`, depois o
+serviço, depois o formulário dentro da própria `/perfil`, com estilo visualmente distinto do dado
+verificado (`.dado-declarado` vs `.selo-art`). É o que falta para o cenário 1.
 
-Depois, na ordem, com a lista completa na E2 do `backlog.md`: perfil público `/perfil/{id}` (onde
-a `Visao` passa a filtrar para quem não é o dono, fechando o cenário 1) → cadastro de Empresa →
-CATs → herança de acervo pelo CAO → `sincronizar-status.php`.
+Depois, na ordem: perfil público `/perfil/{id}` → CATs → `sincronizar-status.php`.
 
 ## Decisões pendentes
 
@@ -32,19 +32,27 @@ CATs → herança de acervo pelo CAO → `sincronizar-status.php`.
   feed e busca ativa — o porquê e os números estão na E4 do `backlog.md`.
 - `prf_em_construcao` é derivado guardado em coluna e já causou um defeito: derivar na leitura
   (como a D01) ou ponto único de escrita? O caso pendente está na E2 do `backlog.md`.
+- Nenhuma tela mostra `perfil.campos` (e-mail, telefone, resumo), nos dois perfis. O filtro já
+  funciona; falta decidir onde aparecem, junto com `/perfil/{id}`.
 - MER (`_arq/mer/`): Workbench ou linha de comando? Obrigatório na entrega (8.3.2b).
 - Liberar `desafio-prolink.crea-am.org.br` na rede da nuvem, ou seguir contra fixtures?
 
 ## Lembrar
 
+- `estrutura.sql` ganhou três mudanças que faltam nas outras máquinas — aplique nesta ordem:
+  `ALTER TABLE pro_profissionais ADD CONSTRAINT uq_prf_usu UNIQUE (prf_usu_id)` (D20),
+  `ALTER TABLE pro_empresas ADD CONSTRAINT uq_emp_usu UNIQUE (emp_usu_id)` (D24) e
+  `ALTER TABLE crea_quadro_tecnico ADD COLUMN qut_pro_nome VARCHAR(150) NULL AFTER qut_pro_rnp`.
 - **Nenhum e-mail sai sozinho**: `despachar()` existe e nada o chama. Gatilho é item da E5.
-- `estrutura.sql` ganhou `uq_prf_usu` (D20): `ALTER TABLE pro_profissionais ADD CONSTRAINT
-  uq_prf_usu UNIQUE (prf_usu_id)` — já aplicado aqui, falta nas outras máquinas.
-- Documento da massa usado uma vez fica consumido para sempre (D15), inclusive por conta
-  excluída. Para demonstrar, use um CPF livre do CSV — `...109`, `...290`, `...370`, `...451` já
-  foram.
+- `PrivacidadeService::exportar` leva conta, consentimentos, sessões e auditoria — e nada de
+  perfil nem de acervo. Com as duas metades de pé, a exportação do 11.3 ficou incompleta.
+- **Relógios diferentes**: `*_dt_consulta` vem do `date()` do PHP (Manaus) e `*_dt_sincronizacao`
+  do `NOW()` do MariaDB (UTC). Dá 4h de diferença em "Consultado em". Nada compara os dois hoje;
+  o `sincronizar-status.php` vai comparar. Decidir antes dele.
+- Documento da massa usado uma vez fica consumido para sempre (D15). CPFs livres: `...290`,
+  `...370`, `...451`. Do lado da empresa só as 15 da `massa-de-dados.md` passam no DV, e a que
+  tem CAO capturado é a AMAZÔNIA (`00123001000123`, registro 61859).
 - `ATTR_EMULATE_PREPARES` está desligado: placeholder nomeado **não** pode repetir na mesma query.
-  Já mordeu duas vezes.
-- Conta de demonstração pronta: `pedro.alves@prolink.local` / `ProLinkDemo2026!` — profissional
-  com 2 ARTs reais, selo conferindo e perfil aberto.
+- Conta de demonstração: `pedro.alves@prolink.local` / `ProLinkDemo2026!`. Existe só na máquina do
+  Gabriel — banco novo não a tem.
 - Se a sessão abrir sem o bloco "Retomada": rode `/hooks` uma vez ou reinicie o Claude Code.

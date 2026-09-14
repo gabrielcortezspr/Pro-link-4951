@@ -6,6 +6,7 @@ namespace ProLink\Service;
 
 use PDO;
 use ProLink\Repository\ConsentimentoRepository;
+use ProLink\Repository\EmpresaRepository;
 use ProLink\Repository\ProfissionalRepository;
 use ProLink\Repository\UsuarioRepository;
 use ProLink\Repository\VisibilidadeRepository;
@@ -24,10 +25,12 @@ use ProLink\Support\Visibilidade;
  *
  *   · **`EXIBICAO_PERFIL` revogado.** É o consentimento do item 11.3, e revogar tem de ter
  *     efeito imediato e total, não parcial.
- *   · **`prf_status_api != 'A'`.** Registro suspenso ou irregular no CREA zera a visibilidade
- *     (proposta: "profissional com registro suspenso tem visibilidade zerada automaticamente").
- *     A plataforma existe para mostrar capacidade comprovada; enquanto o conselho não reconhece
- *     o registro, não temos o que comprovar.
+ *   · **Registro no CREA não confirmado.** Para o profissional é `prf_status_api != 'A'`, que
+ *     zera a visibilidade (proposta: "profissional com registro suspenso tem visibilidade zerada
+ *     automaticamente"). A plataforma existe para mostrar capacidade comprovada; enquanto o
+ *     conselho não reconhece o registro, não temos o que comprovar. Para a empresa não existe
+ *     situação equivalente na API — não há `emp_status` —, então o que se confere é a pendência
+ *     de validação: sem linha em `pro_empresas`, fechado.
  *
  * Nenhum dos dois apaga as escolhas do titular. Voltando o consentimento ou o registro, o perfil
  * reabre como estava — o que ele decidiu campo a campo continua gravado.
@@ -38,6 +41,7 @@ final class VisibilidadeService
         private readonly VisibilidadeRepository $visibilidades = new VisibilidadeRepository(),
         private readonly ConsentimentoRepository $consentimentos = new ConsentimentoRepository(),
         private readonly ProfissionalRepository $profissionais = new ProfissionalRepository(),
+        private readonly EmpresaRepository $empresas = new EmpresaRepository(),
         private readonly UsuarioRepository $usuarios = new UsuarioRepository(),
     ) {
     }
@@ -76,9 +80,20 @@ final class VisibilidadeService
             return false;
         }
 
-        // Empresa e terceiro não têm situação no CREA para conferir: para eles o consentimento é
-        // o portão inteiro.
-        if (($usuario['per_codigo'] ?? '') !== PERFIL_PROFISSIONAL) {
+        $perfil = $usuario['per_codigo'] ?? '';
+
+        // Empresa: a API não devolve situação de empresa — a busca por CNPJ traz razão social,
+        // nome fantasia, registro e data, e não existe `emp_status`. Não há, portanto, o
+        // equivalente ao `prf_status_api != 'A'`. O que se pode conferir é a pendência da D20,
+        // que vale igual dos dois lados: sem linha em `pro_empresas`, a conta afirma um registro
+        // no CREA que nós ainda não confirmamos, e exibir seria publicar essa afirmação.
+        if ($perfil === PERFIL_EMPRESA) {
+            return $this->empresas->porUsuario($usuarioId) !== null;
+        }
+
+        // Terceiro não tem registro no conselho para conferir: para ele o consentimento é o
+        // portão inteiro.
+        if ($perfil !== PERFIL_PROFISSIONAL) {
             return true;
         }
 
@@ -138,6 +153,46 @@ final class VisibilidadeService
         });
 
         return true;
+    }
+
+    /**
+     * Aplica o formulário de visibilidade inteiro — ou nenhuma parte dele.
+     *
+     * `$chavesPermitidas` são os alvos que a tela desenhou para este titular (as chaves de
+     * `perfil.niveis`). Alvo fora dessa lista é ignorado: sem isso, um `name` adulterado no HTML
+     * criava linha em `pro_visibilidade` para qualquer `art_id` do banco, inclusive de ARTs que
+     * não são do titular. Não vazava nada — a `Visao` consultada é sempre a do dono do perfil
+     * exibido, e a lista de ARTs de uma tela nunca sai de `pro_visibilidade` —, mas enchia a
+     * tabela e a trilha de auditoria de linhas sem sentido, e deixava uma escolha "PÚBLICO"
+     * esperando por uma ART que ainda ia chegar.
+     *
+     * A validação dos níveis acontece **antes** de qualquer escrita. Uma tela de privacidade não
+     * pode terminar com "deu erro" e metade das escolhas aplicadas.
+     *
+     * @param array<array-key, mixed> $enviados         `nivel[<chave>] => <nível>`, cru do POST
+     * @param list<string>            $chavesPermitidas alvos legítimos deste titular
+     * @return int quantos mudaram de fato — deixa o chamador dizer a verdade na mensagem
+     * @throws ValidacaoException nível fora dos três; nada é gravado
+     */
+    public function definirLote(int $usuarioId, array $enviados, array $chavesPermitidas): int
+    {
+        $lote = Visibilidade::lote($enviados, $chavesPermitidas);
+
+        if ($lote['nivel_invalido']) {
+            throw new ValidacaoException(
+                'Nível de visibilidade inválido. Nenhuma das suas escolhas foi alterada.'
+            );
+        }
+
+        $salvos = 0;
+
+        foreach ($lote['aceitos'] as $alvo) {
+            $salvos += $this->definir(
+                $usuarioId, $alvo['entidade'], $alvo['id'], $alvo['campo'], $alvo['nivel'],
+            ) ? 1 : 0;
+        }
+
+        return $salvos;
     }
 
     /**

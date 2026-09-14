@@ -1,0 +1,192 @@
+{% extends 'layout/base.html.twig' %}
+{% import 'layout/_form.html.twig' as form %}
+
+{% block titulo %}Meu perfil — Pro-Link{% endblock %}
+
+{% block conteudo %}
+{% set p = perfil %}
+
+<h1 class="h3 mb-1">{{ p.identidade.razao_social }}</h1>
+<p class="text-body-secondary">
+    {% if p.identidade.nome_fantasia %}{{ p.identidade.nome_fantasia }} · {% endif %}
+    {% if p.identidade.registro_crea %}
+        Registro CREA {{ p.identidade.registro_crea }}
+    {% else %}
+        Registro no CREA ainda não validado
+    {% endif %}
+</p>
+
+{% if p.validacao_pendente %}
+    <div class="alert alert-warning d-flex flex-wrap gap-3 align-items-center" role="alert">
+        <div class="flex-grow-1">
+            <strong>O registro da empresa no CREA ainda não foi validado.</strong>
+            A API oficial não respondeu quando a conta foi criada. Enquanto isso, o perfil não
+            aparece para ninguém.
+        </div>
+        <form method="post" action="{{ app_url }}/perfil/validar-registro">
+            {{ form.csrf() }}
+            <button type="submit" class="btn btn-warning">Validar o registro</button>
+        </form>
+    </div>
+{% elseif p.sincronizacao_incompleta %}
+    <div class="alert alert-warning d-flex flex-wrap gap-3 align-items-center" role="alert">
+        <div class="flex-grow-1">
+            <strong>O quadro técnico e o acervo não foram importados.</strong>
+            O registro está validado, mas não conseguimos ler a Certidão de Acervo Operacional.
+        </div>
+        <form method="post" action="{{ app_url }}/perfil/validar-registro">
+            {{ form.csrf() }}
+            <button type="submit" class="btn btn-warning">Importar quadro técnico e acervo</button>
+        </form>
+    </div>
+{% endif %}
+
+{% if not p.perfil_aberto %}
+    <div class="alert alert-secondary" role="alert">
+        <strong>O perfil da empresa está fechado.</strong>
+        Ninguém além de você o enxerga, mesmo o que estiver marcado como público. Isso acontece
+        quando o consentimento de exibição está revogado
+        (<a href="{{ app_url }}/privacidade">painel de privacidade</a>)
+        ou enquanto o registro no CREA não estiver validado.
+    </div>
+{% endif %}
+
+<div class="row g-4 mt-1">
+    <div class="col-lg-7">
+        <h2 class="h5">Acervo operacional</h2>
+
+        {% if p.arts is empty %}
+            <p class="text-body-secondary">
+                Nenhuma ART no acervo ainda. A empresa não registra ART: o acervo vem das ARTs
+                dos profissionais do quadro técnico com vínculo vigente.
+            </p>
+        {% else %}
+            <p class="text-body-secondary">
+                {{ p.arts|length }} ART(s) da Certidão de Acervo Operacional. Cada uma foi
+                registrada por um profissional do quadro técnico — a empresa responde por elas
+                enquanto o vínculo estiver vigente.
+            </p>
+
+            {% for art in p.arts %}
+                <article class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                            <div>
+                                <h3 class="h6 mb-1">{{ art.numero }}</h3>
+                                <p class="mb-1">{{ art.objeto }}</p>
+                            </div>
+                            {% if art.selo_confere %}
+                                <span class="badge text-bg-success" title="O conteúdo desta ART não mudou desde que foi importado da API oficial.">
+                                    Selo ART conferido
+                                </span>
+                            {% else %}
+                                <span class="badge text-bg-danger" title="O conteúdo gravado não corresponde ao selo. Isto foi registrado na auditoria.">
+                                    Selo divergente
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <dl class="row small mb-2">
+                            <dt class="col-sm-4">Registrada por</dt>
+                            <dd class="col-sm-8">
+                                {{ art.profissional ?: 'Profissional do quadro técnico' }}
+                                <span class="text-body-secondary">· RNP {{ art.rnp }}</span>
+                            </dd>
+                            <dt class="col-sm-4">Contratante</dt>
+                            <dd class="col-sm-8">{{ art.contratante ?: '—' }}</dd>
+                            <dt class="col-sm-4">Local</dt>
+                            <dd class="col-sm-8">{{ art.local ?: '—' }}</dd>
+                            <dt class="col-sm-4">Situação</dt>
+                            <dd class="col-sm-8">{{ art.situacao ?: '—' }}</dd>
+                            <dt class="col-sm-4">Consultado em</dt>
+                            <dd class="col-sm-8">{{ art.dt_consulta }}</dd>
+                        </dl>
+
+                        <p class="small mb-1"><strong>Atividades (Tabela de Obras e Serviços)</strong></p>
+                        <ul class="small mb-0">
+                            {% for atividade in art.atividades %}
+                                <li><code>{{ atividade.tos_codigo }}</code>
+                                    {% if atividade.descricao %}— {{ atividade.descricao }}{% endif %}</li>
+                            {% else %}
+                                <li class="text-body-secondary">Sem atividades registradas.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </article>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <div class="col-lg-5">
+        <h2 class="h5">Quem vê o quê</h2>
+        <p class="text-body-secondary">
+            Nada fica visível sem você escolher. O padrão de tudo é <strong>Só eu</strong>.
+        </p>
+
+        <form method="post" action="{{ app_url }}/perfil/visibilidade">
+            {{ form.csrf() }}
+
+            <fieldset class="mb-3">
+                <legend class="h6">Dados do perfil</legend>
+                {% for campo in p.campos_do_perfil %}
+                    {% set chave = 'PERFIL:-:' ~ campo %}
+                    {{ form.selecao('nivel[' ~ chave ~ ']', campo|replace({'_': ' '})|capitalize,
+                        niveis_possiveis, p.niveis[chave]|default('PRIVADO'), null, {}, false) }}
+                {% endfor %}
+            </fieldset>
+
+            {% if p.arts is not empty %}
+                <fieldset class="mb-3">
+                    <legend class="h6">Cada ART do acervo, uma a uma</legend>
+                    {% for art in p.arts %}
+                        {% set chave = 'ART:' ~ art.id ~ ':-' %}
+                        {{ form.selecao('nivel[' ~ chave ~ ']', art.numero,
+                            niveis_possiveis, p.niveis[chave]|default('PRIVADO'), null, {}, false) }}
+                    {% endfor %}
+                </fieldset>
+            {% endif %}
+
+            {{ form.botao('Salvar visibilidade') }}
+        </form>
+
+        <h2 class="h5 mt-4">Quadro técnico</h2>
+        {% if p.quadro is empty %}
+            <p class="text-body-secondary">Nenhum vínculo importado da API.</p>
+        {% else %}
+            <ul class="list-unstyled">
+                {% for membro in p.quadro %}
+                    <li class="mb-2">
+                        <strong>{{ membro.nome ?: 'Sem nome na API' }}</strong>
+                        <span class="text-body-secondary small">· RNP {{ membro.rnp }}</span><br>
+                        {# qut_funcao é texto livre e qut_tipo é o campo estruturado. Quando a
+                           API manda os dois, o texto já diz o que a marca diria — repetir só
+                           ocuparia a linha. A marca aparece quando é o único que informa. #}
+                        <span class="small">
+                            {% if membro.funcao %}
+                                {{ membro.funcao }}
+                            {% elseif membro.responsavel %}
+                                Responsável técnico
+                            {% else %}
+                                Sem função informada
+                            {% endif %}
+                        </span><br>
+                        {% if membro.vigente %}
+                            <span class="badge text-bg-success" title="Vínculo vigente: o acervo deste profissional conta para a empresa.">
+                                Vínculo vigente
+                            </span>
+                        {% else %}
+                            <span class="badge text-bg-secondary" title="Vínculo encerrado: o acervo deste profissional não conta para a empresa.">
+                                Encerrado em {{ membro.dt_fim }}
+                            </span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+            <p class="small text-body-secondary">
+                Só o vínculo vigente transfere acervo para a empresa. Vínculo encerrado não
+                herda nada, e a API não data ART, então não há recorte por período.
+            </p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

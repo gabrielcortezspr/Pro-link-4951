@@ -12,6 +12,7 @@ use ProLink\Repository\UsuarioRepository;
 use ProLink\Support\Auditoria;
 use ProLink\Support\Crypto;
 use ProLink\Support\Database;
+use ProLink\Support\DesfechoCrea;
 
 /**
  * Quem a pessoa é no CREA, segundo o CREA (RF02).
@@ -50,9 +51,12 @@ use ProLink\Support\Database;
  */
 final class PerfilCreaService
 {
-    public const VINCULADO        = 'VINCULADO';
-    public const SEM_REGISTRO     = 'SEM_REGISTRO';
-    public const API_INDISPONIVEL = 'API_INDISPONIVEL';
+    // O vocabulário dos três desfechos mora em `Support\DesfechoCrea`, porque é o mesmo para o
+    // profissional e para a empresa. Estas constantes continuam existindo para quem já chamava
+    // `PerfilCreaService::VINCULADO`.
+    public const VINCULADO        = DesfechoCrea::VINCULADO;
+    public const SEM_REGISTRO     = DesfechoCrea::SEM_REGISTRO;
+    public const API_INDISPONIVEL = DesfechoCrea::API_INDISPONIVEL;
 
     public function __construct(
         private readonly CreaApiClient $api = new CreaApiClient(),

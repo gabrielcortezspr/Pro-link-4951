@@ -139,6 +139,12 @@ const VISIBILIDADE_PUBLICO     = 'PUBLICO';
 const PERFIS_AUTENTICADOS = [PERFIL_PROFISSIONAL, PERFIL_EMPRESA, PERFIL_TERCEIRO, PERFIL_ADMIN];
 
 /**
+ * Perfis que têm registro no CREA para validar. Terceiro (PF ou PJ) não tem: ele publica demanda
+ * e contrata, e nunca passa pelo fluxo de consulta ao conselho.
+ */
+const PERFIS_COM_REGISTRO_CREA = [PERFIL_PROFISSIONAL, PERFIL_EMPRESA];
+
+/**
  * Tipos de cadastro oferecidos (RF01, edital Anexo I item 3). Não são perfis: TERCEIRO_PF e
  * TERCEIRO_PJ viram o mesmo PERFIL_TERCEIRO, mudando só o tipo de pessoa e o documento exigido.
  */

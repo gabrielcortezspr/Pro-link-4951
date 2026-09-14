@@ -56,7 +56,9 @@ $router->post('/sair',                AuthController::class, 'sair', PERFIS_AUTE
 // ---------------------------------------------------------------- privacidade do titular (11.3)
 $router->get('/perfil',                       PerfilController::class, 'index', PERFIS_AUTENTICADOS);
 $router->post('/perfil/visibilidade',        PerfilController::class, 'definirVisibilidade', PERFIS_AUTENTICADOS);
-$router->post('/perfil/validar-registro',    PerfilController::class, 'validarRegistro', PERFIL_PROFISSIONAL);
+// Um caminho só para os dois perfis que têm registro no conselho: o controller despacha pelo
+// perfil da sessão. Terceiro não entra — não há registro no CREA para validar.
+$router->post('/perfil/validar-registro',    PerfilController::class, 'validarRegistro', PERFIS_COM_REGISTRO_CREA);
 
 $router->get('/privacidade',                  PrivacidadeController::class, 'index', PERFIS_AUTENTICADOS);
 $router->post('/privacidade/consentimento',   PrivacidadeController::class, 'definirConsentimento', PERFIS_AUTENTICADOS);

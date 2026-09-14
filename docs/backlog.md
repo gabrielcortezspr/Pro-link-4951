@@ -92,7 +92,7 @@ por 15 minutos; a exportação devolve JSON; `sis_auditoria` mostra tudo isso.
 > **Em andamento.** Prontos: o transporte injetável do `CreaApiClient` (D08, D13, D14, D16) e o
 > `PortfolioService` com a operação atômica 1 — importação do acervo, associação de ART à mão,
 > mescla que não apaga campo preenchido e Selo ART cobrindo as atividades (D17, D18). Verificado
-> por `scripts/verificar-e2.php`: 28 conferências contra o banco, sem gastar chamada da API.
+> por `scripts/verificar-e2.php`: 108 conferências contra o banco, sem gastar chamada da API.
 >
 > A herança pelo CAO ficou destravada de graça: a regra é binária e a view já a implementa (D19).
 >
@@ -101,9 +101,19 @@ por 15 minutos; a exportação devolve JSON; `sis_auditoria` mostra tudo isso.
 > pelo formulário contra a API real: PEDRO HENRIQUE ALVES entrou com RNP `0412340046`, modalidade,
 > 2 ARTs seladas e `prf_em_construcao = 1` — o limiar de 3 ARTs funcionando sem ninguém forçar.
 >
-> Falta, na ordem: tela de "validar meu registro" (resolve a pendência da D20), cadastro de
-> Empresa (`pro_empresas`), CATs, herança de acervo pelo CAO, visibilidade granular, perfil
-> público com o selo na tela, experiência autodeclarada e `sincronizar-status.php`.
+> Também pronta a **metade da empresa** (D24, D25, D26): `EmpresaCreaService` com os mesmos três
+> desfechos do profissional, quadro técnico de `crea_quadro_tecnico`, acervo pelo CAO gravado sob
+> o RNP de quem registrou, tela `/perfil` própria e o portão de visibilidade da empresa. A
+> herança da D19 passou a ser verificada de ponta a ponta: encerrar o vínculo tira o acervo da
+> empresa e não toca no do profissional.
+>
+> A revisão de segurança do fim da sessão achou duas falhas na tela de visibilidade — herdadas
+> da D22 e agora corrigidas na D27: o POST aceitava alvo que não era do titular, e um nível
+> inválido no meio do lote deixava metade das escolhas gravadas. Conferido com requisição forjada,
+> antes e depois.
+>
+> Falta, na ordem: experiência autodeclarada, perfil público `/perfil/{id}`, CATs e
+> `sincronizar-status.php`.
 
 **Cobre:** RF02, RF03; edital 8.4, Anexo I item 6; proposta cenários 01 e 03A, diferenciais 2
 (dado verificado) e "perfil em construção". **Destrava o cenário 1.**
@@ -111,6 +121,12 @@ por 15 minutos; a exportação devolve JSON; `sis_auditoria` mostra tudo isso.
 - No cadastro de Profissional: `CreaApiClient::profissionalPorCpf` → grava `prf_rnp`,
   `prf_registro_crea`, `prf_nome_api`, `prf_status_api`, modalidades. CPF inexistente na API
   → cadastro segue como Terceiro PF, com aviso. Empresa: `empresaPorCnpj` → `pro_empresas`.
+  > **Pronto** (D24, D25, D26): `EmpresaCreaService` espelha o `PerfilCreaService` — três
+  > desfechos no vocabulário comum de `Support\DesfechoCrea`, guarda de registro já vinculado,
+  > rebaixamento para Terceiro PJ no `200 []` e `emp_dt_sincronizacao` carimbada só na
+  > sincronização completa. Três chamadas por empresa: CNPJ, quadro técnico e CAO. A empresa não
+  > tem situação na API, então o portão de visibilidade dela é consentimento + validação
+  > pendente — limitação declarada na D26, não dissimulada.
 - **Importação automática das ARTs** no cadastro (proposta, jornada fase 02): pagina
   `artsDoProfissional`, grava `crea_arts` + `crea_art_atividades`, calcula `art_hash`. Mesmo
   para CATs via `catsDoProfissional` + `validarCat` para os vínculos.
@@ -133,8 +149,16 @@ por 15 minutos; a exportação devolve JSON; `sis_auditoria` mostra tudo isso.
   > memória), repositório, serviço com os dois portões globais e os controles na tela do perfil.
   > 17 testes. Falta o `fecharTudo` no lado da sincronização de status e o perfil público, que é
   > onde a `Visao` passa a filtrar para um espectador que não é o dono.
+- **Herança de acervo pelo CAO** (`PortfolioService::importarCao`): a árvore da Certidão de
+  Acervo Operacional achatada por `Support\Cao`, e cada ART gravada sob o RNP de quem a
+  registrou — nunca sob a empresa (D24). Quem liga as duas identidades é a view
+  `crea_evidencias`, e só ela.
+  > **Pronta.** A regra binária da D19 deixou de ser só uma linha de SQL: `verificar-e2.php`
+  > encerra o vínculo, confere que a evidência da empresa vai a zero e que a da profissional não
+  > muda, e revalida para trazer tudo de volta sem duplicar linha.
 - Perfil em construção: menos de `match.early_career.min_arts` ARTs → `prf_em_construcao = 1`
-  e sinalização visual. Nunca sai do pool.
+  e sinalização visual. Nunca sai do pool. **Não vale para empresa**: quadro técnico pequeno não
+  é início de carreira, e rotular isso seria inventar informação.
 - **Tela `/perfil` pronta**: acervo com Selo ART reconferido a cada exibição, marca de perfil em
   construção, aviso de perfil fechado, controles de visibilidade por campo e por ART, e o botão
   que resolve a pendência da D20 e da D21 (`validar meu registro` / `importar minhas ARTs`).
@@ -255,6 +279,13 @@ Metade da nota depende disto. Não é "se sobrar tempo".
 **Segurança (Camila, 16/09)**
 - Checklist OWASP da proposta, item por item: autorização por operação em toda rota, CSRF em
   todo POST, escape no Twig, `cookie_secure` em produção, headers do nginx, sem stack trace.
+- **Conferir com requisição forjada, não por leitura.** Foi assim que as duas falhas da D27
+  apareceram, depois de já terem passado por revisão de código. Todo formulário que aceita
+  identificador de volta (`nivel[ART:<id>]`, e os que vierem em E3 a E6) merece a mesma sonda.
+- **`Sessao` guarda o perfil em `$_SESSION` e nunca o reconfere contra o banco.** O
+  `sessaoTemRespaldo()` derruba sessão revogada, mas mudança de papel — o rebaixamento para
+  Terceiro da D20/D26, e principalmente o bloqueio pelo administrador da E6 — só vale no próximo
+  login. Decidir junto com a operação atômica 5, que é quem depende disso.
 - Rodar o Anexo VI do edital como autoavaliação. Todos os doze itens.
 - `grep` por segredo no repositório antes do push final.
 
