@@ -101,6 +101,7 @@
     <a class="btn btn-outline-secondary" href="{{ app_url }}/privacidade/exportar">Baixar meus dados (JSON)</a>
 </section>
 
+{% if painel.usuario.perfil != 'ADMIN' %}
 <section class="mb-3" aria-labelledby="h-excluir">
     <h2 class="h5 text-danger" id="h-excluir">Excluir minha conta</h2>
     <p class="text-body-secondary">
@@ -121,4 +122,13 @@
         </div>
     </form>
 </section>
+{% else %}
+<section class="mb-3" aria-labelledby="h-excluir">
+    <h2 class="h5" id="h-excluir">Excluir minha conta</h2>
+    <p class="text-body-secondary mb-0">
+        Contas de administração não são excluídas nesta tela. A remoção é feita por outro
+        administrador, para que a plataforma não fique sem moderação nem trilha de auditoria.
+    </p>
+</section>
+{% endif %}
 {% endblock %}

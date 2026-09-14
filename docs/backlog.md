@@ -63,6 +63,10 @@ Coisas pequenas que toda etapa seguinte usa. Fazer antes de qualquer RF.
 > original: validação de CPF/CNPJ e separação da massa cadastrável (D07), e o próprio script de
 > verificação (D12). `estrutura.sql` mudou — `con_dt_concessao` aceita nulo (D10); banco antigo
 > se ajusta com um `ALTER`, sem recriar o volume.
+>
+> **Auditoria da etapa, resgatada em 14/09** (D30, D31): duas regras do `CLAUDE.md` que o próprio
+> código desobedecia — SQL fora de repositório e `session_start()` fora de `Sessao` — passaram a
+> valer. Nasceram `AuditoriaRepository` e `SaudeRepository`.
 
 **Cobre:** RF01; edital 8.5a/b/f/g, 11.3; proposta cenário 01 (base).
 

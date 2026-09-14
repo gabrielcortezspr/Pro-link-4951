@@ -47,11 +47,25 @@ final class Sessao
         $ultima = $_SESSION[self::CHAVE_ATIVIDADE] ?? null;
 
         if (is_int($ultima) && (time() - $ultima) > $segundos) {
-            self::encerrar();
-            session_start();
+            self::reiniciar();
             Flash::aviso('Sua sessão expirou por inatividade. Entre novamente.');
         }
 
+        $_SESSION[self::CHAVE_ATIVIDADE] = time();
+    }
+
+    /**
+     * Abre uma sessão nova depois de encerrar a anterior.
+     *
+     * Existe porque logout e exclusão de conta precisam destruir a sessão e, ainda assim, deixar
+     * uma mensagem para a tela seguinte — e Flash mora na sessão. Sem isto, os controllers
+     * chamavam session_start() direto, furando a regra que esta classe existe para garantir: o
+     * $_SESSION é tocado aqui, em Csrf e em Flash, e em nenhum outro lugar.
+     */
+    public static function reiniciar(): void
+    {
+        self::encerrar();
+        session_start();
         $_SESSION[self::CHAVE_ATIVIDADE] = time();
     }
 
