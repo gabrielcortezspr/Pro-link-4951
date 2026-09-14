@@ -72,10 +72,17 @@ final class DenunciaRepository extends Repositorio
      */
     public function fila(?string $situacao, ?string $tipo, int $limite = 50): array
     {
+        // O alvo entra por LEFT JOIN condicionado à entidade: quando é conta, a fila mostra o
+        // nome, porque "USUARIO #10" não diz ao moderador o que está sendo denunciado. Para as
+        // outras entidades o join não casa e alvo_nome vem nulo, que o template trata.
         $sql = 'SELECT d.den_id, d.den_entidade, d.den_entidade_id, d.den_tipo, d.den_situacao,
-                       d.den_providencia, d.den_dt_registro, u.usu_nome AS autor_nome
+                       d.den_providencia, d.den_dt_registro, u.usu_nome AS autor_nome,
+                       alvo.usu_nome AS alvo_nome
                   FROM pro_denuncias d
                   JOIN sis_usuarios u ON u.usu_id = d.den_usu_id
+                  LEFT JOIN sis_usuarios alvo
+                         ON alvo.usu_id = d.den_entidade_id
+                        AND d.den_entidade = \'USUARIO\'
                  WHERE d.den_status = :ativo';
 
         if ($situacao !== null) {

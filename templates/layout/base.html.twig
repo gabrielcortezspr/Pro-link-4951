@@ -48,7 +48,7 @@
     </nav>
 </header>
 
-<main id="conteudo" class="container flex-grow-1 py-4">
+<main id="conteudo" class="{% block classe_main %}container{% endblock %} flex-grow-1 py-4">
     {% for f in flashes() %}
         <div class="alert alert-{{ f.tipo }} alert-dismissible" role="alert">
             {{ f.texto }}

@@ -73,6 +73,7 @@ $router->post('/denuncias',     DenunciaController::class, 'registrar',  PERFIS_
 
 // ---------------------------------------------------------------- administração (RF06)
 $router->get('/admin',                AdminController::class, 'index', PERFIL_ADMIN);
+$router->get('/admin/denuncias',      AdminController::class, 'denuncias', PERFIL_ADMIN);
 
 // Próximas, na ordem do backlog: /perfil, /demandas — ver docs/backlog.md
 

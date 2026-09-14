@@ -130,6 +130,26 @@ conferir(
     recusa(fn () => $servico->abrir($autorId, 'USUARIO', $autorId, 'SPAM', 'Autodenúncia.')),
 );
 
+secao('Fila do painel');
+
+$idFila = $servico->abrir($autorId, 'USUARIO', $alvoId, 'SPAM', 'Fila de verificação.');
+
+$pendentes = array_column($servico->fila('PENDENTE'), 'den_id');
+$emAnalise = array_column($servico->fila('EM_ANALISE'), 'den_id');
+
+// O par positivo/negativo é o que prova que a condição chegou ao SQL: um filtro testado só no
+// caso positivo passa mesmo quando o WHERE foi ignorado.
+conferir(
+    'o filtro PENDENTE traz a denúncia recém-aberta',
+    in_array($idFila, array_map('intval', $pendentes), true),
+    "id {$idFila}",
+);
+
+conferir(
+    'o filtro EM_ANALISE não traz denúncia pendente',
+    !in_array($idFila, array_map('intval', $emAnalise), true),
+);
+
 printf(
     "\n%s  %d aprovadas, %d falharam\n",
     $falhou === 0 ? "\e[32mE6 (DENÚNCIAS E PAINEL) VERIFICADA\e[0m" : "\e[31mE6 COM FALHA\e[0m",
