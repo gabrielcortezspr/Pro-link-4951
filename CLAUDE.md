@@ -90,5 +90,10 @@ entrada nova citando a antiga; nunca reescreva uma entrada.
 
 Princípio de manutenção: **cada fato é escrito num lugar só.** Configuração de infraestrutura no
 `.env`, parâmetros do motor em `sis_parametros`, índice de documentação no `README.md`, regras de
-negócio do motor em `docs/matching.md`, estado em `docs/estado.md`. Diretório só é criado quando
-o primeiro arquivo entra.
+negócio do motor em `docs/matching.md`, regras de design e do front em `docs/design.md`, o caminho
+das telas em `docs/fluxos.md`, estado em `docs/estado.md`. Diretório só é criado quando o primeiro
+arquivo entra.
+
+Front-end: o visual segue o **design system em `docs/design.md`** (tema sobre o Bootstrap 5,
+componentes com prefixo `pl-`, verde água só para verificação). Antes de mexer em template ou CSS,
+leia-o; as telas de referência estão em `docs/mockups/`. É o padrão único dos dois lados da dupla.
