@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace ProLink\Controller;
 
 use ProLink\Service\DenunciaService;
+use ProLink\Service\ValidacaoException;
+use ProLink\Support\Flash;
+use ProLink\Support\Sessao;
 use ProLink\Support\View;
 
 /**
@@ -45,5 +48,43 @@ final class AdminController
             'situacoes' => DenunciaService::SITUACOES,
             'tipos'     => DenunciaService::TIPOS,
         ]);
+    }
+
+    public function denuncia(string $id): string
+    {
+        $denuncia = $this->denuncias->porId((int) $id);
+
+        if ($denuncia === null) {
+            return View::erro(404, 'Denúncia não encontrada.');
+        }
+
+        return View::render('admin/denuncia.html.twig', [
+            'ativo'        => 'denuncias',
+            'denuncia'     => $denuncia,
+            'tipos'        => DenunciaService::TIPOS,
+            'situacoes'    => DenunciaService::SITUACOES,
+            'providencias' => DenunciaService::PROVIDENCIAS,
+        ]);
+    }
+
+    public function tratar(string $id): string
+    {
+        try {
+            $r = $this->denuncias->tratar(
+                (int) $id,
+                (int) Sessao::usuarioId(),
+                (string) ($_POST['situacao'] ?? ''),
+                ($_POST['providencia'] ?? '') ?: null,
+            );
+        } catch (ValidacaoException $e) {
+            Flash::erro($e->getMessage());
+            View::redirecionar('/admin/denuncias/' . (int) $id);
+        }
+
+        Flash::sucesso($r['bloqueado']
+            ? 'Denúncia tratada e conta bloqueada. Sessões encerradas: ' . $r['sessoes_derrubadas'] . '.'
+            : 'Denúncia tratada.');
+
+        View::redirecionar('/admin/denuncias');
     }
 }

@@ -6,6 +6,8 @@ namespace ProLink\Service;
 
 use PDO;
 use ProLink\Repository\DenunciaRepository;
+use ProLink\Repository\SessaoRepository;
+use ProLink\Repository\UsuarioRepository;
 use ProLink\Support\Auditoria;
 use ProLink\Support\Database;
 use ProLink\Support\Validacao;
@@ -36,6 +38,8 @@ final class DenunciaService
 
     public function __construct(
         private readonly DenunciaRepository $denuncias = new DenunciaRepository(),
+        private readonly UsuarioRepository $usuarios = new UsuarioRepository(),
+        private readonly SessaoRepository $sessoes = new SessaoRepository(),
     ) {
     }
 
@@ -93,6 +97,104 @@ final class DenunciaService
                 );
 
                 return $id;
+            }
+        );
+    }
+
+    /**
+     * Trata a denúncia e, quando a providência é BLOQUEAR, executa a operação atômica 5:
+     * status da conta, sessões revogadas e as três escritas na trilha, tudo ou nada.
+     *
+     * @return array{bloqueado: bool, sessoes_derrubadas: int}
+     */
+    public function tratar(int $denunciaId, int $moderadorId, string $situacao, ?string $providencia): array
+    {
+        $v = new Validacao();
+        $v->entre('situacao', $situacao, self::SITUACOES, 'Situação inválida.');
+
+        if ($providencia !== null) {
+            $v->entre('providencia', $providencia, self::PROVIDENCIAS, 'Providência inválida.');
+        }
+
+        $v->lancarSeInvalido();
+
+        return Database::transacao(
+            function (PDO $pdo) use ($denunciaId, $moderadorId, $situacao, $providencia): array {
+                // Ler antes de escrever: a auditoria precisa do valor anterior de den_situacao,
+                // e o bloqueio precisa saber qual é o alvo.
+                $repo      = new DenunciaRepository($pdo);
+                $denuncia  = $repo->porId($denunciaId);
+
+                if ($denuncia === null) {
+                    throw new ValidacaoException('Denúncia não encontrada.');
+                }
+
+                $repo->tratar($denunciaId, $moderadorId, $situacao, $providencia);
+
+                Auditoria::registrar(
+                    Auditoria::MODERAR,
+                    'pro_denuncias',
+                    $denunciaId,
+                    'den_situacao',
+                    $denuncia['den_situacao'],
+                    $situacao,
+                    $moderadorId,
+                    $pdo,
+                );
+
+                if ($providencia !== 'BLOQUEAR') {
+                    return ['bloqueado' => false, 'sessoes_derrubadas' => 0];
+                }
+
+                if ($denuncia['den_entidade'] !== 'USUARIO') {
+                    throw new ValidacaoException('Só é possível bloquear quando o alvo da denúncia é uma conta.');
+                }
+
+                $alvo = (new UsuarioRepository($pdo))->porId((int) $denuncia['den_entidade_id']);
+
+                if ($alvo === null) {
+                    throw new ValidacaoException('A conta alvo não está mais ativa.');
+                }
+
+                // Sem esta guarda um administrador bloqueia o outro, ou a si mesmo, e o acesso
+                // ao painel se perde no meio da demonstração.
+                if ($alvo['per_codigo'] === PERFIL_ADMIN || (int) $alvo['usu_id'] === $moderadorId) {
+                    throw new ValidacaoException('Conta de administração não pode ser bloqueada por aqui.');
+                }
+
+                // Estado antes de efeito: o status é a verdade que persiste, a revogação é a
+                // consequência. Na transação as duas desfazem juntas, mas a ordem é o que a
+                // trilha vai mostrar, e a trilha é o produto.
+                (new UsuarioRepository($pdo))->alterarStatus((int) $alvo['usu_id'], STATUS_INATIVO);
+                $derrubadas = (new SessaoRepository($pdo))->revogarTodasDoUsuario((int) $alvo['usu_id']);
+
+                Auditoria::registrar(
+                    Auditoria::BLOQUEAR,
+                    'sis_usuarios',
+                    (int) $alvo['usu_id'],
+                    'usu_status',
+                    STATUS_ATIVO,
+                    STATUS_INATIVO,
+                    $moderadorId,
+                    $pdo,
+                );
+
+                Auditoria::registrar(
+                    Auditoria::REVOGAR,
+                    'sis_sessoes',
+                    (int) $alvo['usu_id'],
+                    null,
+                    null,
+                    [
+                        'sessoes_revogadas' => $derrubadas,
+                        'motivo'            => 'bloqueio_administrativo',
+                        'denuncia_id'       => $denunciaId,
+                    ],
+                    $moderadorId,
+                    $pdo,
+                );
+
+                return ['bloqueado' => true, 'sessoes_derrubadas' => $derrubadas];
             }
         );
     }

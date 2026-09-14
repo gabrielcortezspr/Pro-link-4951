@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/_config.php';
 
+use ProLink\Repository\UsuarioRepository;
 use ProLink\Service\DenunciaService;
 use ProLink\Service\ValidacaoException;
 use ProLink\Support\Database;
@@ -149,6 +150,57 @@ conferir(
     'o filtro EM_ANALISE não traz denúncia pendente',
     !in_array($idFila, array_map('intval', $emAnalise), true),
 );
+
+secao('Moderação e bloqueio (operação atômica 5)');
+
+// A cobaia precisa estar ativa para o bloqueio ter o que derrubar. Se uma rodada anterior a
+// deixou bloqueada, devolve antes de medir.
+(new UsuarioRepository())->alterarStatus($alvoId, STATUS_ATIVO);
+
+$idBloqueio = $servico->abrir($autorId, 'USUARIO', $alvoId, 'PERFIL_FRAUDULENTO', 'Bloqueio de verificação.');
+$r = $servico->tratar($idBloqueio, $autorId, 'RESOLVIDA', 'BLOQUEAR');
+
+conferir('tratar() com BLOQUEAR devolve bloqueado = true', $r['bloqueado'] === true);
+
+$stmt = $pdo->prepare('SELECT usu_status FROM sis_usuarios WHERE usu_id = :id');
+$stmt->bindValue(':id', $alvoId, PDO::PARAM_INT);
+$stmt->execute();
+
+conferir(
+    'a conta alvo fica INATIVA, não excluída',
+    $stmt->fetchColumn() === STATUS_INATIVO,
+    "'I' é bloqueio administrativo; 'X' seria exclusão a pedido do titular",
+);
+
+$stmt = $pdo->prepare(
+    'SELECT COUNT(*) FROM sis_auditoria WHERE aud_acao = :acao AND aud_entidade_id = :id'
+);
+$stmt->bindValue(':acao', 'BLOQUEAR');
+$stmt->bindValue(':id', $alvoId, PDO::PARAM_INT);
+$stmt->execute();
+
+conferir('sis_auditoria registra BLOQUEAR na conta alvo', ((int) $stmt->fetchColumn()) >= 1);
+
+$stmt = $pdo->prepare('SELECT den_situacao, den_providencia FROM pro_denuncias WHERE den_id = :id');
+$stmt->bindValue(':id', $idBloqueio, PDO::PARAM_INT);
+$stmt->execute();
+$tratada = $stmt->fetch();
+
+conferir(
+    'a denúncia fica RESOLVIDA com a providência registrada',
+    ($tratada['den_situacao'] ?? null) === 'RESOLVIDA' && ($tratada['den_providencia'] ?? null) === 'BLOQUEAR',
+);
+
+// A guarda que impede o painel de se trancar sozinho no meio da demonstração.
+$idContraAdmin = $servico->abrir($alvoId, 'USUARIO', $autorId, 'SPAM', 'Tentativa de bloquear administração.');
+
+conferir(
+    'conta de administração não pode ser bloqueada',
+    recusa(fn () => $servico->tratar($idContraAdmin, $autorId, 'RESOLVIDA', 'BLOQUEAR')),
+);
+
+// Devolve a cobaia ao estado ativo: o script é insumo das próximas rodadas e da demonstração.
+(new UsuarioRepository())->alterarStatus($alvoId, STATUS_ATIVO);
 
 printf(
     "\n%s  %d aprovadas, %d falharam\n",
