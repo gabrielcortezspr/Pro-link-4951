@@ -173,3 +173,36 @@ h1, h2, h3, h4, h5, h6,
 .pl-table tbody tr:last-child td { border-bottom: 0; }
 .pl-table td.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
     color: var(--pl-muted); font-variant-numeric: tabular-nums; }
+
+/* ---------- 9. Detalhe de registro no painel (denúncia, e o que vier depois) ---------- */
+/* Duas colunas de altura igual: o formulário de ação acompanha a altura do conteúdo em vez de
+   flutuar solto ao lado. Abaixo de 992px viram uma coluna, na ordem de leitura. */
+.pl-detalhe { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+    gap: 18px; align-items: start; }
+@media (max-width: 992px) { .pl-detalhe { grid-template-columns: 1fr; } }
+
+.pl-link-voltar { display: inline-flex; align-items: center; gap: 6px; color: var(--pl-muted);
+    font-size: 13px; font-weight: 600; text-decoration: none; }
+.pl-link-voltar:hover { color: var(--pl-ink); text-decoration: none; }
+
+.pl-det-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+    padding-bottom: 16px; border-bottom: 1px solid var(--pl-border-2); }
+.pl-det-topo .rot { font-size: 12px; color: var(--pl-muted); margin: 0; }
+.pl-det-topo .alvo { font-family: var(--pl-display); font-weight: 600; font-size: 20px;
+    letter-spacing: -.01em; margin: 2px 0; }
+
+/* Rótulo e valor na mesma linha de base, com a coluna de rótulo estreita: dt largo abria um
+   vão entre o nome do campo e o dado, que era o desalinhamento visível. */
+.pl-dl { display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 10px 16px;
+    margin: 16px 0 0; font-size: 13.5px; }
+.pl-dl dt { color: var(--pl-muted); font-weight: 400; margin: 0; }
+.pl-dl dd { margin: 0; }
+.pl-dl dd.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;
+    font-variant-numeric: tabular-nums; }
+
+.pl-descricao { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--pl-border-2); }
+.pl-descricao .rot { font-size: 12px; color: var(--pl-muted); margin: 0 0 4px; }
+.pl-descricao p:last-child { margin: 0; font-size: 14px; line-height: 1.6; white-space: pre-line; }
+
+.pl-card-titulo { font-family: var(--pl-display); font-weight: 600; font-size: 15px; margin: 0 0 16px; }
+.pl-nota { font-size: 12.5px; color: var(--pl-muted); line-height: 1.6; margin: 0 0 16px; }

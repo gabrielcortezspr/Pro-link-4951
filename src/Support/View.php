@@ -34,6 +34,12 @@ final class View
         $twig->addGlobal('url_img', URL_IMG);
         $twig->addGlobal('url_assets', URL_ASSETS);
 
+        // Versão dos assets pela data de modificação do CSS: o navegador guarda folha de estilo
+        // e não revalida, então mudança de tema só aparecia depois de recarregar forçado. Com a
+        // versão na URL, arquivo novo é URL nova. Vale principalmente na demonstração ao vivo.
+        $css = dirname(__DIR__, 2) . '/public/assets/css/prolink.css';
+        $twig->addGlobal('assets_v', is_file($css) ? (string) filemtime($css) : '1');
+
         // Funções, não globais: o valor é lido no momento do render, depois do login/logout.
         $twig->addFunction(new TwigFunction('usuario', [Sessao::class, 'usuarioAtual']));
         $twig->addFunction(new TwigFunction('csrf_token', [Csrf::class, 'token']));

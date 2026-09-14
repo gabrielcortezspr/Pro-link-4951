@@ -47,9 +47,13 @@ final class DenunciaRepository extends Repositorio
     public function porId(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT d.*, u.usu_nome AS autor_nome
+            'SELECT d.*, u.usu_nome AS autor_nome,
+                    alvo.usu_nome AS alvo_nome, alvo.usu_status AS alvo_status
                FROM pro_denuncias d
                JOIN sis_usuarios u ON u.usu_id = d.den_usu_id
+               LEFT JOIN sis_usuarios alvo
+                      ON alvo.usu_id = d.den_entidade_id
+                     AND d.den_entidade = \'USUARIO\'
               WHERE d.den_id = :id
                 AND d.den_status = :ativo'
         );

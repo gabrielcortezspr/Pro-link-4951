@@ -15,74 +15,78 @@
         'IMPROCEDENTE': 'Improcedente'
     } %}
 
-    <p class="mb-3"><a class="pl-btn sm" href="{{ app_url }}/admin/denuncias">Voltar para a fila</a></p>
+    <p class="mb-3">
+        <a class="pl-link-voltar" href="{{ app_url }}/admin/denuncias">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+            Voltar para a fila
+        </a>
+    </p>
 
-    <div class="row g-3">
-        <div class="col-lg-7">
-            <div class="pl-card">
-                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
-                    <div>
-                        <p class="text-body-secondary mb-1" style="font-size:.8125rem">Alvo</p>
-                        <p class="mb-0 fw-semibold">
-                            {{ denuncia.den_entidade|capitalize }} #{{ denuncia.den_entidade_id }}
-                        </p>
-                    </div>
-                    <span class="pl-pill {{ cores[denuncia.den_situacao]|default('neutral') }}">
-                        <span class="pd"></span>{{ estado[denuncia.den_situacao]|default(denuncia.den_situacao) }}
-                    </span>
+    <div class="pl-detalhe">
+
+        <div class="pl-card">
+            <div class="pl-det-topo">
+                <div>
+                    <p class="rot">Alvo</p>
+                    <p class="alvo">{{ denuncia.alvo_nome|default(denuncia.den_entidade|capitalize ~ ' #' ~ denuncia.den_entidade_id) }}</p>
+                    {% if denuncia.alvo_nome %}
+                        <p class="rot">Conta{% if denuncia.alvo_status == 'I' %} · bloqueada{% endif %}</p>
+                    {% endif %}
                 </div>
+                <span class="pl-pill {{ cores[denuncia.den_situacao]|default('neutral') }}">
+                    <span class="pd"></span>{{ estado[denuncia.den_situacao]|default(denuncia.den_situacao) }}
+                </span>
+            </div>
 
-                <dl class="row mb-0" style="font-size:.875rem">
-                    <dt class="col-sm-4 text-body-secondary fw-normal">Tipo</dt>
-                    <dd class="col-sm-8">{{ tipos[denuncia.den_tipo]|default(denuncia.den_tipo) }}</dd>
+            <dl class="pl-dl">
+                <dt>Tipo</dt>
+                <dd>{{ tipos[denuncia.den_tipo]|default(denuncia.den_tipo) }}</dd>
 
-                    <dt class="col-sm-4 text-body-secondary fw-normal">Autor</dt>
-                    <dd class="col-sm-8">{{ denuncia.autor_nome }}</dd>
+                <dt>Autor</dt>
+                <dd>{{ denuncia.autor_nome }}</dd>
 
-                    <dt class="col-sm-4 text-body-secondary fw-normal">Recebida</dt>
-                    <dd class="col-sm-8">{{ denuncia.den_dt_registro|date('d/m/Y H:i') }}</dd>
+                <dt>Recebida</dt>
+                <dd class="mono">{{ denuncia.den_dt_registro|date('d/m/Y H:i') }}</dd>
 
-                    {% if denuncia.den_evidencia %}
-                        <dt class="col-sm-4 text-body-secondary fw-normal">Evidência</dt>
-                        <dd class="col-sm-8">{{ denuncia.den_evidencia }}</dd>
-                    {% endif %}
+                {% if denuncia.den_evidencia %}
+                    <dt>Evidência</dt>
+                    <dd>{{ denuncia.den_evidencia }}</dd>
+                {% endif %}
 
-                    {% if denuncia.den_dt_tratamento %}
-                        <dt class="col-sm-4 text-body-secondary fw-normal">Tratada em</dt>
-                        <dd class="col-sm-8">{{ denuncia.den_dt_tratamento|date('d/m/Y H:i') }}</dd>
-                    {% endif %}
-                </dl>
+                {% if denuncia.den_dt_tratamento %}
+                    <dt>Tratada em</dt>
+                    <dd class="mono">{{ denuncia.den_dt_tratamento|date('d/m/Y H:i') }}</dd>
 
-                <hr>
-                <p class="text-body-secondary mb-1" style="font-size:.8125rem">Descrição</p>
-                <p class="mb-0" style="white-space:pre-line">{{ denuncia.den_descricao }}</p>
+                    <dt>Providência</dt>
+                    <dd>{{ rotulo_prov[denuncia.den_providencia]|default('Nenhuma') }}</dd>
+                {% endif %}
+            </dl>
+
+            <div class="pl-descricao">
+                <p class="rot">Descrição</p>
+                <p>{{ denuncia.den_descricao }}</p>
             </div>
         </div>
 
-        <div class="col-lg-5">
-            <div class="pl-card">
-                <h2 class="h6 mb-3">Registrar providência</h2>
+        <div class="pl-card">
+            <h2 class="pl-card-titulo">Registrar providência</h2>
 
-                <form method="post" action="{{ app_url }}/admin/denuncias/{{ denuncia.den_id }}">
-                    {{ form.csrf() }}
+            <form method="post" action="{{ app_url }}/admin/denuncias/{{ denuncia.den_id }}">
+                {{ form.csrf() }}
 
-                    {{ form.selecao('situacao', 'Situação', {
-                        'PENDENTE': 'Pendente',
-                        'EM_ANALISE': 'Em análise',
-                        'RESOLVIDA': 'Resolvida'
-                    }, denuncia.den_situacao, null, {required: true}, false) }}
+                {{ form.selecao('situacao', 'Situação', estado, denuncia.den_situacao, null, {required: true}, false) }}
 
-                    {{ form.selecao('providencia', 'Providência', rotulo_prov, denuncia.den_providencia|default(''), null, {}, 'Nenhuma por enquanto') }}
+                {{ form.selecao('providencia', 'Providência', rotulo_prov, denuncia.den_providencia|default(''), null, {}, 'Nenhuma por enquanto') }}
 
-                    <p class="text-body-secondary" style="font-size:.8125rem">
-                        Bloquear encerra todas as sessões ativas da conta na hora.<br>
-                        Toda ação de moderação é registrada na Auditoria.
-                    </p>
+                <p class="pl-nota">
+                    Bloquear encerra todas as sessões ativas da conta na hora.<br>
+                    Toda ação de moderação é registrada na Auditoria.
+                </p>
 
-                    {{ form.botao('Registrar providência') }}
-                </form>
-            </div>
+                {{ form.botao('Registrar providência') }}
+            </form>
         </div>
+
     </div>
 
 {% endblock %}
