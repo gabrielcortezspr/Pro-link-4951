@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ProLink\Controller;
 
-use ProLink\Support\Database;
+use ProLink\Repository\SaudeRepository;
 use Throwable;
 
 /**
@@ -21,8 +21,10 @@ final class SaudeController
         $tos   = 0;
 
         try {
-            $pdo = Database::conexao();
-            $tos = (int) $pdo->query('SELECT COUNT(*) FROM crea_tos')->fetchColumn();
+            // O repositório é construído aqui, e não injetado no construtor, porque construí-lo
+            // já abre conexão — e esta rota precisa responder 503 com corpo legível justamente
+            // quando o banco está fora.
+            $tos   = (new SaudeRepository())->totalDeCodigosTos();
             $banco = 'ok';
         } catch (Throwable) {
             http_response_code(503);

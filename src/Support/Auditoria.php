@@ -5,14 +5,20 @@ declare(strict_types=1);
 namespace ProLink\Support;
 
 use PDO;
+use ProLink\Repository\AuditoriaRepository;
 
 /**
  * Trilha de auditoria (edital 8.5g, 11.3; OWASP A09).
  *
- * Único caminho de escrita em sis_auditoria. A tabela é insert-only por trigger, então o que
- * entra aqui não sai mais — nem pelo administrador. Todo serviço que muda estado chama
- * registrar(); quando a mudança acontece dentro de Database::transacao(), a linha de auditoria
- * entra na mesma transação e desfaz junto se algo falhar.
+ * Único caminho de escrita em sis_auditoria, do ponto de vista de quem chama. A tabela é
+ * insert-only por trigger, então o que entra aqui não sai mais — nem pelo administrador. Todo
+ * serviço que muda estado chama registrar(); quando a mudança acontece dentro de
+ * Database::transacao(), a linha de auditoria entra na mesma transação e desfaz junto se algo
+ * falhar.
+ *
+ * O SQL em si fica em AuditoriaRepository: a regra do projeto é que só repositório escreve SQL, e
+ * vale para a auditoria também. Esta classe resolve o autor, o IP e a serialização dos valores —
+ * o que nenhum chamador deveria ter de lembrar de fazer.
  *
  * Não engole exceção de propósito: se a auditoria não puder ser gravada, a operação não pode
  * ser considerada concluída.
@@ -58,26 +64,16 @@ final class Auditoria
         ?int $usuarioId = null,
         ?PDO $pdo = null,
     ): void {
-        $pdo ??= Database::conexao();
-
-        $stmt = $pdo->prepare(
-            'INSERT INTO sis_auditoria
-                (aud_usu_id, aud_ip, aud_acao, aud_entidade, aud_entidade_id, aud_campo,
-                 aud_valor_anterior, aud_valor_novo, aud_user_agent)
-             VALUES
-                (:usuario, :ip, :acao, :entidade, :entidade_id, :campo, :antes, :depois, :agente)'
-        );
-
-        $stmt->execute([
-            ':usuario'     => $usuarioId ?? Sessao::usuarioId(),
-            ':ip'          => Requisicao::ip(),
-            ':acao'        => $acao,
-            ':entidade'    => $entidade,
-            ':entidade_id' => $entidadeId,
-            ':campo'       => $campo,
-            ':antes'       => self::serializar($antes),
-            ':depois'      => self::serializar($depois),
-            ':agente'      => Requisicao::userAgent(),
+        (new AuditoriaRepository($pdo))->registrar([
+            'usuario'     => $usuarioId ?? Sessao::usuarioId(),
+            'ip'          => Requisicao::ip(),
+            'acao'        => $acao,
+            'entidade'    => $entidade,
+            'entidade_id' => $entidadeId,
+            'campo'       => $campo,
+            'antes'       => self::serializar($antes),
+            'depois'      => self::serializar($depois),
+            'agente'      => Requisicao::userAgent(),
         ]);
     }
 

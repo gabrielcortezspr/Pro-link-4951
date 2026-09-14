@@ -21,12 +21,12 @@ final class TermoController
 
     public function uso(): string
     {
-        return $this->exibir('USO', 'Termos de Uso');
+        return $this->exibir(TERMO_USO, 'Termos de Uso');
     }
 
     public function privacidade(): string
     {
-        return $this->exibir('PRIVACIDADE', 'Política de Privacidade');
+        return $this->exibir(TERMO_PRIVACIDADE, 'Política de Privacidade');
     }
 
     private function exibir(string $tipo, string $titulo): string

@@ -36,7 +36,7 @@ final class PrivacidadeController
         ]);
     }
 
-    public function definirConsentimento(): string
+    public function definirConsentimento(): never
     {
         $finalidade = (string) ($_POST['finalidade'] ?? '');
         $concedido  = ($_POST['acao'] ?? '') === 'conceder';
@@ -69,17 +69,23 @@ final class PrivacidadeController
      * Exclusão da própria conta. Exige digitar a confirmação: é irreversível pelo usuário, e
      * um clique acidental não deve encerrar a conta.
      */
-    public function excluir(): string
+    public function excluir(): never
     {
         if (trim((string) ($_POST['confirmacao'] ?? '')) !== 'EXCLUIR') {
             Flash::erro('Para confirmar, digite EXCLUIR no campo indicado.');
             View::redirecionar('/privacidade');
         }
 
-        $this->privacidade->excluirConta((int) Sessao::usuarioId());
+        try {
+            $this->privacidade->excluirConta((int) Sessao::usuarioId());
+        } catch (ValidacaoException $e) {
+            Flash::erro($e->getMessage());
+            View::redirecionar('/privacidade');
+        }
+
         $this->autenticacao->encerrarSessao();
 
-        session_start();
+        Sessao::reiniciar();
         Flash::info('Sua conta foi excluída e suas sessões foram encerradas.');
         View::redirecionar('/');
     }

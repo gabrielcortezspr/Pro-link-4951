@@ -33,6 +33,10 @@ use ProLink\Support\Validacao;
  *     lados: a trilha mostra que houve mudança, sem guardar nem o hash.
  *   · **Toda criação é transação.** Usuário, aceite de termos, consentimentos, notificação e
  *     auditoria entram juntos ou não entram — é a operação atômica da RF01.
+ *
+ * A conferência de que a sessão ainda tem respaldo em sis_sessoes não está aqui: é o front
+ * controller que a faz, consultando SessaoRepository direto, porque não precisa de mais nada
+ * deste serviço para isso.
  */
 final class AutenticacaoService
 {
@@ -88,8 +92,9 @@ final class AutenticacaoService
             sprintf('Use pelo menos %d caracteres.', SENHA_TAMANHO_MINIMO))
           ->exigir('senha_confirmacao', $senha !== '' && $senha === $confirmacao, 'As senhas não conferem.');
 
-        // Só valida o documento depois de saber o tipo: CPF e CNPJ têm regras diferentes (D07).
-        if ($v->erros()['tipo_cadastro'] ?? null) {
+        // Sem tipo válido não há como saber se o documento deveria ser CPF ou CNPJ (D07), então
+        // este erro interrompe aqui em vez de produzir mensagem errada no campo seguinte.
+        if ($v->temErro('tipo_cadastro')) {
             $v->lancarSeInvalido();
         }
 
@@ -158,10 +163,10 @@ final class AutenticacaoService
             ]);
 
             // Aceite de termos: uma linha por documento, apontando para a versão aceita.
-            foreach (['USO', 'PRIVACIDADE'] as $tipoTermo) {
+            foreach (FINALIDADE_POR_TERMO as $tipoTermo => $finalidade) {
                 $consentimentos->definir(
                     $usuarioId,
-                    FINALIDADE_ACEITE_TERMOS . '_' . $tipoTermo,
+                    $finalidade,
                     true,
                     $ip,
                     isset($termosVigentes[$tipoTermo]) ? (int) $termosVigentes[$tipoTermo]['ter_id'] : null,
@@ -277,19 +282,6 @@ final class AutenticacaoService
         }
 
         Sessao::encerrar();
-    }
-
-    /**
-     * A sessão do PHP ainda tem respaldo no servidor?
-     *
-     * Chamada pelo front controller em toda requisição autenticada. É o que faz o bloqueio de
-     * usuário pelo administrador (E6) e a troca de senha derrubarem sessão já aberta.
-     */
-    public function sessaoTemRespaldo(): bool
-    {
-        $token = Sessao::tokenServidor();
-
-        return $token !== null && $this->sessoes->ativa($token) !== null;
     }
 
     // ---------------------------------------------------------------- recuperação de senha
