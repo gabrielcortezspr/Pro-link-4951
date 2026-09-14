@@ -220,4 +220,26 @@ final class VisibilidadeTest extends TestCase
         self::assertTrue(Visibilidade::nivelValido(VISIBILIDADE_PUBLICO));
         self::assertFalse(Visibilidade::nivelValido('SEMI_PUBLICO'));
     }
+
+    #[Test]
+    public function os_campos_da_empresa_sao_um_subconjunto_dos_do_perfil(): void
+    {
+        // A tela da empresa desenha menos controles, mas a validação continua sendo uma só:
+        // uma lista paralela criaria o dia em que a empresa manda um campo que `campoValido`
+        // recusa, e o formulário salvaria em silêncio sem gravar nada.
+        foreach (Visibilidade::CAMPOS_DA_EMPRESA as $campo) {
+            self::assertContains($campo, Visibilidade::CAMPOS_DO_PERFIL);
+            self::assertTrue(Visibilidade::campoValido($campo));
+        }
+    }
+
+    #[Test]
+    public function a_empresa_nao_controla_campo_que_so_o_profissional_tem(): void
+    {
+        // Oferecer controle para um campo que nunca terá valor sugere que a empresa escondeu
+        // algo que na verdade não existe.
+        foreach (['MODALIDADES', 'TIPO_CONTRATO', 'DISPONIBILIDADE'] as $campo) {
+            self::assertNotContains($campo, Visibilidade::CAMPOS_DA_EMPRESA);
+        }
+    }
 }

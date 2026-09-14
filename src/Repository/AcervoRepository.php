@@ -150,9 +150,7 @@ final class AcervoRepository extends Repositorio
     /**
      * O acervo do profissional, com as atividades de cada ART, em duas consultas.
      *
-     * Duas e não N+1: a tela do perfil mostra toda ART com seus códigos TOS, e uma consulta por
-     * ART transformaria a página num problema de desempenho conforme o acervo cresce — e um
-     * acervo grande é justamente o de quem a plataforma mais quer mostrar.
+     * Duas e não N+1 — a segunda está em `comAtividades()`, compartilhada com `porEmpresa()`.
      *
      * @return list<array<string, mixed>> cada ART com a chave `atividades`
      */
@@ -167,8 +165,76 @@ final class AcervoRepository extends Repositorio
               ORDER BY art_numero'
         );
         $stmt->execute([':rnp' => $rnp, ':ativo' => STATUS_ATIVO]);
-        $arts = $stmt->fetchAll();
 
+        return $this->comAtividades($stmt->fetchAll());
+    }
+
+    /**
+     * O acervo que a empresa herda do próprio quadro técnico, com as atividades de cada ART.
+     *
+     * ## De onde sai a lista, e por que não é um JOIN escrito aqui
+     *
+     * Quem decide de quais profissionais a empresa herda acervo é a view `crea_evidencias`, pelo
+     * vínculo vigente, e essa regra está declarada lá e **só** lá (D19). Repeti-la neste SQL
+     * criaria um segundo lugar para mantê-la, e no dia em que os dois discordassem a tela
+     * prometeria um acervo que o motor não entregaria.
+     *
+     * ## O filtro é por RNP, e não por número de ART, de propósito
+     *
+     * A view tem uma linha por (candidato, código TOS, ART, CAT), e o caminho óbvio seria filtrar
+     * por `evi_art_numero`. Só que a view faz JOIN com `crea_tos`, e `ata_tos_codigo` **não tem
+     * chave estrangeira** para o dicionário: uma ART cujos códigos TOS não estejam em `crea_tos`
+     * some da view. Filtrar por número sumiria com ela da tela também, em silêncio, e a contagem
+     * de "N ARTs da certidão" passaria a mentir.
+     *
+     * Filtrar por `evi_pro_rnp` resolve os dois lados: o conjunto de profissionais continua vindo
+     * da view — herança inalterada —, e cada um deles entra com o acervo inteiro, que é
+     * exatamente o que a D19 manda, já que a regra é binária por profissional e não por ART.
+     *
+     * @return list<array<string, mixed>> cada ART com a chave `atividades`
+     */
+    public function porEmpresa(int $empresaId): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT art_id, art_numero, art_pro_rnp, art_tipo, art_forma_registro,
+                    art_contratante_nome, art_objeto, art_local_uf, art_local_municipio,
+                    art_situacao, art_hash, art_dt_consulta
+               FROM crea_arts
+              WHERE art_status = :ativo
+                AND art_pro_rnp IN (
+                      SELECT evi_pro_rnp FROM crea_evidencias
+                       WHERE evi_candidato_tipo = 'E' AND evi_candidato_id = :empresa
+                    )
+              ORDER BY art_pro_rnp, art_numero"
+        );
+        $stmt->execute([':ativo' => STATUS_ATIVO, ':empresa' => $empresaId]);
+
+        return $this->comAtividades($stmt->fetchAll());
+    }
+
+    /** Quantas ARTs ativas o profissional tem no acervo. Alimenta `prf_em_construcao`. */
+    public function contarPorRnp(string $rnp): int
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM crea_arts WHERE art_pro_rnp = :rnp AND art_status = :ativo'
+        );
+        $stmt->execute([':rnp' => $rnp, ':ativo' => STATUS_ATIVO]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Anexa as atividades TOS a uma lista de ARTs já lida, numa consulta só.
+     *
+     * Uma e não N: a tela mostra toda ART com seus códigos TOS, e uma consulta por ART
+     * transformaria a página num problema de desempenho conforme o acervo cresce — e um acervo
+     * grande é justamente o de quem a plataforma mais quer mostrar.
+     *
+     * @param list<array<string, mixed>> $arts
+     * @return list<array<string, mixed>>
+     */
+    private function comAtividades(array $arts): array
+    {
         if ($arts === []) {
             return [];
         }
@@ -198,17 +264,6 @@ final class AcervoRepository extends Repositorio
         }
 
         return $arts;
-    }
-
-    /** Quantas ARTs ativas o profissional tem no acervo. Alimenta `prf_em_construcao`. */
-    public function contarPorRnp(string $rnp): int
-    {
-        $stmt = $this->pdo->prepare(
-            'SELECT COUNT(*) FROM crea_arts WHERE art_pro_rnp = :rnp AND art_status = :ativo'
-        );
-        $stmt->execute([':rnp' => $rnp, ':ativo' => STATUS_ATIVO]);
-
-        return (int) $stmt->fetchColumn();
     }
 
     private function idPorNumero(string $numero): int

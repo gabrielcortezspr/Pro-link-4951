@@ -332,6 +332,7 @@ CREATE TABLE crea_quadro_tecnico (
   qut_id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   qut_emp_registro_crea VARCHAR(10) NOT NULL,
   qut_pro_rnp           VARCHAR(10) NOT NULL,
+  qut_pro_nome          VARCHAR(150) NULL COMMENT 'nome como a API devolve; não editável',
   qut_tipo              CHAR(1)     NULL COMMENT 'R = responsável técnico',
   qut_funcao            VARCHAR(80) NULL,
   qut_dt_inicio         DATE        NULL,
@@ -407,6 +408,10 @@ CREATE TABLE pro_empresas (
   emp_status           CHAR(1)      NOT NULL DEFAULT 'A',
   CONSTRAINT pk_emp_id PRIMARY KEY (emp_id),
   CONSTRAINT uq_emp_registro_crea UNIQUE (emp_registro_crea),
+  -- Uma conta tem um CNPJ, logo um registro no CREA, logo um perfil de empresa. Mesma razão do
+  -- uq_prf_usu: sem ela, revalidar depois de indisponibilidade da API criaria linha nova em vez
+  -- de atualizar, e a view crea_evidencias contaria o acervo da empresa duas vezes.
+  CONSTRAINT uq_emp_usu UNIQUE (emp_usu_id),
   CONSTRAINT fk_emp_usu_id FOREIGN KEY (emp_usu_id) REFERENCES sis_usuarios (usu_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

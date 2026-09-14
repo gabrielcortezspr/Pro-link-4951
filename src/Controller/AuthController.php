@@ -6,6 +6,7 @@ namespace ProLink\Controller;
 
 use ProLink\Repository\TermoRepository;
 use ProLink\Service\AutenticacaoService;
+use ProLink\Service\EmpresaCreaService;
 use ProLink\Service\PerfilCreaService;
 use ProLink\Service\ValidacaoException;
 use ProLink\Support\Crypto;
@@ -28,6 +29,7 @@ final class AuthController
         private readonly AutenticacaoService $autenticacao = new AutenticacaoService(),
         private readonly TermoRepository $termos = new TermoRepository(),
         private readonly PerfilCreaService $perfilCrea = new PerfilCreaService(),
+        private readonly EmpresaCreaService $empresaCrea = new EmpresaCreaService(),
     ) {
     }
 
@@ -57,8 +59,13 @@ final class AuthController
 
         Flash::sucesso('Conta criada. Entre com seu e-mail e senha.');
 
-        if (($_POST['tipo_cadastro'] ?? '') === CADASTRO_PROFISSIONAL) {
-            $this->vincularAoCrea($usuarioId, Crypto::apenasDigitos((string) ($_POST['documento'] ?? '')));
+        $tipo      = (string) ($_POST['tipo_cadastro'] ?? '');
+        $documento = Crypto::apenasDigitos((string) ($_POST['documento'] ?? ''));
+
+        if ($tipo === CADASTRO_PROFISSIONAL) {
+            $this->vincularProfissionalAoCrea($usuarioId, $documento);
+        } elseif ($tipo === CADASTRO_EMPRESA) {
+            $this->vincularEmpresaAoCrea($usuarioId, $documento);
         }
 
         View::redirecionar('/login');
@@ -68,14 +75,12 @@ final class AuthController
      * Segunda etapa do cadastro de Profissional. Nunca lança: os três desfechos da consulta ao
      * CREA viram mensagem, e qualquer falha inesperada também — a conta já existe.
      */
-    private function vincularAoCrea(int $usuarioId, string $cpf): void
+    private function vincularProfissionalAoCrea(int $usuarioId, string $cpf): void
     {
         try {
             $perfil = $this->perfilCrea->vincularProfissional($usuarioId, $cpf);
         } catch (\Throwable $e) {
-            error_log('Falha ao vincular o usuário ' . $usuarioId . ' ao CREA: ' . $e->getMessage());
-            Flash::aviso('Sua conta foi criada, mas não conseguimos validar seu registro no CREA '
-                . 'agora. Entre e tente novamente pelo seu perfil.');
+            $this->avisarFalhaDaValidacao($usuarioId, $e);
 
             return;
         }
@@ -94,6 +99,48 @@ final class AuthController
                 $perfil['arts'] === 1 ? 'ART' : 'ARTs',
             ));
         }
+    }
+
+    /**
+     * Segunda etapa do cadastro de Empresa, com as mesmas garantias da do profissional.
+     *
+     * A mensagem de sucesso fala de quadro técnico e de acervo herdado, e não de "suas ARTs":
+     * a empresa não registra ART, ela responde por quem registrou, e a tela não pode sugerir o
+     * contrário logo na primeira frase que a pessoa lê.
+     */
+    private function vincularEmpresaAoCrea(int $usuarioId, string $cnpj): void
+    {
+        try {
+            $empresa = $this->empresaCrea->vincularEmpresa($usuarioId, $cnpj);
+        } catch (\Throwable $e) {
+            $this->avisarFalhaDaValidacao($usuarioId, $e);
+
+            return;
+        }
+
+        if ($empresa['aviso'] !== null) {
+            Flash::aviso($empresa['aviso']);
+
+            return;
+        }
+
+        if ($empresa['situacao'] === EmpresaCreaService::VINCULADO) {
+            Flash::info(sprintf(
+                'Registro validado no CREA (registro %s). Importamos %d vínculo(s) do quadro '
+                . 'técnico e %d ART(s) do acervo operacional.',
+                $empresa['registro_crea'],
+                $empresa['vinculos'],
+                $empresa['arts'],
+            ));
+        }
+    }
+
+    /** A conta já existe: falha na validação é aviso, nunca perda do cadastro (D20). */
+    private function avisarFalhaDaValidacao(int $usuarioId, \Throwable $e): void
+    {
+        error_log('Falha ao vincular o usuário ' . $usuarioId . ' ao CREA: ' . $e->getMessage());
+        Flash::aviso('Sua conta foi criada, mas não conseguimos validar seu registro no CREA '
+            . 'agora. Entre e tente novamente pelo seu perfil.');
     }
 
     // ---------------------------------------------------------------- login e logout

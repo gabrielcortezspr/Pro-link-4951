@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace ProLink\Controller;
 
+use ProLink\Service\EmpresaCreaService;
 use ProLink\Service\PerfilCreaService;
+use ProLink\Service\PerfilEmpresaService;
 use ProLink\Service\PerfilService;
 use ProLink\Service\ValidacaoException;
 use ProLink\Service\VisibilidadeService;
@@ -17,29 +19,43 @@ use Throwable;
 /**
  * O perfil do próprio titular (RF03).
  *
- * O perfil público de terceiros virá em `/perfil/{id}` e usa o mesmo `PerfilService`: a diferença
- * é só o espectador passado, e é a `Visao` que decide o resto. Nenhuma regra de visibilidade
- * mora aqui.
+ * O perfil público de terceiros virá em `/perfil/{id}` e usa os mesmos serviços de montagem: a
+ * diferença é só o espectador passado, e é a `Visao` que decide o resto. Nenhuma regra de
+ * visibilidade mora aqui.
+ *
+ * ## Um endereço, duas telas, e o perfil da conta é que escolhe
+ *
+ * Profissional e empresa são perfis diferentes do edital com dados diferentes — um tem RNP,
+ * modalidades e acervo próprio; o outro tem registro de pessoa jurídica, quadro técnico e acervo
+ * herdado. Cada um tem seu serviço de montagem e seu template. O que não se duplica é a rota:
+ * `/perfil` é "o meu perfil" para quem estiver logado, e endereços separados por tipo de conta
+ * só dariam ao usuário a chance de abrir o errado.
  */
 final class PerfilController
 {
     public function __construct(
         private readonly PerfilService $perfis = new PerfilService(),
+        private readonly PerfilEmpresaService $perfisEmpresa = new PerfilEmpresaService(),
         private readonly VisibilidadeService $visibilidades = new VisibilidadeService(),
         private readonly PerfilCreaService $perfilCrea = new PerfilCreaService(),
+        private readonly EmpresaCreaService $empresaCrea = new EmpresaCreaService(),
     ) {
     }
 
     public function index(): string
     {
         $usuarioId = (int) Sessao::usuarioId();
-        $perfil    = $this->perfis->montar($usuarioId, $usuarioId);
+        $ehEmpresa = Sessao::temPerfil(PERFIL_EMPRESA);
+
+        $perfil = $ehEmpresa
+            ? $this->perfisEmpresa->montar($usuarioId, $usuarioId)
+            : $this->perfis->montar($usuarioId, $usuarioId);
 
         if ($perfil === null) {
             return View::erro(404, 'Perfil não encontrado.');
         }
 
-        return View::render('perfil/index.html.twig', [
+        return View::render($ehEmpresa ? 'perfil/empresa.html.twig' : 'perfil/index.html.twig', [
             'titulo' => 'Meu perfil',
             'perfil' => $perfil,
             'niveis_possiveis' => [
@@ -97,16 +113,20 @@ final class PerfilController
     /**
      * Resolve a pendência da D20: valida o registro no CREA depois do cadastro.
      *
-     * Serve aos dois estados incompletos — sem linha em `pro_profissionais` (a API estava fora do
-     * ar quando a conta nasceu) e com `prf_dt_sincronizacao` nula (o perfil entrou, o acervo
-     * não). O CPF não é pedido de novo: o serviço decifra o que já está guardado.
+     * Serve aos dois estados incompletos, dos dois lados — sem linha em `pro_profissionais` /
+     * `pro_empresas` (a API estava fora do ar quando a conta nasceu) e com a data de
+     * sincronização nula (a identidade entrou, o acervo não). O documento não é pedido de novo:
+     * o serviço decifra o que já está guardado.
      */
     public function validarRegistro(): string
     {
         $usuarioId = (int) Sessao::usuarioId();
+        $ehEmpresa = Sessao::temPerfil(PERFIL_EMPRESA);
 
         try {
-            $resultado = $this->perfilCrea->vincularProfissional($usuarioId);
+            $resultado = $ehEmpresa
+                ? $this->empresaCrea->vincularEmpresa($usuarioId)
+                : $this->perfilCrea->vincularProfissional($usuarioId);
         } catch (ValidacaoException $e) {
             Flash::erro($e->getMessage());
             View::redirecionar('/perfil');
@@ -121,12 +141,20 @@ final class PerfilController
             View::redirecionar('/perfil');
         }
 
-        Flash::sucesso(sprintf(
-            'Registro validado no CREA (RNP %s). Seu acervo tem %d %s.',
-            $resultado['rnp'],
-            $resultado['arts'],
-            $resultado['arts'] === 1 ? 'ART' : 'ARTs',
-        ));
+        Flash::sucesso($ehEmpresa
+            ? sprintf(
+                'Registro da empresa validado no CREA (registro %s). Quadro técnico com %d '
+                . 'vínculo(s) vigente(s) e %d ART(s) no acervo.',
+                $resultado['registro_crea'],
+                $resultado['vigentes'],
+                $resultado['arts'],
+            )
+            : sprintf(
+                'Registro validado no CREA (RNP %s). Seu acervo tem %d %s.',
+                $resultado['rnp'],
+                $resultado['arts'],
+                $resultado['arts'] === 1 ? 'ART' : 'ARTs',
+            ));
 
         View::redirecionar('/perfil');
     }

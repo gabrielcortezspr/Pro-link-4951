@@ -9,10 +9,16 @@ use ProLink\Repository\AcervoRepository;
 use ProLink\Repository\ConsentimentoRepository;
 use ProLink\Support\Acervo;
 use ProLink\Support\Auditoria;
+use ProLink\Support\Cao;
 use ProLink\Support\Database;
 
 /**
- * Portfólio do profissional: importar o acervo e associar ART informada à mão (RF02, RF03).
+ * Acervo técnico: importar o do profissional, importar o da empresa pelo CAO e associar ART
+ * informada à mão (RF02, RF03).
+ *
+ * Dono das escritas em `crea_arts` e `crea_art_atividades`, venha a ART de onde vier. É por isso
+ * que o CAO entra aqui e não num serviço da empresa: uma ART é uma linha só, com um selo só, e
+ * duas rotas de gravação para a mesma tabela acabariam selando a mesma ART de dois jeitos.
  *
  * Contém a **operação atômica 1** da proposta, `associarArt`. Quatro decisões de desenho que
  * valem mais do que o código que as implementa:
@@ -153,6 +159,89 @@ final class PortfolioService
             );
 
             return ['arts' => $arts, 'atividades' => $atividades, 'ja_existiam' => $jaExistiam];
+        });
+    }
+
+    /**
+     * Importa o acervo da empresa pela Certidão de Acervo Operacional (RF02; Anexo I, item 6).
+     *
+     * **Uma chamada para a empresa inteira.** O CAO traz a árvore completa — quadro técnico,
+     * ARTs de cada profissional e atividades TOS de cada ART — num objeto só, sem paginação.
+     * Comparado a pedir as ARTs de cada membro do quadro, é uma requisição no lugar de N, o que
+     * importa por causa do item 10.4: toda chamada é registrada pela organização.
+     *
+     * As ARTs entram em `crea_arts` **sob o RNP de quem as registrou**, e não sob a empresa. A
+     * empresa não tem acervo próprio: ela herda o dos profissionais do seu quadro, e quem faz
+     * essa ligação é a view `crea_evidencias`, pelo vínculo vigente (D19). Gravar a ART sob a
+     * empresa duplicaria a mesma evidência em duas identidades e quebraria `uq_art_numero` no
+     * dia em que o profissional se cadastrasse.
+     *
+     * Por isso a mescla da `Support\Acervo` importa aqui mais do que em qualquer outro caminho:
+     * o CAO não traz local, contratante nem forma de registro. Importar o CAO depois de o
+     * profissional já ter importado o próprio acervo **não pode** apagar o município que ele
+     * trouxe — e não apaga, porque nulo novo nunca vence valor existente.
+     *
+     * @return array{arts: int, atividades: int, profissionais: int, ja_existiam: int}
+     * @throws ValidacaoException  falta consentimento, ou o CAO é de outra empresa
+     * @throws ApiIndisponivelException quando a API não responde
+     */
+    public function importarCao(int $usuarioId, string $registroCrea): array
+    {
+        $this->exigirConsentimento($usuarioId);
+
+        // --- fora da transação: rede (nota 1)
+        $cao        = $this->api->cao($registroCrea);
+        $consultada = date('Y-m-d H:i:s');
+
+        // A certidão diz de quem ela é. Discordância entre o que pedimos e o que voltou não é
+        // detalhe: gravar assim mesmo atribuiria o acervo de uma empresa a outra.
+        $dono = Cao::registroCrea($cao);
+
+        if ($dono !== null && $dono !== $registroCrea) {
+            throw new ValidacaoException(sprintf(
+                'A API devolveu o acervo do registro %s quando pedimos o do registro %s. '
+                . 'Nada foi importado.',
+                $dono,
+                $registroCrea,
+            ));
+        }
+
+        $acervo = Cao::acervo($cao);
+
+        // --- dentro da transação: a importação é tudo ou nada
+        return Database::transacao(function (PDO $pdo) use ($usuarioId, $registroCrea, $acervo, $consultada): array {
+            $arts = 0;
+            $atividades = 0;
+            $jaExistiam = 0;
+            $rnps = [];
+
+            foreach ($acervo as $item) {
+                $resultado = $this->persistir($item['rnp'], $item['art'], $item['atividades'], $consultada);
+
+                $arts++;
+                $atividades += $resultado['atividades'];
+                $jaExistiam += $resultado['ja_existia'] ? 1 : 0;
+                $rnps[$item['rnp']] = true;
+            }
+
+            Auditoria::registrar(
+                Auditoria::CONSULTA_API,
+                'crea_arts',
+                null,
+                null,
+                null,
+                ['cao' => $registroCrea, 'profissionais' => count($rnps), 'arts' => $arts,
+                 'atividades' => $atividades, 'ja_existiam' => $jaExistiam],
+                $usuarioId,
+                $pdo,
+            );
+
+            return [
+                'arts'          => $arts,
+                'atividades'    => $atividades,
+                'profissionais' => count($rnps),
+                'ja_existiam'   => $jaExistiam,
+            ];
         });
     }
 

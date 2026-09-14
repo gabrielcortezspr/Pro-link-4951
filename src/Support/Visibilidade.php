@@ -53,6 +53,24 @@ final class Visibilidade
         'DISPONIBILIDADE',
     ];
 
+    /**
+     * Os campos que a **empresa** controla — um subconjunto dos acima, não uma lista paralela.
+     *
+     * Modalidade, tipo de contrato e disponibilidade são do profissional: a empresa não tem
+     * modalidade no CREA (quem tem é cada membro do quadro técnico) e não se contrata por CLT.
+     * Oferecer controle para um campo que nunca terá valor não é neutro — sugere que a empresa
+     * escondeu algo que na verdade não existe.
+     *
+     * A validação continua sendo `campoValido()`, sobre `CAMPOS_DO_PERFIL`: esta lista decide o
+     * que a tela da empresa desenha, não o que o banco aceita. Os dois perfis compartilham o
+     * mesmo espaço de chaves sem colidir porque `pro_visibilidade` é por usuário.
+     */
+    public const CAMPOS_DA_EMPRESA = [
+        'EMAIL',
+        'TELEFONE',
+        'RESUMO',
+    ];
+
     /** Do mais fechado ao mais aberto. A ordem é a regra: comparar posição responde tudo. */
     private const ORDEM = [
         VISIBILIDADE_PRIVADO     => 0,

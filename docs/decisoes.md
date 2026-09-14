@@ -22,7 +22,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | Fundação (antes da E0) | D01, D02, D03, D04, D05 |
 | E0 — fundação que faltou | D06 |
 | E1 — identidade e consentimento | D07, D08, D09, D10, D11, D12 |
-| E2 — integração com a API | D13, D14, D15, D16, D17, D18, D19, D20, D21, D22, D23 |
+| E2 — integração com a API | D13, D14, D15, D16, D17, D18, D19, D20, D21, D22, D23, D24, D25, D26 |
 
 ---
 
@@ -677,3 +677,107 @@ continuariam públicas e o identificariam de qualquer jeito.
 uma escolha só, com efeito total, em vez de seis escolhas com efeito parcial e enganoso. A lista
 ser fechada também é defesa técnica: `deChave()` recusa campo fora dela, então um `name`
 adulterado no formulário não cria linha de visibilidade para coluna nenhuma do banco.
+
+---
+
+## D24 · A empresa não tem acervo próprio: a ART do CAO é gravada sob o RNP de quem a registrou
+
+`14/09/2026` · E2 · commit a seguir · `src/Service/PortfolioService.php` (`importarCao`),
+`src/Support/Cao.php`, `src/Repository/AcervoRepository.php`
+
+**Contexto.** A Certidão de Acervo Operacional é o documento **da empresa**, e a tela dela precisa
+mostrar "este é o nosso acervo". A leitura mais direta do CAO é, portanto: as ARTs que vieram
+naquela certidão pertencem àquela empresa, e é assim que se grava. Era preciso decidir isso antes
+de escrever a primeira linha de `importarCao`, porque `crea_arts` tem uma coluna só para dono —
+`art_pro_rnp` — e ela ia receber o registro da empresa ou o RNP do profissional.
+
+**Decisão.** Recebe o RNP. Toda ART entra em `crea_arts` sob o RNP de quem a registrou, e a
+empresa não aparece em lugar nenhum daquela tabela. A ligação entre as duas identidades é feita
+exclusivamente pela view `crea_evidencias`, pelo vínculo vigente do quadro técnico (D19) — e o
+`AcervoRepository::porEmpresa` lê a lista de ARTs **através da view**, em vez de repetir o JOIN,
+para a regra continuar morando num lugar só.
+
+**Alternativa recusada.** Gravar a ART sob o registro da empresa, que é como a certidão se
+apresenta. Três problemas, e o primeiro é fatal: `uq_art_numero` é global, então a ART
+AM20269999001 é uma linha só no banco — no dia em que a profissional que a registrou criasse
+conta, a importação dela bateria de frente com a linha da empresa, e `Acervo::mesclar` levantaria
+o conflito de RNP que existe justamente para impedir que evidência mude de dono. O segundo: a
+mesma evidência contaria duas vezes no motor, uma para a empresa e uma para a pessoa, sem que
+nada no banco dissesse que são a mesma obra. O terceiro é de honestidade — a empresa não registra
+ART, ela responde por quem registrou, e um acervo que não diz de quem é apresenta como capacidade
+própria o que é capacidade emprestada. É a confusão que a plataforma existe para desfazer.
+
+**Consequência.** Sai de graça o efeito que o cenário exige: encerrar um vínculo tira o acervo
+daquele profissional da empresa, inteiro e na hora, sem apagar nada e sem tocar no perfil dele —
+verificado em `verificar-e2.php`. Sai de graça também a mescla nos dois sentidos: o CAO não traz
+local, contratante nem forma de registro, e importar o CAO depois da importação do profissional
+(ou antes) não apaga o que o outro caminho trouxe, porque a regra "valor novo vence, exceto
+quando é nulo" já estava lá. Em troca, a tela da empresa tem uma obrigação a mais: cada ART
+aparece com o nome e o RNP de quem a registrou. Foi preciso uma coluna nova, `qut_pro_nome`, para
+isso não virar uma lista de RNPs sem nome.
+
+---
+
+## D25 · O quadro técnico vem do endpoint próprio, e não do CAO, por causa de um campo só
+
+`14/09/2026` · E2 · commit a seguir · `src/Repository/QuadroTecnicoRepository.php`,
+`src/Service/EmpresaCreaService.php`
+
+**Contexto.** Validar uma empresa custa chamadas à API, e o item 10.4 do edital registra cada uma.
+O CAO devolve o quadro técnico junto com o acervo, numa resposta só: `quadro_tecnico` traz
+`pro_nome`, `pro_rnp`, `pro_registro_crea` e `qut_funcao` de cada profissional. Usá-lo para as
+duas coisas economizaria uma requisição por empresa, e a lista parece a mesma.
+
+**Decisão.** Não é a mesma, e são duas chamadas: `?p=empresas/{registro}/quadro-tecnico` monta
+`crea_quadro_tecnico`, `?p=empresas/{registro}/cao` traz o acervo. O motivo é um campo:
+**o CAO não devolve `qut_dt_fim`** (nem `qut_dt_inicio`, nem `qut_tipo`). Uma empresa custa três
+chamadas no total, contando a busca pelo CNPJ, e `verificar-e2.php` afirma esse número.
+
+**Alternativa recusada.** Montar o quadro técnico pelo CAO e economizar a chamada. Sem
+`qut_dt_fim`, todo vínculo seria gravado como vigente — inclusive os encerrados. E `qut_dt_fim IS
+NULL` **é** a regra de herança inteira (D19): a economia de uma requisição compraria um banco em
+que toda empresa herda o acervo de todo mundo que um dia respondeu por ela. O erro seria
+silencioso, porque a tela ficaria plausível: mais acervo, nenhum aviso. `CaoTest` trava os dois
+fatos contra as fixtures — o CAO não tem a chave, o outro endpoint tem — para que uma
+recaptura que mude o formato apareça em `composer test` e não na demonstração.
+
+**Consequência.** A sincronização da empresa tem três passos e não dois, e o carimbo
+`emp_dt_sincronizacao` só sai quando os três entram (mesma regra da D21). Ficou também uma
+armadilha de banco documentada: `uq_qut_emp_pro` inclui `qut_dt_inicio`, que aceita nulo, e NULL
+não colide em índice UNIQUE no MariaDB — um `ON DUPLICATE KEY UPDATE` ingênuo duplicaria o
+vínculo a cada sincronização de uma empresa sem data de início. A gravação procura antes, com
+`<=>`, e decide entre UPDATE e INSERT sem depender do índice.
+
+---
+
+## D26 · A API não devolve situação de empresa, e a plataforma declara isso em vez de inventar
+
+`14/09/2026` · E2 · commit a seguir · `src/Service/VisibilidadeService.php`,
+`src/Service/EmpresaCreaService.php`
+
+**Contexto.** Do lado do profissional, `prf_status_api != 'A'` zera a visibilidade: registro
+suspenso no CREA fecha o perfil sem ninguém precisar agir, e a proposta promete isso com essas
+palavras. Ao escrever o portão equivalente para a empresa fomos buscar o campo e ele não existe:
+`?p=empresas&cnpj=` devolve `emp_cnpj`, `emp_razao_social`, `emp_nome_fantasia`,
+`emp_registro_crea` e `emp_dt_registro`, e mais nada. Não há `emp_status` em endpoint nenhum.
+
+**Decisão.** O portão global da empresa é o consentimento `EXIBICAO_PERFIL` mais a validação
+pendente da D20 — sem linha em `pro_empresas`, o perfil fica fechado. Não existe um terceiro
+fator, e a limitação é declarada no código, aqui e na seção de limitações do item 12.3, em vez de
+ser dissimulada.
+
+**Alternativa recusada.** Derivar uma situação. Havia dois caminhos e os dois fabricariam
+informação: tratar a ausência do registro numa reconsulta como suspensão — mas a API responde
+`200 []` tanto para "não tem registro" quanto para "a chave não casou", e uma indisponibilidade
+mal classificada fecharia o perfil de uma empresa regular sem aviso e sem recurso; ou herdar a
+situação do responsável técnico, o que é pior, porque puniria a empresa por um fato da pessoa e
+inventaria uma regra que o conselho não tem. Mesmo padrão da D19: quando a API não dá o campo, a
+resposta é declarar a limitação, não estimá-la.
+
+**Consequência.** Uma empresa cujo registro fique irregular no CREA continua visível até alguém
+agir — o `sincronizar-status.php` não tem o que reconsultar para ela. Dá para mitigar quando
+houver denúncia (E6) ou pelo painel administrativo, e é isso que a declaração de limitações vai
+dizer. Em compensação, o cadastro da empresa ganhou de graça o resto da simetria com o
+profissional: os mesmos três desfechos, agora num vocabulário compartilhado
+(`Support\DesfechoCrea`), a mesma guarda de registro já vinculado a outra conta, e a mesma
+regra de que a API fora do ar nunca custa o cadastro.

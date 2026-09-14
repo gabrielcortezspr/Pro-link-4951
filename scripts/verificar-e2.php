@@ -24,14 +24,19 @@ require_once dirname(__DIR__) . '/_config.php';
 
 use ProLink\Repository\AcervoRepository;
 use ProLink\Repository\ConsentimentoRepository;
+use ProLink\Repository\EmpresaRepository;
 use ProLink\Repository\ParametroRepository;
 use ProLink\Repository\ProfissionalRepository;
+use ProLink\Repository\QuadroTecnicoRepository;
 use ProLink\Repository\UsuarioRepository;
 use ProLink\Service\ApiIndisponivelException;
 use ProLink\Service\CreaApiClient;
+use ProLink\Service\EmpresaCreaService;
 use ProLink\Service\PerfilCreaService;
 use ProLink\Service\PortfolioService;
 use ProLink\Service\ValidacaoException;
+use ProLink\Service\VisibilidadeService;
+use ProLink\Support\Crypto;
 use ProLink\Support\Database;
 use ProLink\Support\RespostaHttp;
 use ProLink\Support\Transporte;
@@ -42,6 +47,13 @@ const ART        = 'AM20269999001';
 const ART_ALHEIA = 'AM20269999290';
 const CPF              = '12312300109';  // ANA CLARA COSTA, dona do RNP acima
 const CPF_SEM_REGISTRO = '98765432100';  // CPF válido, fora da massa: a API responde 200 []
+
+// AMAZÔNIA CONSTRUÇÕES E ENGENHARIA LTDA, a única das três empresas com CAO capturado cujo CNPJ
+// passa no dígito verificador (D07). O RNP acima está no quadro técnico dela — é o que faz a
+// herança de acervo ser verificável com a mesma massa dos dois lados.
+const CNPJ             = '00123001000123';
+const REGISTRO_CREA    = '61859';
+const CNPJ_SEM_REGISTRO = '00123002000178';  // CNPJ válido que esta captura não conhece: 200 []
 
 $aprovado = 0;
 $falhou   = 0;
@@ -73,8 +85,13 @@ function secao(string $titulo): void
  * criar um usuário novo a cada rodada esbarraria na guarda de RNP já vinculado (que é a guarda
  * certa). Sem `$email`, é descartável e termina marcado como excluído.
  */
-function usuarioDeVerificacao(PDO $pdo, bool $comConsentimento, ?string $email = null): int
-{
+function usuarioDeVerificacao(
+    PDO $pdo,
+    bool $comConsentimento,
+    ?string $email = null,
+    string $perfil = PERFIL_PROFISSIONAL,
+    ?string $documento = null,
+): int {
     if ($email !== null) {
         $achar = $pdo->prepare('SELECT usu_id FROM sis_usuarios WHERE usu_email = :email');
         $achar->execute([':email' => $email]);
@@ -91,15 +108,21 @@ function usuarioDeVerificacao(PDO $pdo, bool $comConsentimento, ?string $email =
     $email ??= 'e2.' . date('His') . '.' . random_int(100, 999) . '@verificacao.local';
 
     $stmt = $pdo->prepare(
-        'INSERT INTO sis_usuarios (usu_per_id, usu_nome, usu_email, usu_senha_hash, usu_tipo_pessoa)
-         SELECT per_id, :nome, :email, :hash, :tipo FROM sis_perfis WHERE per_codigo = :perfil'
+        'INSERT INTO sis_usuarios (usu_per_id, usu_nome, usu_email, usu_senha_hash, usu_tipo_pessoa,
+                                   usu_documento_cif, usu_documento_hash)
+         SELECT per_id, :nome, :email, :hash, :tipo, :cif, :dochash
+           FROM sis_perfis WHERE per_codigo = :perfil'
     );
     $stmt->execute([
-        ':nome'   => 'Verificação E2',
-        ':email'  => $email,
-        ':hash'   => password_hash(bin2hex(random_bytes(16)), PASSWORD_ALGO),
-        ':tipo'   => 'F',
-        ':perfil' => PERFIL_PROFISSIONAL,
+        ':nome'    => 'Verificação E2',
+        ':email'   => $email,
+        ':hash'    => password_hash(bin2hex(random_bytes(16)), PASSWORD_ALGO),
+        ':tipo'    => $perfil === PERFIL_EMPRESA ? 'J' : 'F',
+        // O documento cifrado é o que o botão "validar meu registro" e o sincronizar-status.php
+        // decifram: sem ele não dá para exercitar a revalidação sem o documento em claro.
+        ':cif'     => $documento === null ? null : Crypto::cifrar($documento),
+        ':dochash' => $documento === null ? null : Crypto::hashBusca($documento),
+        ':perfil'  => $perfil,
     ]);
 
     $id = (int) $pdo->lastInsertId();
@@ -396,6 +419,227 @@ try {
     conferir('sem CONSULTA_API concedida, nem a consulta sai', true);
 }
 
+// ================================================================== EMPRESA
+// A metade da empresa. Reaproveita a massa da metade do profissional de propósito: o RNP
+// 0412340011 está no quadro técnico da AMAZÔNIA, então a herança de acervo pode ser conferida
+// contra ARTs que já sabemos de quem são.
+
+$empresas   = new EmpresaRepository($pdo);
+$quadros    = new QuadroTecnicoRepository($pdo);
+$fixtura    = new TransporteFixture();
+$apiEmpresa = new CreaApiClient($fixtura);
+
+function servicoDeEmpresa(PDO $pdo, CreaApiClient $api): EmpresaCreaService
+{
+    return new EmpresaCreaService(
+        $api,
+        new EmpresaRepository($pdo),
+        new QuadroTecnicoRepository($pdo),
+        new UsuarioRepository($pdo),
+        new ConsentimentoRepository($pdo),
+        new PortfolioService($api, new AcervoRepository($pdo), new ConsentimentoRepository($pdo)),
+    );
+}
+
+// Email fixo pelo mesmo motivo do profissional: `uq_emp_registro_crea` é global, o registro
+// 61859 pertence a uma conta só, e a guarda de registro já vinculado é a guarda certa.
+$daEmpresa      = usuarioDeVerificacao($pdo, true, 'e2.empresa@verificacao.local', PERFIL_EMPRESA, CNPJ);
+$empresaService = servicoDeEmpresa($pdo, $apiEmpresa);
+
+secao('Perfil CREA da empresa no cadastro (RF02)');
+
+$antesDasChamadas = count($fixtura->chamadas());
+$vinculoEmpresa   = $empresaService->vincularEmpresa($daEmpresa);
+$chamadas         = count($fixtura->chamadas()) - $antesDasChamadas;
+
+conferir('CNPJ da massa devolve VINCULADO', $vinculoEmpresa['situacao'] === EmpresaCreaService::VINCULADO);
+conferir('o registro do CREA volta como string', $vinculoEmpresa['registro_crea'] === REGISTRO_CREA);
+conferir('a empresa inteira custa três chamadas: CNPJ, quadro técnico e CAO (item 10.4)',
+    $chamadas === 3, "gastou {$chamadas}");
+
+$emp = $empresas->porUsuario($daEmpresa);
+conferir('pro_empresas guarda a razão social que a API devolveu',
+    ($emp['emp_razao_social'] ?? '') === 'AMAZÔNIA CONSTRUÇÕES E ENGENHARIA LTDA');
+conferir('e o nome fantasia', ($emp['emp_nome_fantasia'] ?? '') === 'AMAZÔNIA');
+conferir('emp_dt_registro_crea guarda a data do conselho, não a da nossa linha',
+    str_starts_with((string) ($emp['emp_dt_registro_crea'] ?? ''), '2026-08-12'));
+conferir('emp_dt_sincronizacao é carimbada quando as três metades entram',
+    ($emp['emp_dt_sincronizacao'] ?? null) !== null);
+
+secao('Quadro técnico: o campo que só este endpoint dá');
+
+$quadro = $quadros->porEmpresa(REGISTRO_CREA);
+
+conferir('o quadro técnico tem uma linha', count($quadro) === 1);
+conferir('com o RNP preservando o zero à esquerda', ($quadro[0]['qut_pro_rnp'] ?? '') === RNP);
+conferir('e o nome, que o CAO também dá mas a tabela precisa guardar',
+    ($quadro[0]['qut_pro_nome'] ?? '') === 'ANA CLARA COSTA');
+conferir('qut_tipo marca o responsável técnico', ($quadro[0]['qut_tipo'] ?? '') === 'R');
+conferir('qut_dt_fim nulo é vínculo vigente, e é o que o CAO não sabe dizer',
+    ($quadro[0]['qut_dt_fim'] ?? null) === null);
+conferir('rnpsVigentes devolve só quem herda acervo', $quadros->rnpsVigentes(REGISTRO_CREA) === [RNP]);
+
+secao('Acervo operacional: a empresa herda, não registra');
+
+conferir('o CAO trouxe as 4 ARTs', $vinculoEmpresa['arts'] === 4);
+conferir('e um vínculo vigente', $vinculoEmpresa['vigentes'] === 1);
+
+$doCao = $acervo->porNumero('AM20269999103');
+conferir('a ART do CAO é gravada sob o RNP de quem a registrou, nunca sob a empresa',
+    ($doCao['art']['art_pro_rnp'] ?? '') === RNP);
+
+$semDono = $pdo->prepare('SELECT COUNT(*) FROM crea_arts WHERE art_pro_rnp = :registro');
+$semDono->execute([':registro' => REGISTRO_CREA]);
+conferir('nenhuma ART foi gravada com o registro da empresa no lugar do RNP',
+    (int) $semDono->fetchColumn() === 0);
+
+// A regra da mescla pelo terceiro caminho: o CAO não traz local, contratante nem forma de
+// registro, e não pode apagar o que a importação do profissional já tinha trazido.
+$depoisDoCao = $acervo->porNumero(ART);
+conferir('o CAO não apagou o município que a importação do profissional trouxe',
+    ($depoisDoCao['art']['art_local_municipio'] ?? '') === 'Manaus');
+conferir('nem o contratante', ($depoisDoCao['art']['art_contratante_nome'] ?? '') === 'João Silva LTDA');
+conferir('e o selo continua conferindo depois do CAO', $portfolio->conferirSelo(ART) === true);
+
+secao('Herança pela view crea_evidencias (D19)');
+
+$contarEvidencias = $pdo->prepare(
+    'SELECT COUNT(*) FROM crea_evidencias WHERE evi_candidato_tipo = :tipo AND evi_candidato_id = :id'
+);
+
+$contarEvidencias->execute([':tipo' => 'E', ':id' => (int) $emp['emp_id']]);
+$evidenciasEmpresa = (int) $contarEvidencias->fetchColumn();
+conferir('a empresa tem evidência TOS herdada do quadro técnico', $evidenciasEmpresa > 0);
+
+$contarEvidencias->execute([':tipo' => 'P', ':id' => (int) $prf['prf_id']]);
+$evidenciasProfissional = (int) $contarEvidencias->fetchColumn();
+conferir('e herda exatamente a mesma quantidade que a profissional tem',
+    $evidenciasEmpresa === $evidenciasProfissional,
+    "empresa {$evidenciasEmpresa}, profissional {$evidenciasProfissional}");
+
+// Encerrar o vínculo é a regra binária inteira: não há recorte por data porque a API não data
+// ART em endpoint nenhum.
+$pdo->prepare('UPDATE crea_quadro_tecnico SET qut_dt_fim = :fim WHERE qut_emp_registro_crea = :emp')
+    ->execute([':fim' => '2026-01-01', ':emp' => REGISTRO_CREA]);
+
+$contarEvidencias->execute([':tipo' => 'E', ':id' => (int) $emp['emp_id']]);
+conferir('vínculo encerrado tira o acervo da empresa, inteiro',
+    (int) $contarEvidencias->fetchColumn() === 0);
+
+$contarEvidencias->execute([':tipo' => 'P', ':id' => (int) $prf['prf_id']]);
+conferir('e não mexe na evidência da profissional, que continua dona das ARTs',
+    (int) $contarEvidencias->fetchColumn() === $evidenciasProfissional);
+
+// Revalidar traz o vínculo de volta ao que a API diz, sem duplicar linha.
+$empresaService->vincularEmpresa($daEmpresa);
+
+conferir('revalidar devolve o vínculo à situação da API', $quadros->rnpsVigentes(REGISTRO_CREA) === [RNP]);
+conferir('sem duplicar o quadro técnico', count($quadros->porEmpresa(REGISTRO_CREA)) === 1);
+
+$linhas = $pdo->prepare('SELECT COUNT(*) FROM pro_empresas WHERE emp_usu_id = :u');
+$linhas->execute([':u' => $daEmpresa]);
+conferir('nem a linha em pro_empresas (uq_emp_usu)', (int) $linhas->fetchColumn() === 1);
+
+secao('Visibilidade da empresa');
+
+$visibilidades = new VisibilidadeService(
+    new ProLink\Repository\VisibilidadeRepository($pdo), new ConsentimentoRepository($pdo),
+    $profissionais, $empresas, new UsuarioRepository($pdo),
+);
+
+(new ConsentimentoRepository($pdo))->definir($daEmpresa, FINALIDADE_EXIBICAO_PERFIL, true, 'cli');
+conferir('empresa validada e com consentimento tem o perfil aberto',
+    $visibilidades->perfilAberto($daEmpresa) === true);
+
+$pendenteEmpresa = usuarioDeVerificacao($pdo, true, null, PERFIL_EMPRESA, null);
+(new ConsentimentoRepository($pdo))->definir($pendenteEmpresa, FINALIDADE_EXIBICAO_PERFIL, true, 'cli');
+conferir('empresa sem linha em pro_empresas fica fechada, mesmo consentindo (D20)',
+    $visibilidades->perfilAberto($pendenteEmpresa) === false);
+
+secao('CNPJ válido que esta captura não conhece (200 [])');
+
+$empresaSemRegistro = usuarioDeVerificacao($pdo, true, null, PERFIL_EMPRESA, CNPJ_SEM_REGISTRO);
+$desfechoEmpresa    = $empresaService->vincularEmpresa($empresaSemRegistro);
+
+conferir('devolve SEM_REGISTRO, não exceção',
+    $desfechoEmpresa['situacao'] === EmpresaCreaService::SEM_REGISTRO);
+conferir('a conta continua existindo', (new UsuarioRepository($pdo))->porId($empresaSemRegistro) !== null);
+conferir('o perfil desce para Terceiro',
+    (new UsuarioRepository($pdo))->porId($empresaSemRegistro)['per_codigo'] === PERFIL_TERCEIRO);
+conferir('não cria linha em pro_empresas', $empresas->porUsuario($empresaSemRegistro) === null);
+conferir('a mensagem explica o que a empresa ainda pode fazer',
+    str_contains((string) $desfechoEmpresa['aviso'], 'publicar demandas'));
+
+secao('API fora do ar durante o cadastro da empresa');
+
+$empresaPendente = usuarioDeVerificacao($pdo, true, null, PERFIL_EMPRESA, CNPJ);
+$offlineEmpresa  = servicoDeEmpresa($pdo, $apiMuda)->vincularEmpresa($empresaPendente);
+
+conferir('devolve API_INDISPONIVEL, e não derruba o cadastro',
+    $offlineEmpresa['situacao'] === EmpresaCreaService::API_INDISPONIVEL);
+conferir('a conta criada permanece', (new UsuarioRepository($pdo))->porId($empresaPendente) !== null);
+conferir('o perfil continua EMPRESA, não vira Terceiro',
+    (new UsuarioRepository($pdo))->porId($empresaPendente)['per_codigo'] === PERFIL_EMPRESA);
+conferir('pendente é a ausência de linha em pro_empresas, sem coluna nova',
+    $empresas->porUsuario($empresaPendente) === null);
+
+secao('API responde o CNPJ e cai no CAO');
+
+// Transporte que responde tudo, menos o CAO: a identidade entra, o acervo não, e sem carimbo
+// os dois estados — "importamos e o quadro é vazio" e "não conseguimos importar" — seriam
+// idênticos no banco.
+$meiaEmpresaApi = new CreaApiClient(new class (new TransporteFixture()) implements Transporte {
+    public function __construct(private readonly TransporteFixture $completo)
+    {
+    }
+
+    public function get(array $params): RespostaHttp
+    {
+        if (str_ends_with((string) ($params['p'] ?? ''), '/cao')) {
+            throw new ApiIndisponivelException('Caiu no meio da leitura do CAO.');
+        }
+
+        return $this->completo->get($params);
+    }
+});
+
+$pdo->prepare('UPDATE pro_empresas SET emp_dt_sincronizacao = NULL WHERE emp_usu_id = :u')
+    ->execute([':u' => $daEmpresa]);
+
+$meiaEmpresa = servicoDeEmpresa($pdo, $meiaEmpresaApi)->vincularEmpresa($daEmpresa);
+
+conferir('o registro é validado mesmo com o CAO falhando',
+    $meiaEmpresa['situacao'] === EmpresaCreaService::VINCULADO);
+conferir('mas emp_dt_sincronizacao continua nula: precisa tentar de novo',
+    $empresas->porUsuario($daEmpresa)['emp_dt_sincronizacao'] === null);
+conferir('e a mensagem manda tentar pelo perfil',
+    str_contains((string) $meiaEmpresa['aviso'], 'Tente de novo'));
+conferir('o quadro técnico que entrou antes da falha é relatado, e não zerado',
+    $meiaEmpresa['vigentes'] === 1, "relatou {$meiaEmpresa['vigentes']}");
+
+$empresaService->vincularEmpresa($daEmpresa);   // restaura o estado bom
+
+secao('Guardas de integridade da empresa');
+
+$intrusaEmpresa = usuarioDeVerificacao($pdo, true, null, PERFIL_EMPRESA, null);
+
+try {
+    $empresaService->vincularEmpresa($intrusaEmpresa, CNPJ);
+    conferir('registro do CREA de outra conta é recusado', false, 'não recusou');
+} catch (ValidacaoException $e) {
+    conferir('registro do CREA de outra conta é recusado', true);
+    conferir('e nada foi gravado para a intrusa', $empresas->porUsuario($intrusaEmpresa) === null);
+}
+
+$empresaSemAutorizacao = usuarioDeVerificacao($pdo, false, null, PERFIL_EMPRESA, CNPJ);
+
+try {
+    $empresaService->vincularEmpresa($empresaSemAutorizacao);
+    conferir('sem CONSULTA_API concedida, nem a consulta sai', false, 'não recusou');
+} catch (ValidacaoException) {
+    conferir('sem CONSULTA_API concedida, nem a consulta sai', true);
+}
+
 // ---------------------------------------------------------------- auditoria
 secao('Trilha de auditoria (edital 8.5g)');
 
@@ -405,10 +649,36 @@ foreach (['CONSULTA_API' => 'importação', 'VALIDAR_ART' => 'associação manua
     conferir("sis_auditoria registra {$acao} ({$oQue})", (int) $stmt->fetchColumn() >= 1);
 }
 
+$porEntidade = $pdo->prepare(
+    'SELECT COUNT(*) FROM sis_auditoria
+      WHERE aud_entidade = :entidade AND aud_usu_id = :usu AND aud_acao = :acao'
+);
+
+foreach ([
+    'pro_empresas'        => ['CRIAR', 'criação do perfil da empresa'],
+    'crea_quadro_tecnico' => ['CONSULTA_API', 'sincronização do quadro técnico'],
+] as $entidade => [$acao, $oQue]) {
+    $porEntidade->execute([':entidade' => $entidade, ':usu' => $daEmpresa, ':acao' => $acao]);
+    conferir("sis_auditoria registra {$acao} em {$entidade} ({$oQue})",
+        (int) $porEntidade->fetchColumn() >= 1);
+}
+
+// A tentativa recusada tem de deixar rastro: é o registro de que alguém tentou assumir o
+// acervo de outra empresa.
+$negado = $pdo->prepare(
+    'SELECT COUNT(*) FROM sis_auditoria WHERE aud_acao = :acao AND aud_usu_id = :usu'
+);
+$negado->execute([':acao' => 'ACESSO_NEGADO', ':usu' => $intrusaEmpresa]);
+conferir('a tentativa de assumir registro alheio fica em sis_auditoria',
+    (int) $negado->fetchColumn() >= 1);
+
 // ---------------------------------------------------------------- limpeza
 secao('Limpeza');
 
-$descartaveis = [$semPermitir, $semRegistro, $pendente, $intruso, $semAutorizacao];
+$descartaveis = [
+    $semPermitir, $semRegistro, $pendente, $intruso, $semAutorizacao,
+    $pendenteEmpresa, $empresaSemRegistro, $empresaPendente, $intrusaEmpresa, $empresaSemAutorizacao,
+];
 $marcar = $pdo->prepare('UPDATE sis_usuarios SET usu_status = :x WHERE usu_id = :id');
 
 foreach ($descartaveis as $id) {
@@ -417,6 +687,7 @@ foreach ($descartaveis as $id) {
 
 printf("  usuários descartáveis marcados como excluídos: %d\n", count($descartaveis));
 printf("  e2.perfil@verificacao.local permanece ativo: é o dono do RNP %s, que é único\n", RNP);
+printf("  e2.empresa@verificacao.local permanece ativo: é a dona do registro %s, que é único\n", REGISTRO_CREA);
 printf("  as 4 ARTs do RNP %s ficam no acervo: são cache de resposta real, não sujeira\n", RNP);
 
 printf(
