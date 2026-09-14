@@ -556,6 +556,33 @@ $pendenteEmpresa = usuarioDeVerificacao($pdo, true, null, PERFIL_EMPRESA, null);
 conferir('empresa sem linha em pro_empresas fica fechada, mesmo consentindo (D20)',
     $visibilidades->perfilAberto($pendenteEmpresa) === false);
 
+// O formulário só aceita de volta os alvos que a tela desenhou (D27). A lista permitida aqui
+// imita a de uma empresa com um campo e nenhuma ART.
+$permitidas = ['PERFIL:-:EMAIL'];
+
+$visibilidades->definirLote($pendenteEmpresa, ['ART:999999:-' => VISIBILIDADE_PUBLICO], $permitidas);
+
+$forjado = $pdo->prepare(
+    'SELECT COUNT(*) FROM pro_visibilidade WHERE vis_usu_id = :u AND vis_entidade_id = 999999'
+);
+$forjado->execute([':u' => $pendenteEmpresa]);
+conferir('alvo fora da lista da tela não vira linha em pro_visibilidade',
+    (int) $forjado->fetchColumn() === 0);
+
+try {
+    $visibilidades->definirLote($pendenteEmpresa, [
+        'PERFIL:-:EMAIL' => 'SEMI_PUBLICO',
+    ], $permitidas);
+    conferir('nível inventado é recusado', false, 'não recusou');
+} catch (ValidacaoException) {
+    conferir('nível inventado é recusado', true);
+}
+
+$escritas = $pdo->prepare('SELECT COUNT(*) FROM pro_visibilidade WHERE vis_usu_id = :u');
+$escritas->execute([':u' => $pendenteEmpresa]);
+conferir('e o lote recusado não grava nada: privacidade não se aplica pela metade',
+    (int) $escritas->fetchColumn() === 0);
+
 secao('CNPJ válido que esta captura não conhece (200 [])');
 
 $empresaSemRegistro = usuarioDeVerificacao($pdo, true, null, PERFIL_EMPRESA, CNPJ_SEM_REGISTRO);

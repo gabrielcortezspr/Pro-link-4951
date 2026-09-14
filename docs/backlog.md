@@ -92,7 +92,7 @@ por 15 minutos; a exportação devolve JSON; `sis_auditoria` mostra tudo isso.
 > **Em andamento.** Prontos: o transporte injetável do `CreaApiClient` (D08, D13, D14, D16) e o
 > `PortfolioService` com a operação atômica 1 — importação do acervo, associação de ART à mão,
 > mescla que não apaga campo preenchido e Selo ART cobrindo as atividades (D17, D18). Verificado
-> por `scripts/verificar-e2.php`: 104 conferências contra o banco, sem gastar chamada da API.
+> por `scripts/verificar-e2.php`: 108 conferências contra o banco, sem gastar chamada da API.
 >
 > A herança pelo CAO ficou destravada de graça: a regra é binária e a view já a implementa (D19).
 >
@@ -106,6 +106,11 @@ por 15 minutos; a exportação devolve JSON; `sis_auditoria` mostra tudo isso.
 > o RNP de quem registrou, tela `/perfil` própria e o portão de visibilidade da empresa. A
 > herança da D19 passou a ser verificada de ponta a ponta: encerrar o vínculo tira o acervo da
 > empresa e não toca no do profissional.
+>
+> A revisão de segurança do fim da sessão achou duas falhas na tela de visibilidade — herdadas
+> da D22 e agora corrigidas na D27: o POST aceitava alvo que não era do titular, e um nível
+> inválido no meio do lote deixava metade das escolhas gravadas. Conferido com requisição forjada,
+> antes e depois.
 >
 > Falta, na ordem: experiência autodeclarada, perfil público `/perfil/{id}`, CATs e
 > `sincronizar-status.php`.
@@ -274,6 +279,13 @@ Metade da nota depende disto. Não é "se sobrar tempo".
 **Segurança (Camila, 16/09)**
 - Checklist OWASP da proposta, item por item: autorização por operação em toda rota, CSRF em
   todo POST, escape no Twig, `cookie_secure` em produção, headers do nginx, sem stack trace.
+- **Conferir com requisição forjada, não por leitura.** Foi assim que as duas falhas da D27
+  apareceram, depois de já terem passado por revisão de código. Todo formulário que aceita
+  identificador de volta (`nivel[ART:<id>]`, e os que vierem em E3 a E6) merece a mesma sonda.
+- **`Sessao` guarda o perfil em `$_SESSION` e nunca o reconfere contra o banco.** O
+  `sessaoTemRespaldo()` derruba sessão revogada, mas mudança de papel — o rebaixamento para
+  Terceiro da D20/D26, e principalmente o bloqueio pelo administrador da E6 — só vale no próximo
+  login. Decidir junto com a operação atômica 5, que é quem depende disso.
 - Rodar o Anexo VI do edital como autoavaliação. Todos os doze itens.
 - `grep` por segredo no repositório antes do push final.
 

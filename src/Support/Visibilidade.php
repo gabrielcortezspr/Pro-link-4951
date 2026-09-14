@@ -145,6 +145,66 @@ final class Visibilidade
     }
 
     /**
+     * Interpreta um formulário de visibilidade inteiro contra a lista de alvos que a tela
+     * realmente desenhou.
+     *
+     * Duas regras, e as duas existem porque o formulário vem do navegador:
+     *
+     *   · **Chave fora da lista é ignorada em silêncio.** `deChave()` já recusa entidade e campo
+     *     inventados, mas não sabe se a ART `999999` é do titular — não é papel de uma função sem
+     *     banco saber isso. Quem sabe é a tela: ela desenhou um controle por alvo que o titular
+     *     possui, e `$chavesPermitidas` é exatamente essa lista. Aceitar de volta só o que se
+     *     mandou fecha o buraco sem consultar o banco de novo por alvo.
+     *
+     *   · **Nível inválido invalida o lote inteiro, antes de gravar qualquer coisa.** Aplicar um a
+     *     um e parar no primeiro erro deixava metade das escolhas gravadas e a outra metade não,
+     *     com uma mensagem de erro na tela — o titular via "deu errado" e mesmo assim algo tinha
+     *     mudado. Numa tela de privacidade isso é o pior desfecho possível.
+     *
+     * @param array<array-key, mixed> $enviados         `nivel[<chave>] => <nível>`, cru do POST
+     * @param list<string>            $chavesPermitidas alvos que a tela desenhou para este titular
+     * @return array{aceitos: list<array{entidade: string, id: int|null, campo: string|null, nivel: string}>,
+     *               nivel_invalido: bool}
+     */
+    public static function lote(array $enviados, array $chavesPermitidas): array
+    {
+        $permitidas    = array_flip($chavesPermitidas);
+        $aceitos       = [];
+        $nivelInvalido = false;
+
+        foreach ($enviados as $chave => $nivel) {
+            $chave = (string) $chave;
+
+            if (!isset($permitidas[$chave]) || !is_scalar($nivel)) {
+                continue;
+            }
+
+            $alvo = self::deChave($chave);
+
+            if ($alvo === null) {
+                continue;
+            }
+
+            $nivel = (string) $nivel;
+
+            if (!self::nivelValido($nivel)) {
+                $nivelInvalido = true;
+
+                continue;
+            }
+
+            $aceitos[] = [
+                'entidade' => $alvo['entidade'],
+                'id'       => $alvo['id'],
+                'campo'    => $alvo['campo'],
+                'nivel'    => $nivel,
+            ];
+        }
+
+        return ['aceitos' => $aceitos, 'nivel_invalido' => $nivelInvalido];
+    }
+
+    /**
      * O caminho de volta: chave vinda do formulário → alvo, ou null se não for uma chave nossa.
      *
      * Devolve null em vez de lançar porque a entrada é de fora: um `name` adulterado no HTML é

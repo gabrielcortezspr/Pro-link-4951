@@ -156,6 +156,46 @@ final class VisibilidadeService
     }
 
     /**
+     * Aplica o formulário de visibilidade inteiro — ou nenhuma parte dele.
+     *
+     * `$chavesPermitidas` são os alvos que a tela desenhou para este titular (as chaves de
+     * `perfil.niveis`). Alvo fora dessa lista é ignorado: sem isso, um `name` adulterado no HTML
+     * criava linha em `pro_visibilidade` para qualquer `art_id` do banco, inclusive de ARTs que
+     * não são do titular. Não vazava nada — a `Visao` consultada é sempre a do dono do perfil
+     * exibido, e a lista de ARTs de uma tela nunca sai de `pro_visibilidade` —, mas enchia a
+     * tabela e a trilha de auditoria de linhas sem sentido, e deixava uma escolha "PÚBLICO"
+     * esperando por uma ART que ainda ia chegar.
+     *
+     * A validação dos níveis acontece **antes** de qualquer escrita. Uma tela de privacidade não
+     * pode terminar com "deu erro" e metade das escolhas aplicadas.
+     *
+     * @param array<array-key, mixed> $enviados         `nivel[<chave>] => <nível>`, cru do POST
+     * @param list<string>            $chavesPermitidas alvos legítimos deste titular
+     * @return int quantos mudaram de fato — deixa o chamador dizer a verdade na mensagem
+     * @throws ValidacaoException nível fora dos três; nada é gravado
+     */
+    public function definirLote(int $usuarioId, array $enviados, array $chavesPermitidas): int
+    {
+        $lote = Visibilidade::lote($enviados, $chavesPermitidas);
+
+        if ($lote['nivel_invalido']) {
+            throw new ValidacaoException(
+                'Nível de visibilidade inválido. Nenhuma das suas escolhas foi alterada.'
+            );
+        }
+
+        $salvos = 0;
+
+        foreach ($lote['aceitos'] as $alvo) {
+            $salvos += $this->definir(
+                $usuarioId, $alvo['entidade'], $alvo['id'], $alvo['campo'], $alvo['nivel'],
+            ) ? 1 : 0;
+        }
+
+        return $salvos;
+    }
+
+    /**
      * Fecha tudo. Chamado pela revogação de `EXIBICAO_PERFIL` e pela sincronização de status.
      *
      * Redundante com o portão global, e de propósito: o portão decide o que a tela mostra agora,

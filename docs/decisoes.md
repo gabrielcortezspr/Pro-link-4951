@@ -22,7 +22,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | Fundação (antes da E0) | D01, D02, D03, D04, D05 |
 | E0 — fundação que faltou | D06 |
 | E1 — identidade e consentimento | D07, D08, D09, D10, D11, D12 |
-| E2 — integração com a API | D13, D14, D15, D16, D17, D18, D19, D20, D21, D22, D23, D24, D25, D26 |
+| E2 — integração com a API | D13, D14, D15, D16, D17, D18, D19, D20, D21, D22, D23, D24, D25, D26, D27 |
 
 ---
 
@@ -781,3 +781,56 @@ dizer. Em compensação, o cadastro da empresa ganhou de graça o resto da simet
 profissional: os mesmos três desfechos, agora num vocabulário compartilhado
 (`Support\DesfechoCrea`), a mesma guarda de registro já vinculado a outra conta, e a mesma
 regra de que a API fora do ar nunca custa o cadastro.
+
+---
+
+## D27 · O formulário de visibilidade só aceita de volta os alvos que ele mesmo desenhou (revisa a D22)
+
+`14/09/2026` · E2 · commit a seguir · `src/Support/Visibilidade.php` (`lote`),
+`src/Service/VisibilidadeService.php` (`definirLote`), `src/Controller/PerfilController.php`
+
+**Contexto.** A D22 estabeleceu que o formulário manda `nivel[<chave do alvo>]` e que chave
+adulterada é ignorada em silêncio, porque `deChave()` recusa entidade e campo fora das listas
+fechadas. Ao estender a mesma tela para a empresa fomos conferir o comportamento com um POST
+forjado, e a defesa não cobria o que parecia cobrir: `deChave()` valida a **forma** da chave, não
+a **posse** do alvo. `ART:999999:-` tem forma válida. Uma função sem banco não tem como saber de
+quem é a ART 999999 — e não deveria ter.
+
+Na sonda, um POST com `nivel[ART:999999:-]`, `nivel[PERFIL:-:MODALIDADES]` (campo que a tela da
+empresa não desenha) e um nível inventado no fim gravou **duas linhas** em `pro_visibilidade`,
+com duas linhas em `sis_auditoria`, e só então abortou com mensagem de erro na tela.
+
+**Decisão.** Duas correções, e a segunda foi achada junto com a primeira.
+
+A tela passa a dizer quais alvos são legítimos. O controlador remonta o perfil no POST só para
+extrair as chaves que a montagem desenhou (`perfil.niveis`) e as entrega como lista permitida;
+`Visibilidade::lote()` descarta tudo o que não estiver nela. É a mesma lista que gerou os
+controles, então não há regra nova a manter nem consulta nova por alvo.
+
+E o lote passa a ser tudo ou nada: os níveis são validados **antes** de qualquer escrita, e um
+nível inválido recusa o formulário inteiro sem gravar nada.
+
+**Alternativa recusada.** Para a posse do alvo, consultar o banco por ART dentro do laço —
+"esta ART é do titular?". Funciona, mas coloca a regra de quais alvos existem num segundo lugar,
+que precisaria ser mantido em sincronia com o que cada tela desenha: hoje profissional e empresa
+já montam listas diferentes, e o dia em que a terceira tela (CATs, experiências) aparecesse,
+alguém esqueceria de ensinar a consulta sobre ela — falhando **aberto**. Derivar a lista da
+própria montagem falha fechado por construção: alvo que a tela não desenha não é aceito, sem
+ninguém precisar lembrar.
+
+Para o lote parcial, a alternativa era abrir uma transação em volta do laço. Daria atomicidade,
+mas pelo preço errado: manteria uma requisição adulterada capaz de derrubar a operação inteira e
+gastaria transação para resolver o que é validação de entrada. Validar antes de escrever é mais
+barato e diz a verdade na mensagem.
+
+**Consequência.** Nenhuma das duas falhas vazava dado — a `Visao` consultada numa tela é sempre a
+do dono **daquele** perfil, e nenhuma listagem de ARTs sai de `pro_visibilidade` —, então o
+impacto era escrita inútil, ruído na trilha de auditoria e uma escolha "PÚBLICO" esperando por uma
+ART que ainda ia chegar, o que contraria o "nada público por padrão" da D22 em espírito. Depois da
+correção a mesma sonda grava zero linhas, e o POST legítimo continua funcionando nas duas telas.
+O custo é uma montagem de perfil a mais por POST de visibilidade, que é a mesma consulta que o
+GET seguinte faria de qualquer jeito.
+
+Fica registrado o método, que vale para o endurecimento da E7: a defesa foi conferida com uma
+requisição forjada de verdade, não por leitura do código. As duas falhas estavam na tela do
+profissional desde a D22 e passaram por uma revisão sem serem vistas.

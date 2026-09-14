@@ -13,7 +13,6 @@ use ProLink\Service\VisibilidadeService;
 use ProLink\Support\Flash;
 use ProLink\Support\Sessao;
 use ProLink\Support\View;
-use ProLink\Support\Visibilidade;
 use Throwable;
 
 /**
@@ -46,10 +45,7 @@ final class PerfilController
     {
         $usuarioId = (int) Sessao::usuarioId();
         $ehEmpresa = Sessao::temPerfil(PERFIL_EMPRESA);
-
-        $perfil = $ehEmpresa
-            ? $this->perfisEmpresa->montar($usuarioId, $usuarioId)
-            : $this->perfis->montar($usuarioId, $usuarioId);
+        $perfil    = $this->montar($usuarioId, $ehEmpresa);
 
         if ($perfil === null) {
             return View::erro(404, 'Perfil não encontrado.');
@@ -70,34 +66,33 @@ final class PerfilController
      * Salva os níveis de visibilidade de uma vez.
      *
      * O formulário manda `nivel[<chave do alvo>]`, e a chave é a mesma string que
-     * `Visibilidade::chave()` produz. Chave que não corresponde a um alvo conhecido é ignorada em
-     * silêncio: `name` adulterado no HTML é requisição inválida, não erro a exibir — e ignorar
-     * é o comportamento fechado, porque o alvo desconhecido continua privado.
+     * `Visibilidade::chave()` produz. O perfil é remontado aqui **só para saber quais alvos esta
+     * tela desenhou**: o POST só é aceito para essas chaves. Sem isso, um `name` adulterado no
+     * HTML gravava escolha de visibilidade para qualquer `art_id` do banco — não vazava nada,
+     * porque a `Visao` de uma tela é sempre a do dono dela, mas escrevia linha e auditoria para
+     * alvo que não é do titular. Ignorar em silêncio continua sendo o certo: requisição
+     * adulterada não é erro a exibir, e o alvo desconhecido permanece privado.
+     *
+     * A decisão do que gravar é do serviço, não daqui — inclusive a de não gravar nada quando um
+     * nível vem inválido.
      */
     public function definirVisibilidade(): string
     {
         $usuarioId = (int) Sessao::usuarioId();
-        $enviados  = $_POST['nivel'] ?? [];
-        $salvos    = 0;
+        $perfil    = $this->montar($usuarioId, Sessao::temPerfil(PERFIL_EMPRESA));
 
-        if (!is_array($enviados)) {
-            $enviados = [];
+        if ($perfil === null) {
+            return View::erro(404, 'Perfil não encontrado.');
         }
 
+        $enviados = $_POST['nivel'] ?? [];
+
         try {
-            foreach ($enviados as $chave => $nivel) {
-                $alvo = Visibilidade::deChave((string) $chave);
-
-                if ($alvo === null) {
-                    continue;
-                }
-
-                $mudou = $this->visibilidades->definir(
-                    $usuarioId, $alvo['entidade'], $alvo['id'], $alvo['campo'], (string) $nivel,
-                );
-
-                $salvos += $mudou ? 1 : 0;
-            }
+            $salvos = $this->visibilidades->definirLote(
+                $usuarioId,
+                is_array($enviados) ? $enviados : [],
+                array_keys($perfil['niveis']),
+            );
         } catch (ValidacaoException $e) {
             Flash::erro($e->getMessage());
             View::redirecionar('/perfil');
@@ -108,6 +103,14 @@ final class PerfilController
             : 'Visibilidade atualizada. Nada fica visível sem você escolher.');
 
         View::redirecionar('/perfil');
+    }
+
+    /** O perfil do titular, montado pelo serviço que corresponde ao perfil da conta. */
+    private function montar(int $usuarioId, bool $ehEmpresa): ?array
+    {
+        return $ehEmpresa
+            ? $this->perfisEmpresa->montar($usuarioId, $usuarioId)
+            : $this->perfis->montar($usuarioId, $usuarioId);
     }
 
     /**
