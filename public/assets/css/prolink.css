@@ -99,8 +99,11 @@ h1, h2, h3, h4, h5, h6,
 .pl-mark { width: 16px; height: 16px; flex: none; vertical-align: -3px; }  /* #seal ou #seal-x */
 
 /* ---------- 5. App-shell das páginas logadas: sidebar + topbar (D33) ---------- */
+/* O shell é a página inteira, não um quadro dentro dela: sem borda, sem canto arredondado e
+   sem faixa de fundo sobrando embaixo. Nos mockups ele aparece emoldurado porque lá é uma
+   amostra de tela; aqui é a tela. */
 .pl-app { display: grid; grid-template-columns: 232px 1fr; background: var(--pl-app);
-    min-height: calc(100vh - 120px); border: 1px solid var(--pl-border); border-radius: 16px; overflow: hidden; }
+    min-height: 100vh; }
 .pl-app.collapsed { grid-template-columns: 66px 1fr; }
 .pl-side { background: linear-gradient(180deg, var(--pl-navy), var(--pl-navy-2));
     padding: 18px 15px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; white-space: nowrap; }
@@ -206,3 +209,28 @@ h1, h2, h3, h4, h5, h6,
 
 .pl-card-titulo { font-family: var(--pl-display); font-weight: 600; font-size: 15px; margin: 0 0 16px; }
 .pl-nota { font-size: 12.5px; color: var(--pl-muted); line-height: 1.6; margin: 0 0 16px; }
+
+/* ---------- 10. Formulário na escala do design system ---------- */
+/* O Bootstrap entrega rótulo de 16px e controle alto, que ao lado do texto de card (13.5px)
+   fica desproporcional. Aqui os controles adotam a escala das telas de referência: rótulo
+   pequeno e discreto, campo de 44px. Vale em toda tela, não só no painel. */
+.form-label {
+    font-size: 12.5px; font-weight: 600; color: var(--pl-muted); margin-bottom: 6px;
+}
+.form-control, .form-select {
+    min-height: 44px; font-size: 14px; padding: 10px 14px;
+    border-color: var(--pl-border); border-radius: var(--pl-r); background-color: var(--pl-card);
+}
+.form-select { padding-right: 38px; }
+.form-control:focus, .form-select:focus {
+    border-color: var(--pl-blue); box-shadow: 0 0 0 3px rgba(46,107,230,.18);
+}
+.form-text { font-size: 12px; color: var(--pl-muted); }
+textarea.form-control { min-height: 0; }
+
+/* Hierarquia do painel: o título da página não pode ser menor que o nome do registro que ele
+   mostra. Topbar e sujeito no mesmo nível; título de card um degrau abaixo. */
+.pl-topbar h1, .pl-topbar h2, .pl-topbar h3 {
+    font-family: var(--pl-display); font-weight: 600; font-size: 18px; letter-spacing: -.01em; margin: 0;
+}
+.pl-det-topo .alvo { font-size: 18px; }
