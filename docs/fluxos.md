@@ -115,6 +115,12 @@ cada um toca um fluxo crítico (a degradação digna é parte do diferencial de 
   **nunca sai do pool**; a marca é contextual (neutra, junto do acervo) no feed e no perfil, e a
   busca ativa ganha o filtro "incluir perfis em construção", desligado por padrão. Mitigação de
   viés declarada na entrega (12.3).
+- **Sem nenhuma ART registrada** — o limite honesto do anterior. O motor cruza a demanda com a
+  evidência, e evidência vem de ART: com zero ARTs não há o que cruzar, o score na dimensão de
+  competência é nulo e o perfil fica abaixo do limiar. Ele **não aparece em feed nenhum**, e
+  continua encontrável na busca ativa por nome e modalidade, que não dependem de acervo. É
+  limitação declarada, não defeito: recomendar quem não tem evidência contrariaria a tese de
+  evidência documental do projeto. Ver D33.
 
 Hierarquia de cor desses estados (regra de design): **âmbar = só integridade/divergência**;
 azul-info neutro = estado recuperável de sincronização; vermelho = só destrutivo/bloqueio.

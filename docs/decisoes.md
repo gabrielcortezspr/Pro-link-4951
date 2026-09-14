@@ -23,7 +23,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E0 — fundação que faltou | D06 |
 | E1 — identidade e consentimento | D07, D08, D09, D10, D11, D12 |
 | E2 — integração com a API | D13, D14, D15, D16, D17, D18, D19, D20, D21, D22, D23, D24, D25, D26, D27 |
-| Front — design system | D28, D29, D30, D31, D32 |
+| Front — design system | D28, D29, D30, D31, D32, D33, D34 |
 
 ---
 
@@ -936,3 +936,57 @@ enche a tela de ruído e repete o mesmo rótulo em cada linha.
 
 **Consequência.** Telas mais limpas e uma leitura mais rápida; o detalhe passa a ser o lugar das
 ações menos frequentes.
+
+---
+
+## D33 · Perfil sem nenhuma ART fica fora do feed, e isso é declarado em vez de contornado
+
+`14/09/2026` · Front · commit a seguir · limite descrito em [`fluxos.md`](fluxos.md); marca em [`design.md`](design.md)
+
+**Contexto.** A proposta promete que o perfil em construção **nunca sai do pool**, como mitigação
+de viés contra quem está começando. Ao desenhar a marca de perfil em construção apareceu o caso
+que a promessa não cobre: o profissional com **zero** ARTs. O motor cruza a demanda com
+`crea_evidencias`, e evidência vem de ART. Com zero ARTs não há o que cruzar: a dimensão de
+competência é nula, o score fica abaixo do limiar e o perfil não entra em pool nenhum. A promessa
+vale para quem tem uma ou duas ARTs; para quem tem zero, é falsa.
+
+**Decisão.** Declarar o limite em vez de contorná-lo. O perfil sem ART não entra no feed de
+recomendação e continua encontrável na **busca ativa** por nome e modalidade, que vêm do cadastro
+validado na API e não dependem de acervo. O texto entra na declaração de uso de IA, vieses e
+limitações da entrega (12.3 e Anexo VI), junto das outras limitações já previstas para a E7.
+
+**Alternativa recusada.** Deixar o perfil sem ART entrar no pool com aderência baixa, para honrar
+a promessa ao pé da letra. Seria recomendar à empresa alguém sobre quem a plataforma não tem
+nenhuma evidência, contra a tese do projeto: capacidade **comprovada**, não autodeclarada. O
+remédio seria pior que a limitação, e a primeira pergunta da banca seria por que um perfil vazio
+aparece num feed que se diz baseado em evidência documental.
+
+**Consequência.** A frase "nunca sai do pool" passa a valer com a qualificação "desde que exista
+pelo menos uma ART", e é assim que deve ser dita na demonstração. A tela de estado vazio do acervo
+("nenhuma ART registrada ainda") fica para depois da entrega: não está em nenhum dos seis cenários
+e não paga o custo agora. Quem tem zero ART já enxerga o caminho pelo botão de associar ART que a
+tela de portfólio oferece.
+
+---
+
+## D34 · Erro de integridade não conta como o sistema descobriu
+
+`14/09/2026` · Front · commit a seguir · tela em `mockups/`; regra em [`design.md`](design.md)
+
+**Contexto.** A tela de selo divergente trazia, abaixo da mensagem, uma linha técnica com o
+identificador do evento de auditoria e a descrição do mecanismo ("hash gravado x HMAC
+recalculado"). A intenção era provar que a trilha existe.
+
+**Decisão.** A mensagem ao usuário diz o que aconteceu, o que o sistema fez e o que ele pode
+fazer, e para por aí. O identificador do evento e o mecanismo de verificação ficam na trilha de
+auditoria, visível para a administração. A tela do usuário apenas menciona que o detalhe está lá.
+
+**Alternativa recusada.** Manter o identificador visível para dar rastreabilidade a quem abre
+suporte. Não compensa: a linha revelava que a verificação é por HMAC, que a comparação é entre
+hash gravado e recalculado, e um identificador sequencial que permite inferir volume e enumerar
+eventos. É divulgação de informação em mensagem de erro (CWE-209), e num recurso cuja função é
+justamente resistir a adulteração.
+
+**Consequência.** Vale como regra para as telas de erro que vierem: mensagem de falha de
+integridade ou de autenticação descreve o efeito, nunca o mecanismo nem o identificador interno.
+Entra na autoavaliação do Anexo VI na E7.
