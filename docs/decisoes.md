@@ -23,6 +23,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E0 — fundação que faltou | D06 |
 | E1 — identidade e consentimento | D07, D08, D09, D10, D11, D12 |
 | E2 — integração com a API | D13, D14, D15, D16, D17, D18, D19, D20, D21, D22, D23, D24, D25, D26, D27 |
+| Front — design system | D28, D29, D30, D31, D32 |
 
 ---
 
@@ -834,3 +835,104 @@ GET seguinte faria de qualquer jeito.
 Fica registrado o método, que vale para o endurecimento da E7: a defesa foi conferida com uma
 requisição forjada de verdade, não por leitura do código. As duas falhas estavam na tela do
 profissional desde a D22 e passaram por uma revisão sem serem vistas.
+
+---
+
+## D28 · O visual é um design system próprio sobre o Bootstrap, não o tema padrão
+
+`14/09/2026` · Front · commit a seguir · regra em [`design.md`](design.md); telas em `mockups/`
+
+**Contexto.** O edital exige Bootstrap 5 no front. O Bootstrap puro entrega um visual genérico, e a
+experiência de uso é critério de nota (Anexo I: funcionalidade e experiência, 20 pontos, o maior
+peso). Do lado do design a equipe já tinha um sistema próprio pronto — sidebar, tokens, selo,
+tipografia — desenhado nas sete telas de `mockups/`.
+
+**Decisão.** O Bootstrap fica como base (grid, utilitários, JS de componentes, macros de
+formulário) e o nosso design entra como tema por cima: sobrescreve as variáveis `--bs-*` e adiciona
+os componentes que faltam. CSS3 também é exigência do edital, então tema próprio está em
+conformidade.
+
+**Alternativa recusada.** Duas. Bootstrap puro — atende a letra do edital mas joga fora o
+diferencial de UX. E CSS 100% custom sem Bootstrap — o nosso mockup original é assim, mas remover o
+Bootstrap fere a exigência de tecnologia. O meio-termo usa as duas coisas de verdade.
+
+**Consequência.** Os componentes nossos levam prefixo `pl-` porque `.btn`, `.card`, `.nav`, `.pill`
+e `table` são do Bootstrap: sem o prefixo, o nosso CSS quebraria toda tela já feita (auth, perfil,
+admin). As três classes que já existiam (`.selo-art`, `.dado-declarado`, `.perfil-em-construcao`)
+mantêm o nome e trocam só a aparência.
+
+---
+
+## D29 · Verificado e não-verificado viram símbolo — verde água e círculo cinza com X, não verde/amarelo
+
+`14/09/2026` · Front · commit a seguir · regra em [`design.md`](design.md); revisita o CSS da fundação
+
+**Contexto.** Que dado verificado pela API nunca se confunda com dado autodeclarado é o compromisso
+central da proposta, e o `prolink.css` da fundação já o traduzia: selo verde, tarja amarela. Ao
+trazer o design system a equipe reviu a execução dessa distinção.
+
+**Decisão.** O princípio fica; a execução muda. Verificação passa a ser um símbolo inline, à direita
+do texto: selo chanfrado verde água (`--pl-seal`) para o verificado, círculo liso cinza com um X
+para o não verificado. Sem tarja de texto, sem coluna separada, sem amarelo.
+
+**Alternativa recusada.** Manter verde/amarelo. O amarelo entrava em conflito com o laranja do CTA
+(dois avisos quentes competindo) e a tarja de texto poluía a leitura — testado nas telas e rejeitado.
+
+**Consequência.** O verde água vira cor de papel único: só verificação, nada mais usa. O edital não
+obriga cor nenhuma para isso (conferido em `edital-requisitos.md`), então é escolha de design
+legítima. Afeta código do parceiro (`perfil/index`, `perfil/empresa`, `privacidade`) — combinar
+antes de aplicar.
+
+---
+
+## D30 · Uma única cor de ação preenchida; secundário e dado em azul escuro
+
+`14/09/2026` · Front · commit a seguir · regra em [`design.md`](design.md)
+
+**Contexto.** Com laranja (CTA), azul e um teal para dados havia três tratamentos "clicáveis"
+competindo pela atenção, e não ficava claro qual era a ação principal.
+
+**Decisão.** Laranja é a única cor de ação preenchida (a que compromete: publicar, manifestar).
+Botão secundário é azul escuro contornado; barra de dado é azul escuro preenchido; link é azul
+brilhante; verde água é só verificação. Cada cor, um papel.
+
+**Alternativa recusada.** Usar azul petróleo/teal para dados e botões — confundia com o verde água
+do selo, que é vizinho na roda de cor.
+
+**Consequência.** Hierarquia de ação sem ambiguidade; a regra 60/30/10 fica explícita no
+`design.md`.
+
+---
+
+## D31 · Fundo neutro off-white quente, não cinza-azulado frio
+
+`14/09/2026` · Front · commit a seguir · regra em [`design.md`](design.md)
+
+**Contexto.** O cinza-azulado frio dá um ar corporativo e transacional; a plataforma lida com
+pessoas e reputação técnica.
+
+**Decisão.** Neutro off-white quente e claro (`--pl-page`/`--pl-app`), com cards brancos.
+
+**Alternativa recusada.** O cinza-azulado frio original — mais duro, menos "de pessoas".
+
+**Consequência.** Card precisa de fundo branco explícito: como `background` não é herdado em CSS,
+um quadro sem fundo deixa o off-white vazar e parece sujo. Regra registrada no `design.md`.
+
+---
+
+## D32 · Selo é marca inline e a linha de tabela tem uma ação só
+
+`14/09/2026` · Front · commit a seguir · regra em [`design.md`](design.md)
+
+**Contexto.** As primeiras telas tinham tarjas com texto ("ART verificada") e várias ações por
+linha de tabela, o que poluía e competia visualmente.
+
+**Decisão.** Verificação é só o símbolo colado à direita do texto (na tabela, ao lado do
+identificador). A linha de tabela tem uma ação — "Ver" — e as demais moram na página de detalhe,
+atrás de um menu de três pontos.
+
+**Alternativa recusada.** Tarjas rotuladas e duas ou mais ações por linha — é o padrão fácil, mas
+enche a tela de ruído e repete o mesmo rótulo em cada linha.
+
+**Consequência.** Telas mais limpas e uma leitura mais rápida; o detalhe passa a ser o lugar das
+ações menos frequentes.

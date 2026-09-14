@@ -1,0 +1,567 @@
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* ===== Pro-Link Design System (canônico) — inline este bloco em toda tela ===== */
+:root{
+  --app-bg:#FBFAF6; --page:#F2EEE7; --card:#FFFFFF; --border:#EDE8DE; --border-2:#F7F3EC;
+  --ink:#0E1726; --muted:#5B6B82; --faint:#8A9BB4;
+  --navy:#0B2A4A; --navy-2:#12315A; --blue:#2E6BE6; --blue-2:#63A0F0; --blue-3:#8FE3FF; --blue-100:#EAF1FE;
+  --seal:#0E7C86; --seal-bg:#E3F3F5; --seal-border:#BFE4E8;        /* VERDE ÁGUA = só selo/verificação (destaque, exclusivo) */
+  --petrol:#1B4079;                                                /* AZUL ESCURO = barras de dados + botão secundário (outline) */
+  --accent:#F26B21; --accent-2:#ff8a3d;                                 /* AÇÃO (só CTA) */
+  --ok:#1FA971; --ok-bg:#E7F6EF; --warn:#E8A317; --warn-bg:#FBF1DD; --danger:#E24A4A; --danger-bg:#FBE9E9;
+  --r:12px;
+  --display:"Space Grotesk",system-ui,sans-serif; --body:"Inter",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--body);line-height:1.55;-webkit-font-smoothing:antialiased}
+.outer{max-width:1280px;margin:0 auto;padding:34px 20px 70px}
+h1.pt{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;letter-spacing:-.02em}
+.lead{color:var(--muted);font-size:14px;margin:0 0 22px;max-width:80ch}
+.cap{display:flex;align-items:center;gap:10px;margin:32px 0 12px}
+.cap .n{font-family:var(--display);font-weight:700;color:var(--blue);font-size:18px}
+.cap h2{font-family:var(--display);font-weight:600;font-size:16px;margin:0}
+.cap .rf{font-size:11.5px;color:var(--muted);border:1px solid var(--border);padding:3px 9px;border-radius:20px;background:var(--card)}
+.frame{position:relative;border-radius:18px;overflow:hidden;border:1px solid #cdd8e8;box-shadow:0 18px 44px rgba(11,42,74,.14);background:var(--app-bg)}
+.wide{width:100%;padding:0 clamp(20px,4vw,44px)}
+.seal{width:18px;height:18px;flex:none} .vmark{width:16px;height:16px;flex:none;vertical-align:-3px} .ico{width:16px;height:16px;flex:none}
+
+/* botões */
+.btn{height:38px;border-radius:var(--r);border:1px solid var(--border);background:var(--card);color:var(--ink);font-family:var(--body);font-weight:600;font-size:13px;padding:0 14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}
+.btn.sm{height:32px;font-size:12px;padding:0 12px;border-radius:8px}
+.btn.blue{background:var(--blue);color:#fff;border:0}
+.btn.warn{color:#a9720a;border-color:#f0dcae;background:var(--warn-bg)}
+.btn.danger{color:#b23434;border-color:#f2c9c9;background:var(--danger-bg)}
+.btn.ghost{background:transparent}
+.btn.petrol{background:transparent;color:var(--petrol);border:1px solid var(--petrol)}   /* botão secundário (ex: Ver detalhes) */
+.btn-out{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--blue);color:var(--blue);font-weight:600;font-size:13.5px;padding:11px 18px;border-radius:var(--r);background:#fff;cursor:pointer}
+.cta{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,var(--accent-2),var(--accent));color:#fff;font-family:var(--body);font-weight:600;font-size:14px;padding:11px 18px;border:0;border-radius:var(--r);cursor:pointer;text-decoration:none;box-shadow:0 8px 20px rgba(242,107,33,.3);white-space:nowrap}
+
+/* app shell (dashboards) — sidebar colapsável */
+.app{display:grid;grid-template-columns:232px 1fr;background:var(--app-bg);min-height:640px;transition:grid-template-columns .22s ease}
+.app.collapsed{grid-template-columns:66px 1fr}
+.side{background:linear-gradient(180deg,var(--navy),var(--navy-2));padding:18px 15px;display:flex;flex-direction:column;gap:4px;overflow:hidden;white-space:nowrap}
+.brand{display:flex;align-items:center;gap:9px;color:#fff;font-family:var(--display);font-weight:700;font-size:17px;margin:6px 8px 18px}
+.brand .m{width:12px;height:12px;border-radius:4px;background:linear-gradient(135deg,var(--blue-2),var(--blue));transform:rotate(45deg);flex:none}
+.side small{color:#8fa8cc;font-size:12px;margin:8px 10px 4px;font-weight:600}
+.nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;color:#aec2e0;text-decoration:none;font-size:13.5px;font-weight:500}
+.nav a .ic{width:17px;height:17px;opacity:.9;flex:none}
+.nav a.active{background:#fff;color:var(--navy);font-weight:600}
+.side .foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-radius:11px;background:rgba(255,255,255,.06);color:#ccdcf1;font-size:12px}
+.side .foot .av{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--blue-2),var(--blue));display:grid;place-items:center;color:#fff;font-weight:600;font-size:11px;font-family:var(--display);flex:none}
+.app.collapsed .name,.app.collapsed .lb,.app.collapsed small,.app.collapsed .foot .txt{display:none}
+.app.collapsed .brand{justify-content:center;margin:6px 0 18px}
+.app.collapsed .nav a{justify-content:center;padding:10px 0}
+.app.collapsed .foot{justify-content:center;padding:10px 0}
+.ham{width:30px;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);color:#cddcf1;cursor:pointer;font-size:0;display:grid;place-items:center;flex:none}
+.ham svg{width:16px;height:16px}
+.brand .ham{margin-left:auto}
+.app.collapsed .brand .m{display:none} .app.collapsed .brand .ham{margin-left:0}
+.main{display:flex;flex-direction:column;min-width:0}
+.topbar{height:60px;display:flex;align-items:center;gap:12px;padding:0 20px;background:var(--card);border-bottom:1px solid var(--border)}
+.topbar h3{font-family:var(--display);font-weight:600;font-size:16px;margin:0}
+.search{margin-left:4px;flex:1;max-width:340px;height:36px;border-radius:9px;background:var(--app-bg);border:1px solid var(--border);display:flex;align-items:center;gap:8px;padding:0 12px;color:var(--faint);font-size:13px}
+.sp{flex:1}
+.ibtn{width:36px;height:36px;border-radius:9px;background:var(--app-bg);border:1px solid var(--border);display:grid;place-items:center;color:var(--muted);position:relative}
+.ibtn .d{position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--danger);border:1.5px solid var(--card)}
+.ibtn svg{width:18px;height:18px}   /* sino/ícones do topbar sempre no mesmo tamanho */
+.av{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--navy-2),var(--blue));display:grid;place-items:center;color:#fff;font-weight:600;font-size:12px;font-family:var(--display);flex:none}
+.content{padding:22px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+
+/* top nav claro (páginas públicas) */
+.topnav{background:var(--card);border-bottom:1px solid var(--border)}
+.topnav .row{display:flex;align-items:center;gap:22px;height:62px}
+.topnav .brand{color:var(--navy)}
+.links{display:flex;gap:20px;margin-left:8px}
+.links a{color:var(--muted);font-size:14px;font-weight:500;text-decoration:none}
+.navcta{margin-left:auto;display:flex;align-items:center;gap:8px}
+.ghostlink{font-weight:600;font-size:14px;color:var(--ink);padding:10px 12px;text-decoration:none}
+
+/* cards / seções */
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:0 8px 22px rgba(11,42,74,.05)}
+.rowhead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.rowhead .t{font-family:var(--display);font-weight:600;font-size:15px;margin:0}
+.rowhead .subt{color:var(--muted);font-size:12.5px}
+
+/* selo de verificação (petróleo) + autodeclarado neutro */
+.verif{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--seal);background:var(--seal-bg);border:1px solid var(--seal-border);padding:6px 11px;border-radius:10px;align-self:flex-start}
+.auto{font-size:11px;color:#4a5a72;background:#E9EEF6;border:1px solid #cdd8e8;border-radius:6px;padding:2px 8px;margin-left:8px;font-weight:600}
+.toschip{display:inline-flex;align-items:center;gap:7px;background:var(--blue-100);color:#215ac2;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+.toschip .code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:500;color:#5a7bb5;font-size:11px}
+
+/* pills de status */
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:20px;white-space:nowrap}
+.pill .pd{width:6px;height:6px;border-radius:50%}
+.pill.ok{color:#137a52;background:var(--ok-bg)} .pill.ok .pd{background:var(--ok)}
+.pill.warn{color:#a9720a;background:var(--warn-bg)} .pill.warn .pd{background:var(--warn)}
+.pill.blue{color:#215ac2;background:var(--blue-100)} .pill.blue .pd{background:var(--blue)}
+.pill.danger{color:#b23434;background:var(--danger-bg)} .pill.danger .pd{background:var(--danger)}
+
+/* inputs / selects / busca (raio consistente, chevron próprio) */
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px;font-weight:600}
+.field label .req{color:var(--danger);margin-left:2px}   /* asterisco de campo obrigatório */
+.field.error input,.field.error textarea,.field.error select,.field.error .inp{border-color:var(--danger);box-shadow:0 0 0 3px rgba(226,74,74,.15)}
+.field .err{display:none;color:var(--danger);font-size:11.5px;margin-top:5px}
+.field.error .err{display:block}
+.inp,.field input,.field textarea{width:100%;min-height:44px;border-radius:var(--r);background:var(--card);border:1px solid var(--border);color:var(--ink);font-family:var(--body);font-size:14px;padding:11px 14px;outline:none}
+.field input:focus,.field textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(46,107,230,.18)}
+.sel{height:44px;border-radius:var(--r);border:1px solid var(--border);background:var(--card);color:var(--ink);font-family:var(--body);font-size:14px;padding:0 36px 0 12px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235B6B82' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;cursor:pointer}
+.sbar{height:46px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);display:flex;align-items:center;gap:9px;padding:0 14px;color:var(--ink);font-size:14px}
+
+/* KPI tiles + barras single-hue */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:0 6px 18px rgba(11,42,74,.05)}
+.kpi .lab{font-size:12px;color:var(--muted)}
+.kpi .val{font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:-.02em;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.kpi .delta{font-size:12px;color:var(--ok);font-weight:600}
+.bar{height:12px;background:var(--app-bg);border-radius:7px;overflow:hidden;border:1px solid var(--border-2)}
+.bar span{display:block;height:100%;border-radius:7px;background:linear-gradient(90deg,var(--blue-2),var(--blue))}
+
+/* aderência por dimensão (feed empresa) — NUNCA nota única/ranking */
+.dim{display:grid;grid-template-columns:110px 1fr 40px;align-items:center;gap:10px;font-size:12.5px;margin-bottom:9px}
+.dim .dlab{color:var(--muted)} .dim .pct{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.dim .bar span{background:var(--petrol)}   /* aderência/compatibilidade = azul petróleo */
+.tos{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--muted)} /* código TOS: mostrar "TOS 1.1.1.1" sem underline, e sempre com o nome legível ao lado */
+
+/* tabelas */
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;padding:0 12px 10px;border-bottom:1px solid var(--border)}
+tbody td{padding:14px 12px;border-bottom:1px solid var(--border-2);vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+td.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.acts{display:flex;gap:7px;justify-content:flex-end}
+
+/* modal */
+.modal[hidden]{display:none}
+.modal{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:20px}
+.backdrop{position:absolute;inset:0;background:rgba(11,26,48,.5)}
+.sheet{position:relative;width:min(460px,100%);max-height:92%;overflow:auto;background:var(--card);border-radius:16px;padding:22px;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+.sheet .x{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer}
+
+/* ===== extensões locais desta tela (mesmos tokens do kit) ===== */
+.artcard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.artcard .arttop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.artcard .artobj{font-family:var(--display);font-weight:600;font-size:14.5px;margin:0}
+.artcard .artmeta{color:var(--muted);font-size:12.5px;margin-top:3px}
+.chiprow{display:flex;flex-wrap:wrap;gap:7px}
+.desc-auto{font-size:12.5px;color:var(--muted);background:var(--app-bg);border:1px solid var(--border-2);border-radius:10px;padding:10px 12px}
+.desc-auto .lbl{display:flex;align-items:center;margin-bottom:4px}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:11.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .dot{width:9px;height:9px;border-radius:3px}
+.divider{border:none;border-top:1px solid var(--border);margin:4px 0}
+.visrow{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 2px;border-bottom:1px solid var(--border-2)}
+.visrow:last-child{border-bottom:0}
+.visrow .vinfo,.lgpdrow .vinfo{display:flex;flex-direction:column;gap:2px;min-width:0}
+.visrow .vt{font-weight:600;font-size:13.5px;display:flex;align-items:center}
+.visrow .vs{font-size:12px;color:var(--muted)}
+.toggle{position:relative;display:inline-block;width:42px;height:24px;flex:none}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle .slider{position:absolute;inset:0;background:var(--border);border-radius:20px;cursor:pointer;transition:.18s}
+.toggle .slider:before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.18s;box-shadow:0 1px 3px rgba(11,42,74,.25)}
+.toggle input:checked + .slider{background:var(--blue)}
+.toggle input:checked + .slider:before{transform:translateX(18px)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+.lgpdrow{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:14px 4px}
+.demandcard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.demandcard .dtop{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.demandcard .dtitle{font-family:var(--display);font-weight:600;font-size:15px;margin:0 0 3px}
+.demandcard .dmeta{color:var(--muted);font-size:12.5px}
+.dimbox{background:var(--app-bg);border:1px solid var(--border-2);border-radius:12px;padding:14px}
+.dimbox .dimtitle{font-size:12px;font-weight:600;color:var(--muted);margin:0 0 12px}
+.seedednote{font-size:11.5px;color:var(--faint);font-style:italic}
+.dcta{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.cta.locked{background:var(--app-bg);color:var(--muted);box-shadow:none;cursor:not-allowed;border:1px solid var(--border)}
+.cta.locked svg{width:15px;height:15px}
+.dcta-locked{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.lockednote{font-size:11.5px;color:var(--faint)}
+.msgbox{background:var(--app-bg);border:1px solid var(--border-2);border-radius:12px;padding:12px 14px;font-size:13.5px;color:var(--ink);line-height:1.5;margin:14px 0}
+.msgbox .lbl{display:block;font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600}
+.mailnote{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--muted);background:var(--blue-100);border:1px solid #d3e2fb;border-radius:10px;padding:10px 12px;margin-bottom:16px}
+.mailnote svg{flex:none;margin-top:1px;color:var(--blue)}
+.modalacts{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
+</style>
+
+<div class="outer">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="seal" viewBox="0 0 40 40">
+<polygon points="39,20 34.5,23.9 36.5,29.5 30.6,30.6 29.5,36.5 23.9,34.5 20,39 16.1,34.5 10.5,36.5 9.4,30.6 3.6,29.5 5.5,23.9 1,20 5.5,16.1 3.6,10.5 9.4,9.4 10.5,3.6 16.1,5.5 20,1 23.9,5.5 29.5,3.6 30.6,9.4 36.5,10.5 34.5,16.1" fill="#0E7C86"/>
+<path d="M13.5 20.5l4 4l9 -10" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></symbol><symbol id="seal-x" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18.5" fill="#9AA7B8"/><path d="M14.5 14.5l11 11M25.5 14.5l-11 11" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></symbol></svg>
+
+<h1 class="pt">Pro-Link, Profissional</h1>
+<p class="lead">Quatro telas do grupo Profissional, restritas aos elementos dos Requisitos Funcionais (RF01, RF03, RF04, RF05): dashboard, portfólio verificado via API, controle de visibilidade e feed de demandas compatíveis por aderência multidimensional.</p>
+
+<!-- TELA 1: DASHBOARD -->
+<div class="cap"><span class="n">01</span><h2>Dashboard Profissional</h2><span class="rf">RF01 · RF03 · RF04</span></div>
+<div class="frame"><div class="app">
+  <aside class="side">
+    <div class="brand"><span class="m"></span><span class="name">Pro-Link</span>
+      <button class="ham" aria-label="Recolher menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></div>
+    <small>Profissional</small>
+    <nav class="nav">
+      <a class="active"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg></span><span class="lb">Início</span></a>
+      <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></span><span class="lb">Meu Perfil</span></a>
+      <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg></span><span class="lb">Portfólio</span></a>
+      <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></span><span class="lb">Demandas Compatíveis</span></a>
+      <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></span><span class="lb">Visibilidade</span></a>
+    </nav>
+    <div class="foot"><span class="av">MB</span><span class="txt">Marina Braga<br><span style="color:#8fa8cc;font-size:11px">Profissional</span></span></div>
+  </aside>
+  <div class="main">
+    <div class="topbar"><h3>Início</h3><div class="sp"></div><div class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="17" height="17"><path d="M6 9a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M9.5 20a2.5 2.5 0 005 0"/></svg><span class="d"></span></div><div class="av">MB</div></div>
+    <div class="content">
+
+      <div class="sbar"><svg viewBox="0 0 24 24" fill="none" width="16" height="16" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="#8A9BB4" stroke-width="2"/><path d="M20 20l-3.6-3.6" stroke="#8A9BB4" stroke-width="2" stroke-linecap="round"/></svg><span style="color:var(--faint)">Buscar...</span></div>
+
+      <div class="kpis">
+        <div class="kpi"><div class="lab">Demandas compatíveis novas</div><div class="val">7</div><div class="delta">+3 esta semana</div></div>
+        <div class="kpi"><div class="lab">Manifestações enviadas</div><div class="val">12</div><div class="delta">2 em análise</div></div>
+        <div class="kpi"><div class="lab">Visualizações do perfil</div><div class="val">34</div><div class="delta">+9 nos últimos 7 dias</div></div>
+        <div class="kpi"><div class="lab">ARTs verificadas</div><div class="val">4</div><div class="delta">100% validadas via API</div></div>
+      </div>
+
+      <div class="card">
+        <div class="rowhead" style="margin-bottom:14px">
+          <div><p class="t">Demandas compatíveis recentes</p><span class="subt">Motor de compatibilização, aderência por dimensão (sem ranking)</span></div>
+        </div>
+        <table>
+          <thead><tr><th>Empresa</th><th>Atividade TOS requerida</th><th>Local</th><th>Publicada</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Construtora Alvorada Ltda</td><td><span class="toschip">Construção Civil, Alvenaria <span class="code">TOS 1.1.1.1</span></span></td><td>Manaus/AM</td><td>há 2 dias</td><td class="acts"><button class="btn sm petrol">Ver</button></td></tr>
+            <tr><td>Engenharia Rio Negro</td><td><span class="toschip">Construção Civil, Obras de Arte <span class="code">TOS 1.2.3.1</span></span></td><td>Manaus/AM</td><td>há 3 dias</td><td class="acts"><button class="btn sm petrol">Ver</button></td></tr>
+            <tr><td>Sec. de Infraestrutura do AM</td><td><span class="toschip">Construção Civil, Alvenaria <span class="code">TOS 1.1.1.1</span></span></td><td>Manaus/AM</td><td>há 5 dias</td><td class="acts"><button class="btn sm petrol">Ver</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="rowhead">
+          <div><p class="t">Seu perfil</p><span class="subt">Como empresas veem sua verificação</span></div>
+          <span class="pill ok"><span class="pd"></span>Perfil público</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;margin-top:14px;flex-wrap:wrap">
+          <div class="av" style="width:48px;height:48px;font-size:15px">MB</div>
+          <div style="flex:1;min-width:180px">
+            <div style="font-family:var(--display);font-weight:600;font-size:15px;line-height:1.3">Marina Braga</div>
+            <div style="color:var(--muted);font-size:12.5px;line-height:1.3;margin-top:2px">Engenharia Civil · RNP 0412340135 · Registro AM99170</div>
+          </div>
+          <button class="btn">Ir para Visibilidade</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div></div>
+
+<!-- TELA 2: PORTFOLIO VERIFICADO -->
+<div class="cap"><span class="n">02</span><h2>Portfólio verificado</h2><span class="rf">RF03</span></div>
+<div class="frame"><div class="app">
+  <aside class="side">
+    <div class="brand"><span class="m"></span><span class="name">Pro-Link</span>
+      <button class="ham" aria-label="Recolher menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></div>
+    <small>Profissional</small>
+    <nav class="nav">
+      <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg></span><span class="lb">Início</span></a>
+      <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></span><span class="lb">Meu Perfil</span></a>
+      <a class="active"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg></span><span class="lb">Portfólio</span></a>
+      <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></span><span class="lb">Demandas Compatíveis</span></a>
+      <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></span><span class="lb">Visibilidade</span></a>
+    </nav>
+    <div class="foot"><span class="av">MB</span><span class="txt">Marina Braga<br><span style="color:#8fa8cc;font-size:11px">Profissional</span></span></div>
+  </aside>
+  <div class="main">
+    <div class="topbar"><h3>Portfólio</h3><div class="sp"></div><div class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="17" height="17"><path d="M6 9a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M9.5 20a2.5 2.5 0 005 0"/></svg><span class="d"></span></div><div class="av">MB</div></div>
+    <div class="content">
+
+      <div class="sbar"><svg viewBox="0 0 24 24" fill="none" width="16" height="16" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="#8A9BB4" stroke-width="2"/><path d="M20 20l-3.6-3.6" stroke="#8A9BB4" stroke-width="2" stroke-linecap="round"/></svg><span style="color:var(--faint)">Buscar...</span></div>
+
+      <div class="legend">
+        <span><span class="dot" style="background:var(--petrol)"></span>Dado verificado pela API oficial do CREA-AM</span>
+        <span><span class="dot" style="background:var(--faint)"></span>Descrição complementar, não verificada pela API</span>
+      </div>
+
+      <div class="card">
+        <div class="rowhead" style="margin-bottom:8px">
+          <div><p class="t">ARTs (2)</p><span class="subt">Vinculadas por RNP, validadas na API do CREA-AM</span></div>
+          <button class="btn petrol">Associar nova ART</button>
+        </div>
+
+        <div class="artcard">
+          <div class="arttop">
+            <div>
+              <p class="artobj">Construção de Escola <svg class="vmark"><use href="#seal"/></svg></p>
+              <div class="artmeta">ART AM20269998821 · Contratante: Prefeitura de Manaus · Manaus/AM · situação: Registrada</div>
+            </div>
+                      </div>
+          <div class="chiprow">
+            <span class="toschip">Construção Civil, Alvenaria <span class="code">TOS 1.1.1.1</span></span>
+          </div>
+          <div class="desc-auto"><div class="lbl">Complementar <svg class="vmark"><use href="#seal-x"/></svg></div>Obra de 6 salas de aula e bloco administrativo, coordenação de equipe de 8 pessoas ao longo de 11 meses.</div>
+        </div>
+
+        <div class="artcard" style="margin-top:12px">
+          <div class="arttop">
+            <div>
+              <p class="artobj">Reforma de Ponte <svg class="vmark"><use href="#seal"/></svg></p>
+              <div class="artmeta">ART AM20269991234 · Contratante: Secretaria de Infraestrutura do AM · Manaus/AM · situação: Registrada</div>
+            </div>
+                      </div>
+          <div class="chiprow">
+            <span class="toschip">Construção Civil, Obras de Arte <span class="code">TOS 1.2.3.1</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="rowhead" style="margin-bottom:8px">
+          <div><p class="t">CATs (1)</p><span class="subt">Certidões de Acervo Técnico, mesmo fluxo de validação das ARTs</span></div>
+        </div>
+        <table>
+          <thead><tr><th>Número</th><th>Tipo</th><th>Finalidade</th><th>Validade</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="mono">AM20269995566 <svg class="vmark"><use href="#seal"/></svg></td>
+              <td>Inicial</td>
+              <td>Licitação</td>
+              <td>10/03/2027</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div></div>
+
+<!-- TELA 3: VISIBILIDADE E DADOS COMPLEMENTARES -->
+<div class="cap"><span class="n">03</span><h2>Visibilidade e dados complementares</h2><span class="rf">RF01</span></div>
+<div class="frame"><div class="app">
+  <aside class="side">
+    <div class="brand"><span class="m"></span><span class="name">Pro-Link</span>
+      <button class="ham" aria-label="Recolher menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></div>
+    <small>Profissional</small>
+    <nav class="nav">
+      <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg></span><span class="lb">Início</span></a>
+      <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></span><span class="lb">Meu Perfil</span></a>
+      <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg></span><span class="lb">Portfólio</span></a>
+      <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></span><span class="lb">Demandas Compatíveis</span></a>
+      <a class="active"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></span><span class="lb">Visibilidade</span></a>
+    </nav>
+    <div class="foot"><span class="av">MB</span><span class="txt">Marina Braga<br><span style="color:#8fa8cc;font-size:11px">Profissional</span></span></div>
+  </aside>
+  <div class="main">
+    <div class="topbar"><h3>Visibilidade</h3><div class="sp"></div><div class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="17" height="17"><path d="M6 9a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M9.5 20a2.5 2.5 0 005 0"/></svg><span class="d"></span></div><div class="av">MB</div></div>
+    <div class="content">
+
+      <div class="card">
+        <div class="rowhead" style="margin-bottom:6px">
+          <div><p class="t">Controle de visibilidade granular</p><span class="subt">Nada é público por padrão, campo a campo e ART a ART</span></div>
+        </div>
+        <div class="sbar" style="margin-bottom:4px"><svg viewBox="0 0 24 24" fill="none" width="16" height="16" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="#8A9BB4" stroke-width="2"/><path d="M20 20l-3.6-3.6" stroke="#8A9BB4" stroke-width="2" stroke-linecap="round"/></svg><span style="color:var(--faint)">Buscar...</span></div>
+        <div class="visrow">
+          <div class="vinfo"><span class="vt">Dados cadastrais básicos</span><span class="vs">Nome, modalidade, registro CREA</span></div>
+          <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+        </div>
+        <div class="visrow">
+          <div class="vinfo"><span class="vt">ART, Construção de Escola</span><span class="vs">AM20269998821 · Prefeitura de Manaus</span></div>
+          <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+        </div>
+        <div class="visrow">
+          <div class="vinfo"><span class="vt">ART, Reforma de Ponte</span><span class="vs">AM20269991234 · Secretaria de Infraestrutura do AM</span></div>
+          <label class="toggle"><input type="checkbox"><span class="slider"></span></label>
+        </div>
+        <div class="visrow">
+          <div class="vinfo"><span class="vt">CAT AM20269995566</span><span class="vs">Finalidade: Licitação</span></div>
+          <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+        </div>
+        <div class="visrow">
+          <div class="vinfo"><span class="vt">Descrições complementares <svg class="vmark"><use href="#seal-x"/></svg></span><span class="vs">Textos livres vinculados às ARTs</span></div>
+          <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="rowhead" style="margin-bottom:14px">
+          <div><p class="t">Dados complementares</p><span class="subt">Não influenciam o motor de compatibilização, campos editáveis, não verificados pela API</span></div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label>Especialidade</label>
+            <select class="sel"><option>Estruturas e fundações</option><option>Infraestrutura urbana</option><option>Edificações escolares</option></select>
+          </div>
+          <div class="field">
+            <label>Tipo de contrato</label>
+            <select class="sel"><option>PJ ou CLT</option><option>Somente PJ</option><option>Somente projetos pontuais</option></select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Disponibilidade geográfica</label>
+          <input class="inp" type="text" value="Região Metropolitana de Manaus, remoto para levantamento e projeto">
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="rowhead" style="margin-bottom:10px">
+          <div><p class="t">Consentimento LGPD</p><span class="subt">Controle direto sobre seus dados a qualquer momento</span></div>
+        </div>
+        <div class="lgpdrow">
+          <div class="vinfo"><span class="vt">Exportar meus dados</span><span class="vs">Gera arquivo com todos os dados vinculados ao seu perfil</span></div>
+          <button class="btn">Exportar dados</button>
+        </div>
+        <hr class="divider">
+        <div class="lgpdrow">
+          <div class="vinfo"><span class="vt">Revogar consentimento</span><span class="vs">Encerra o cadastro e solicita exclusão do perfil</span></div>
+          <button class="btn danger">Revogar consentimento</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div></div>
+
+<!-- TELA 4: FEED DE DEMANDAS COMPATIVEIS -->
+<div class="cap"><span class="n">04</span><h2>Feed de Demandas Compatíveis</h2><span class="rf">RF04 · RF05</span></div>
+<div class="frame"><div class="app">
+  <aside class="side">
+    <div class="brand"><span class="m"></span><span class="name">Pro-Link</span>
+      <button class="ham" aria-label="Recolher menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></div>
+    <small>Profissional</small>
+    <nav class="nav">
+      <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg></span><span class="lb">Início</span></a>
+      <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></span><span class="lb">Meu Perfil</span></a>
+      <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg></span><span class="lb">Portfólio</span></a>
+      <a class="active"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></span><span class="lb">Demandas Compatíveis</span></a>
+      <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></span><span class="lb">Visibilidade</span></a>
+    </nav>
+    <div class="foot"><span class="av">MB</span><span class="txt">Marina Braga<br><span style="color:#8fa8cc;font-size:11px">Profissional</span></span></div>
+  </aside>
+  <div class="main">
+    <div class="topbar"><h3>Demandas Compatíveis</h3><div class="sp"></div><div class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="17" height="17"><path d="M6 9a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M9.5 20a2.5 2.5 0 005 0"/></svg><span class="d"></span></div><div class="av">MB</div></div>
+    <div class="content">
+
+      <div class="sbar"><svg viewBox="0 0 24 24" fill="none" width="16" height="16" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="#8A9BB4" stroke-width="2"/><path d="M20 20l-3.6-3.6" stroke="#8A9BB4" stroke-width="2" stroke-linecap="round"/></svg><span style="color:var(--faint)">Buscar...</span></div>
+
+      <span class="seedednote">Ordem por seeded randomness dentro do pool de compatíveis, sem ranking de qualidade entre profissionais.</span>
+
+      <div class="demandcard">
+        <div class="dtop">
+          <div>
+            <p class="dtitle">Reforma de unidade escolar</p>
+            <div class="dmeta">Construtora Alvorada Ltda · Manaus/AM · Contrato: PJ</div>
+          </div>
+          <div class="chiprow"><span class="toschip">Construção Civil, Alvenaria <span class="code">TOS 1.1.1.1</span></span></div>
+        </div>
+        <div class="dimbox">
+          <p class="dimtitle">Aderência à demanda, por dimensão</p>
+          <div class="dim"><span class="dlab">Atividade TOS</span><div class="bar"><span style="width:94%"></span></div><span class="pct">94%</span></div>
+          <div class="dim"><span class="dlab">Modalidade</span><div class="bar"><span style="width:100%"></span></div><span class="pct">100%</span></div>
+          <div class="dim"><span class="dlab">Localização</span><div class="bar"><span style="width:100%"></span></div><span class="pct">100%</span></div>
+          <div class="dim"><span class="dlab">Disponível</span><div class="bar"><span style="width:100%"></span></div><span class="pct">100%</span></div>
+        </div>
+        <div class="dcta">
+          <span class="seedednote">Compatibilidade calculada sobre dados verificados</span>
+          <button class="cta" id="cta-1" data-modal="modal-manifest-1">Manifestar interesse</button>
+        </div>
+      </div>
+
+      <div class="demandcard">
+        <div class="dtop">
+          <div>
+            <p class="dtitle">Execução de obra viária</p>
+            <div class="dmeta">Engenharia Rio Negro · Manaus/AM · Contrato: PJ ou CLT</div>
+          </div>
+          <div class="chiprow"><span class="toschip">Construção Civil, Obras de Arte <span class="code">TOS 1.2.3.1</span></span></div>
+        </div>
+        <div class="dimbox">
+          <p class="dimtitle">Aderência à demanda, por dimensão</p>
+          <div class="dim"><span class="dlab">Atividade TOS</span><div class="bar"><span style="width:81%"></span></div><span class="pct">81%</span></div>
+          <div class="dim"><span class="dlab">Modalidade</span><div class="bar"><span style="width:100%"></span></div><span class="pct">100%</span></div>
+          <div class="dim"><span class="dlab">Localização</span><div class="bar"><span style="width:100%"></span></div><span class="pct">100%</span></div>
+          <div class="dim"><span class="dlab">Disponível</span><div class="bar"><span style="width:70%"></span></div><span class="pct">70%</span></div>
+        </div>
+        <div class="dcta">
+          <span class="seedednote">Compatibilidade calculada sobre dados verificados</span>
+          <button class="cta" id="cta-2" data-modal="modal-manifest-2">Manifestar interesse</button>
+        </div>
+      </div>
+
+      <div class="demandcard">
+        <div class="dtop">
+          <div>
+            <p class="dtitle">Projeto estrutural de ponte</p>
+            <div class="dmeta">Secretaria de Infraestrutura do AM · Manaus/AM · Contrato: Somente PJ</div>
+          </div>
+          <div class="chiprow"><span class="toschip">Construção Civil, Obras de Arte <span class="code">TOS 1.2.3.1</span></span></div>
+        </div>
+        <div class="dimbox">
+          <p class="dimtitle">Aderência à demanda, por dimensão</p>
+          <div class="dim"><span class="dlab">Atividade TOS</span><div class="bar"><span style="width:88%"></span></div><span class="pct">88%</span></div>
+          <div class="dim"><span class="dlab">Modalidade</span><div class="bar"><span style="width:100%"></span></div><span class="pct">100%</span></div>
+          <div class="dim"><span class="dlab">Localização</span><div class="bar"><span style="width:100%"></span></div><span class="pct">100%</span></div>
+          <div class="dim"><span class="dlab">Disponível</span><div class="bar"><span style="width:100%"></span></div><span class="pct">100%</span></div>
+        </div>
+        <div class="dcta">
+          <span class="seedednote">Compatibilidade calculada sobre dados verificados</span>
+          <div class="dcta-locked">
+            <button class="cta locked" id="cta-3" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Interesse manifestado</button>
+            <span class="lockednote">Você poderá manifestar interesse novamente em 24h.</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal-manifest-1" hidden>
+  <div class="backdrop" data-close></div>
+  <div class="sheet">
+    <button class="x" data-close aria-label="Fechar">×</button>
+    <p class="t" style="font-family:var(--display);font-weight:600;font-size:16px;margin:0 0 4px">Confirmar manifestação de interesse</p>
+    <p class="subt" style="color:var(--muted);font-size:12.5px;margin:0 0 4px">Demanda: <strong style="color:var(--ink)">Reforma de unidade escolar</strong> · Construtora Alvorada Ltda</p>
+    <div class="msgbox"><span class="lbl">Mensagem enviada</span>Olá, tenho interesse nesta demanda e meu acervo técnico é compatível. Podemos conversar sobre os próximos passos?</div>
+    <div class="mailnote"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>Ao confirmar, esta mensagem é enviada por e-mail à outra parte e registrada no histórico.</div>
+    <div class="modalacts">
+      <button class="btn" data-close>Cancelar</button>
+      <button class="cta" data-confirm="cta-1" data-close>Confirmar manifestação</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal-manifest-2" hidden>
+  <div class="backdrop" data-close></div>
+  <div class="sheet">
+    <button class="x" data-close aria-label="Fechar">×</button>
+    <p class="t" style="font-family:var(--display);font-weight:600;font-size:16px;margin:0 0 4px">Confirmar manifestação de interesse</p>
+    <p class="subt" style="color:var(--muted);font-size:12.5px;margin:0 0 4px">Demanda: <strong style="color:var(--ink)">Execução de obra viária</strong> · Engenharia Rio Negro</p>
+    <div class="msgbox"><span class="lbl">Mensagem enviada</span>Olá, tenho interesse nesta demanda e meu acervo técnico é compatível. Podemos conversar sobre os próximos passos?</div>
+    <div class="mailnote"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>Ao confirmar, esta mensagem é enviada por e-mail à outra parte e registrada no histórico.</div>
+    <div class="modalacts">
+      <button class="btn" data-close>Cancelar</button>
+      <button class="cta" data-confirm="cta-2" data-close>Confirmar manifestação</button>
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script>
+document.querySelectorAll('.ham').forEach(function(b){b.addEventListener('click',function(){b.closest('.app').classList.toggle('collapsed');});});
+document.querySelectorAll('[data-modal]').forEach(function(b){var m=document.getElementById(b.getAttribute('data-modal'));if(!m)return;b.addEventListener('click',function(){m.hidden=false;});m.querySelectorAll('[data-close]').forEach(function(x){x.addEventListener('click',function(){m.hidden=true;});});});
+document.querySelectorAll('[data-confirm]').forEach(function(b){b.addEventListener('click',function(){
+  var target=document.getElementById(b.getAttribute('data-confirm'));
+  if(!target)return;
+  target.disabled=true;
+  target.classList.add('locked');
+  target.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Interesse manifestado';
+  var row=target.closest('.dcta');
+  if(row && !row.querySelector('.lockednote')){
+    var note=document.createElement('span');
+    note.className='lockednote';
+    note.style.width='100%';
+    note.style.textAlign='right';
+    note.textContent='Você poderá manifestar interesse novamente em 24h.';
+    row.appendChild(note);
+  }
+});});
+</script>
