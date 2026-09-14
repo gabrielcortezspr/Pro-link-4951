@@ -448,6 +448,11 @@ CREATE TABLE pro_visibilidade (
   vis_log          TEXT     NULL,
   vis_status       CHAR(1)  NOT NULL DEFAULT 'A',
   CONSTRAINT pk_vis_id PRIMARY KEY (vis_id),
+  -- ATENÇÃO: este índice NÃO garante o que o nome sugere. vis_entidade_id e vis_campo aceitam
+  -- nulo (o alvo ART:5 não tem campo; o alvo PERFIL:EMAIL não tem id), e em MariaDB duas linhas
+  -- com NULL na mesma coluna não violam UNIQUE. Um ON DUPLICATE KEY UPDATE aqui nunca casa para
+  -- esses alvos. Quem garante um alvo por titular é VisibilidadeRepository::definir(), que
+  -- procura com <=> antes de escrever. O índice fica porque cobre os alvos sem nulo de graça.
   CONSTRAINT uq_vis_alvo UNIQUE (vis_usu_id, vis_entidade, vis_entidade_id, vis_campo),
   CONSTRAINT fk_vis_usu_id FOREIGN KEY (vis_usu_id) REFERENCES sis_usuarios (usu_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

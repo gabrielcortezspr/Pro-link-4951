@@ -25,6 +25,7 @@ require_once dirname(__DIR__) . '/_config.php';
 use ProLink\Repository\AcervoRepository;
 use ProLink\Repository\ConsentimentoRepository;
 use ProLink\Repository\EmpresaRepository;
+use ProLink\Repository\ExperienciaRepository;
 use ProLink\Repository\ParametroRepository;
 use ProLink\Repository\ProfissionalRepository;
 use ProLink\Repository\QuadroTecnicoRepository;
@@ -32,7 +33,9 @@ use ProLink\Repository\UsuarioRepository;
 use ProLink\Service\ApiIndisponivelException;
 use ProLink\Service\CreaApiClient;
 use ProLink\Service\EmpresaCreaService;
+use ProLink\Service\ExperienciaService;
 use ProLink\Service\PerfilCreaService;
+use ProLink\Service\PerfilService;
 use ProLink\Service\PortfolioService;
 use ProLink\Service\ValidacaoException;
 use ProLink\Service\VisibilidadeService;
@@ -419,6 +422,181 @@ try {
     conferir('sem CONSULTA_API concedida, nem a consulta sai', true);
 }
 
+// ================================================================== EXPERIÊNCIA DECLARADA
+// O outro lado do acervo: o que a pessoa afirma, sem selo, sem conferência — e sem se misturar
+// com o que a API confirmou. É o que fecha o cenário 1 do Anexo I.
+
+secao('Experiência autodeclarada (RF03; cenário 1)');
+
+$experiencias      = new ExperienciaRepository($pdo);
+$servicoExperiencia = new ExperienciaService(
+    $experiencias, $profissionais, new AcervoRepository($pdo),
+);
+
+$prfId   = (int) $prf['prf_id'];
+$artPropria = (int) $acervo->porNumero(ART)['art']['art_id'];
+
+// Limpa o que sobrou de execuções anteriores: o titular é fixo, as experiências não são únicas.
+$pdo->prepare('DELETE FROM pro_experiencias WHERE exp_prf_id = :prf')->execute([':prf' => $prfId]);
+
+$semArt = $servicoExperiencia->criar($usuario, [
+    'titulo' => 'Consultoria antes de ter registro no CREA',
+]);
+
+conferir('experiência SEM ART é aceita, que é o que o edital pede (Anexo I, item 3)', $semArt > 0);
+conferir('e grava exp_art_id nulo, não zero',
+    $experiencias->porId($semArt)['exp_art_id'] === null);
+
+$comArt = $servicoExperiencia->criar($usuario, [
+    'titulo'    => 'Responsável técnico pela reforma estrutural',
+    'descricao' => 'Coordenação da equipe e acompanhamento de execução.',
+    'dt_inicio' => '2024-03-01',
+    'dt_fim'    => '2025-01-31',
+    'art_id'    => (string) $artPropria,
+]);
+
+conferir('experiência COM ART do próprio acervo é aceita',
+    (int) $experiencias->porId($comArt)['exp_art_id'] === $artPropria);
+
+secao('A ART vinculada precisa ser sua');
+
+try {
+    $servicoExperiencia->criar($usuario, ['titulo' => 'Obra alheia', 'art_id' => '999999']);
+    conferir('ART fora do acervo é recusada', false, 'não recusou');
+} catch (ValidacaoException $e) {
+    conferir('ART fora do acervo é recusada', true);
+    // O erro é de campo, não de formulário: a mensagem específica vai em `erros()['art_id']` e
+    // é ela que a macro do Twig imprime embaixo do <select>. O texto do topo continua sendo o
+    // genérico, porque um formulário com cinco campos pode falhar em mais de um.
+    conferir('e o erro aponta o campo, com o motivo, sem falar em erro de sistema',
+        str_contains((string) ($e->erros()['art_id'] ?? ''), 'não está no seu acervo'));
+}
+
+conferir('a experiência recusada não entrou',
+    count($experiencias->porProfissional($prfId)) === 2);
+
+secao('Datas: o calendário, não só o formato');
+
+foreach ([
+    '2026-02-30' => 'dia que não existe em fevereiro',
+    '2026-13-01' => 'mês 13',
+    '14/09/2026' => 'formato brasileiro',
+] as $data => $oQue) {
+    try {
+        $servicoExperiencia->criar($usuario, ['titulo' => 'Teste', 'dt_inicio' => $data]);
+        conferir("recusa {$oQue} ({$data})", false, 'aceitou');
+    } catch (ValidacaoException) {
+        conferir("recusa {$oQue} ({$data})", true);
+    }
+}
+
+try {
+    $servicoExperiencia->criar($usuario, [
+        'titulo' => 'Teste', 'dt_inicio' => '2025-01-01', 'dt_fim' => '2024-01-01',
+    ]);
+    conferir('recusa término anterior ao início', false, 'aceitou');
+} catch (ValidacaoException) {
+    conferir('recusa término anterior ao início', true);
+}
+
+secao('Edição e exclusão conferem o dono (OWASP A01)');
+
+$servicoExperiencia->editar($usuario, $comArt, [
+    'titulo' => 'Responsável técnico pela reforma estrutural do galpão B',
+    'art_id' => (string) $artPropria,
+]);
+
+conferir('o titular edita a própria experiência',
+    $experiencias->porId($comArt)['exp_titulo'] === 'Responsável técnico pela reforma estrutural do galpão B');
+conferir('a edição versiona antes e depois em sis_auditoria', (function (PDO $pdo, int $id): bool {
+    $stmt = $pdo->prepare(
+        'SELECT aud_valor_anterior FROM sis_auditoria
+          WHERE aud_entidade = :e AND aud_entidade_id = :id AND aud_acao = :a
+          ORDER BY aud_id DESC LIMIT 1'
+    );
+    $stmt->execute([':e' => 'pro_experiencias', ':id' => $id, ':a' => 'EDITAR']);
+
+    return str_contains((string) $stmt->fetchColumn(), 'Responsável técnico pela reforma estrutural');
+})($pdo, $comArt));
+
+// Um segundo profissional não existe nesta massa (o RNP é único), então o alheio é representado
+// por um id que não pertence a este perfil — que é exatamente o que chega por formulário.
+try {
+    $servicoExperiencia->editar($usuario, 999999, ['titulo' => 'Sequestro de experiência']);
+    conferir('experiência de outro perfil não é editável', false, 'não recusou');
+} catch (ValidacaoException $e) {
+    conferir('experiência de outro perfil não é editável', true);
+    conferir('e a mensagem não confirma que aquele id existe',
+        !str_contains($e->getMessage(), 'outro') && str_contains($e->getMessage(), 'não encontrada'));
+}
+
+conferir('a tentativa fica em sis_auditoria como ACESSO_NEGADO', (function (PDO $pdo): bool {
+    $stmt = $pdo->prepare(
+        'SELECT COUNT(*) FROM sis_auditoria WHERE aud_entidade = :e AND aud_acao = :a'
+    );
+    $stmt->execute([':e' => 'pro_experiencias', ':a' => 'ACESSO_NEGADO']);
+
+    return (int) $stmt->fetchColumn() >= 1;
+})($pdo));
+
+$servicoExperiencia->excluir($usuario, $semArt);
+
+conferir('excluir some da lista do perfil', count($experiencias->porProfissional($prfId)) === 1);
+conferir('mas a linha continua no banco com status X (item 8.6j)',
+    $experiencias->porId($semArt)['exp_status'] === STATUS_EXCLUIDO);
+
+secao('Declarado e verificado não se misturam na montagem');
+
+$perfilMontado = (new PerfilService(
+    new UsuarioRepository($pdo), $profissionais, new AcervoRepository($pdo),
+    $experiencias, $visibilidadesDoPerfil = new VisibilidadeService(
+        new ProLink\Repository\VisibilidadeRepository($pdo), new ConsentimentoRepository($pdo),
+        $profissionais, new EmpresaRepository($pdo), new UsuarioRepository($pdo),
+    ),
+))->montar($usuario, $usuario);
+
+conferir('o perfil devolve as duas listas separadas',
+    isset($perfilMontado['arts'], $perfilMontado['experiencias']));
+conferir('nenhuma experiência carrega selo: não há o que selar',
+    !array_key_exists('selo_confere', $perfilMontado['experiencias'][0]));
+conferir('toda ART carrega selo reconferido',
+    $perfilMontado['arts'][0]['selo_confere'] === true);
+
+// A armadilha que a D27 criou: alvo novo na tela precisa entrar em `niveis`, senão o formulário
+// desenha o controle e descarta a escolha em silêncio.
+conferir('cada experiência tem chave de visibilidade, senão o controle não salva (D27)',
+    array_key_exists('EXPERIENCIA:' . $comArt . ':-', $perfilMontado['niveis']));
+
+// ART fechada não pode reaparecer escrita dentro de uma experiência aberta.
+$visibilidadesDoPerfil->definir($usuario, 'EXPERIENCIA', $comArt, null, VISIBILIDADE_PUBLICO);
+$visibilidadesDoPerfil->definir($usuario, 'ART', $artPropria, null, VISIBILIDADE_PRIVADO);
+(new ConsentimentoRepository($pdo))->definir($usuario, FINALIDADE_EXIBICAO_PERFIL, true, 'cli');
+
+$paraEspectador = (new PerfilService(
+    new UsuarioRepository($pdo), $profissionais, new AcervoRepository($pdo),
+    $experiencias, $visibilidadesDoPerfil,
+))->montar($usuario, null);
+
+conferir('o espectador vê a experiência aberta', count($paraEspectador['experiencias']) === 1);
+conferir('e não vê a ART fechada', $paraEspectador['arts'] === []);
+conferir('o número da ART fechada NÃO vaza dentro da experiência aberta',
+    $paraEspectador['experiencias'][0]['art_numero'] === null);
+
+$visibilidadesDoPerfil->definir($usuario, 'ART', $artPropria, null, VISIBILIDADE_PUBLICO);
+
+$comArtAberta = (new PerfilService(
+    new UsuarioRepository($pdo), $profissionais, new AcervoRepository($pdo),
+    $experiencias, $visibilidadesDoPerfil,
+))->montar($usuario, null);
+
+conferir('abrindo a ART, o número aparece na experiência',
+    $comArtAberta['experiencias'][0]['art_numero'] === ART);
+
+// Deixa o perfil como estava: nada público por padrão.
+$visibilidadesDoPerfil->definir($usuario, 'ART', $artPropria, null, VISIBILIDADE_PRIVADO);
+$visibilidadesDoPerfil->definir($usuario, 'EXPERIENCIA', $comArt, null, VISIBILIDADE_PRIVADO);
+
+
 // ================================================================== EMPRESA
 // A metade da empresa. Reaproveita a massa da metade do profissional de propósito: o RNP
 // 0412340011 está no quadro técnico da AMAZÔNIA, então a herança de acervo pode ser conferida
@@ -555,6 +733,49 @@ $pendenteEmpresa = usuarioDeVerificacao($pdo, true, null, PERFIL_EMPRESA, null);
 (new ConsentimentoRepository($pdo))->definir($pendenteEmpresa, FINALIDADE_EXIBICAO_PERFIL, true, 'cli');
 conferir('empresa sem linha em pro_empresas fica fechada, mesmo consentindo (D20)',
     $visibilidades->perfilAberto($pendenteEmpresa) === false);
+
+secao('Uma escolha, uma linha — e alternar não para de funcionar (D28)');
+
+// `uq_vis_alvo` não segura alvo com coluna nula (ART tem vis_campo nulo; campo do perfil tem
+// vis_entidade_id nulo), então o ON DUPLICATE KEY UPDATE que existia aqui nunca casava: cada
+// clique inseria linha nova, `nivel()` lia uma das antigas, o serviço concluía "não mudou" e
+// descartava a alteração. Numa tela de privacidade, com mensagem de sucesso na frente do titular.
+$alvo = ['ART', 4242, null];
+
+$pdo->prepare('DELETE FROM pro_visibilidade WHERE vis_usu_id = :u AND vis_entidade_id = 4242')
+    ->execute([':u' => $pendenteEmpresa]);
+
+$sequencia = [VISIBILIDADE_PUBLICO, VISIBILIDADE_PRIVADO, VISIBILIDADE_PUBLICO, VISIBILIDADE_AUTENTICADO];
+
+foreach ($sequencia as $nivel) {
+    $visibilidades->definir($pendenteEmpresa, ...[...$alvo, $nivel]);
+}
+
+$contar = $pdo->prepare(
+    'SELECT COUNT(*) FROM pro_visibilidade WHERE vis_usu_id = :u AND vis_entidade_id = 4242'
+);
+$contar->execute([':u' => $pendenteEmpresa]);
+
+conferir('quatro alterações no mesmo alvo deixam UMA linha, não quatro',
+    (int) $contar->fetchColumn() === 1, 'linhas duplicadas em pro_visibilidade');
+
+$repoVisibilidade = new ProLink\Repository\VisibilidadeRepository($pdo);
+
+conferir('e o nível gravado é o último escolhido, não o primeiro',
+    $repoVisibilidade->nivel($pendenteEmpresa, 'ART', 4242, null) === VISIBILIDADE_AUTENTICADO);
+
+conferir('alternar ida e volta continua tendo efeito na quinta vez',
+    $visibilidades->definir($pendenteEmpresa, ...[...$alvo, VISIBILIDADE_PRIVADO]) === true);
+conferir('e o mapa que a tela lê reflete a última escolha',
+    ($repoVisibilidade->mapaDoUsuario($pendenteEmpresa)['ART:4242:-'] ?? null) === VISIBILIDADE_PRIVADO);
+
+conferir('repetir o mesmo nível continua sendo "nada mudou", sem gravar de novo',
+    $visibilidades->definir($pendenteEmpresa, ...[...$alvo, VISIBILIDADE_PRIVADO]) === false);
+
+// O alvo 4242 é ficção deste bloco — some daqui para as conferências seguintes contarem só o
+// que elas mesmas gravam.
+$pdo->prepare('DELETE FROM pro_visibilidade WHERE vis_usu_id = :u AND vis_entidade_id = 4242')
+    ->execute([':u' => $pendenteEmpresa]);
 
 // O formulário só aceita de volta os alvos que a tela desenhou (D27). A lista permitida aqui
 // imita a de uma empresa com um campo e nenhuma ART.

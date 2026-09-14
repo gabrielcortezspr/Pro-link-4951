@@ -60,6 +60,12 @@ $router->post('/perfil/visibilidade',        PerfilController::class, 'definirVi
 // perfil da sessão. Terceiro não entra — não há registro no CREA para validar.
 $router->post('/perfil/validar-registro',    PerfilController::class, 'validarRegistro', PERFIS_COM_REGISTRO_CREA);
 
+// Experiência autodeclarada (RF03). Só o profissional tem: `exp_prf_id` referencia
+// pro_profissionais, porque quem tem trajetória é a pessoa — a empresa tem quadro técnico.
+$router->post('/perfil/experiencias',                 PerfilController::class, 'criarExperiencia', PERFIL_PROFISSIONAL);
+$router->post('/perfil/experiencias/{id}',            PerfilController::class, 'editarExperiencia', PERFIL_PROFISSIONAL);
+$router->post('/perfil/experiencias/{id}/excluir',    PerfilController::class, 'excluirExperiencia', PERFIL_PROFISSIONAL);
+
 $router->get('/privacidade',                  PrivacidadeController::class, 'index', PERFIS_AUTENTICADOS);
 $router->post('/privacidade/consentimento',   PrivacidadeController::class, 'definirConsentimento', PERFIS_AUTENTICADOS);
 $router->get('/privacidade/exportar',         PrivacidadeController::class, 'exportar', PERFIS_AUTENTICADOS);

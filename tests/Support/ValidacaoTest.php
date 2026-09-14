@@ -79,4 +79,55 @@ final class ValidacaoTest extends TestCase
             self::assertSame(['documento' => 'Informe o CPF.'], $e->erros());
         }
     }
+
+    public function testDataVaziaPassaPorqueCampoDeDataEhOpcional(): void
+    {
+        $v = new Validacao();
+        $v->data('dt_inicio', '', 'Data inválida.')
+          ->data('dt_fim', null, 'Data inválida.')
+          ->data('dt_outra', '   ', 'Data inválida.');
+
+        self::assertTrue($v->valido());
+    }
+
+    public function testDataAceitaOFormatoDoBanco(): void
+    {
+        $v = new Validacao();
+        $v->data('dt_inicio', '2026-09-14', 'Data inválida.');
+
+        self::assertTrue($v->valido());
+    }
+
+    public function testDataRecusaFormatoDiferente(): void
+    {
+        $v = new Validacao();
+        $v->data('a', '14/09/2026', 'Data inválida.')
+          ->data('b', '2026-9-14', 'Data inválida.')
+          ->data('c', 'ontem', 'Data inválida.');
+
+        self::assertSame(['a' => 'Data inválida.', 'b' => 'Data inválida.', 'c' => 'Data inválida.'],
+            $v->erros());
+    }
+
+    public function testDataRecusaDiaQueNaoExisteNoCalendario(): void
+    {
+        // 2026-02-30 casa com a expressão regular e não existe. DateTimeImmutable aceitaria e
+        // rolaria para 2 de março, gravando em silêncio uma data que ninguém digitou.
+        $v = new Validacao();
+        $v->data('fevereiro', '2026-02-30', 'Data inválida.')
+          ->data('mes', '2026-13-01', 'Data inválida.');
+
+        self::assertSame(['fevereiro' => 'Data inválida.', 'mes' => 'Data inválida.'], $v->erros());
+    }
+
+    public function testDataAceitaBissextoDeVerdade(): void
+    {
+        $v = new Validacao();
+        $v->data('bissexto', '2024-02-29', 'Data inválida.');
+        self::assertTrue($v->valido());
+
+        $naoBissexto = new Validacao();
+        $naoBissexto->data('comum', '2026-02-29', 'Data inválida.');
+        self::assertFalse($naoBissexto->valido());
+    }
 }

@@ -15,6 +15,10 @@
     {% endif %}
 </p>
 
+{% if aviso is defined and aviso %}
+    <div class="alert alert-danger" role="alert">{{ aviso }}</div>
+{% endif %}
+
 {% if p.validacao_pendente %}
     <div class="alert alert-warning d-flex flex-wrap gap-3 align-items-center" role="alert">
         <div class="flex-grow-1">
@@ -112,6 +116,113 @@
                 </article>
             {% endfor %}
         {% endif %}
+
+        {#  Experiência autodeclarada. O bloco vem DEPOIS do acervo e com outra cor de propósito:
+            o que a API confirma e o que a pessoa afirma não se misturam, e a ordem na página diz
+            qual dos dois sustenta o outro. #}
+        <h2 class="h5 mt-4">Experiência declarada</h2>
+        <p class="text-body-secondary small">
+            O que você escreve aqui é <strong>autodeclarado</strong>: a plataforma não confere e
+            não sela. Vincular uma ART sua liga o relato a uma evidência — e mesmo assim os dois
+            continuam aparecendo separados.
+        </p>
+
+        {% if p.experiencias is empty %}
+            <p class="text-body-secondary">Nenhuma experiência declarada ainda.</p>
+        {% else %}
+            {% for exp in p.experiencias %}
+                <article class="dado-declarado mb-3">
+                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                        <div>
+                            <h3 class="h6 mb-1">{{ exp.titulo }}</h3>
+                            <p class="small mb-1 text-body-secondary">
+                                {% if exp.dt_inicio or exp.dt_fim %}
+                                    {{ exp.dt_inicio ?: 'início não informado' }} —
+                                    {{ exp.dt_fim ?: 'atual' }}
+                                {% else %}
+                                    Período não informado
+                                {% endif %}
+                            </p>
+                        </div>
+                        <span class="badge text-bg-warning" title="Informado pelo próprio profissional. A plataforma não verificou.">
+                            Declarado
+                        </span>
+                    </div>
+
+                    {% if exp.descricao %}<p class="mb-2">{{ exp.descricao }}</p>{% endif %}
+
+                    {% if exp.art_numero %}
+                        <p class="small mb-2">
+                            Ligada à ART <code>{{ exp.art_numero }}</code>, que está no seu acervo
+                            verificado acima.
+                        </p>
+                    {% endif %}
+
+                    {% if p.eh_dono %}
+                        <form method="post" action="{{ app_url }}/perfil/experiencias/{{ exp.id }}/excluir"
+                              onsubmit="return confirm('Remover esta experiência do seu perfil?');">
+                            {{ form.csrf() }}
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">Remover</button>
+                        </form>
+                    {% endif %}
+                </article>
+            {% endfor %}
+        {% endif %}
+
+        {% if p.eh_dono %}
+            <form method="post" action="{{ app_url }}/perfil/experiencias" class="border rounded p-3 mt-3">
+                {{ form.csrf() }}
+                <h3 class="h6">Adicionar experiência</h3>
+
+                {{ form.campo('titulo', 'O que você fez', 'text',
+                    valores.titulo|default(''), erros.titulo|default(null), {required: true},
+                    'Uma linha. Ex.: Responsável técnico pela reforma estrutural do galpão B.') }}
+
+                {{ form.area('descricao', 'Detalhes (opcional)',
+                    valores.descricao|default(''), erros.descricao|default(null)) }}
+
+                <div class="row">
+                    <div class="col-sm-6">
+                        {{ form.campo('dt_inicio', 'Início (opcional)', 'date',
+                            valores.dt_inicio|default(''), erros.dt_inicio|default(null)) }}
+                    </div>
+                    <div class="col-sm-6">
+                        {{ form.campo('dt_fim', 'Término (opcional)', 'date',
+                            valores.dt_fim|default(''), erros.dt_fim|default(null)) }}
+                    </div>
+                </div>
+
+                {#  Este <select> é escrito à mão, e não com a macro `selecao`.
+                    A macro recebe um mapa chave => rótulo, e montar esse mapa aqui exigiria
+                    `merge({(art.id): ...})` dentro do laço — que é `array_merge` em PHP, e
+                    array_merge RENUMERA chaves inteiras. O resultado é um <select> com value
+                    0, 1, 2, 3 no lugar dos art_id reais 1, 2, 3, 4: cada opção mandaria de volta
+                    o id da ART ANTERIOR, com o rótulo certo na tela. Erro silencioso e do pior
+                    tipo — o dado declarado apontaria para a evidência errada. #}
+                {% set erro_art = erros.art_id|default(null) %}
+                <div class="mb-3">
+                    <label for="campo-art_id" class="form-label">
+                        Vincular a uma ART do seu acervo (opcional)
+                    </label>
+                    <select name="art_id" id="campo-art_id"
+                            class="form-select{% if erro_art %} is-invalid{% endif %}"
+                            {% if erro_art %}aria-invalid="true" aria-describedby="campo-art_id-erro"{% endif %}>
+                        <option value="">Nenhuma — experiência sem ART</option>
+                        {% for art in p.arts %}
+                            <option value="{{ art.id }}"
+                                {%- if valores.art_id|default('') == art.id %} selected{% endif %}>
+                                {{ art.numero }} — {{ art.objeto }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {% if erro_art %}
+                        <div id="campo-art_id-erro" class="invalid-feedback">{{ erro_art }}</div>
+                    {% endif %}
+                </div>
+
+                {{ form.botao('Adicionar experiência') }}
+            </form>
+        {% endif %}
     </div>
 
     <div class="col-lg-5">
@@ -138,6 +249,17 @@
                     {% for art in p.arts %}
                         {% set chave = 'ART:' ~ art.id ~ ':-' %}
                         {{ form.selecao('nivel[' ~ chave ~ ']', art.numero,
+                            niveis_possiveis, p.niveis[chave]|default('PRIVADO'), null, {}, false) }}
+                    {% endfor %}
+                </fieldset>
+            {% endif %}
+
+            {% if p.experiencias is not empty %}
+                <fieldset class="mb-3">
+                    <legend class="h6">Cada experiência declarada</legend>
+                    {% for exp in p.experiencias %}
+                        {% set chave = 'EXPERIENCIA:' ~ exp.id ~ ':-' %}
+                        {{ form.selecao('nivel[' ~ chave ~ ']', exp.titulo,
                             niveis_possiveis, p.niveis[chave]|default('PRIVADO'), null, {}, false) }}
                     {% endfor %}
                 </fieldset>
