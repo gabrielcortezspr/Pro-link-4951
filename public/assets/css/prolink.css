@@ -39,8 +39,10 @@
     --bs-body-bg: var(--pl-page);
     --bs-border-color: var(--pl-border);
     --bs-border-radius: .75rem;
-    --bs-primary: #2E6BE6;
-    --bs-primary-rgb: 46, 107, 230;
+    /* O botão preenchido do Bootstrap é a ação que compromete, e pela D30 essa cor é o laranja.
+       Mapear aqui faz toda tela existente adotar a regra sem reescrever marcação. */
+    --bs-primary: #F26B21;
+    --bs-primary-rgb: 242, 107, 33;
     --bs-link-color: var(--pl-blue);
     --bs-link-color-rgb: 46, 107, 230;
 }
@@ -48,6 +50,34 @@ body { -webkit-font-smoothing: antialiased; }
 h1, h2, h3, h4, h5, h6,
 .h1, .h2, .h3, .h4, .h5, .h6 { font-family: var(--pl-display); letter-spacing: -.01em; }
 .navbar-brand { font-family: var(--pl-display); }
+
+/* Ação primária: o mesmo laranja do .pl-cta, com o texto sempre branco. O Bootstrap calcula
+   contraste sozinho e escolheria preto sobre este laranja. */
+.btn-primary {
+    --bs-btn-bg: var(--pl-accent);
+    --bs-btn-border-color: var(--pl-accent);
+    --bs-btn-color: #fff;
+    --bs-btn-hover-bg: #d95c17;
+    --bs-btn-hover-border-color: #d95c17;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-active-bg: #c85413;
+    --bs-btn-active-border-color: #c85413;
+    --bs-btn-active-color: #fff;
+    --bs-btn-disabled-bg: var(--pl-accent);
+    --bs-btn-disabled-border-color: var(--pl-accent);
+    --bs-btn-disabled-color: #fff;
+    font-weight: 600;
+}
+
+/* Secundário: azul escuro contornado (D30). O outline-secondary do Bootstrap é cinza. */
+.btn-outline-secondary {
+    --bs-btn-color: var(--pl-data);
+    --bs-btn-border-color: var(--pl-data);
+    --bs-btn-hover-bg: var(--pl-data);
+    --bs-btn-hover-border-color: var(--pl-data);
+    --bs-btn-hover-color: #fff;
+    font-weight: 600;
+}
 
 /* ---------- 3. As três classes que já existiam: mesmo nome, aparência nova (D29) ---------- */
 /* Verificado = verde água (não mais o verde escuro do Bootstrap) */
