@@ -68,9 +68,11 @@ flowchart TD
   subgraph ADMG["ADMIN (RF06)"]
     ADM["Painel admin"]
     AUD["Trilha de auditoria<br/>log imutável"]
+    SESS["Sessões do motor<br/>replay pela semente: mesma semente, mesma ordem"]
     DEN["Fila de denúncias + moderação"]
     USRG["Gestão de usuários"]
     ADM --> AUD
+    AUD --> SESS
     ADM --> DEN
     ADM --> USRG
   end
@@ -93,6 +95,29 @@ grava/altera dado** do que é só leitura. É onde a revisão de segurança da E
   e moderação (bloqueio/denúncia). São transacionais e auditados.
 - **Não-críticos** — busca pública, ver perfil público, visualização do feed, notificação por
   e-mail. Falha aqui degrada a experiência, não a integridade.
+
+## Estados fora do caminho feliz
+
+O diagrama acima é o caminho feliz. Estes são os desvios que o design cobre de propósito, porque
+cada um toca um fluxo crítico (a degradação digna é parte do diferencial de segurança):
+
+- **Registro não validado** — no cadastro do profissional a API não respondeu
+  (`profissionais?cpf` indisponível). A conta é criada, o perfil não aparece para ninguém, e a
+  tela do perfil oferece a única saída: "Validar meu registro". Estado recuperável, tom
+  informativo, sem culpar o usuário.
+- **Acervo não importado** — registro validado, mas a importação de ARTs falhou no meio.
+  Mesmo padrão: "Importar minhas ARTs".
+- **Selo divergente** — a exibição do portfólio recalcula o HMAC de cada ART e compara com o
+  hash gravado. Quando não confere, o selo daquela ART é **suspenso** (símbolo âmbar de
+  integridade, nunca o selo verde intacto), a divergência entra na trilha de auditoria e a saída
+  é "Revalidar na API". É o estado mais grave: alerta de integridade, não erro do usuário.
+- **Perfil em construção** — menos ARTs que `match.early_career.min_arts`. O profissional
+  **nunca sai do pool**; a marca é contextual (neutra, junto do acervo) no feed e no perfil, e a
+  busca ativa ganha o filtro "incluir perfis em construção", desligado por padrão. Mitigação de
+  viés declarada na entrega (12.3).
+
+Hierarquia de cor desses estados (regra de design): **âmbar = só integridade/divergência**;
+azul-info neutro = estado recuperável de sincronização; vermelho = só destrutivo/bloqueio.
 
 ## Os seis cenários (Anexo I, item 7) no fluxo
 
