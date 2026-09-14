@@ -25,6 +25,11 @@
                     {% block menu %}{% endblock %}
                     {% set u = usuario() %}
                     {% if u %}
+                        <li class="nav-item"><a class="nav-link" href="{{ app_url }}/perfil">Meu perfil</a></li>
+                        {% if u.perfil in ['EMPRESA', 'TERCEIRO'] %}
+                            <li class="nav-item"><a class="nav-link" href="{{ app_url }}/demandas">Minhas demandas</a></li>
+                        {% endif %}
+                        <li class="nav-item"><a class="nav-link" href="{{ app_url }}/demandas/abertas">Demandas abertas</a></li>
                         {% if u.perfil == 'ADMIN' %}<li class="nav-item"><a class="nav-link" href="{{ app_url }}/admin">Administração</a></li>{% endif %}
                         <li class="nav-item"><span class="nav-link text-body-secondary">{{ u.nome }}</span></li>
                         <li class="nav-item"><a class="nav-link" href="{{ app_url }}/privacidade">Privacidade</a></li>

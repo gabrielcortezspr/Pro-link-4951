@@ -22,7 +22,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | Fundação (antes da E0) | D01, D02, D03, D04, D05 |
 | E0 — fundação que faltou | D06 |
 | E1 — identidade e consentimento | D07, D08, D09, D10, D11, D12 |
-| E2 — integração com a API | D13, D14, D15, D16, D17, D18, D19, D20, D21, D22, D23, D24, D25, D26, D27 |
+| E2 — integração com a API | D13 a D27, D28, D29 |
 
 ---
 
@@ -834,3 +834,96 @@ GET seguinte faria de qualquer jeito.
 Fica registrado o método, que vale para o endurecimento da E7: a defesa foi conferida com uma
 requisição forjada de verdade, não por leitura do código. As duas falhas estavam na tela do
 profissional desde a D22 e passaram por uma revisão sem serem vistas.
+
+---
+
+## D28 · A unicidade do alvo de visibilidade é do repositório, porque o índice não a garante (revisa a D22)
+
+`14/09/2026` · E2 · commit a seguir · `src/Repository/VisibilidadeRepository.php`,
+`_arq/estrutura.sql` (`uq_vis_alvo`)
+
+**Contexto.** Ao escrever a verificação da experiência declarada, uma conferência falhou de um
+jeito impossível: abrir uma ART que estava fechada não surtia efeito. A investigação encontrou
+`pro_visibilidade` com **seis linhas para o mesmo alvo** — o mesmo titular, a mesma ART, níveis
+diferentes.
+
+A causa é a mesma armadilha que a D25 já tinha documentado do outro lado do sistema.
+`uq_vis_alvo` cobre (usuário, entidade, entidade_id, campo), e as duas últimas colunas aceitam
+nulo por desenho: o alvo `ART:5` não tem campo, o alvo `PERFIL:EMAIL` não tem id. **Em MariaDB
+duas linhas com NULL na mesma coluna não violam UNIQUE**, então o `ON DUPLICATE KEY UPDATE` do
+repositório nunca casava para alvo nenhum desta tabela — todos têm pelo menos uma coluna nula.
+Cada clique inseria linha nova.
+
+O efeito não era acumular linhas, que seria só feio. `nivel()` devolvia uma das duplicatas, o
+serviço comparava a escolha nova contra um valor antigo, concluía "não mudou" e **descartava a
+alteração** — devolvendo "Visibilidade atualizada" ao titular. Numa tela de privacidade, a
+plataforma dizia ter obedecido e não tinha.
+
+**Decisão.** A unicidade do alvo passa a ser garantida pelo repositório: `definir()` procura a
+linha com `<=>` (igualdade null-safe, que funciona onde o índice não funciona) e decide entre
+UPDATE e INSERT. `nivel()` e `mapaDoUsuario()` ganharam ordem explícita, para que uma base que
+já tenha duplicatas leia a escolha mais recente em vez de sortear. O índice permanece — cobre de
+graça os alvos sem nulo —, e o comentário dele em `estrutura.sql` passa a dizer a verdade sobre o
+que ele não garante.
+
+**Alternativa recusada.** Fazer o banco garantir de verdade, com uma coluna gerada persistente
+(`CONCAT(entidade, ':', IFNULL(id,'-'), ':', IFNULL(campo,'-'))`) dentro do índice único. É mais
+sólido — o banco passaria a recusar a duplicata em vez de depender de todo mundo usar o
+repositório — e foi recusada por duas razões. A primeira é que colocaria o formato de
+`Visibilidade::chave()` também em SQL, criando dois lugares para um fato só, exatamente o que o
+princípio de manutenção do `CLAUDE.md` proíbe; no dia em que a chave mudasse de formato, o índice
+discordaria em silêncio. A segunda é a data: faltam três dias para a entrega, e trocar o esquema
+de uma tabela de privacidade exige migração em toda máquina da equipe. Fica anotado como melhoria
+pós-entrega.
+
+**Consequência.** As duplicatas já gravadas precisam sair das bases existentes — o `DELETE` está
+em `docs/estado.md`, junto com os `ALTER` pendentes. E fica a lição, que já custou duas vezes:
+**neste projeto, `ON DUPLICATE KEY UPDATE` só é confiável quando nenhuma coluna do índice aceita
+nulo.** Vale para `uq_vis_alvo` e para `uq_qut_emp_pro`, e é a primeira coisa a conferir no
+próximo índice com coluna opcional.
+
+Também fica registrado como o defeito apareceu: não numa revisão de código — ele sobreviveu à
+revisão que escreveu a D27, na mesma tabela —, mas numa conferência de comportamento que falhou
+por um motivo que não fazia sentido. Falha inexplicável é sintoma, não ruído.
+
+---
+
+## D29 · Experiência declarada não empresta evidência alheia, nem reabre o que o titular fechou
+
+`14/09/2026` · E2 · commit a seguir · `src/Service/ExperienciaService.php`,
+`src/Service/PerfilService.php`
+
+**Contexto.** A experiência autodeclarada é, por definição, o que a plataforma **não** verifica —
+o edital pede que ela exista "com ou sem ART/CAT" (Anexo I, item 3), e quem trabalhou sem registro
+precisa caber. A tentação é tratar o bloco inteiro como texto livre e não conferir nada. Mas o
+campo `exp_art_id` muda a natureza do que está sendo dito: deixa de ser "eu afirmo que fiz" e
+passa a ser "e o documento X do CREA sustenta isso".
+
+**Decisão.** Duas conferências, e só duas.
+
+A ART informada é conferida contra o acervo do próprio profissional. A chave estrangeira do banco
+não serve: ela garante que a ART **existe**, e existir não é pertencer. Sem a conferência, o
+bloco de dado declarado viraria o caminho fácil para pendurar no próprio perfil a evidência de
+outra pessoa — justamente o que a plataforma existe para tornar impossível.
+
+E o número da ART só viaja dentro da experiência se **aquela ART** também estiver visível para
+aquele espectador. Uma ART fechada não reaparece escrita dentro de uma experiência aberta.
+
+**Alternativa recusada.** Para a segunda, deixar o número aparecer sempre, com o argumento de que
+o titular escolheu abrir a experiência e o número é parte do texto dela. É plausível e está
+errado: as duas escolhas são sobre coisas diferentes, e quem fecha uma ART está dizendo "não
+quero que saibam deste trabalho", não "não quero que este trabalho apareça nesta lista
+específica". Respeitar a escolha só na lista e furá-la no parágrafo ao lado seria uma falsa
+escolha — o mesmo erro que a D23 recusou ao não deixar o nome ser ocultável.
+
+**Consequência.** Experiência e acervo saem da montagem como duas listas separadas, e nenhuma
+experiência carrega `selo_confere` — não há o que selar, e uma chave com valor `null` ali
+convidaria algum template futuro a desenhar um selo cinza, que é pior do que nenhum. A separação
+continua no CSS, com `.dado-declarado` e `.selo-art` em cores diferentes desde antes desta etapa.
+
+Fica também um efeito colateral útil: a conferência de posse da ART foi o que expôs um defeito no
+próprio formulário. O `<select>` de ARTs estava sendo montado com `merge` no Twig, que é
+`array_merge` em PHP e **renumera chaves inteiras** — os `value` saíam 0, 1, 2, 3 no lugar dos
+`art_id` reais 1, 2, 3, 4, e cada opção mandaria de volta o id da ART anterior, com o rótulo certo
+na tela. Sem a conferência, o vínculo errado teria sido gravado em silêncio. O `<select>` passou a
+ser escrito à mão, com o porquê no template.

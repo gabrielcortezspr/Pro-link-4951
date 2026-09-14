@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ProLink\Controller;
 
 use ProLink\Service\EmpresaCreaService;
+use ProLink\Service\ExperienciaService;
 use ProLink\Service\PerfilCreaService;
 use ProLink\Service\PerfilEmpresaService;
 use ProLink\Service\PerfilService;
@@ -38,28 +39,61 @@ final class PerfilController
         private readonly VisibilidadeService $visibilidades = new VisibilidadeService(),
         private readonly PerfilCreaService $perfilCrea = new PerfilCreaService(),
         private readonly EmpresaCreaService $empresaCrea = new EmpresaCreaService(),
+        private readonly ExperienciaService $experiencias = new ExperienciaService(),
     ) {
     }
 
     public function index(): string
     {
-        $usuarioId = (int) Sessao::usuarioId();
-        $ehEmpresa = Sessao::temPerfil(PERFIL_EMPRESA);
-        $perfil    = $this->montar($usuarioId, $ehEmpresa);
+        return $this->renderizar();
+    }
 
-        if ($perfil === null) {
-            return View::erro(404, 'Perfil não encontrado.');
+    // ---------------------------------------------------------------- experiência autodeclarada
+
+    /**
+     * Registra uma experiência (RF03; cenário 1 do Anexo I).
+     *
+     * Erro de validação **não redireciona**: a tela volta com os erros por campo e com o que a
+     * pessoa digitou, como no cadastro. Uma descrição de experiência é texto longo, e perdê-la
+     * por causa de uma data mal formatada seria o jeito mais fácil de a pessoa desistir de
+     * preencher o perfil.
+     */
+    public function criarExperiencia(): string
+    {
+        try {
+            $this->experiencias->criar((int) Sessao::usuarioId(), $_POST);
+        } catch (ValidacaoException $e) {
+            return $this->renderizar($e->erros(), $e->getMessage());
         }
 
-        return View::render($ehEmpresa ? 'perfil/empresa.html.twig' : 'perfil/index.html.twig', [
-            'titulo' => 'Meu perfil',
-            'perfil' => $perfil,
-            'niveis_possiveis' => [
-                VISIBILIDADE_PRIVADO     => 'Só eu',
-                VISIBILIDADE_AUTENTICADO => 'Quem tem conta',
-                VISIBILIDADE_PUBLICO     => 'Qualquer pessoa',
-            ],
-        ]);
+        Flash::sucesso('Experiência registrada. Ela aparece como dado declarado, separada do que '
+            . 'o CREA confirma.');
+        View::redirecionar('/perfil');
+    }
+
+    public function editarExperiencia(string $id): string
+    {
+        try {
+            $this->experiencias->editar((int) Sessao::usuarioId(), (int) $id, $_POST);
+        } catch (ValidacaoException $e) {
+            return $this->renderizar($e->erros(), $e->getMessage());
+        }
+
+        Flash::sucesso('Experiência atualizada.');
+        View::redirecionar('/perfil');
+    }
+
+    public function excluirExperiencia(string $id): string
+    {
+        try {
+            $this->experiencias->excluir((int) Sessao::usuarioId(), (int) $id);
+        } catch (ValidacaoException $e) {
+            Flash::erro($e->getMessage());
+            View::redirecionar('/perfil');
+        }
+
+        Flash::sucesso('Experiência removida do seu perfil.');
+        View::redirecionar('/perfil');
     }
 
     /**
@@ -111,6 +145,38 @@ final class PerfilController
         return $ehEmpresa
             ? $this->perfisEmpresa->montar($usuarioId, $usuarioId)
             : $this->perfis->montar($usuarioId, $usuarioId);
+    }
+
+    /**
+     * A própria tela, com ou sem erros de um formulário que acabou de falhar.
+     *
+     * `valores` é o POST cru, para o formulário devolver o que a pessoa digitou. Não há senha
+     * nesta tela, então não há o que remover antes de devolver.
+     *
+     * @param array<string, string> $erros
+     */
+    private function renderizar(array $erros = [], ?string $aviso = null): string
+    {
+        $usuarioId = (int) Sessao::usuarioId();
+        $ehEmpresa = Sessao::temPerfil(PERFIL_EMPRESA);
+        $perfil    = $this->montar($usuarioId, $ehEmpresa);
+
+        if ($perfil === null) {
+            return View::erro(404, 'Perfil não encontrado.');
+        }
+
+        return View::render($ehEmpresa ? 'perfil/empresa.html.twig' : 'perfil/index.html.twig', [
+            'titulo'  => 'Meu perfil',
+            'perfil'  => $perfil,
+            'erros'   => $erros,
+            'aviso'   => $aviso,
+            'valores' => $erros === [] ? [] : $_POST,
+            'niveis_possiveis' => [
+                VISIBILIDADE_PRIVADO     => 'Só eu',
+                VISIBILIDADE_AUTENTICADO => 'Quem tem conta',
+                VISIBILIDADE_PUBLICO     => 'Qualquer pessoa',
+            ],
+        ]);
     }
 
     /**

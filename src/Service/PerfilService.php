@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ProLink\Service;
 
 use ProLink\Repository\AcervoRepository;
+use ProLink\Repository\ExperienciaRepository;
 use ProLink\Repository\ProfissionalRepository;
 use ProLink\Repository\UsuarioRepository;
 use ProLink\Support\Acervo;
@@ -34,6 +35,7 @@ final class PerfilService
         private readonly UsuarioRepository $usuarios = new UsuarioRepository(),
         private readonly ProfissionalRepository $profissionais = new ProfissionalRepository(),
         private readonly AcervoRepository $acervo = new AcervoRepository(),
+        private readonly ExperienciaRepository $experiencias = new ExperienciaRepository(),
         private readonly VisibilidadeService $visibilidades = new VisibilidadeService(),
     ) {
     }
@@ -80,6 +82,10 @@ final class PerfilService
         // Uma leitura do acervo, usada tanto para a lista quanto para os controles do dono.
         $acervo = $profissional === null ? [] : $this->acervo->porRnp((string) $profissional['prf_rnp']);
 
+        $experiencias = $profissional === null
+            ? []
+            : $this->experiencias->porProfissional((int) $profissional['prf_id']);
+
         return [
             'usuario_id'   => $donoId,
             'eh_dono'      => $ehDono,
@@ -88,6 +94,7 @@ final class PerfilService
             'campos'       => $campos,
             'modalidades'  => $modalidades,
             'arts'         => $this->arts($acervo, $visao, $espectadorId),
+            'experiencias' => $this->experiencias($experiencias, $acervo, $visao),
 
             // Estados que só o titular vê, porque são recado para ele agir (D20, D21).
             'validacao_pendente'       => $ehDono && $profissional === null
@@ -97,7 +104,7 @@ final class PerfilService
             'em_construcao'            => (bool) ($profissional['prf_em_construcao'] ?? false),
 
             // Níveis escolhidos, para o dono desenhar os controles. Vazio para os outros.
-            'niveis'       => $ehDono ? $this->niveis($visao, $acervo) : [],
+            'niveis'       => $ehDono ? $this->niveis($visao, $acervo, $experiencias) : [],
             'campos_do_perfil' => Visibilidade::CAMPOS_DO_PERFIL,
         ];
     }
@@ -149,10 +156,71 @@ final class PerfilService
     }
 
     /**
+     * As experiências visíveis, cada uma sabendo se está amarrada a uma ART do acervo.
+     *
+     * **Nada aqui tem selo, e é o ponto.** O que sai deste método é o que a pessoa afirmou; o que
+     * sai de `arts()` é o que a API confirmou. O template dá cores diferentes aos dois
+     * (`.dado-declarado` e `.selo-art`), e a separação começa aqui, na montagem, e não lá.
+     *
+     * Quando `exp_art_id` aponta para uma ART, o número dela viaja junto — mas só se a ART também
+     * estiver visível para este espectador. Uma ART fechada não pode reaparecer pela porta dos
+     * fundos, escrita dentro de uma experiência aberta.
+     *
+     * @param list<array<string, mixed>> $experiencias
      * @param list<array<string, mixed>> $acervo
+     * @return list<array<string, mixed>>
+     */
+    private function experiencias(array $experiencias, array $acervo, Visao $visao): array
+    {
+        $numeroPorId = [];
+
+        foreach ($acervo as $art) {
+            $id = (int) $art['art_id'];
+
+            if ($visao->podeVer(Visibilidade::ART, $id)) {
+                $numeroPorId[$id] = (string) $art['art_numero'];
+            }
+        }
+
+        $visiveis = [];
+
+        foreach ($experiencias as $experiencia) {
+            $id = (int) $experiencia['exp_id'];
+
+            if (!$visao->podeVer(Visibilidade::EXPERIENCIA, $id)) {
+                continue;
+            }
+
+            $artId = $experiencia['exp_art_id'] === null ? null : (int) $experiencia['exp_art_id'];
+
+            $visiveis[] = [
+                'id'         => $id,
+                'titulo'     => $experiencia['exp_titulo'],
+                'descricao'  => $experiencia['exp_descricao'],
+                'dt_inicio'  => $experiencia['exp_dt_inicio'],
+                'dt_fim'     => $experiencia['exp_dt_fim'],
+                'art_id'     => $artId,
+                'art_numero' => $artId === null ? null : ($numeroPorId[$artId] ?? null),
+                'nivel'      => $visao->nivel(Visibilidade::EXPERIENCIA, $id),
+            ];
+        }
+
+        return $visiveis;
+    }
+
+    /**
+     * As chaves de alvo que esta tela desenha — e, por isso mesmo, as únicas que o POST de
+     * visibilidade aceita de volta (D27).
+     *
+     * Alvo novo no perfil precisa entrar aqui **junto** com o controle no template. Esquecer
+     * significa que a tela mostra um seletor e o formulário descarta a escolha em silêncio: falha
+     * fechada, que é o comportamento certo, mas parece defeito.
+     *
+     * @param list<array<string, mixed>> $acervo
+     * @param list<array<string, mixed>> $experiencias
      * @return array<string, string> chave do alvo => nível escolhido
      */
-    private function niveis(Visao $visao, array $acervo): array
+    private function niveis(Visao $visao, array $acervo, array $experiencias): array
     {
         $niveis = [];
 
@@ -164,6 +232,12 @@ final class PerfilService
         foreach ($acervo as $art) {
             $id = (int) $art['art_id'];
             $niveis[Visibilidade::chave(Visibilidade::ART, $id, null)] = $visao->nivel(Visibilidade::ART, $id);
+        }
+
+        foreach ($experiencias as $experiencia) {
+            $id = (int) $experiencia['exp_id'];
+            $niveis[Visibilidade::chave(Visibilidade::EXPERIENCIA, $id, null)]
+                = $visao->nivel(Visibilidade::EXPERIENCIA, $id);
         }
 
         return $niveis;

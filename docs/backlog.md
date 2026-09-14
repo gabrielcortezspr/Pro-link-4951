@@ -92,7 +92,7 @@ por 15 minutos; a exportação devolve JSON; `sis_auditoria` mostra tudo isso.
 > **Em andamento.** Prontos: o transporte injetável do `CreaApiClient` (D08, D13, D14, D16) e o
 > `PortfolioService` com a operação atômica 1 — importação do acervo, associação de ART à mão,
 > mescla que não apaga campo preenchido e Selo ART cobrindo as atividades (D17, D18). Verificado
-> por `scripts/verificar-e2.php`: 108 conferências contra o banco, sem gastar chamada da API.
+> por `scripts/verificar-e2.php`: 138 conferências contra o banco, sem gastar chamada da API.
 >
 > A herança pelo CAO ficou destravada de graça: a regra é binária e a view já a implementa (D19).
 >
@@ -112,8 +112,15 @@ por 15 minutos; a exportação devolve JSON; `sis_auditoria` mostra tudo isso.
 > inválido no meio do lote deixava metade das escolhas gravadas. Conferido com requisição forjada,
 > antes e depois.
 >
-> Falta, na ordem: experiência autodeclarada, perfil público `/perfil/{id}`, CATs e
-> `sincronizar-status.php`.
+> Pronta também a **experiência autodeclarada** (D29): repositório, serviço, formulário na própria
+> `/perfil` e o bloco `.dado-declarado` ao lado — nunca dentro — do acervo verificado. A ART
+> vinculada é conferida contra o acervo do titular, e o número dela respeita a visibilidade da
+> própria ART. Conferir isso expôs dois defeitos: o `<select>` montado com `merge` no Twig mandava
+> o `art_id` errado, e `pro_visibilidade` duplicava linha a cada clique porque `uq_vis_alvo` não
+> segura coluna nula (D28) — este último fazia a tela de privacidade **descartar alterações em
+> silêncio**.
+>
+> Falta, na ordem: perfil público `/perfil/{id}`, CATs e `sincronizar-status.php`.
 
 **Cobre:** RF02, RF03; edital 8.4, Anexo I item 6; proposta cenários 01 e 03A, diferenciais 2
 (dado verificado) e "perfil em construção". **Destrava o cenário 1.**
@@ -143,6 +150,11 @@ por 15 minutos; a exportação devolve JSON; `sis_auditoria` mostra tudo isso.
   guardá-la em coluna, como a D01 fez com o índice de evidência. Decidir junto com a tela.
 - Experiência autodeclarada (`pro_experiencias`), com ou sem ART. Template mostra dado da API
   e dado declarado com estilos distintos (`.selo-art` / `.dado-declarado`).
+  > **Pronta** (D29). Sem ART é o caso principal, não a exceção. Com ART, a posse é conferida —
+  > a chave estrangeira garante que a ART existe, não que é sua. Edição versiona antes e depois
+  > em `sis_auditoria` (operação atômica 4 da proposta), e exclusão é lógica.
+  > **Só o profissional tem**: `exp_prf_id` referencia `pro_profissionais`, porque quem tem
+  > trajetória é a pessoa — a empresa tem quadro técnico.
 - Visibilidade granular (`pro_visibilidade`): por campo do perfil e por ART. **Nada público
   por padrão.** Perfil público em `/perfil/{id}` respeita isso.
   > **Pronta e em uso** (D22): `Support\Visibilidade` (regras), `Support\Visao` (decisão em
@@ -282,6 +294,11 @@ Metade da nota depende disto. Não é "se sobrar tempo".
 - **Conferir com requisição forjada, não por leitura.** Foi assim que as duas falhas da D27
   apareceram, depois de já terem passado por revisão de código. Todo formulário que aceita
   identificador de volta (`nivel[ART:<id>]`, e os que vierem em E3 a E6) merece a mesma sonda.
+- **Índice UNIQUE com coluna que aceita nulo não garante nada** (D25, D28), e já custou duas
+  vezes. Varrer `estrutura.sql` atrás de todo `UNIQUE` com coluna opcional e conferir se o código
+  que escreve nele usa `ON DUPLICATE KEY UPDATE` — se usar, está quebrado.
+- **Melhoria pós-entrega anotada na D28**: fazer o banco garantir a unicidade do alvo de
+  visibilidade com coluna gerada, em vez de depender de todo mundo passar pelo repositório.
 - **`Sessao` guarda o perfil em `$_SESSION` e nunca o reconfere contra o banco.** O
   `sessaoTemRespaldo()` derruba sessão revogada, mas mudança de papel — o rebaixamento para
   Terceiro da D20/D26, e principalmente o bloqueio pelo administrador da E6 — só vale no próximo

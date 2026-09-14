@@ -51,6 +51,35 @@ final class Validacao
         return $this->exigir($campo, mb_strlen((string) $valor) >= $minimo, $mensagem);
     }
 
+    /**
+     * Data no formato do banco (`Y-m-d`), aceitando vazio.
+     *
+     * Vazio passa porque campo de data opcional é a regra no perfil — experiência sem data é
+     * experiência válida, não erro. Quem exige presença é `obrigatorio()`, encadeado antes.
+     *
+     * A conferência é de calendário, não de formato: `2026-02-30` casa com a expressão regular e
+     * não existe. `DateTimeImmutable` aceitaria e rolaria para 2 de março, gravando em silêncio
+     * uma data que o titular não digitou.
+     */
+    public function data(string $campo, ?string $valor, string $mensagem): self
+    {
+        $valor = trim((string) $valor);
+
+        if ($valor === '') {
+            return $this;
+        }
+
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $valor, $partes) !== 1) {
+            return $this->exigir($campo, false, $mensagem);
+        }
+
+        return $this->exigir(
+            $campo,
+            checkdate((int) $partes[2], (int) $partes[3], (int) $partes[1]),
+            $mensagem,
+        );
+    }
+
     /** @param list<string> $permitidos */
     public function entre(string $campo, ?string $valor, array $permitidos, string $mensagem): self
     {

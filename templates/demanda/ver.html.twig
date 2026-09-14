@@ -1,0 +1,179 @@
+{% extends 'layout/base.html.twig' %}
+{% import 'layout/_form.html.twig' as form %}
+
+{% block titulo %}{{ demanda.dem_titulo }} — Pro-Link{% endblock %}
+
+{% block conteudo %}
+{% set d = demanda %}
+
+<h1 class="h3 mb-1">{{ d.dem_titulo }}</h1>
+<p class="text-body-secondary">
+    {% if d.dem_local_municipio %}{{ d.dem_local_municipio }}{% if d.dem_local_uf %}/{{ d.dem_local_uf }}{% endif %} · {% endif %}
+    {{ d.dem_tipo_contrato ?: 'Contrato a combinar' }} ·
+    {% if d.dem_dt_publicacao is null %}
+        <span class="badge text-bg-secondary">Rascunho — só você vê</span>
+    {% elseif d.dem_situacao == 'ENCERRADA' %}
+        <span class="badge text-bg-dark">Encerrada</span>
+    {% elseif d.dem_situacao == 'COM_INTERESSADOS' %}
+        <span class="badge text-bg-success">Com interessados</span>
+    {% else %}
+        <span class="badge text-bg-primary">Aberta</span>
+    {% endif %}
+</p>
+
+<div class="row g-4 mt-1">
+    <div class="col-lg-7">
+        <h2 class="h5">Escopo</h2>
+        <p style="white-space: pre-line">{{ d.dem_escopo }}</p>
+
+        <h2 class="h5 mt-4">Atividades da Tabela de Obras e Serviços</h2>
+        <p class="text-body-secondary small">
+            É por estes códigos que a plataforma encontra quem já comprovou fazer este tipo de
+            serviço — a ART registrada no CREA aponta para os mesmos códigos.
+        </p>
+
+        {% if d.tos is empty %}
+            <div class="alert alert-warning" role="alert">
+                Nenhum código escolhido. Sem pelo menos um, a demanda não pode ser publicada:
+                não haveria por onde procurar quem a atende.
+            </div>
+        {% else %}
+            <ul class="list-group mb-3">
+                {% for t in d.tos %}
+                    <li class="list-group-item d-flex flex-wrap justify-content-between align-items-start gap-2">
+                        <div>
+                            <code>{{ t.codigo }}</code>
+                            {% if t.peso >= 1 %}
+                                <span class="badge text-bg-primary">Principal</span>
+                            {% else %}
+                                <span class="badge text-bg-secondary">Secundária</span>
+                            {% endif %}
+                            <br><span class="small">{{ t.descricao }}</span>
+                        </div>
+                        {% if eh_dono and d.dem_situacao != 'ENCERRADA' %}
+                            <div class="d-flex gap-1">
+                                <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/tos">
+                                    {{ form.csrf() }}
+                                    <input type="hidden" name="codigo" value="{{ t.codigo }}">
+                                    <input type="hidden" name="acao" value="{{ t.peso >= 1 ? 'secundaria' : 'principal' }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                        {{ t.peso >= 1 ? 'Tornar secundária' : 'Tornar principal' }}
+                                    </button>
+                                </form>
+                                <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/tos">
+                                    {{ form.csrf() }}
+                                    <input type="hidden" name="codigo" value="{{ t.codigo }}">
+                                    <input type="hidden" name="acao" value="remover">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
+                                </form>
+                            </div>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% if eh_dono and d.dem_situacao != 'ENCERRADA' %}
+            {# Busca por GET: o resultado precisa sobreviver a um recarregamento e ser
+               compartilhável, e a demanda já está salva — não há o que perder no caminho. #}
+            <form method="get" action="{{ app_url }}/demandas/{{ d.dem_id }}" class="row g-2 align-items-end mb-3">
+                <div class="col-sm-9">
+                    <label for="campo-q" class="form-label">Procurar atividade</label>
+                    <input type="search" name="q" id="campo-q" class="form-control"
+                           value="{{ busca }}" minlength="3"
+                           placeholder="edificação, ponte, elétrica…">
+                    <div class="form-text">
+                        Termo isolado funciona melhor que frase: os textos da tabela começam com
+                        preposição. Acento e maiúscula não fazem diferença.
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <button type="submit" class="btn btn-outline-primary w-100">Procurar</button>
+                </div>
+            </form>
+
+            {% if busca is not empty %}
+                {% if resultados is empty %}
+                    <p class="text-body-secondary">Nada encontrado para “{{ busca }}”.</p>
+                {% else %}
+                    <ul class="list-group">
+                        {% for r in resultados %}
+                            <li class="list-group-item d-flex flex-wrap justify-content-between align-items-start gap-2">
+                                <div>
+                                    <code>{{ r.tos_codigo }}</code>
+                                    <br><span class="small">{{ r.descricao }}</span>
+                                </div>
+                                <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/tos">
+                                    {{ form.csrf() }}
+                                    <input type="hidden" name="codigo" value="{{ r.tos_codigo }}">
+                                    <input type="hidden" name="acao" value="adicionar">
+                                    <button type="submit" class="btn btn-sm btn-primary">Adicionar</button>
+                                </form>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endif %}
+        {% endif %}
+    </div>
+
+    {% if eh_dono %}
+        <div class="col-lg-5">
+            <h2 class="h5">Situação</h2>
+
+            {% if d.dem_dt_publicacao is null %}
+                <p class="text-body-secondary small">
+                    Enquanto for rascunho, ninguém além de você enxerga esta demanda.
+                </p>
+                <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/publicar" class="mb-3">
+                    {{ form.csrf() }}
+                    <button type="submit" class="btn btn-primary"
+                            {% if d.tos is empty %}disabled aria-describedby="sem-tos"{% endif %}>
+                        Publicar demanda
+                    </button>
+                    {% if d.tos is empty %}
+                        <div id="sem-tos" class="form-text">Escolha ao menos um código para publicar.</div>
+                    {% endif %}
+                </form>
+            {% elseif d.dem_situacao != 'ENCERRADA' %}
+                <p class="text-body-secondary small">
+                    Publicada em {{ d.dem_dt_publicacao }}.
+                </p>
+                <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/encerrar" class="mb-3"
+                      onsubmit="return confirm('Encerrar esta demanda? Ela sai da vitrine e continua no seu painel.');">
+                    {{ form.csrf() }}
+                    <button type="submit" class="btn btn-outline-dark">Encerrar demanda</button>
+                </form>
+            {% else %}
+                <p class="text-body-secondary small">
+                    Encerrada em {{ d.dem_dt_encerramento }}. O histórico permanece.
+                </p>
+            {% endif %}
+
+            {% if d.dem_situacao != 'ENCERRADA' %}
+                <h2 class="h5 mt-4">Editar</h2>
+                <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}">
+                    {{ form.csrf() }}
+                    {{ form.campo('titulo', 'Título', 'text', d.dem_titulo, erros.titulo|default(null), {required: true}) }}
+                    {{ form.area('escopo', 'Escopo', d.dem_escopo, erros.escopo|default(null), {required: true, rows: 5}) }}
+                    <div class="row">
+                        <div class="col-8">
+                            {{ form.campo('local_municipio', 'Município', 'text', d.dem_local_municipio, null) }}
+                        </div>
+                        <div class="col-4">
+                            {{ form.campo('local_uf', 'UF', 'text', d.dem_local_uf, erros.local_uf|default(null), {maxlength: 2}) }}
+                        </div>
+                    </div>
+                    {{ form.campo('tipo_contrato', 'Tipo de contrato', 'text', d.dem_tipo_contrato, null) }}
+                    {{ form.selecao('alvo', 'Quem pode atender', {
+                        'A': 'Profissionais e empresas',
+                        'P': 'Somente profissionais',
+                        'E': 'Somente empresas'
+                    }, d.dem_alvo, erros.alvo|default(null), {required: true}, false) }}
+                    {{ form.botao('Salvar alterações', 'outline-primary') }}
+                </form>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

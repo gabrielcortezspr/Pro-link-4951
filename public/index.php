@@ -16,6 +16,7 @@ require_once dirname(__DIR__) . '/_config.php';
 
 use ProLink\Controller\AdminController;
 use ProLink\Controller\AuthController;
+use ProLink\Controller\DemandaController;
 use ProLink\Controller\HomeController;
 use ProLink\Controller\PerfilController;
 use ProLink\Controller\PrivacidadeController;
@@ -60,10 +61,29 @@ $router->post('/perfil/visibilidade',        PerfilController::class, 'definirVi
 // perfil da sessão. Terceiro não entra — não há registro no CREA para validar.
 $router->post('/perfil/validar-registro',    PerfilController::class, 'validarRegistro', PERFIS_COM_REGISTRO_CREA);
 
+// Experiência autodeclarada (RF03). Só o profissional tem: `exp_prf_id` referencia
+// pro_profissionais, porque quem tem trajetória é a pessoa — a empresa tem quadro técnico.
+$router->post('/perfil/experiencias',                 PerfilController::class, 'criarExperiencia', PERFIL_PROFISSIONAL);
+$router->post('/perfil/experiencias/{id}',            PerfilController::class, 'editarExperiencia', PERFIL_PROFISSIONAL);
+$router->post('/perfil/experiencias/{id}/excluir',    PerfilController::class, 'excluirExperiencia', PERFIL_PROFISSIONAL);
+
 $router->get('/privacidade',                  PrivacidadeController::class, 'index', PERFIS_AUTENTICADOS);
 $router->post('/privacidade/consentimento',   PrivacidadeController::class, 'definirConsentimento', PERFIS_AUTENTICADOS);
 $router->get('/privacidade/exportar',         PrivacidadeController::class, 'exportar', PERFIS_AUTENTICADOS);
 $router->post('/privacidade/excluir',         PrivacidadeController::class, 'excluir', PERFIS_AUTENTICADOS);
+
+// ---------------------------------------------------------------- demandas (RF04)
+// A vitrine é de qualquer usuário autenticado — o profissional precisa ver o que existe para
+// manifestar interesse. Publicar é de empresa e terceiro (Anexo I, item 3).
+$router->get('/demandas/abertas',        DemandaController::class, 'abertas', PERFIS_AUTENTICADOS);
+$router->get('/demandas',                DemandaController::class, 'index', PERFIS_DEMANDANTES);
+$router->get('/demandas/nova',           DemandaController::class, 'formulario', PERFIS_DEMANDANTES);
+$router->post('/demandas',               DemandaController::class, 'criar', PERFIS_DEMANDANTES);
+$router->get('/demandas/{id}',           DemandaController::class, 'ver', PERFIS_AUTENTICADOS);
+$router->post('/demandas/{id}',          DemandaController::class, 'editar', PERFIS_DEMANDANTES);
+$router->post('/demandas/{id}/tos',      DemandaController::class, 'alterarTos', PERFIS_DEMANDANTES);
+$router->post('/demandas/{id}/publicar', DemandaController::class, 'publicar', PERFIS_DEMANDANTES);
+$router->post('/demandas/{id}/encerrar', DemandaController::class, 'encerrar', PERFIS_DEMANDANTES);
 
 // ---------------------------------------------------------------- administração (RF06)
 $router->get('/admin',                AdminController::class, 'index', PERFIL_ADMIN);

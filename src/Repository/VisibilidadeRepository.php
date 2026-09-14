@@ -30,7 +30,8 @@ final class VisibilidadeRepository extends Repositorio
         $stmt = $this->pdo->prepare(
             'SELECT vis_entidade, vis_entidade_id, vis_campo, vis_nivel
                FROM pro_visibilidade
-              WHERE vis_usu_id = :usuario AND vis_status = :ativo'
+              WHERE vis_usu_id = :usuario AND vis_status = :ativo
+              ORDER BY vis_id'
         );
         $stmt->execute([':usuario' => $usuarioId, ':ativo' => STATUS_ATIVO]);
 
@@ -49,14 +50,18 @@ final class VisibilidadeRepository extends Repositorio
         return $mapa;
     }
 
-    /** @return string|null nível gravado, ou null se o titular nunca decidiu sobre este alvo */
+    /**
+     * @return string|null nível gravado, ou null se o titular nunca decidiu sobre este alvo
+     */
     public function nivel(int $usuarioId, string $entidade, ?int $entidadeId, ?string $campo): ?string
     {
         $stmt = $this->pdo->prepare(
             'SELECT vis_nivel FROM pro_visibilidade
               WHERE vis_usu_id = :usuario AND vis_entidade = :entidade
                 AND vis_entidade_id <=> :entidade_id AND vis_campo <=> :campo
-                AND vis_status = :ativo'
+                AND vis_status = :ativo
+              ORDER BY vis_id DESC
+              LIMIT 1'
         );
         $stmt->execute([
             ':usuario'     => $usuarioId,
@@ -72,22 +77,55 @@ final class VisibilidadeRepository extends Repositorio
     }
 
     /**
-     * Grava a escolha do titular.
+     * Grava a escolha do titular, procurando a linha antes em vez de confiar no índice.
      *
-     * `<=>` no WHERE e `uq_vis_alvo` no banco tratam NULL como valor comparável: o alvo
-     * "PERFIL, sem id, sem campo" é um alvo, e não uma linha que nunca casa consigo mesma. Sem
-     * isso, o perfil inteiro ganharia uma linha nova a cada clique.
+     * **`uq_vis_alvo` não garante o que o nome promete.** Ele cobre
+     * (usuário, entidade, entidade_id, campo), e as duas últimas colunas aceitam nulo: o alvo
+     * `ART:5` tem `vis_campo` nulo, o alvo `PERFIL:EMAIL` tem `vis_entidade_id` nulo. Em MariaDB
+     * duas linhas com NULL na mesma coluna **não** violam UNIQUE — então o
+     * `ON DUPLICATE KEY UPDATE` que estava aqui nunca casava, e cada clique do titular inseria
+     * uma linha nova em vez de atualizar a dele.
+     *
+     * O efeito não era cosmético. `nivel()` devolvia uma das linhas duplicadas, o serviço
+     * comparava a escolha nova com um valor antigo, concluía "não mudou" e **descartava a
+     * alteração** — numa tela de privacidade, com a mensagem de sucesso na frente do titular.
+     *
+     * A mesma armadilha está documentada em `QuadroTecnicoRepository`, e a solução é a mesma:
+     * procurar com `<=>` (igualdade null-safe, que funciona onde o índice não funciona) e decidir
+     * entre UPDATE e INSERT. O índice fica, porque ainda cobre os alvos sem nulo e não custa nada.
      */
     public function definir(int $usuarioId, string $entidade, ?int $entidadeId, ?string $campo, string $nivel): void
     {
-        $stmt = $this->pdo->prepare(
+        $procurar = $this->pdo->prepare(
+            'SELECT vis_id FROM pro_visibilidade
+              WHERE vis_usu_id = :usuario AND vis_entidade = :entidade
+                AND vis_entidade_id <=> :entidade_id AND vis_campo <=> :campo
+              ORDER BY vis_id DESC
+              LIMIT 1'
+        );
+        $procurar->execute([
+            ':usuario'     => $usuarioId,
+            ':entidade'    => $entidade,
+            ':entidade_id' => $entidadeId,
+            ':campo'       => $campo,
+        ]);
+
+        $id = $procurar->fetchColumn();
+
+        if ($id !== false) {
+            $this->pdo->prepare(
+                'UPDATE pro_visibilidade SET vis_nivel = :nivel, vis_status = :ativo
+                  WHERE vis_id = :id'
+            )->execute([':nivel' => $nivel, ':ativo' => STATUS_ATIVO, ':id' => (int) $id]);
+
+            return;
+        }
+
+        $this->pdo->prepare(
             'INSERT INTO pro_visibilidade
                 (vis_usu_id, vis_entidade, vis_entidade_id, vis_campo, vis_nivel, vis_status)
-             VALUES (:usuario, :entidade, :entidade_id, :campo, :nivel, :ativo)
-             ON DUPLICATE KEY UPDATE vis_nivel = VALUES(vis_nivel), vis_status = VALUES(vis_status)'
-        );
-
-        $stmt->execute([
+             VALUES (:usuario, :entidade, :entidade_id, :campo, :nivel, :ativo)'
+        )->execute([
             ':usuario'     => $usuarioId,
             ':entidade'    => $entidade,
             ':entidade_id' => $entidadeId,

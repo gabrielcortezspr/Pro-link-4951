@@ -1,0 +1,57 @@
+{% extends 'layout/base.html.twig' %}
+{% import 'layout/_form.html.twig' as form %}
+
+{% block titulo %}Minhas demandas — Pro-Link{% endblock %}
+
+{% block conteudo %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="h3 mb-0">Minhas demandas</h1>
+    <a class="btn btn-primary" href="{{ app_url }}/demandas/nova">Nova demanda</a>
+</div>
+
+{% if demandas is empty %}
+    <p class="text-body-secondary">
+        Nenhuma demanda ainda. Comece publicando o que você precisa que seja feito — a plataforma
+        procura quem já comprovou fazer aquilo, pela Tabela de Obras e Serviços.
+    </p>
+{% else %}
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <caption class="visually-hidden">Demandas publicadas por você, com situação e número de interessados</caption>
+            <thead>
+                <tr>
+                    <th scope="col">Demanda</th>
+                    <th scope="col">Situação</th>
+                    <th scope="col">Interessados</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in demandas %}
+                    <tr>
+                        <td>
+                            <a href="{{ app_url }}/demandas/{{ d.dem_id }}">{{ d.dem_titulo }}</a>
+                            {% if d.dem_local_municipio %}
+                                <br><span class="small text-body-secondary">
+                                    {{ d.dem_local_municipio }}{% if d.dem_local_uf %}/{{ d.dem_local_uf }}{% endif %}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if d.dem_dt_publicacao is null %}
+                                <span class="badge text-bg-secondary">Rascunho</span>
+                            {% elseif d.dem_situacao == 'ENCERRADA' %}
+                                <span class="badge text-bg-dark">Encerrada</span>
+                            {% elseif d.dem_situacao == 'COM_INTERESSADOS' %}
+                                <span class="badge text-bg-success">Com interessados</span>
+                            {% else %}
+                                <span class="badge text-bg-primary">Aberta</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ d.interessados }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+{% endblock %}
