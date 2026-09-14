@@ -1,33 +1,140 @@
-/* Pro-Link — ajustes sobre o Bootstrap 5.
-   Dado verificado pela API e dado autodeclarado nunca se confundem visualmente:
-   é a tradução em CSS do compromisso central da proposta. */
+/* Pro-Link — tema sobre o Bootstrap 5. Ver docs/design.md e docs/decisoes.md (D28-D33).
+   O Bootstrap continua a base (grid, JS, formulários); aqui mora a identidade: paleta,
+   tipografia e os componentes pl-. Dado verificado pela API e dado autodeclarado nunca se
+   confundem — é a tradução em CSS do compromisso central da proposta. */
 
+/* ---------- 1. Tokens ---------- */
 :root {
-    --pl-verificado: #0f5132;
-    --pl-verificado-bg: #d1e7dd;
-    --pl-declarado: #664d03;
-    --pl-declarado-bg: #fff3cd;
+    --pl-page: #F2EEE7;        /* fundo atrás dos quadros (off-white quente, D31) */
+    --pl-app: #FBFAF6;         /* fundo da área de conteúdo */
+    --pl-card: #FFFFFF;        /* card — sempre branco explícito */
+    --pl-border: #EDE8DE;
+    --pl-border-2: #F7F3EC;
+    --pl-ink: #0E1726;
+    --pl-muted: #5B6B82;
+    --pl-faint: #8A9BB4;
+    --pl-navy: #0B2A4A;
+    --pl-navy-2: #12315A;
+    --pl-blue: #2E6BE6;        /* link, marca, acento */
+    --pl-blue-2: #63A0F0;
+    --pl-blue-100: #EAF1FE;
+    --pl-seal: #0E7C86;        /* VERDE ÁGUA — só verificação (D29) */
+    --pl-seal-bg: #E3F3F5;
+    --pl-seal-border: #BFE4E8;
+    --pl-data: #1B4079;        /* AZUL ESCURO — barra de dado e botão secundário (D30) */
+    --pl-accent: #F26B21;      /* LARANJA — única ação preenchida (D30) */
+    --pl-accent-2: #ff8a3d;
+    --pl-ok: #1FA971;   --pl-ok-bg: #E7F6EF;
+    --pl-warn: #E8A317; --pl-warn-bg: #FBF1DD;
+    --pl-danger: #E24A4A; --pl-danger-bg: #FBE9E9;
+    --pl-r: 12px;
+    --pl-display: "Space Grotesk", system-ui, sans-serif;
+    --pl-body: "Inter", system-ui, sans-serif;
 }
 
+/* ---------- 2. Bootstrap re-tematizado (as telas atuais adotam a identidade sem mudar marcação) ---------- */
+:root {
+    --bs-body-font-family: var(--pl-body);
+    --bs-body-color: var(--pl-ink);
+    --bs-body-bg: var(--pl-page);
+    --bs-border-color: var(--pl-border);
+    --bs-border-radius: .75rem;
+    --bs-primary: #2E6BE6;
+    --bs-primary-rgb: 46, 107, 230;
+    --bs-link-color: var(--pl-blue);
+    --bs-link-color-rgb: 46, 107, 230;
+}
+body { -webkit-font-smoothing: antialiased; }
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 { font-family: var(--pl-display); letter-spacing: -.01em; }
+.navbar-brand { font-family: var(--pl-display); }
+
+/* ---------- 3. As três classes que já existiam: mesmo nome, aparência nova (D29) ---------- */
+/* Verificado = verde água (não mais o verde escuro do Bootstrap) */
 .selo-art {
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
-    font-size: .8125rem;
-    font-weight: 600;
-    padding: .15rem .5rem;
-    border-radius: 999px;
-    color: var(--pl-verificado);
-    background: var(--pl-verificado-bg);
+    display: inline-flex; align-items: center; gap: .35rem;
+    font-size: .8125rem; font-weight: 600; padding: .15rem .55rem; border-radius: 999px;
+    color: var(--pl-seal); background: var(--pl-seal-bg); border: 1px solid var(--pl-seal-border);
 }
-
+/* Autodeclarado = neutro cinza (não mais amarelo, D29) */
 .dado-declarado {
-    border-left: 3px solid var(--pl-declarado);
-    background: var(--pl-declarado-bg);
-    padding: .5rem .75rem;
+    border-left: 3px solid var(--pl-faint);
+    background: #F1F3F6;
+    padding: .5rem .75rem; border-radius: 6px;
 }
+.perfil-em-construcao { border-left: 3px solid #6c757d; }
 
-/* Sinalização de perfil em construção — inclui sem igualar ao experiente. */
-.perfil-em-construcao {
-    border-left: 3px solid #6c757d;
-}
+/* ---------- 4. Símbolo de verificação inline (D29, D32) ---------- */
+.pl-seal { width: 18px; height: 18px; flex: none; }       /* verde água chanfrado (#seal) */
+.pl-mark { width: 16px; height: 16px; flex: none; vertical-align: -3px; }  /* #seal ou #seal-x */
+
+/* ---------- 5. App-shell das páginas logadas: sidebar + topbar (D33) ---------- */
+.pl-app { display: grid; grid-template-columns: 232px 1fr; background: var(--pl-app);
+    min-height: calc(100vh - 120px); border: 1px solid var(--pl-border); border-radius: 16px; overflow: hidden; }
+.pl-app.collapsed { grid-template-columns: 66px 1fr; }
+.pl-side { background: linear-gradient(180deg, var(--pl-navy), var(--pl-navy-2));
+    padding: 18px 15px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; white-space: nowrap; }
+.pl-side .pl-brand { display: flex; align-items: center; gap: 9px; color: #fff;
+    font-family: var(--pl-display); font-weight: 700; font-size: 17px; margin: 6px 8px 18px; }
+.pl-side .pl-brand .m { width: 12px; height: 12px; border-radius: 4px;
+    background: linear-gradient(135deg, var(--pl-blue-2), var(--pl-blue)); transform: rotate(45deg); flex: none; }
+.pl-side small { color: #8fa8cc; font-size: 12px; margin: 8px 10px 4px; font-weight: 600; }
+.pl-nav a { display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 10px;
+    color: #aec2e0; text-decoration: none; font-size: 13.5px; font-weight: 500; }
+.pl-nav a.active { background: #fff; color: var(--pl-navy); font-weight: 600; }
+.pl-nav a:hover { color: #fff; }
+.pl-side .foot { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px;
+    border-radius: 11px; background: rgba(255,255,255,.06); color: #ccdcf1; font-size: 12px; }
+.pl-main { display: flex; flex-direction: column; min-width: 0; }
+.pl-topbar { height: 60px; display: flex; align-items: center; gap: 12px; padding: 0 20px;
+    background: var(--pl-card); border-bottom: 1px solid var(--pl-border); }
+.pl-topbar h1, .pl-topbar h2, .pl-topbar h3 { font-size: 16px; margin: 0; }
+.pl-content { padding: 22px; display: flex; flex-direction: column; gap: 18px; }
+.pl-ham { width: 30px; height: 30px; border-radius: 8px; border: 1px solid rgba(255,255,255,.16);
+    background: rgba(255,255,255,.07); color: #cddcf1; cursor: pointer; display: grid; place-items: center; flex: none; }
+.pl-brand .pl-ham { margin-left: auto; }
+
+/* ---------- 6. Card, pill, tos, kpi, barra de aderência ---------- */
+.pl-card { background: var(--pl-card); border: 1px solid var(--pl-border); border-radius: 16px;
+    padding: 18px; box-shadow: 0 8px 22px rgba(11,42,74,.05); }
+.pl-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600;
+    padding: 4px 9px; border-radius: 20px; white-space: nowrap; }
+.pl-pill .pd { width: 6px; height: 6px; border-radius: 50%; }
+.pl-pill.ok { color: #137a52; background: var(--pl-ok-bg); }      .pl-pill.ok .pd { background: var(--pl-ok); }
+.pl-pill.warn { color: #a9720a; background: var(--pl-warn-bg); }  .pl-pill.warn .pd { background: var(--pl-warn); }
+.pl-pill.neutral { color: var(--pl-muted); background: #EEF0F3; } .pl-pill.neutral .pd { background: var(--pl-faint); }
+.pl-pill.danger { color: #b23434; background: var(--pl-danger-bg); } .pl-pill.danger .pd { background: var(--pl-danger); }
+.pl-tos { display: inline-flex; align-items: center; gap: 7px; background: var(--pl-blue-100);
+    color: #215ac2; border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.pl-tos .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 500; color: #5a7bb5; font-size: 11px; }
+.pl-kpi { background: var(--pl-card); border: 1px solid var(--pl-border); border-radius: 14px;
+    padding: 16px; box-shadow: 0 6px 18px rgba(11,42,74,.05); }
+.pl-kpi .lab { font-size: 12px; color: var(--pl-muted); }
+.pl-kpi .val { font-family: var(--pl-display); font-weight: 700; font-size: 30px; letter-spacing: -.02em;
+    margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+/* aderência por dimensão — nunca nota única nem ranking (item 10.1) */
+.pl-dim { display: grid; grid-template-columns: 120px 1fr 44px; align-items: center; gap: 10px;
+    font-size: 12.5px; margin-bottom: 9px; }
+.pl-dim .dlab { color: var(--pl-muted); }
+.pl-dim .pct { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pl-bar { height: 12px; background: var(--pl-app); border-radius: 7px; overflow: hidden; border: 1px solid var(--pl-border-2); }
+.pl-bar span { display: block; height: 100%; border-radius: 7px; background: var(--pl-data); }  /* azul escuro (D30) */
+
+/* ---------- 7. Botões (pl-): laranja = única ação preenchida; azul escuro = secundário contornado ---------- */
+.pl-cta { display: inline-flex; align-items: center; gap: 7px; border: 0; border-radius: var(--pl-r);
+    background: linear-gradient(135deg, var(--pl-accent-2), var(--pl-accent)); color: #fff;
+    font-family: var(--pl-body); font-weight: 600; font-size: 14px; padding: 11px 18px; cursor: pointer;
+    text-decoration: none; box-shadow: 0 8px 20px rgba(242,107,33,.3); white-space: nowrap; }
+.pl-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 38px;
+    padding: 0 14px; border-radius: var(--pl-r); border: 1px solid var(--pl-data); background: transparent;
+    color: var(--pl-data); font-family: var(--pl-body); font-weight: 600; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.pl-btn.sm { height: 32px; font-size: 12px; padding: 0 12px; border-radius: 8px; }
+
+/* ---------- 8. Tabela no nosso padrão (classe própria, não toca a .table do Bootstrap) ---------- */
+.pl-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.pl-table thead th { text-align: left; font-size: 12px; color: var(--pl-muted); font-weight: 600;
+    padding: 0 12px 10px; border-bottom: 1px solid var(--pl-border); }
+.pl-table tbody td { padding: 14px 12px; border-bottom: 1px solid var(--pl-border-2); vertical-align: middle; }
+.pl-table tbody tr:last-child td { border-bottom: 0; }
+.pl-table td.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+    color: var(--pl-muted); font-variant-numeric: tabular-nums; }
