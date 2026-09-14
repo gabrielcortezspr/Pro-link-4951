@@ -1,8 +1,11 @@
 {% extends 'layout/base.html.twig' %}
 
-{# O painel ocupa a largura toda: coluna estreita com laterais vazias desperdiça a tela onde
-   mora tabela. As demais telas seguem com o container padrão do bloco. #}
-{% block classe_main %}container-fluid px-4{% endblock %}
+{# O painel É a página, não um quadro dentro dela: a sidebar vai do topo ao rodapé da janela.
+   Por isso a navbar clara e o rodapé do site saem daqui, e o main perde container e padding.
+   A navegação do site inteiro continua acessível pela sidebar. #}
+{% block cabecalho %}{% endblock %}
+{% block rodape %}{% endblock %}
+{% block classe_main %}p-0{% endblock %}
 
 {% block conteudo %}
 <div class="pl-app">
