@@ -16,6 +16,7 @@ require_once dirname(__DIR__) . '/_config.php';
 
 use ProLink\Controller\AdminController;
 use ProLink\Controller\AuthController;
+use ProLink\Controller\DenunciaController;
 use ProLink\Controller\HomeController;
 use ProLink\Controller\PerfilController;
 use ProLink\Controller\PrivacidadeController;
@@ -64,6 +65,11 @@ $router->get('/privacidade',                  PrivacidadeController::class, 'ind
 $router->post('/privacidade/consentimento',   PrivacidadeController::class, 'definirConsentimento', PERFIS_AUTENTICADOS);
 $router->get('/privacidade/exportar',         PrivacidadeController::class, 'exportar', PERFIS_AUTENTICADOS);
 $router->post('/privacidade/excluir',         PrivacidadeController::class, 'excluir', PERFIS_AUTENTICADOS);
+
+// ---------------------------------------------------------------- denúncias (RF06)
+// Qualquer conta autenticada denuncia, inclusive Terceiro. Anônimo recebe 401.
+$router->get('/denuncias/nova', DenunciaController::class, 'formulario', PERFIS_AUTENTICADOS);
+$router->post('/denuncias',     DenunciaController::class, 'registrar',  PERFIS_AUTENTICADOS);
 
 // ---------------------------------------------------------------- administração (RF06)
 $router->get('/admin',                AdminController::class, 'index', PERFIL_ADMIN);
