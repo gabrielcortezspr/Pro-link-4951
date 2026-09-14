@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/_config.php';
 
+use ProLink\Repository\AuditoriaRepository;
 use ProLink\Repository\UsuarioRepository;
 use ProLink\Service\DenunciaService;
 use ProLink\Service\ValidacaoException;
@@ -201,6 +202,25 @@ conferir(
 
 // Devolve a cobaia ao estado ativo: o script é insumo das próximas rodadas e da demonstração.
 (new UsuarioRepository())->alterarStatus($alvoId, STATUS_ATIVO);
+
+secao('Trilha de auditoria');
+
+$trilha = new AuditoriaRepository();
+
+conferir('a trilha lista sem filtro', count($trilha->listar(null, null, null, null, 10)) > 0);
+
+$soBloqueio = $trilha->listar(null, 'BLOQUEAR', null, null, 20);
+
+conferir(
+    'o filtro por ação devolve só aquela ação',
+    $soBloqueio !== [] && array_unique(array_column($soBloqueio, 'aud_acao')) === ['BLOQUEAR'],
+);
+
+// O ponto de demonstração do cenário 6: quem modera aparece na própria trilha.
+conferir(
+    'a ação do próprio administrador aparece na trilha',
+    count($trilha->listar($autorId, 'MODERAR', null, null, 5)) >= 1,
+);
 
 printf(
     "\n%s  %d aprovadas, %d falharam\n",

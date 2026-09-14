@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ProLink\Controller;
 
+use ProLink\Repository\AuditoriaRepository;
 use ProLink\Service\DenunciaService;
 use ProLink\Service\ValidacaoException;
 use ProLink\Support\Flash;
@@ -21,6 +22,7 @@ final class AdminController
 {
     public function __construct(
         private readonly DenunciaService $denuncias = new DenunciaService(),
+        private readonly AuditoriaRepository $auditoria = new AuditoriaRepository(),
     ) {
     }
 
@@ -64,6 +66,37 @@ final class AdminController
             'tipos'        => DenunciaService::TIPOS,
             'situacoes'    => DenunciaService::SITUACOES,
             'providencias' => DenunciaService::PROVIDENCIAS,
+        ]);
+    }
+
+    public function auditoria(): string
+    {
+        $usuarioId = ($_GET['usuario'] ?? '') !== '' ? (int) $_GET['usuario'] : null;
+
+        $acao   = ($_GET['acao'] ?? '') !== '' ? (string) $_GET['acao'] : null;
+        $acoes  = $this->auditoria->acoesDistintas();
+
+        // Mesma regra do filtro da fila: valor fora da lista vira "todas", nunca chega ao SQL.
+        if ($acao !== null && !in_array($acao, $acoes, true)) {
+            $acao = null;
+        }
+
+        $dias = (int) ($_GET['dias'] ?? 7);
+
+        if (!in_array($dias, [7, 30, 90], true)) {
+            $dias = 7;
+        }
+
+        // aud_dt_registro vem do NOW() do MariaDB (UTC) e este date() é America/Manaus: o corte
+        // sai 4h atrasado. Não muda resultado num filtro de dias, mas o acerto é item de 15/09.
+        $de = date('Y-m-d H:i:s', strtotime("-{$dias} days"));
+
+        return View::render('admin/auditoria.html.twig', [
+            'ativo'  => 'auditoria',
+            'linhas' => $this->auditoria->listar($usuarioId, $acao, $de, null),
+            'total'  => $this->auditoria->contar($usuarioId, $acao, $de, null),
+            'acoes'  => $acoes,
+            'filtro' => ['usuario' => $usuarioId, 'acao' => $acao, 'dias' => $dias],
         ]);
     }
 

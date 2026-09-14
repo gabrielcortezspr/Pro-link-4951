@@ -1,0 +1,85 @@
+{% extends 'admin/_layout.html.twig' %}
+
+{% block titulo %}Auditoria — Pro-Link{% endblock %}
+{% block titulo_painel %}Auditoria{% endblock %}
+
+{% block painel %}
+
+    <p class="pl-somente-leitura">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8.5 11V7.5a3.5 3.5 0 017 0V11"/></svg>
+        Registro imutável, somente leitura
+    </p>
+
+    {# GET, não POST: filtro é leitura, e o front controller só exige token em escrita. #}
+    <form method="get" action="{{ app_url }}/admin/auditoria" class="pl-filtros">
+        <div>
+            <label class="form-label" for="f-acao">Ação</label>
+            <select class="form-select" name="acao" id="f-acao">
+                <option value="">Todas</option>
+                {% for a in acoes %}
+                    <option value="{{ a }}"{% if filtro.acao == a %} selected{% endif %}>{{ a }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label class="form-label" for="f-usuario">Usuário (id)</label>
+            <input class="form-control" type="number" min="1" name="usuario" id="f-usuario"
+                   value="{{ filtro.usuario }}" placeholder="Todos">
+        </div>
+
+        <div>
+            <label class="form-label" for="f-dias">Período</label>
+            <select class="form-select" name="dias" id="f-dias">
+                {% for d in [7, 30, 90] %}
+                    <option value="{{ d }}"{% if filtro.dias == d %} selected{% endif %}>Últimos {{ d }} dias</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="pl-filtros-acoes">
+            <button type="submit" class="pl-btn">Filtrar</button>
+            <a class="pl-link-voltar" href="{{ app_url }}/admin/auditoria">Limpar</a>
+        </div>
+    </form>
+
+    <div class="pl-card">
+        <div class="table-responsive">
+            <table class="pl-table">
+                <thead>
+                    <tr>
+                        <th>Data e hora</th>
+                        <th>Usuário</th>
+                        <th>IP</th>
+                        <th>Ação</th>
+                        <th>Entidade</th>
+                        <th>Campo</th>
+                        <th>Valor anterior</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for l in linhas %}
+                    <tr>
+                        <td class="mono">{{ l.aud_dt_registro|date('d/m/Y H:i:s') }}</td>
+                        <td>{{ l.usu_nome|default('anônimo') }}</td>
+                        <td class="mono">{{ l.aud_ip|default('—') }}</td>
+                        <td>{{ l.aud_acao }}</td>
+                        <td>{{ l.aud_entidade|default('') }}{% if l.aud_entidade_id %} #{{ l.aud_entidade_id }}{% endif %}</td>
+                        <td>{{ l.aud_campo|default('') }}</td>
+                        <td class="mono">{{ l.aud_valor_anterior|default('')|u.truncate(40, '…') }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="7" class="text-body-secondary">Nenhum registro neste filtro.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <p class="pl-nota mt-3 mb-0">
+            Mostrando {{ linhas|length }} de {{ total }} registros.<br>
+            A tabela de auditoria aceita apenas inserção. Nenhum perfil, incluindo o Admin, edita ou
+            apaga registros (garantido por trigger no banco).
+        </p>
+    </div>
+
+{% endblock %}
