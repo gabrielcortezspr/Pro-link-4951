@@ -267,12 +267,24 @@ abre o perfil e troca uma mensagem.
 
 ## E6 — Denúncias e painel administrativo (15/09)
 
-> **Antecipada para a noite de 14/09**, porque não depende da E3 nem da E4 e roda em paralelo com
-> elas. Plano em `docs/sprint-2026-09-14-e6.md`, branch `claude/e6-denuncias-admin`. Blocos 0 e 1
-> fechados: ambiente de pé nesta máquina (140 testes, 379 asserções) e a decisão que travava a
-> operação atômica 5 resolvida por experimento — **revogar as sessões já derruba quem está logado**,
-> então o bloqueio tem efeito imediato sem tocar em `Sessao`. A suposição contrária, registrada na
-> E7 mais abaixo, está errada.
+> **Concluída** em 14/09, antecipada da data prevista porque não dependia da E3 nem da E4. Plano
+> em `docs/sprint-2026-09-14-e6.md`, oito blocos; integrada em `integracao/design-e6`. Critério
+> verificado por `php scripts/verificar-e6.php`: 19 conferências contra o banco, incluindo o render
+> das três telas do painel. Decisões D39 a D43.
+>
+> Entrou: denúncia por qualquer conta autenticada, fila de moderação com filtro por situação, tela
+> de detalhe, a **operação atômica 5** (tratar, bloquear a conta, revogar as sessões e registrar,
+> numa transação) e a **trilha de auditoria** com filtro por conta, ação e período, paginação e
+> severidade por evento. A tela de auditoria foi refeita pelo agente `designer-ui` depois de sair
+> no padrão de dump de dados na primeira tentativa.
+>
+> Duas correções que nasceram aqui e valem para o projeto inteiro: o **relógio único** (D40), que
+> conserta a comparação entre colunas gravadas por caminhos diferentes, e o **pipeline de padrão
+> visual** (D42), que passa a barrar tela fora do padrão sem depender de revisão.
+>
+> A suposição da E7, de que o bloqueio só valeria no próximo login, estava errada e foi derrubada
+> por medição (D39). Fica fora, por corte declarado: a lixeira com restauração, os indicadores da
+> visão geral e o editor de parâmetros.
 
 **Cobre:** RF06; edital 8.6j (lixeira), 8.5g; proposta cenários 05 e 06. **Destrava os
 cenários 5 e 6.**

@@ -25,7 +25,8 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E2 — integração com a API | D13 a D27, D28, D29 |
 | E1 — auditoria da etapa (resgatada) | D30, D31 |
 | Front — design system | D32, D33, D34, D35, D36, D37, D38 |
-| E6 — denúncias e painel | D39 |
+| E6 — denúncias e painel | D39, D40, D41, D43 |
+| Front — padrão visual no pipeline | D42 |
 
 ---
 
@@ -1192,3 +1193,118 @@ papel** em sessão aberta continua valendo só no próximo login, porque o perfi
 controle de perfis de acesso (8.5) e moderação (RF06), não reflexo imediato de mudança de papel.
 Fica registrado também o método: a afirmação do backlog tinha três meses de vida e nunca havia sido
 medida.
+
+---
+
+## D40 · Um relógio só: o fuso do MariaDB segue o do PHP na conexão
+
+`14/09/2026` · E6 · commit a seguir · `Support\Database::conexao()`
+
+**Contexto.** O contêiner do MariaDB roda em UTC e o do PHP em `America/Manaus`, quatro horas de
+diferença. Isso não era um detalhe de exibição: as duas horas iam para a **mesma coluna** conforme
+o caminho do código. A sessão nasce com `DATE_ADD(NOW(), ...)` em `SessaoRepository` e o bloqueio
+por tentativas com `date()` em `AutenticacaoService`, e os dois convivem em `sis_usuarios`. A
+trilha de auditoria exibia o dia seguinte às 20h, e o corte do filtro de período comparava um
+`date()` local com uma coluna gravada em UTC.
+
+**Decisão.** `Database::conexao()` executa `SET time_zone` com o deslocamento do próprio fuso do
+PHP, lido de `(new DateTimeImmutable())->format('P')`. Um ponto, e os dois relógios passam a ser o
+mesmo. O deslocamento é derivado em vez de escrito à mão justamente para que mudar o fuso do PHP
+não recrie a divergência. Nome de fuso (`'America/Manaus'`) exigiria as tabelas de fuso carregadas
+no MariaDB, que a imagem não traz.
+
+**Alternativa recusada.** Manter o banco em UTC e converter na apresentação, com um filtro Twig.
+É a prática recomendada em sistema multi-fuso, e foi recusada por duas razões: não conserta a
+comparação entre colunas gravadas por caminhos diferentes, que é o defeito de verdade, e obrigaria
+cada tela nova a lembrar do filtro. A desvantagem clássica de gravar em hora local não se aplica
+aqui: o sistema é do CREA-AM, e o Amazonas não tem horário de verão desde 2008. Também foi
+recusado converter só na tela de auditoria: `denuncias.html.twig` tem o mesmo defeito, e o painel
+passaria a se contradizer, com a denúncia recebida às 20:19 e moderada às 16:19.
+
+**Consequência.** Registro novo grava a hora real, medido com PHP e `NOW()` no mesmo segundo. O
+histórico anterior continua em UTC e **não tem conserto**: `sis_auditoria` bloqueia UPDATE e DELETE
+por trigger (D04). Some quando o banco for recarregado para a demonstração, o que também limpa a
+massa de verificação. Some junto o rótulo "horários em UTC" que a tela declarava enquanto a hora
+exibida não era a local.
+
+---
+
+## D41 · Identificador de sistema não chega à tela
+
+`14/09/2026` · E6 · commit a seguir · `Support\Rotulos`, filtros em `Support\View`
+
+**Contexto.** O painel de auditoria lê constantes e nomes de esquema direto do banco, e eles
+chegavam crus ao usuário: o filtro de ação listava `ACESSO_NEGADO`, `BLOQUEIO_LOGIN`,
+`SELO_DIVERGENTE`; a coluna Entidade mostrava `pro_denuncias`; a coluna Campo mostrava
+`usu_status`. Além de feio, é vazamento gratuito da forma interna para quem não precisa dela.
+
+**Decisão.** Três mapas em `Support\Rotulos`, expostos como filtros Twig `rotulo_acao`,
+`rotulo_entidade` e `rotulo_campo`. Chave desconhecida cai num fallback por convenção (prefixo de
+tabela fora, underline vira espaço, primeira maiúscula) em vez de sumir ou estourar: ação nova
+entra em `Support\Auditoria` e a tela continua legível antes de alguém lembrar de vir aqui. O
+valor cru fica em `title=""`, porque quem audita de verdade quer o identificador exato.
+
+**Alternativa recusada.** Traduzir no controller. A regra é de apresentação e vale em qualquer
+template que toque auditoria, não só no painel; no controller, a segunda tela repetiria o mapa. E
+mapa no próprio template, que é o padrão que `denuncias.html.twig` já usava, foi mantido só para o
+vocabulário de **valor gravado** (`'A'`, `'PENDENTE'`), que é específico da tela; o que é
+vocabulário do sistema subiu para `Rotulos`.
+
+**Consequência.** As quatro finalidades de consentimento entraram no mapa de campos, porque em
+`sis_consentimentos` o `aud_campo` guarda a finalidade e não o nome de uma coluna, e o fallback
+devolvia "Consulta api", sem acento e sem a sigla. Fica um débito conhecido: as ~32 chaves do JSON
+de contexto ainda moram em `auditoria.html.twig`; se virarem vocabulário de mais de uma tela, o
+lugar delas é aqui.
+
+---
+
+## D42 · O padrão visual vira trava no repositório, não disciplina de quem revisa
+
+`14/09/2026` · Front · commit a seguir · `.claude/agents/designer-ui.md`,
+`scripts/verificar-padrao.php`, `scripts/hook-padrao.sh`, `CLAUDE.md`
+
+**Contexto.** Toda vez que uma tela foi escrita junto com o backend, saiu no padrão de dump de
+dados e teve de ser refeita depois da reclamação. A régua existia e estava combinada; o que
+faltava era ela valer sem alguém lembrar. A tela de auditoria fechou com 16 verificações no verde
+e subiu em 500 no navegador, porque nenhuma delas tocava a camada de apresentação.
+
+**Decisão.** Quatro peças, da mais forte para a mais fraca. Hook `PostToolUse`
+(`scripts/hook-padrao.sh`) confere cada arquivo escrito em milissegundos, sem Docker, e devolve o
+erro na hora. `scripts/verificar-padrao.php` confere o projeto inteiro, e o faz **sobre o HTML
+renderizado** além do texto do template, porque template limpo pode renderizar sujo. O agente
+`designer-ui`, versionado no repositório, é obrigatório antes de tela nova ou redesenho. E a regra
+escrita em `CLAUDE.md`, para quem não passar por nenhum dos três.
+
+**Alternativa recusada.** Confiar na revisão. Já era a política, e falhou três vezes no mesmo dia.
+Também recusado bloquear a escrita de template por hook `PreToolUse`: travaria o próprio agente
+designer, e o problema não é quem edita, é o que sai.
+
+**Consequência.** A primeira execução acusou 28 violações em telas dadas por prontas, e o merge
+com a main acusou mais 10 nas telas que vieram de lá. O verificador roda no `/encerrar` e sessão
+que mexeu em tela não fecha com violação aberta. Verde nele é o piso, não a aprovação: a régua
+continua sendo olho humano, e por isso o agente não foi substituído pelo script.
+
+---
+
+## D43 · A auditoria tem dois caminhos de leitura, e isso não é duplicação
+
+`14/09/2026` · E6 · commit a seguir · `Repository\AuditoriaRepository`
+
+**Contexto.** O merge de 14/09 juntou duas branches que criaram `AuditoriaRepository` no mesmo dia,
+sem saber uma da outra e sem nenhum método em comum: `registrar()` e `doUsuario()` de um lado,
+`listar()`, `contar()` e `acoesDistintas()` do outro. Os dois `SELECT` de leitura parecem a mesma
+consulta com nomes diferentes.
+
+**Decisão.** Ficam os dois no mesmo arquivo, com a razão escrita no docblock da classe.
+`doUsuario()` serve à exportação do titular (item 11.3) e devolve seis colunas; `listar()` serve ao
+painel do administrador e devolve tudo, com `LEFT JOIN` no nome de quem agiu e com paginação.
+
+**Alternativa recusada.** Unificar em `listar()` com parâmetros, e a exportação chamaria com o id
+do titular. Obrigaria a exportação a carregar `aud_user_agent` e os valores gravados, que é dado
+que o titular não deve levar num JSON que ele baixa. A economia seria de umas quinze linhas, ao
+custo de um caminho de privacidade decidido por parâmetro.
+
+**Consequência.** `UsuarioRepository::auditoriaDoUsuario()` foi removido no mesmo merge: a query
+mudou de dono e o método tinha ficado órfão, com `PrivacidadeService` já chamando o repositório de
+auditoria. Ficou um comentário de duas linhas no lugar, apontando para onde foi, para ninguém
+recriar.
