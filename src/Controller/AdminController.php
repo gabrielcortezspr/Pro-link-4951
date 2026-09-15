@@ -7,6 +7,7 @@ namespace ProLink\Controller;
 use ProLink\Repository\AuditoriaRepository;
 use ProLink\Service\DenunciaService;
 use ProLink\Service\ValidacaoException;
+use ProLink\Support\Auditoria;
 use ProLink\Support\Flash;
 use ProLink\Support\Sessao;
 use ProLink\Support\View;
@@ -69,9 +70,28 @@ final class AdminController
         ]);
     }
 
+    /** Quantos eventos a trilha mostra por página. */
+    private const AUDITORIA_POR_PAGINA = 50;
+
+    /**
+     * Eventos negativos de segurança: tentativa recusada e divergência de selo. A tela os destaca
+     * e conta à parte, porque são o que alguém procura numa trilha e o que se perde no volume.
+     */
+    private const AUDITORIA_SEGURANCA = [
+        Auditoria::ACESSO_NEGADO,
+        Auditoria::LOGIN_FALHOU,
+        Auditoria::BLOQUEIO_LOGIN,
+        Auditoria::SELO_DIVERGENTE,
+    ];
+
     public function auditoria(): string
     {
         $usuarioId = ($_GET['usuario'] ?? '') !== '' ? (int) $_GET['usuario'] : null;
+
+        // Id não positivo é filtro impossível: vira "todas", como qualquer valor fora da faixa.
+        if ($usuarioId !== null && $usuarioId < 1) {
+            $usuarioId = null;
+        }
 
         $acao   = ($_GET['acao'] ?? '') !== '' ? (string) $_GET['acao'] : null;
         $acoes  = $this->auditoria->acoesDistintas();
@@ -89,14 +109,49 @@ final class AdminController
 
         // aud_dt_registro vem do NOW() do MariaDB (UTC) e este date() é America/Manaus: o corte
         // sai 4h atrasado. Não muda resultado num filtro de dias, mas o acerto é item de 15/09.
+        // Enquanto não entra, a tela declara o fuso em vez de exibir UTC como se fosse local.
         $de = date('Y-m-d H:i:s', strtotime("-{$dias} days"));
+
+        $total   = $this->auditoria->contar($usuarioId, $acao, $de, null);
+        $paginas = max(1, (int) ceil($total / self::AUDITORIA_POR_PAGINA));
+
+        // Página fora da faixa vira a primeira, em silêncio: o deslocamento é parâmetro de SQL,
+        // e a regra da casa é que valor inválido não chega lá.
+        $pagina = (int) ($_GET['pagina'] ?? 1);
+
+        if ($pagina < 1 || $pagina > $paginas) {
+            $pagina = 1;
+        }
+
+        // A contagem respeita o filtro corrente, inclusive o de ação: assim o número do topo é
+        // sempre "destes que estão sendo mostrados, tantos são de segurança", sem escopo oculto.
+        $criticas = $acao === null
+            ? self::AUDITORIA_SEGURANCA
+            : array_values(array_intersect(self::AUDITORIA_SEGURANCA, [$acao]));
+
+        $seguranca = 0;
+
+        foreach ($criticas as $critica) {
+            $seguranca += $this->auditoria->contar($usuarioId, $critica, $de, null);
+        }
 
         return View::render('admin/auditoria.html.twig', [
             'ativo'  => 'auditoria',
-            'linhas' => $this->auditoria->listar($usuarioId, $acao, $de, null),
-            'total'  => $this->auditoria->contar($usuarioId, $acao, $de, null),
-            'acoes'  => $acoes,
-            'filtro' => ['usuario' => $usuarioId, 'acao' => $acao, 'dias' => $dias],
+            'linhas' => $this->auditoria->listar(
+                $usuarioId,
+                $acao,
+                $de,
+                null,
+                self::AUDITORIA_POR_PAGINA,
+                ($pagina - 1) * self::AUDITORIA_POR_PAGINA,
+            ),
+            'total'       => $total,
+            'acoes'       => $acoes,
+            'filtro'      => ['usuario' => $usuarioId, 'acao' => $acao, 'dias' => $dias],
+            'pagina'      => $pagina,
+            'paginas'     => $paginas,
+            'por_pagina'  => self::AUDITORIA_POR_PAGINA,
+            'seguranca'   => $seguranca,
         ]);
     }
 

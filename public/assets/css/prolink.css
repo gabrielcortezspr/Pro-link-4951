@@ -118,6 +118,13 @@ h1, h2, h3, h4, h5, h6,
 .pl-nav a:hover { color: #fff; }
 .pl-side .foot { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px;
     border-radius: 11px; background: rgba(255,255,255,.06); color: #ccdcf1; font-size: 12px; }
+/* A inicial e o cargo estavam sem estilo nenhum no template (e o cargo com cor embutida no
+   HTML). Os tons são os mesmos já usados na sidebar acima: nenhuma cor nova entra aqui. */
+.pl-side .foot .av { width: 28px; height: 28px; border-radius: 50%; flex: none; display: grid;
+    place-items: center; background: rgba(255,255,255,.12); color: #fff; font-size: 12px;
+    font-weight: 600; }
+.pl-side .foot .txt { min-width: 0; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; }
+.pl-side .foot .fn { display: block; color: #93abcd; font-size: 11px; }
 .pl-main { display: flex; flex-direction: column; min-width: 0; }
 .pl-topbar { height: 60px; display: flex; align-items: center; gap: 12px; padding: 0 20px;
     background: var(--pl-card); border-bottom: 1px solid var(--pl-border); }
@@ -145,6 +152,10 @@ h1, h2, h3, h4, h5, h6,
 .pl-kpi .lab { font-size: 12px; color: var(--pl-muted); }
 .pl-kpi .val { font-family: var(--pl-display); font-weight: 700; font-size: 30px; letter-spacing: -.02em;
     margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+/* Indicador ainda não medido: o texto assume o tamanho de nota, não o de número. Um traço de
+   30px no lugar do valor lia como se o número fosse zero. */
+.pl-kpi .val.vazio { font-family: var(--pl-body); font-size: 14px; font-weight: 600;
+    color: var(--pl-faint); letter-spacing: 0; margin: 10px 0 6px; }
 /* aderência por dimensão — nunca nota única nem ranking (item 10.1) */
 .pl-dim { display: grid; grid-template-columns: 120px 1fr 44px; align-items: center; gap: 10px;
     font-size: 12.5px; margin-bottom: 9px; }
@@ -235,12 +246,152 @@ textarea.form-control { min-height: 0; }
 }
 .pl-det-topo .alvo { font-size: 18px; }
 
-/* ---------- 11. Filtros de listagem no painel ---------- */
-.pl-somente-leitura { display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
-    font-weight: 600; color: var(--pl-muted); background: #EEF0F3; border-radius: 20px;
-    padding: 5px 11px; margin: 0; }
+/* ---------- 11. Barra de filtro e estado da tela no painel ---------- */
+/* O selo de estado da tela mora na topbar, ao lado do título, não na coluna de conteúdo.
+   Solto dentro de .pl-content (flex column) ele era esticado pelo align-items: stretch e
+   virava faixa cinza de largura total: peso de banner para uma nota de estado. flex: none
+   e align-self: center impedem que qualquer contêiner futuro volte a esticá-lo. */
+.pl-somente-leitura { display: inline-flex; align-items: center; gap: 6px; flex: none;
+    align-self: center; font-size: 12px; font-weight: 600; color: var(--pl-muted);
+    background: #EEF0F3; border-radius: 20px; padding: 5px 11px; margin: 0; }
+/* Lado direito da topbar: até agora ela tinha só o título e ar sobrando. */
+.pl-topbar-acoes { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+/* Ferramenta, não conteúdo: contorno próprio e mais leve que o .pl-card (raio menor, sem
+   sombra), para o quadro de registros continuar sendo o assunto da tela. */
+.pl-toolbar { background: var(--pl-card); border: 1px solid var(--pl-border);
+    border-radius: var(--pl-r); padding: 14px 16px; }
 .pl-filtros { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
-.pl-filtros > div { min-width: 160px; }
+/* Largura pelo dado que o campo recebe, não igual para todos: um id numérico não ocupa o
+   mesmo que um select de rótulo longo. */
+.pl-filtros .campo-acao { width: 244px; }
+.pl-filtros .campo-usuario { width: 132px; }
+.pl-filtros .campo-periodo { width: 188px; }
 .pl-filtros .form-label { margin-bottom: 6px; }
 .pl-filtros .mb-3 { margin-bottom: 0 !important; }
-.pl-filtros-acoes { display: flex; align-items: center; gap: 12px; min-width: 0; }
+/* Botão de 38px encostado num campo de 44px era o desalinhamento visível da barra: aqui os
+   dois terminam na mesma linha de base e têm a mesma altura. */
+.pl-filtros-acoes { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.pl-filtros-acoes .pl-btn { height: 44px; padding: 0 18px; }
+/* Ação terciária (Limpar): mesma caixa do botão ao lado, sem contorno concorrente. */
+.pl-btn.ghost { border-color: transparent; color: var(--pl-muted); }
+.pl-btn.ghost:hover { background: #EEF0F3; color: var(--pl-ink); }
+.pl-btn.disabled, .pl-btn[aria-disabled="true"] { opacity: .4; pointer-events: none; }
+
+/* Foco de teclado visível em tudo que é acionável no painel. O Bootstrap cobre os campos;
+   link de tabela e botão pl- ficavam sem indicação nenhuma. */
+.pl-btn:focus-visible, .pl-log a:focus-visible, .pl-link-voltar:focus-visible {
+    outline: 2px solid var(--pl-blue); outline-offset: 2px; border-radius: 8px; }
+
+/* ---------- 12. Trilha de auditoria: tabela de log ---------- */
+/* A unidade de leitura é o evento, não a linha: quando, o que aconteceu, quem fez, sobre o
+   quê. A data sai da linha e vira cabeçalho de dia, porque repetir a mesma data por extenso
+   em 50 linhas gasta a coluna mais larga com a informação menos discriminante. Densidade
+   alvo: ~38px por evento, contra os ~63px de antes. */
+.pl-log-card { padding: 0; overflow: hidden; }
+.pl-log-topo { display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap; padding: 16px 18px 14px; border-bottom: 1px solid var(--pl-border); }
+.pl-log-topo .pl-card-titulo { margin: 0 0 5px; }
+.pl-log-resumo { margin: 0; font-size: 12.5px; color: var(--pl-muted); display: flex;
+    align-items: center; gap: 10px; flex-wrap: wrap; }
+.pl-log-resumo b { color: var(--pl-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.pl-log-resumo .seg { display: inline-flex; align-items: center; gap: 6px; color: #b23434; }
+.pl-log-resumo .seg i { width: 6px; height: 6px; border-radius: 50%; flex: none;
+    background: var(--pl-danger); box-shadow: 0 0 0 3px var(--pl-danger-bg); }
+.pl-log-rodape { display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    flex-wrap: wrap; padding: 14px 18px; border-top: 1px solid var(--pl-border); }
+.pl-log-rodape .pl-nota { margin: 0; max-width: 66ch; }
+
+/* min-width em vez de encolher: abaixo dele o .table-responsive rola na horizontal, e nenhuma
+   coluna vira uma tira de duas letras. */
+.pl-log { width: 100%; min-width: 1040px; border-collapse: collapse; table-layout: fixed;
+    font-size: 13px; }
+.pl-log col.c-hora   { width: 96px; }
+.pl-log col.c-evento { width: 216px; }
+.pl-log col.c-autor  { width: 224px; }
+.pl-log col.c-objeto { width: 176px; }
+.pl-log col.c-ref    { width: 76px; }
+.pl-log thead th { text-align: left; font-size: 10.5px; font-weight: 600; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--pl-faint); padding: 13px 12px 11px;
+    border-bottom: 1px solid var(--pl-border); }
+.pl-log thead th.num { text-align: right; }
+.pl-log tbody td { padding: 9px 12px; border-bottom: 1px solid var(--pl-border-2);
+    vertical-align: middle; }
+/* Depois das regras de padding acima, e com a mesma especificidade delas: o quadro não tem
+   padding próprio (a tabela encosta na borda), então a primeira e a última coluna carregam a
+   margem lateral do card. */
+.pl-log thead th:first-child, .pl-log tbody td:first-child { padding-left: 18px; }
+.pl-log thead th:last-child,  .pl-log tbody td:last-child  { padding-right: 18px; }
+.pl-log tbody tr:last-child td { border-bottom: 0; }
+.pl-log tbody tr.lin:hover td { background: var(--pl-border-2); }
+
+/* Cabeçalho de dia: faixa discreta no fundo da área de conteúdo, não um card dentro do card. */
+.pl-log tr.dia td { background: var(--pl-app); padding: 7px 18px;
+    border-top: 1px solid var(--pl-border); border-bottom: 1px solid var(--pl-border); }
+.pl-log tr.dia:first-child td { border-top: 0; }
+.pl-log tr.dia .w { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.pl-log tr.dia .d { font-size: 11.5px; font-weight: 700; color: var(--pl-muted); }
+.pl-log tr.dia .z { font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--pl-faint); }
+
+.pl-log .hora { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+    font-variant-numeric: tabular-nums; color: var(--pl-muted); }
+
+/* Evento: ponto de severidade + rótulo humano. A severidade qualifica o evento, nunca a
+   pessoa que o praticou nem o titular da conta afetada (item 10.1 veda ranking de pessoas). */
+.pl-evt { display: flex; align-items: center; gap: 9px; font-size: 12.5px; font-weight: 600;
+    color: var(--pl-ink); min-width: 0; }
+.pl-evt .pd { width: 7px; height: 7px; border-radius: 50%; flex: none;
+    background: var(--pl-faint); box-shadow: 0 0 0 3px #EEF0F3; }
+.pl-evt.warn .pd   { background: var(--pl-warn);   box-shadow: 0 0 0 3px var(--pl-warn-bg); }
+.pl-evt.danger .pd { background: var(--pl-danger); box-shadow: 0 0 0 3px var(--pl-danger-bg); }
+.pl-evt .tx { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Trilho na borda da linha para evento negativo de segurança: numa trilha de 50 linhas é o que
+   permite achar tentativa recusada e divergência de selo sem ler tudo. */
+.pl-log tbody tr.critico td:first-child { box-shadow: inset 2px 0 0 var(--pl-danger); }
+
+.pl-log .autor { display: block; font-size: 13px; font-weight: 600; color: var(--pl-ink);
+    text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-log a.autor:hover { color: var(--pl-blue); text-decoration: none; }
+.pl-log .autor.anon { font-weight: 500; color: var(--pl-muted); }
+.pl-log .orig { display: block; margin-top: 1px; font-size: 11px; color: var(--pl-faint);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.pl-log .obj { font-size: 12.5px; color: var(--pl-ink); }
+.pl-log .oid { margin-left: 4px; font-size: 11.5px; color: var(--pl-faint);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+/* Detalhe cabe em uma linha. Valor longo (hash de 64 caracteres, payload da consulta à API)
+   corta com reticências pela largura real da coluna e o valor inteiro fica no title, em vez
+   de cortar num número fixo de caracteres escrito no template. */
+.pl-log .det { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: 12px; color: var(--pl-muted); }
+.pl-log .det .k { font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--pl-faint); margin-right: 6px; }
+.pl-log .det .para { color: var(--pl-ink); font-weight: 600; }
+.pl-log .det .ar { width: 12px; height: 12px; margin: 0 5px; vertical-align: -2px;
+    color: var(--pl-faint); }
+.pl-log .kv i { font-style: normal; font-size: 10.5px; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--pl-faint); margin-right: 5px; }
+.pl-log .kv b { font-weight: 500; color: var(--pl-muted); }
+.pl-log .kv + .kv::before { content: "·"; color: var(--pl-border); margin: 0 8px; }
+
+/* Ausência de valor não é célula em branco: é um traço curto que fecha a coluna. */
+.pl-log .nulo { display: inline-block; width: 12px; height: 1px; background: var(--pl-border);
+    vertical-align: middle; }
+
+/* O número do registro é a identidade imutável do evento, e a sequência mostra que a trilha
+   não tem remoção. Terciário: presente para quem procura, invisível para quem varre. */
+.pl-log .ref { text-align: right; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px; color: var(--pl-faint); font-variant-numeric: tabular-nums; }
+
+.pl-log tbody tr.vazio td { padding: 52px 18px; text-align: center; }
+.pl-log tr.vazio .t { font-family: var(--pl-display); font-weight: 600; font-size: 15px;
+    color: var(--pl-ink); margin: 0 0 6px; }
+.pl-log tr.vazio .s { font-size: 13px; color: var(--pl-muted); margin: 0 0 16px; }
+
+.pl-pag { display: flex; align-items: center; gap: 10px; flex: none; }
+.pl-pag .pos { font-size: 12.5px; color: var(--pl-muted); font-variant-numeric: tabular-nums;
+    white-space: nowrap; }
+.pl-pag .pos b { color: var(--pl-ink); font-weight: 600; }

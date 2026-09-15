@@ -35,13 +35,19 @@
         {% if u %}
             <div class="foot">
                 <span class="av">{{ u.nome|slice(0, 1)|upper }}</span>
-                <span class="txt">{{ u.nome }}<br><span style="color:#93abcd;font-size:11px">Administração</span></span>
+                <span class="txt">{{ u.nome }}<span class="fn">Administração</span></span>
             </div>
         {% endif %}
     </aside>
 
     <div class="pl-main">
-        <div class="pl-topbar"><h1>{% block titulo_painel %}{% endblock %}</h1></div>
+        {# A topbar tinha só o título e ar sobrando. O bloco à direita recebe o estado da tela
+           (somente leitura, na auditoria) e a ação de página quando houver. Tela que não usa
+           deixa o bloco vazio, e a barra volta a ser só o título. #}
+        <div class="pl-topbar">
+            <h1>{% block titulo_painel %}{% endblock %}</h1>
+            <div class="pl-topbar-acoes">{% block topbar_acoes %}{% endblock %}</div>
+        </div>
         <div class="pl-content">{% block painel %}{% endblock %}</div>
     </div>
 
