@@ -107,9 +107,8 @@ final class AdminController
             $dias = 7;
         }
 
-        // aud_dt_registro vem do NOW() do MariaDB (UTC) e este date() é America/Manaus: o corte
-        // sai 4h atrasado. Não muda resultado num filtro de dias, mas o acerto é item de 15/09.
-        // Enquanto não entra, a tela declara o fuso em vez de exibir UTC como se fosse local.
+        // Mesmo relógio dos dois lados desde que Database::conexao() alinha o fuso da sessão do
+        // MariaDB ao do PHP: este corte compara com aud_dt_registro sem deslocamento.
         $de = date('Y-m-d H:i:s', strtotime("-{$dias} days"));
 
         $total   = $this->auditoria->contar($usuarioId, $acao, $de, null);

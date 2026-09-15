@@ -230,11 +230,10 @@
                             <td colspan="6">
                                 <div class="w">
                                     <span class="d">{{ l.aud_dt_registro|date('j') }} de {{ meses[l.aud_dt_registro|date('n')] }} de {{ l.aud_dt_registro|date('Y') }}</span>
-                                    {# A trilha grava com o NOW() do banco, que roda em UTC. Declarar o
-                                       fuso é o mínimo honesto enquanto a conversão para America/Manaus
-                                       não entra: sem isso a hora parece local e está 4h adiantada.
-                                       Quando a conversão entrar, este rótulo sai junto. #}
-                                    <span class="z">horários em UTC</span>
+                                    {# O rótulo de fuso saiu quando Database::conexao() passou a alinhar o
+                                       relógio do MariaDB ao do PHP: hora gravada e hora exibida são a
+                                       mesma, e declarar o fuso deixou de ser necessário. Registro anterior
+                                       à correção continua gravado em UTC, ou seja, 4h adiantado. #}
                                 </div>
                             </td>
                         </tr>

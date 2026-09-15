@@ -78,8 +78,19 @@ final class Rotulos
         'rota'                => 'Rota',
     ];
 
-    /** Colunas que aparecem em auditoria. O prefixo de tabela some; o sentido fica. */
+    /**
+     * O que ocupa aud_campo na trilha. Quase sempre é coluna, e o prefixo de tabela some.
+     *
+     * A exceção é o consentimento: em sis_consentimentos o campo guarda a FINALIDADE
+     * (ACEITE_TERMOS, CONSULTA_API…), não o nome de uma coluna, porque é ela que muda de
+     * concedida para revogada. Uso correto, e as quatro entram aqui porque o fallback por
+     * convenção devolveria "Consulta api", perdendo acento e sigla.
+     */
     private const CAMPOS = [
+        'ACEITE_TERMOS'     => 'Aceite dos termos',
+        'CONSULTA_API'      => 'Consulta à API do CREA',
+        'EXIBICAO_PERFIL'   => 'Exibição do perfil',
+        'NOTIFICACOES'      => 'Notificações',
         'usu_status'        => 'Situação da conta',
         'usu_senha_hash'    => 'Senha',
         'usu_per_id'        => 'Perfil de acesso',
