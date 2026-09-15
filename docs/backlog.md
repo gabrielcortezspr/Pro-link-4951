@@ -226,11 +226,21 @@ requisitos, vê no painel, encerra.
 > a maioria não informa nada. O receio registrado aqui, de que 3 marcasse metade da plataforma,
 > não se confirmou.
 >
+> **Revisão de 15/09 (commits `e0ada5a`, `0c417a6`): o motor rodava com quatro dimensões, não
+> seis.** `prf_tipo_contrato` e `prf_disponibilidade` não eram escritas por caminho nenhum do
+> código, e a dimensão de abrangência comparava a UF da demanda com um campo de texto livre, por
+> igualdade exata. Os dois defeitos se escondiam: sem escrita, a comparação errada nunca era
+> exercida; e dimensão nula sai da média sem reclamar, que é a regra que protege perfil
+> incompleto. Corrigido com vocabulário fechado nos dois lados (D45), `PreferenciaService` dando
+> a escrita, e o formulário no perfil. O portão de privacidade do pool, que era N+1, passou a
+> resolver em lote.
+>
 > **O que falta, para quem pegar:** o pool sai de `CompatibilizacaoService::executar()` já
 > embaralhado e com `criterios` por candidato (score por dimensão, quais dimensões saíram da média
 > e as ARTs que sustentam cada código). O mockup do feed está em
 > `docs/mockups/prolink-feed-imersivo-v3.html`, aprovado. Tela nova passa pelo agente
-> `designer-ui` antes de virar código (`CLAUDE.md`).
+> `designer-ui` antes de virar código (`CLAUDE.md`). **O serviço continua sem chamador HTTP:**
+> `verificar-e4.php` é o único caminho que o executa, e é isso que o feed resolve.
 
 **Cobre:** RF04 (compatibilização, pesquisa, filtros); edital 3.2, 10.1, 10.2, 12.2, 12.3;
 proposta cenário 03, diferenciais 1 e 3. **Destrava o cenário 3 — o centro da avaliação.**
@@ -332,6 +342,12 @@ admin vê a trilha, trata a denúncia e bloqueia.
 ---
 
 ## E7 — Endurecimento, documentação, demo e entrega (16–17/09)
+
+> **Parte do checklist de segurança saiu adiantada em 15/09** (`e0ada5a`, `0c417a6`), por ter
+> aparecido numa revisão de código: CSP conferida por máquina contra o layout (D50), `try_files`
+> no location PHP do nginx, sessão revogada conferida em toda requisição autenticada e não só nas
+> rotas protegidas, `|raw` removido do macro de caixa, e `APP_DEBUG=false` no `.env.example` que o
+> README manda copiar. **Nada disso foi exercitado com o Docker de pé** — ver `estado.md`.
 
 Metade da nota depende disto. Não é "se sobrar tempo".
 

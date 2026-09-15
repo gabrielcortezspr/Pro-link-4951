@@ -5,42 +5,49 @@ Máximo de ~30 linhas: se passar disso, algo aqui deveria estar num commit ou nu
 
 ## Última sessão
 
-14/09/2026, madrugada. Camila: integração das duas frentes, E6 fechada e o motor da E4.
+15/09/2026, tarde. Gabriel: revisão de código do repositório inteiro, e os consertos que ela achou.
 
 ## Onde parou
 
-Tudo integrado na `main`: design system, pipeline de padrão visual, E3 e experiência declarada
-(Gabriel), E6 completa e o **motor da E4** com a operação atômica 2 e semente auditável.
-A base foi povoada pelo fluxo real: 19 candidatos, 115 linhas de evidência, 41 ARTs.
-Verificado: 176 testes · E2 138 · E4 30 · E6 19 · 24 telas · padrão visual sem violação.
+Branch `claude/main-branches-status-9k0bun`, dois commits, **não integrada na `main`**.
+O motor rodava com quatro das seis dimensões do item 3.2 — contrato e abrangência não tinham
+caminho de escrita, e a abrangência comparava UF com texto livre (D45). Corrigidos, com formulário
+no perfil. Mais: documento cifrado lido num ponto só, portão de privacidade do pool em lote (era
+N+1), CSP conferida por máquina (D50), `|raw` fora do macro de caixa.
+Verificado: 188 testes · 24 telas · 25 conferências estáticas, 0 violações.
 
 ## Próximo passo
 
-**O feed do demandante**, em `templates/` e num controller novo: é a saída da E4 e o cenário 3.
-O pool já sai de `CompatibilizacaoService::executar()` embaralhado e com `criterios` por candidato
-(score por dimensão, o que saiu da média, e as ARTs que sustentam cada código). Mockup aprovado em
-`docs/mockups/prolink-feed-imersivo-v3.html`, e tela nova passa pelo agente `designer-ui`.
-
-Depois: explicação no card, `/admin/sessoes/{id}`, e a E5.
+**Subir o Docker e rodar os quatro itens de "Lembrar"** — é curto e destrava o resto. Depois, **o
+feed do demandante**, camada visível da E4 e cenário 3: mockup aprovado em
+`docs/mockups/prolink-feed-imersivo-v3.html`, tela nova passa pelo `designer-ui`, e
+`CompatibilizacaoService::executar()` segue sem nenhum chamador HTTP.
 
 ## Decisões pendentes
 
+- **Servir Bootstrap e as fontes localmente** e fechar a CSP em `'self'` — ver Consequência da D50.
 - `prf_em_construcao` é derivado guardado em coluna e já causou um defeito: derivar na leitura
   (como a D01) ou ponto único de escrita?
-- Nenhuma tela mostra `perfil.campos` (e-mail, telefone, resumo). A resposta natural é junto com
-  `/perfil/{id}`.
-- MER (`_arq/mer/`) e a declaração de uso de IA (12.3) seguem **sem dono**, e os dois são
-  obrigatórios na entrega.
+- MER (`_arq/mer/`) e a declaração de uso de IA (12.3) seguem **sem dono**, ambos obrigatórios na
+  entrega. A `decisoes.md` chegou a 50 entradas: a matéria-prima da 12.3 está lá.
 
 ## Lembrar
 
-- **Antes da demonstração: recarregar o banco e rodar `semear-candidatos.php`.** Resolve de uma
-  vez a massa de teste que suja a trilha e o feed, e o histórico de auditoria anterior a 14/09,
-  que está 4h adiantado. `sis_auditoria` bloqueia UPDATE e DELETE por trigger.
-- **Escreva as demandas do roteiro olhando o índice**, nunca antes: os vínculos ART para TOS da
-  massa são aleatórios, e demanda escolhida por tema não encontra ninguém.
-- `verificar-e1.php` acusa uma falha quando a API está acessível. Acoplamento do teste, não
-  regressão: o script gera CNPJ sintético e a D26 rebaixa para Terceiro PJ.
+**Esta sessão mudou configuração que não teve como exercitar. Com o Docker de pé, nesta ordem:**
+
+1. Abrir uma tela e **olhar o console do navegador**. A CSP nova é o que mais pode quebrar, e
+   bloqueio dela não dá erro visível — se o Bootstrap não carregar, a tela aparece sem estilo.
+2. `curl -s localhost:8080/saude`. Entrou `try_files $uri =404` no `location ~ \.php$` do nginx;
+   é o padrão canônico, mas se estiver errado **toda** rota dá 404.
+3. `verificar-padrao.php` com banco: a parte de HTML renderizado não roda desde a mudança, e as
+   quatro telas novas acabaram de entrar em `amostras.php` — é a estreia delas ali.
+4. `verificar-e4.php` e `verificar-e6.php`, que não rodaram. O E4 exercita o motor consertado.
+
+- **Antes da demonstração: recarregar o banco e rodar `semear-candidatos.php`.** Agora há um motivo
+  a mais, na Consequência da D45: demanda antiga perde o tipo de contrato ao ser editada.
+- **Escreva as demandas do roteiro olhando o índice**, nunca antes: os vínculos ART para TOS são
+  aleatórios, e demanda escolhida por tema não encontra ninguém.
+- `verificar-e1.php` acusa uma falha quando a API está acessível: o script gera CNPJ sintético e a
+  D26 rebaixa para Terceiro PJ. Acoplamento do teste, não regressão.
 - Nenhum e-mail sai sozinho: `despachar()` existe e nada o chama. Gatilho é item da E5.
 - Contas locais: `camila@prolink.local` (admin) e as 17 semeadas, todas com `ProLinkDemo2026!`.
-- Se a sessão abrir sem o bloco "Retomada": rode `/hooks` uma vez ou reinicie o Claude Code.
