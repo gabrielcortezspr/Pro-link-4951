@@ -62,6 +62,10 @@ $router->post('/perfil/visibilidade',        PerfilController::class, 'definirVi
 // perfil da sessão. Terceiro não entra — não há registro no CREA para validar.
 $router->post('/perfil/validar-registro',    PerfilController::class, 'validarRegistro', PERFIS_COM_REGISTRO_CREA);
 
+// Preferências declaradas (RF03; dimensões 5 e 6 do item 3.2). Só o profissional: a empresa não
+// declara regime de contratação nem abrangência — quem tem essas escolhas é a pessoa.
+$router->post('/perfil/preferencias',        PerfilController::class, 'salvarPreferencias', PERFIL_PROFISSIONAL);
+
 // Experiência autodeclarada (RF03). Só o profissional tem: `exp_prf_id` referencia
 // pro_profissionais, porque quem tem trajetória é a pessoa — a empresa tem quadro técnico.
 $router->post('/perfil/experiencias',                 PerfilController::class, 'criarExperiencia', PERFIL_PROFISSIONAL);
@@ -110,24 +114,37 @@ if ($rota === null) {
 }
 
 try {
-    if (!Router::ehPublica($rota['perfis'])) {
-        if (!Sessao::autenticado()) {
-            echo View::erro(401, 'Entre com sua conta para acessar esta página.');
-            exit;
-        }
-
-        // A sessão do navegador ainda tem linha válida em sis_sessoes? É o que faz a troca de
-        // senha e o bloqueio administrativo (E6) derrubarem quem já estava logado.
-        //
-        // Consulta o repositório direto, e não o AutenticacaoService: o construtor do serviço monta
-        // sete objetos, o serviço de notificação incluído, e o roteador não tem o que fazer com
-        // nenhum deles para responder uma pergunta de uma linha.
+    // A sessão do navegador ainda tem linha válida em sis_sessoes? É o que faz a troca de senha e
+    // o bloqueio administrativo (E6) derrubarem quem já estava logado.
+    //
+    // Conferido em **toda** requisição autenticada, inclusive nas rotas públicas. Antes isto só
+    // rodava nas rotas protegidas, e o efeito era que o bloqueado seguia navegando pela home e
+    // pelos termos com o cabeçalho dizendo o nome dele: a conta estava derrubada e a tela dizia
+    // que não. Derrubar a sessão é o ato; a rota só decide se depois disso há para onde mandar.
+    //
+    // Consulta o repositório direto, e não o AutenticacaoService: o construtor do serviço monta
+    // sete objetos, o serviço de notificação incluído, e o roteador não tem o que fazer com
+    // nenhum deles para responder uma pergunta de uma linha.
+    if (Sessao::autenticado()) {
         $token = Sessao::tokenServidor();
 
         if ($token === null || (new SessaoRepository())->ativa($token) === null) {
             Sessao::reiniciar();
             Flash::aviso('Sua sessão foi encerrada. Entre novamente.');
-            View::redirecionar('/login');
+
+            // Em rota pública segue como visitante anônimo, e não redireciona: a home e os termos
+            // são visíveis a quem nunca entrou, e mandar /saude para /login quebraria o
+            // monitoramento por um motivo que não é dele.
+            if (!Router::ehPublica($rota['perfis'])) {
+                View::redirecionar('/login');
+            }
+        }
+    }
+
+    if (!Router::ehPublica($rota['perfis'])) {
+        if (!Sessao::autenticado()) {
+            echo View::erro(401, 'Entre com sua conta para acessar esta página.');
+            exit;
         }
 
         if (!Sessao::temPerfil(...$rota['perfis'])) {

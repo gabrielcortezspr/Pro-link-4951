@@ -117,6 +117,104 @@
             {% endfor %}
         {% endif %}
 
+        {#  Preferências declaradas. Fica entre o acervo e a experiência de propósito: é o
+            primeiro dos dois blocos de autodeclaração, porque é o estruturado (lista fechada,
+            comparável pelo motor) e a experiência é o narrativo. Os dois juntos, depois do
+            acervo, deixam a página com uma leitura só: o que o CREA confirma, e então o que a
+            pessoa afirma. Nada aqui usa o selo verde água, que é exclusivo de verificação. #}
+        {% set pref_contrato    = p.campos.TIPO_CONTRATO|default('') %}
+        {% set pref_abrangencia = p.campos.DISPONIBILIDADE|default('') %}
+        {% set pref_marcadas    = valores.abrangencia|default(abrangencia_atual) %}
+        {% set pref_qualquer    = valores.abrangencia is defined
+            ? abrangencia_qualquer in valores.abrangencia
+            : pref_abrangencia == abrangencia_qualquer %}
+
+        <h2 class="h5 mt-4">Preferências declaradas</h2>
+        <p class="text-body-secondary small">
+            Regime de contratação e abrangência geográfica são duas das seis dimensões que o motor
+            compara ao aproximar você de uma demanda. São <strong>autodeclaradas</strong>: a
+            plataforma não confere e não sela, e por isso cada uma pesa 0,10 na aderência, contra
+            0,40 da competência comprovada por ART. Campo em branco não conta contra você: a
+            dimensão sai da conta em vez de valer zero.
+        </p>
+
+        {#  O que está gravado hoje, em duas linhas, separado do formulário que edita. O valor cru
+            (a chave da lista fechada) fica no title, para quem audita. #}
+        <div class="dado-declarado mb-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <p class="small mb-0">
+                <span class="text-body-secondary">Regime de contratação:</span>
+                <strong{% if pref_contrato %} title="{{ pref_contrato }}"{% endif %}>{{ pref_contrato|rotulo_contrato ?: 'Não informado' }}</strong><br>
+                <span class="text-body-secondary">Onde aceita trabalhar:</span>
+                <strong{% if pref_abrangencia %} title="{{ pref_abrangencia }}"{% endif %}>{{ pref_abrangencia|rotulo_abrangencia ?: 'Não informado' }}</strong>
+            </p>
+            <span class="pl-pill neutral" title="Informado pelo próprio profissional. A plataforma não verificou.">
+                <span class="pd"></span>Declarado
+            </span>
+        </div>
+
+        {% if p.eh_dono %}
+            <form method="post" action="{{ app_url }}/perfil/preferencias" class="border rounded p-3">
+                {{ form.csrf() }}
+                <h3 class="h6">Editar preferências</h3>
+
+                {{ form.area('resumo', 'Resumo profissional (opcional)',
+                    valores.resumo|default(p.campos.RESUMO|default('')),
+                    erros.resumo|default(null), {rows: 5, maxlength: 2000},
+                    'Até 2000 caracteres. Você decide quem vê este texto, no bloco Quem vê o quê.') }}
+
+                {{ form.selecao('tipo_contrato', 'Regime de contratação (opcional)',
+                    contratos_possiveis,
+                    valores.tipo_contrato|default(pref_contrato),
+                    erros.tipo_contrato|default(null), {}, 'Não informado') }}
+
+                {#  Abrangência: uma escolha de flexibilidade total mais 27 caixas. O grupo das
+                    UFs nasce desabilitado quando "Qualquer lugar do país" está gravado, então a
+                    anulação de uma coisa pela outra é visível sem depender de script; o script
+                    abaixo só mantém isso em dia no clique. #}
+                <fieldset class="mb-3">
+                    <legend class="form-label mb-2">Onde você aceita trabalhar (opcional)</legend>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="abrangencia[]"
+                               value="{{ abrangencia_qualquer }}" id="campo-abrangencia-qualquer"
+                               aria-describedby="campo-abrangencia-ajuda"
+                               {% if pref_qualquer %}checked{% endif %}>
+                        <label class="form-check-label fw-semibold" for="campo-abrangencia-qualquer">
+                            Qualquer lugar do país
+                        </label>
+                    </div>
+                    <p class="form-text mt-1 mb-3" id="campo-abrangencia-ajuda">
+                        Marcar esta opção anula a lista de estados abaixo: o seu perfil passa a
+                        declarar que atende qualquer unidade da federação.
+                    </p>
+
+                    <fieldset id="abrangencia-ufs"{% if pref_qualquer %} disabled{% endif %}>
+                        {#  `form-text` e não `form-label`: o grupo das UFs é subordinado à escolha
+                            de cima, e rótulo com o mesmo peso dos dois lados apagaria isso. #}
+                        <legend class="form-text mt-0 mb-2">Ou marque os estados, um a um</legend>
+                        <div class="row row-cols-3 row-cols-sm-6 row-cols-md-9 g-1">
+                            {% for uf in ufs_possiveis %}
+                                <div class="col">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="abrangencia[]"
+                                               value="{{ uf }}" id="campo-abrangencia-{{ uf }}"
+                                               {% if uf in pref_marcadas %}checked{% endif %}>
+                                        <label class="form-check-label" for="campo-abrangencia-{{ uf }}">{{ uf }}</label>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </fieldset>
+
+                    {% if erros.abrangencia|default(null) %}
+                        <div class="invalid-feedback d-block">{{ erros.abrangencia }}</div>
+                    {% endif %}
+                </fieldset>
+
+                {{ form.botao('Salvar preferências') }}
+            </form>
+        {% endif %}
+
         {#  Experiência autodeclarada. O bloco vem DEPOIS do acervo e com outra cor de propósito:
             o que a API confirma e o que a pessoa afirma não se misturam, e a ordem na página diz
             qual dos dois sustenta o outro. #}
@@ -150,8 +248,12 @@
                                 {% endif %}
                             </p>
                         </div>
-                        <span class="badge text-bg-warning" title="Informado pelo próprio profissional. A plataforma não verificou.">
-                            Declarado
+                        {#  Amarelo não é o sinal de autodeclarado (D33): declarado é neutro, e o
+                            neutro do design system é o .pl-pill. Com o bloco de preferências
+                            logo acima usando a mesma marca, a tela passou a ter um vocabulário
+                            só para "a pessoa afirma". #}
+                        <span class="pl-pill neutral" title="Informado pelo próprio profissional. A plataforma não verificou.">
+                            <span class="pd"></span>Declarado
                         </span>
                     </div>
 
@@ -284,4 +386,12 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{#  Melhoria progressiva, sem dependência nova: o estado inicial correto já vem do servidor (o
+    grupo de UFs nasce desabilitado quando "Qualquer lugar do país" está gravado) e o backend
+    continua dando precedência a essa escolha. Arquivo externo, e não script embutido, porque a
+    CSP recusa inline — ver docker/nginx/default.conf. #}
+<script src="{{ url_assets }}/js/perfil-abrangencia.js?v={{ assets_v }}" defer></script>
 {% endblock %}

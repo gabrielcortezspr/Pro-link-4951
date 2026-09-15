@@ -9,6 +9,7 @@ use ProLink\Repository\TosRepository;
 use ProLink\Service\DemandaService;
 use ProLink\Service\ValidacaoException;
 use ProLink\Support\Flash;
+use ProLink\Support\Preferencias;
 use ProLink\Support\Sessao;
 use ProLink\Support\View;
 
@@ -53,6 +54,7 @@ final class DemandaController
             'titulo'  => 'Nova demanda',
             'valores' => [],
             'erros'   => [],
+            ...self::vocabulario(),
         ]);
     }
 
@@ -66,6 +68,7 @@ final class DemandaController
                 'valores' => $_POST,
                 'erros'   => $e->erros(),
                 'aviso'   => $e->getMessage(),
+                ...self::vocabulario(),
             ]);
         }
 
@@ -103,6 +106,7 @@ final class DemandaController
             'busca'     => $busca,
             'resultados' => $ehDono && $busca !== '' ? $this->resultados($busca) : [],
             'erros'     => [],
+            ...self::vocabulario(),
         ]);
     }
 
@@ -164,6 +168,23 @@ final class DemandaController
     }
 
     // ---------------------------------------------------------------- interno
+
+    /**
+     * O vocabulário fechado das duas dimensões que a demanda declara.
+     *
+     * Vem de `Support\Preferencias` e não de uma lista no template porque é a mesma lista que o
+     * perfil oferece e que o motor compara. Enquanto os dois lados eram campo de texto, a demanda
+     * dizia "obra certa", o perfil dizia "OBRA_CERTA", e a dimensão de contrato nunca casava.
+     *
+     * @return array<string, mixed>
+     */
+    private static function vocabulario(): array
+    {
+        return [
+            'contratos_possiveis' => Preferencias::CONTRATOS,
+            'ufs_possiveis'       => Preferencias::UFS,
+        ];
+    }
 
     /**
      * Resultados da busca TOS, já com a descrição montada para a tela.

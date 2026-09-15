@@ -28,6 +28,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E6 — denúncias e painel | D39, D40, D41, D43 |
 | E4 — motor de compatibilização | D44 |
 | Front — padrão visual no pipeline | D42 |
+| Revisão de código (15/09) | D45, D46, D47, D48, D49, D50 |
 
 ---
 
@@ -1339,3 +1340,163 @@ tabela não tem coluna de posição, ordem ou rank.
 leitura reintroduziria o ranking pela porta dos fundos. Dois testes travam a propriedade: um monta
 o pool em ordem decrescente de score e prova que a saída difere; outro prova que a mesma semente
 devolve sempre a mesma ordem.
+
+## D45 · As duas dimensões autodeclaradas falam um vocabulário fechado
+
+`15/09/2026` · revisão · commit a seguir · `Support\Preferencias`, `Compatibilidade::abrangencia`, `PreferenciaService`
+
+**Contexto.** Uma revisão do código inteiro encontrou duas das seis dimensões do item 3.2 mortas,
+por dois defeitos que se escondiam um ao outro.
+
+O primeiro: `prf_tipo_contrato` e `prf_disponibilidade` não eram escritas por **nenhum** caminho do
+código. `PerfilService` as exibia, `CandidatoRepository` as lia, `ProfissionalRepository::salvar()`
+até documentava por que não as toca — e não existia formulário nem serviço que as gravasse. O motor
+rodava com quatro dimensões em vez de seis, calado, porque a regra que protege o perfil incompleto
+(dimensão nula sai da média) também esconde a dimensão que ninguém pode preencher.
+
+O segundo: a dimensão de abrangência comparava `dem_local_uf` (`"AM"`) com um campo cujo comentário
+de esquema dizia "raio ou municípios", por `strcasecmp` exato. Nenhum texto real casaria. Se o
+primeiro defeito fosse corrigido sozinho, a dimensão passaria a devolver **0.0** — a afirmação
+"este candidato não atende" — para todo mundo que preenchesse o campo.
+
+**Decisão.** Os dois lados passam a falar uma lista fechada, em `Support\Preferencias`: tipo de
+contrato é uma chave de `CONTRATOS`, abrangência é `QUALQUER` ou uma lista de UFs (`AM,RR`),
+normalizada em ordem canônica para que a mesma escolha grave sempre a mesma string. A comparação
+de abrangência ganha função própria, `Compatibilidade::abrangencia()`, e **texto que o vocabulário
+não reconhece devolve null**, não zero: coluna com resquício do tempo em que o campo era livre sai
+da média em vez de punir quem a preencheu. `PreferenciaService` dá o caminho de escrita, e a tela
+de demanda troca os dois campos de texto por seleção.
+
+**Alternativa recusada.** Raio em quilômetros, que é o que o comentário original prometia. A API
+não devolve coordenada de município e nenhuma das duas pontas sabe informar distância com
+honestidade; geocodificar seria inventar precisão que o dado não tem, e ainda transformaria uma
+dimensão autodeclarada de peso 0.10 na mais cara de calcular. Também recusado deixar o campo livre
+e comparar por texto normalizado: "Manaus e região" e "Amazonas" continuariam sendo a mesma
+intenção escrita de dois jeitos, e a dimensão voltaria a depender de sorte.
+
+**Consequência.** A abrangência deixa de exprimir raio ou município: quem atende só a região
+metropolitana de Manaus declara `AM` e o motor não distingue isso de quem atende o estado inteiro.
+É perda de granularidade aceita em troca de a dimensão passar a funcionar. O `COMMENT` das duas
+colunas mudou em `estrutura.sql`, então banco criado antes desta sessão descreve o campo errado —
+sem efeito em dado, porque as duas colunas estavam nulas em toda linha. E `dem_tipo_contrato`
+gravado como texto livre antes desta sessão não casa com nenhuma opção do novo `<select>`: editar
+uma demanda antiga apaga o valor em silêncio. A recarga do banco antes da demonstração, que o
+`estado.md` já exige por outro motivo, resolve os dois.
+
+## D46 · `sis_auditoria` não tem `_log` nem `_status`, e é a única
+
+`15/09/2026` · revisão · commit a seguir · `_arq/estrutura.sql`
+
+**Contexto.** O Anexo I do edital pede `_dt_registro`, `_log` e `_status` em toda tabela, e o
+`CLAUDE.md` repete a regra. Das 28 tabelas do esquema, 27 cumprem; `sis_auditoria` tem só
+`aud_dt_registro`. A ausência era deliberada desde a D04 e não estava escrita em lugar nenhum —
+numa conferência coluna a coluna, o que aparece é uma tabela fora do padrão sem justificativa.
+
+**Decisão.** Fica como está, e a exceção passa a ser declarada aqui. `_status` é a marca de
+exclusão lógica (item 8.6j): uma trilha de auditoria com coluna de exclusão é uma trilha que pode
+ser apagada por `UPDATE`, que é exatamente o que a trigger da D04 existe para impedir. `_log` é
+campo de anotação editável, e a tabela recusa `UPDATE` por construção — a coluna nasceria morta.
+Acrescentar as duas para satisfazer a contagem produziria um esquema que *parece* cumprir a norma
+enquanto contradiz o item 8.5g, que é a razão de a tabela existir.
+
+**Alternativa recusada.** Criar as duas colunas com `DEFAULT` fixo e nunca usá-las. Passaria em
+qualquer conferência automática e seria pior: um avaliador que lesse `aud_status` concluiria que
+registro de auditoria pode ser excluído nesta plataforma.
+
+**Consequência.** Uma conferência coluna a coluna da nomenclatura do Anexo I vai acusar uma tabela
+fora do padrão, e a resposta é esta entrada — que precisa estar à mão no Demo Day, não descoberta
+na hora. Em troca, `sis_auditoria` não tem nenhum caminho, nem de esquema, que sugira exclusão.
+
+## D47 · A coluna do perfil lê em três registros, e a ordem é o argumento
+
+`15/09/2026` · revisão · commit a seguir · `templates/perfil/index.html.twig`
+
+**Contexto.** Com o formulário de preferências declaradas, o perfil do profissional passou a ter
+três blocos de natureza diferente na mesma coluna: o acervo, que o CREA confirma; as preferências,
+que a pessoa declara em vocabulário fechado; e a experiência, que ela declara em texto livre. A
+plataforma inteira se sustenta em não confundir o primeiro com os outros dois.
+
+**Decisão.** A ordem da coluna é verificado → declarado estruturado → declarado narrativo, e ela é
+o argumento: o que a página mostra primeiro é o que sustenta o resto. O bloco de preferências diz
+com todas as letras quanto pesa no motor — 0,10 por dimensão contra 0,40 da competência comprovada
+em ART. Marca de autodeclarado é a mesma nos dois blocos declarados.
+
+**Alternativa recusada.** Agrupar as preferências junto do cabeçalho de identidade, que é onde um
+formulário de "dados da conta" normalmente vive. Colocaria regime de contratação ao lado do RNP,
+sugerindo que os dois têm a mesma origem — exatamente a confusão que o projeto existe para evitar.
+Também recusado omitir os pesos: número de motor na tela do titular parece detalhe interno, mas é
+o que permite a ele entender por que aparece ou não, e o item 12.3 pede critérios explicáveis.
+
+**Consequência.** Toda tela de perfil futura — `/perfil/{id}` público, o card do feed — herda esta
+ordem, ou a plataforma passa a dizer coisas diferentes em telas diferentes sobre o que é evidência.
+E os pesos na tela viram promessa: recalibrar `sis_parametros` sem atualizar o texto deixa a tela
+mentindo.
+
+## D48 · Autodeclarado é pílula neutra, e isso encerra a execução da D33
+
+`15/09/2026` · revisão · commit a seguir · `templates/perfil/index.html.twig`, [`design.md`](design.md)
+
+**Contexto.** A D33 tirou o amarelo como sinal de autodeclarado e o `design.md` registrou a regra,
+mas o bloco de experiência continuava com `badge text-bg-warning` no rótulo "Declarado" — a decisão
+tinha sido tomada e não tinha chegado ao template. Com um segundo bloco autodeclarado na mesma
+coluna, o desvio deixaria de ser detalhe: seriam dois vocabulários visuais para o mesmo conceito,
+lado a lado.
+
+**Decisão.** Autodeclarado é `.pl-pill.neutral` nos dois blocos. Amarelo não marca nada nesta
+interface, e verde água continua exclusivo de verificação.
+
+**Alternativa recusada.** Deixar como estava e alinhar depois, junto com uma passada geral de
+design. É como o desvio chegou até aqui: a D33 é de 14/09 e o template nunca foi ajustado.
+
+**Consequência.** A ausência de cor quente para "não verificado" é deliberada e vai parecer
+omissão para quem olhar a tela sem contexto — um avaliador pode perguntar por que a plataforma não
+"alerta" sobre dado não verificado. A resposta é a D33: alerta pressupõe risco, e declarar
+experiência não é risco; o que a interface faz é separar, não advertir.
+
+## D49 · Campos que se anulam resolvem no servidor; o script só sincroniza
+
+`15/09/2026` · revisão · commit a seguir · `templates/perfil/index.html.twig`, `public/assets/js/perfil-abrangencia.js`
+
+**Contexto.** "Qualquer lugar do país" e a lista de 27 UFs se anulam: marcar o primeiro torna a
+lista irrelevante, e `Preferencias::normalizarAbrangencia()` já dá precedência a `QUALQUER` ao
+gravar. A tela precisa mostrar essa anulação, e o caminho curto é um `disabled` posto por
+JavaScript no carregamento.
+
+**Decisão.** O estado correto é renderizado pelo servidor — o `fieldset` das UFs nasce com
+`disabled` quando `QUALQUER` está gravado — e o script só mantém isso em dia no clique. A tela
+está correta com JavaScript desligado, bloqueado por CSP ou quebrado por erro anterior na página.
+
+**Alternativa recusada.** Resolver tudo no cliente. Funciona em 99% dos carregamentos e falha no
+que importa: sem o script, a tela mostraria 27 caixas habilitadas que a gravação vai ignorar, e a
+pessoa acreditaria ter declarado uma coisa enquanto o banco guarda outra.
+
+**Consequência.** Todo par de campos que se anulam nesta plataforma passa a dever o estado inicial
+ao servidor, o que significa que o controller precisa conhecer a regra — não dá para tratar
+exclusão mútua como assunto só de interface.
+
+## D50 · A CSP espelha o layout, e a máquina confere isso
+
+`15/09/2026` · revisão · commit `0c417a6` · `docker/nginx/default.conf`, `scripts/verificar-padrao.php`
+
+**Contexto.** A primeira versão da CSP acrescentada nesta sessão foi escrita por suposição:
+`script-src 'self'`, `style-src 'self' 'unsafe-inline'`, e um comentário afirmando que o Bootstrap
+vinha de arquivo local. Não vinha — `layout/base.html.twig` carrega Bootstrap (CSS e JS) de
+`cdn.jsdelivr.net` e as fontes do Google desde a fundação. A política teria servido **todas** as
+telas sem estilo nenhum, e sem erro visível: bloqueio de CSP só aparece no console do navegador.
+
+**Decisão.** A política lista exatamente as origens que o layout carrega, por diretiva, e
+`verificar-padrao.php` compara as duas listas a cada execução: falha se um template usa origem que
+a diretiva certa não permite, se uma origem some da política inteira, e se a política permite
+origem que nenhum template usa. Script embutido também falha — o da abrangência foi para
+`public/assets/js`, e assim `script-src` não precisa de `'unsafe-inline'`, que é onde a CSP carrega
+o peso real contra XSS.
+
+**Alternativa recusada.** Servir Bootstrap e as fontes de `public/assets` e fechar a CSP em
+`'self'`, que é mais seguro e ainda elimina a dependência de rede no Demo Day. Recusado **nesta
+sessão** por escopo — é mudança de infraestrutura de front no meio de uma revisão de motor —, e
+não por mérito: continua sendo a escolha certa e está anotada como pendência.
+
+**Consequência.** A plataforma depende de `cdn.jsdelivr.net` e de `fonts.googleapis.com` estarem
+acessíveis para aparecer com estilo. No Demo Day presencial, sem internet ou com rede filtrada, a
+apresentação é feita sem CSS. A verificação automática protege contra a política divergir do
+layout, mas não contra a rede: essa é a pendência acima.

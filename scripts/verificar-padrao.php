@@ -104,10 +104,163 @@ foreach ($templates as $nome => $fonte) {
     }
 }
 
+// ---------------------------------------------------------------- CSP × origens dos templates
+//
+// A regra "nenhuma dependência de front nova" do CLAUDE.md só é verificável se alguém souber
+// quais origens externas a aplicação carrega hoje. E a CSP do nginx precisa listar exatamente
+// essas, nem mais nem menos: uma origem de menos serve a aplicação sem estilo e o navegador não
+// avisa — bloqueio de CSP só aparece no console, e ninguém abre console na apresentação.
+//
+// Esta verificação existe porque o erro já aconteceu: uma CSP escrita por suposição, afirmando
+// no próprio comentário que o Bootstrap era local, teria derrubado o CSS de todas as telas.
+
+secao('CSP e origens de front');
+
+// Origem externa, classificada pela diretiva de CSP que a governa. Conferir só se o host
+// aparece "em algum lugar" da política não basta: tirar o CDN do script-src e deixá-lo no
+// style-src passaria na conferência com o JS do Bootstrap morto na tela.
+$origensDosTemplates = [];   // host => ['diretiva' => [...], 'onde' => [...]]
+
+foreach ($templates as $nome => $fonte) {
+    $limpo = soTextoDeInterface($fonte);
+
+    $classificar = static function (string $tag, string $host, string $diretiva) use (&$origensDosTemplates, $nome): void {
+        $host = strtolower($host);
+
+        $origensDosTemplates[$host]['diretiva'][$diretiva] = true;
+        $origensDosTemplates[$host]['onde'][$nome]         = true;
+    };
+
+    if (preg_match_all('#<script[^>]*\ssrc\s*=\s*["\']https?://([^/"\']+)#i', $limpo, $achados)) {
+        foreach ($achados[1] as $host) {
+            $classificar('script', $host, 'script-src');
+        }
+    }
+
+    if (preg_match_all('#<link[^>]*>#i', $limpo, $links)) {
+        foreach ($links[0] as $link) {
+            if (!preg_match('#href\s*=\s*["\']https?://([^/"\']+)#i', $link, $h)) {
+                continue;
+            }
+
+            // preconnect e dns-prefetch são dicas de rede, não carregamento: o recurso que vem
+            // delas (o arquivo de fonte) é pedido pelo CSS do Google, e o template não o vê.
+            // Para essas basta estar na política; a diretiva certa é font-src e é conferida à mão.
+            $diretiva = preg_match('#rel\s*=\s*["\'](?:preconnect|dns-prefetch)["\']#i', $link)
+                ? 'qualquer'
+                : 'style-src';
+
+            $classificar('link', $h[1], $diretiva);
+        }
+    }
+
+    // Script embutido: a CSP recusa, e script da aplicação mora em public/assets/js.
+    if (preg_match('#<script(?![^>]*\ssrc=)[^>]*>#i', $limpo, $m)) {
+        violar($nome, 'script embutido: a CSP recusa inline. Mova para public/assets/js e use src=', $m[0]);
+    }
+}
+
+$conf = (string) @file_get_contents(dirname(__DIR__) . '/docker/nginx/default.conf');
+
+if (preg_match('/add_header\s+Content-Security-Policy\s+"([^"]+)"/', $conf, $m)) {
+    // A política, quebrada por diretiva: 'script-src' => ['cdn.jsdelivr.net', ...]
+    $politica = [];
+
+    foreach (explode(';', $m[1]) as $pedaco) {
+        $partes = preg_split('/\s+/', trim($pedaco), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        if ($partes === []) {
+            continue;
+        }
+
+        $diretiva = array_shift($partes);
+
+        foreach ($partes as $fonte) {
+            if (preg_match('#^https?://([^/]+)$#i', $fonte, $h)) {
+                $politica[$diretiva][] = strtolower($h[1]);
+            }
+        }
+    }
+
+    $todasPermitidas = array_unique(array_merge(...array_values($politica) ?: [[]]));
+
+    foreach ($origensDosTemplates as $host => $uso) {
+        $onde = implode(', ', array_keys($uso['onde']));
+
+        foreach (array_keys($uso['diretiva']) as $diretiva) {
+            $permitida = $diretiva === 'qualquer'
+                ? in_array($host, $todasPermitidas, true)
+                : in_array($host, $politica[$diretiva] ?? [], true);
+
+            if (!$permitida) {
+                violar(
+                    $onde,
+                    $diretiva === 'qualquer'
+                        ? 'origem ausente da CSP inteira: o recurso seria bloqueado sem aviso na tela'
+                        : sprintf('origem ausente de %s na CSP: o recurso seria bloqueado sem aviso na tela', $diretiva),
+                    $host,
+                );
+            }
+        }
+    }
+
+    foreach ($todasPermitidas as $host) {
+        if (!isset($origensDosTemplates[$host])) {
+            violar(
+                'docker/nginx/default.conf',
+                'CSP permite origem que nenhum template usa: sobrou da versão anterior, ou a tela que a usava saiu',
+                $host,
+            );
+        }
+    }
+
+    $conferido++;
+
+    foreach ($origensDosTemplates as $host => $uso) {
+        printf("  \e[2m%-26s %s\e[0m\n", $host, implode(' + ', array_keys($uso['diretiva'])));
+    }
+} else {
+    violar('docker/nginx/default.conf', 'sem Content-Security-Policy: a conferência de origens não roda', '');
+}
+
 secao('HTML renderizado');
 
-/** @var array<string, array<string, mixed>> $amostras */
-$amostras = require __DIR__ . '/amostras.php';
+/**
+ * A parte renderizada precisa do banco: `amostras.php` monta as telas com dado de verdade, que é
+ * justamente o ponto — template limpo pode render sujo.
+ *
+ * Banco parado é o estado normal de quem acabou de abrir a sessão, e até aqui isso despejava três
+ * exceções encadeadas e um stack trace no lugar do relatório. Agora a parte estática vale por si,
+ * e a renderizada diz o que fazer para rodar. O código de saída distingue os dois casos: 0 quando
+ * conferiu tudo, 2 quando conferiu só metade — assim o `/encerrar` e o hook não leem "verde" onde
+ * houve meia verificação.
+ *
+ * @var array<string, array<string, mixed>>|null $amostras
+ */
+$amostras = null;
+
+try {
+    $amostras = require __DIR__ . '/amostras.php';
+} catch (Throwable $e) {
+    printf(
+        "\n\e[33m!\e[0m Banco indisponível: a verificação do HTML renderizado não rodou.\n"
+        . "  %s\n"
+        . "  Suba o ambiente e repita:  docker compose up -d && docker compose exec php php %s\n",
+        $e->getMessage(),
+        'scripts/' . basename(__FILE__),
+    );
+}
+
+if ($amostras === null) {
+    printf(
+        "\n%s  %d conferências estáticas, %d violações · HTML renderizado não conferido\n",
+        $violacoes === 0 ? "\e[33mPADRÃO VISUAL PARCIAL\e[0m" : "\e[31mPADRÃO VISUAL VIOLADO\e[0m",
+        $conferido,
+        $violacoes,
+    );
+
+    exit($violacoes === 0 ? 2 : 1);
+}
 
 foreach ($amostras as $tela => $dados) {
     try {

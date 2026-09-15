@@ -39,10 +39,14 @@
     {% set id = 'campo-' ~ nome %}
     <div class="mb-3">
         <label for="{{ id }}" class="form-label">{{ rotulo }}{% if attrs.required|default(false) %} <span class="text-danger" aria-hidden="true">*</span>{% endif %}</label>
+        {#  `rows` e `required` saem tratados acima; o resto de `attrs` passa adiante igual ao que
+            a macro `campo` já faz. Sem isso não havia como pôr `maxlength` num textarea, e o
+            limite do servidor só aparecia depois de a pessoa perder o texto escrito. #}
         <textarea name="{{ nome }}" id="{{ id }}" rows="{{ attrs.rows|default(4) }}"
                   class="form-control{% if erro %} is-invalid{% endif %}"
                   {% if erro %}aria-invalid="true" aria-describedby="{{ id }}-erro"{% elseif ajuda %}aria-describedby="{{ id }}-ajuda"{% endif %}
-                  {% if attrs.required|default(false) %}required{% endif %}>{{ valor }}</textarea>
+                  {% if attrs.required|default(false) %}required{% endif %}
+                  {% for k, v in attrs %}{% if k not in ['rows', 'required'] %}{% if v is same as(true) %}{{ k }} {% elseif v is not same as(false) %}{{ k }}="{{ v }}" {% endif %}{% endif %}{% endfor %}>{{ valor }}</textarea>
         {% if erro %}<div id="{{ id }}-erro" class="invalid-feedback">{{ erro }}</div>{% endif %}
         {% if ajuda and not erro %}<div id="{{ id }}-ajuda" class="form-text">{{ ajuda }}</div>{% endif %}
     </div>
@@ -64,7 +68,20 @@
     </div>
 {% endmacro %}
 
-{% macro caixa(nome, rotulo, marcado = false, erro = null, attrs = {}) %}
+{#
+    Caixa de seleção. O rótulo é **texto**, sempre escapado.
+
+    `link` e `sufixo` existem porque os dois aceites de termo precisam de uma âncora dentro do
+    rótulo, e a solução anterior era passar HTML montado por concatenação e imprimi-lo com `|raw`.
+    Funcionava, e o preço era que `ter_versao` — coluna de `sis_termos`, portanto dado — entrava
+    cru no HTML da tela de cadastro. Ninguém ia explorar isso hoje; o problema é que a próxima
+    pessoa a chamar este macro com um rótulo vindo do banco não teria como saber.
+
+    Assim o macro não tem mais como emitir HTML que não seja dele:
+      link   {url, texto} — vira <a target="_blank" rel="noopener">
+      sufixo texto curto depois do link, tipo "(versão 1.0)"
+#}
+{% macro caixa(nome, rotulo, marcado = false, erro = null, attrs = {}, link = null, sufixo = null) %}
     {% set id = 'campo-' ~ nome %}
     <div class="mb-3 form-check">
         <input type="checkbox" name="{{ nome }}" id="{{ id }}" value="1"
@@ -72,7 +89,11 @@
                {% if marcado %}checked{% endif %}
                {% if erro %}aria-invalid="true" aria-describedby="{{ id }}-erro"{% endif %}
                {% if attrs.required|default(false) %}required{% endif %}>
-        <label for="{{ id }}" class="form-check-label">{{ rotulo|raw }}</label>
+        <label for="{{ id }}" class="form-check-label">
+            {{- rotulo -}}
+            {%- if link %} <a href="{{ link.url }}" target="_blank" rel="noopener">{{ link.texto }}</a>{% endif -%}
+            {%- if sufixo %} {{ sufixo }}{% endif -%}
+        </label>
         {% if erro %}<div id="{{ id }}-erro" class="invalid-feedback">{{ erro }}</div>{% endif %}
     </div>
 {% endmacro %}

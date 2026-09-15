@@ -9,6 +9,7 @@ use ProLink\Repository\DemandaRepository;
 use ProLink\Repository\TosRepository;
 use ProLink\Support\Auditoria;
 use ProLink\Support\Database;
+use ProLink\Support\Preferencias;
 use ProLink\Support\Validacao;
 
 /**
@@ -238,7 +239,7 @@ final class DemandaService
         $escopo    = trim((string) ($entrada['escopo'] ?? ''));
         $uf        = mb_strtoupper(trim((string) ($entrada['local_uf'] ?? '')));
         $municipio = trim((string) ($entrada['local_municipio'] ?? ''));
-        $contrato  = trim((string) ($entrada['tipo_contrato'] ?? ''));
+        $contrato  = mb_strtoupper(trim((string) ($entrada['tipo_contrato'] ?? '')));
         $alvo      = trim((string) ($entrada['alvo'] ?? 'A'));
 
         $v = new Validacao();
@@ -251,8 +252,14 @@ final class DemandaService
           ->tamanhoMaximo('escopo', $escopo, self::ESCOPO_MAXIMO,
               sprintf('No máximo %d caracteres.', self::ESCOPO_MAXIMO));
 
-        $v->exigir('local_uf', $uf === '' || preg_match('/^[A-Z]{2}$/', $uf) === 1,
-            'UF tem duas letras. Ex.: AM.');
+        $v->exigir('local_uf', $uf === '' || in_array($uf, Preferencias::UFS, true),
+            'UF desconhecida. Escolha uma da lista.');
+
+        // Mesmo vocabulário do perfil, e não texto livre. Enquanto os dois lados eram livres, a
+        // demanda dizia "obra certa" e o perfil dizia "OBRA_CERTA": a dimensão de contrato nunca
+        // casava, e o demandante não tinha como saber por quê.
+        $v->exigir('tipo_contrato', $contrato === '' || Preferencias::contratoValido($contrato),
+            'Escolha um dos regimes da lista.');
 
         $v->entre('alvo', $alvo, self::ALVOS, 'Escolha quem pode atender esta demanda.');
 

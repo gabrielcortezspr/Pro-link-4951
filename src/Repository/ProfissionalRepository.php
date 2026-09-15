@@ -92,6 +92,36 @@ final class ProfissionalRepository extends Repositorio
     }
 
     /**
+     * `prf_status_api` de vários usuários, para o portão de privacidade do motor.
+     *
+     * Devolve só quem tem linha. Ausência aqui é a pendência da D20 — a conta afirma um registro
+     * no CREA que ainda não confirmamos —, e quem chama distingue isso de "tem linha, mas o
+     * registro não está regular". São dois estados diferentes com o mesmo efeito, e misturá-los
+     * apagaria a diferença na hora de explicar ao titular por que o perfil dele não aparece.
+     *
+     * @param  list<int> $usuarioIds
+     * @return array<int, ?string> prf_usu_id => prf_status_api
+     */
+    public function statusApiEmLote(array $usuarioIds): array
+    {
+        $linhas = $this->buscarPorIds(
+            static fn (array $m): string =>
+                'SELECT prf_usu_id, prf_status_api
+                   FROM pro_profissionais
+                  WHERE prf_usu_id IN (' . implode(', ', $m) . ')',
+            $usuarioIds,
+        );
+
+        $situacao = [];
+
+        foreach ($linhas as $linha) {
+            $situacao[(int) $linha['prf_usu_id']] = $linha['prf_status_api'];
+        }
+
+        return $situacao;
+    }
+
+    /**
      * Sincroniza as modalidades do profissional com o que a API devolveu.
      *
      * Nada é apagado (item 8.6j): modalidade que sumiu da resposta vira `pmo_status = 'X'`.
@@ -170,5 +200,33 @@ final class ProfissionalRepository extends Repositorio
         $this->pdo->prepare(
             'UPDATE pro_profissionais SET prf_em_construcao = :flag WHERE prf_id = :prf'
         )->execute([':flag' => $emConstrucao ? 1 : 0, ':prf' => $profissionalId]);
+    }
+
+    /**
+     * As três colunas que o titular escreve: resumo, tipo de contrato e abrangência geográfica.
+     *
+     * Existe em separado de `salvar()` pelo motivo que o cabeçalho daquele método já dá — sincronizar
+     * com o CREA não pode apagar o que a pessoa escreveu. A recíproca vale aqui: este método não
+     * toca em nenhuma coluna de origem da API. Cada lado escreve o que é seu, e nenhum dos dois
+     * precisa saber do outro.
+     *
+     * @param array{resumo: ?string, tipo_contrato: ?string, disponibilidade: ?string} $dados
+     */
+    public function salvarDeclarado(int $profissionalId, array $dados): void
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE pro_profissionais
+                SET prf_resumo          = :resumo,
+                    prf_tipo_contrato   = :contrato,
+                    prf_disponibilidade = :abrangencia
+              WHERE prf_id = :prf'
+        );
+
+        $stmt->execute([
+            ':resumo'      => $dados['resumo'],
+            ':contrato'    => $dados['tipo_contrato'],
+            ':abrangencia' => $dados['disponibilidade'],
+            ':prf'         => $profissionalId,
+        ]);
     }
 }

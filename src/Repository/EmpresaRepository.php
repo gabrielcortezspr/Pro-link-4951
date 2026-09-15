@@ -39,6 +39,32 @@ final class EmpresaRepository extends Repositorio
         return $stmt->fetch() ?: null;
     }
 
+    /**
+     * Quais destes usuários já têm empresa validada, numa consulta.
+     *
+     * Para a empresa o portão é a existência da linha: a API não devolve situação de empresa —
+     * não há equivalente a `prf_status_api` —, então o que se confere é a pendência da D20.
+     *
+     * @param  list<int> $usuarioIds
+     * @return array<int, bool>
+     */
+    public function validadasEmLote(array $usuarioIds): array
+    {
+        $validada = array_fill_keys(array_map('intval', $usuarioIds), false);
+
+        $linhas = $this->buscarPorIds(
+            static fn (array $m): string =>
+                'SELECT emp_usu_id FROM pro_empresas WHERE emp_usu_id IN (' . implode(', ', $m) . ')',
+            $usuarioIds,
+        );
+
+        foreach ($linhas as $linha) {
+            $validada[(int) $linha['emp_usu_id']] = true;
+        }
+
+        return $validada;
+    }
+
     /** @return array<string, mixed>|null */
     public function porRegistroCrea(string $registroCrea): ?array
     {

@@ -246,13 +246,13 @@ final class EmpresaCreaService
     private function cnpjDoUsuario(int $usuarioId): string
     {
         $usuario = $this->usuarios->porId($usuarioId);
-        $cifrado = $usuario['usu_documento_cif'] ?? null;
+        $cnpj    = Crypto::decifrarColuna($usuario['usu_documento_cif'] ?? null);
 
-        if (!is_string($cifrado) || $cifrado === '') {
+        if ($cnpj === null) {
             throw new ValidacaoException('Esta conta não tem CNPJ guardado para consultar no CREA.');
         }
 
-        return Crypto::decifrar($cifrado);
+        return $cnpj;
     }
 
     private function exigirConsentimento(int $usuarioId): void

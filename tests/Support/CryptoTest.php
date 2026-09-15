@@ -67,4 +67,36 @@ final class CryptoTest extends TestCase
     {
         self::assertSame('00123001000123', Crypto::apenasDigitos('00.123.001/0001-23'));
     }
+
+    /**
+     * O caso que separava os três serviços que leem `usu_documento_cif`.
+     *
+     * A escrita usa `PDO::PARAM_LOB`, e o preço é que a leitura pode voltar recurso em vez de
+     * string. Dois dos três serviços recusavam o recurso com `!is_string()` e diziam "esta conta
+     * não tem CPF guardado" — falso, e justamente no caminho de revalidação da D20.
+     */
+    public function testDecifraColunaQueVeioComoRecurso(): void
+    {
+        $pacote = Crypto::cifrar('12312300109');
+        $fluxo  = fopen('php://memory', 'r+');
+
+        self::assertIsResource($fluxo);
+        fwrite($fluxo, $pacote);
+        rewind($fluxo);
+
+        self::assertSame('12312300109', Crypto::decifrarColuna($fluxo));
+        fclose($fluxo);
+    }
+
+    public function testDecifraColunaQueVeioComoString(): void
+    {
+        self::assertSame('12312300109', Crypto::decifrarColuna(Crypto::cifrar('12312300109')));
+    }
+
+    /** Ausência de documento é null, não exceção: quem precisa de erro decide lá em cima. */
+    public function testColunaVaziaNaoEErro(): void
+    {
+        self::assertNull(Crypto::decifrarColuna(null));
+        self::assertNull(Crypto::decifrarColuna(''));
+    }
 }

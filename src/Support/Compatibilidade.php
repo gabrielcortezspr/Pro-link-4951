@@ -231,30 +231,46 @@ final class Compatibilidade
 
     /**
      * Experiência declarada: dimensão autodeclarada, e o peso dela diz isso (0.10 contra 0.40 da
-     * competência). Pontua por ter relato relacionado ao que a demanda pede, e pontua cheio
-     * quando o relato está amarrado a uma ART do próprio candidato, que é o único caso em que o
-     * autodeclarado encosta em evidência.
+     * competência). Pontua cheio quando algum relato está amarrado a uma ART do próprio
+     * candidato, que é o único caso em que o autodeclarado encosta em evidência; meio quando há
+     * relato sem ART; e sai da média quando não há relato nenhum.
      *
-     * @param list<array{vinculada: bool}> $experiencias relatos que tocam os códigos da demanda
+     * **Mede o que o candidato declarou, não o que casa com esta demanda.** A assinatura já
+     * recebeu a lista de relatos "que tocam os códigos da demanda", e isso era ficção: o serviço
+     * nunca teve como produzir esse recorte — casar relato livre com código TOS exigiria
+     * classificar texto, que é o caminho que o item 12.3 obriga a declarar como uso de IA. A
+     * decisão de não fazer isso é antiga e está registrada; o que mudou é a função parar de
+     * prometer o contrário. Ver `docs/matching.md`.
      */
-    public static function experiencia(array $experiencias, int $totalDeclarado): ?float
+    public static function experiencia(int $totalDeclarado, int $comArt): ?float
     {
         if ($totalDeclarado <= 0) {
             return null;
         }
 
-        if ($experiencias === []) {
-            return 0.0;
-        }
-
-        $comArt = count(array_filter($experiencias, static fn (array $e): bool => $e['vinculada']));
-
         return $comArt > 0 ? 1.0 : 0.5;
     }
 
     /**
-     * Tipo de contrato e disponibilidade geográfica: preferência declarada contra o que a demanda
-     * pede. Ambas autodeclaradas, ambas nulas quando o candidato não declarou.
+     * Abrangência geográfica: a UF onde a demanda acontece está entre as que o candidato aceita?
+     *
+     * Dimensão própria, e não mais um `correspondenciaDeclarada()` entre a UF da demanda e o
+     * campo de abrangência. A comparação exata entre os dois era errada por construção: de um
+     * lado vinha "AM", do outro um texto livre que nunca seria a string "AM", e a dimensão
+     * devolvia 0.0 — afirmando que o candidato não atende, quando o que havia era um campo que o
+     * motor não sabia ler. Agora o vocabulário é fechado (`Support\Preferencias`) e o que não dá
+     * para ler volta null, saindo da média como manda a regra do topo desta classe.
+     */
+    public static function abrangencia(?string $ufDaDemanda, ?string $declarada): ?float
+    {
+        $cobre = Preferencias::abrangenciaCobre($declarada, $ufDaDemanda);
+
+        return $cobre === null ? null : ($cobre ? 1.0 : 0.0);
+    }
+
+    /**
+     * Tipo de contrato: preferência declarada contra o que a demanda pede. Autodeclarada dos dois
+     * lados, nula quando qualquer um dos dois não declarou.
      *
      * "QUALQUER" dos dois lados casa com tudo: é declaração de flexibilidade, não ausência de
      * dado, e por isso pontua cheio em vez de sair da média.
@@ -269,7 +285,7 @@ final class Compatibilidade
             return null;
         }
 
-        if ($daDemanda === 'QUALQUER' || $doCandidato === 'QUALQUER') {
+        if ($daDemanda === Preferencias::QUALQUER || $doCandidato === Preferencias::QUALQUER) {
             return 1.0;
         }
 

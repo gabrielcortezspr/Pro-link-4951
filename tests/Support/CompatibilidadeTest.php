@@ -207,10 +207,10 @@ final class CompatibilidadeTest extends TestCase
 
     public function testExperienciaVinculadaAArtValeMaisQueRelatoSolto(): void
     {
-        self::assertSame(1.0, Compatibilidade::experiencia([['vinculada' => true]], 1));
-        self::assertSame(0.5, Compatibilidade::experiencia([['vinculada' => false]], 1));
-        self::assertSame(0.0, Compatibilidade::experiencia([], 2), 'declarou, mas nada do que a demanda pede');
-        self::assertNull(Compatibilidade::experiencia([], 0), 'não declarou nada: sai da média');
+        self::assertSame(1.0, Compatibilidade::experiencia(1, 1));
+        self::assertSame(1.0, Compatibilidade::experiencia(3, 1), 'basta um relato amarrado a ART');
+        self::assertSame(0.5, Compatibilidade::experiencia(1, 0));
+        self::assertNull(Compatibilidade::experiencia(0, 0), 'não declarou nada: sai da média');
     }
 
     public function testDeclaracaoDeFlexibilidadeCasaComTudo(): void

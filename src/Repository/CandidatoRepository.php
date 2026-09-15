@@ -202,23 +202,4 @@ final class CandidatoRepository extends Repositorio
         return $saida;
     }
 
-    /**
-     * Placeholders numerados: `ATTR_EMULATE_PREPARES` está desligado e nome repetido na mesma
-     * query não funciona.
-     *
-     * @param  list<int> $ids
-     * @return array{0: list<string>, 1: array<string, int>}
-     */
-    private function marcadores(array $ids): array
-    {
-        $marcadores = [];
-        $params     = [];
-
-        foreach (array_values(array_unique($ids)) as $i => $id) {
-            $marcadores[]     = ":i{$i}";
-            $params[":i{$i}"] = $id;
-        }
-
-        return [$marcadores, $params];
-    }
 }
