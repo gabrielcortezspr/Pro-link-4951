@@ -6,6 +6,7 @@ namespace ProLink\Support;
 
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
+use Twig\TwigFilter;
 use Twig\TwigFunction;
 
 /**
@@ -39,6 +40,13 @@ final class View
         // versão na URL, arquivo novo é URL nova. Vale principalmente na demonstração ao vivo.
         $css = dirname(__DIR__, 2) . '/public/assets/css/prolink.css';
         $twig->addGlobal('assets_v', is_file($css) ? (string) filemtime($css) : '1');
+
+        // Identificador de sistema não chega à tela: ação, tabela e coluna passam por rótulo em
+        // português. Filtro, e não tradução no controller, porque a regra é de apresentação e
+        // vale em qualquer template que toque auditoria. Ver Support\Rotulos.
+        $twig->addFilter(new TwigFilter('rotulo_acao', [Rotulos::class, 'acao']));
+        $twig->addFilter(new TwigFilter('rotulo_entidade', [Rotulos::class, 'entidade']));
+        $twig->addFilter(new TwigFilter('rotulo_campo', [Rotulos::class, 'campo']));
 
         // Funções, não globais: o valor é lido no momento do render, depois do login/logout.
         $twig->addFunction(new TwigFunction('usuario', [Sessao::class, 'usuarioAtual']));
