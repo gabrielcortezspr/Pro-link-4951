@@ -1,0 +1,55 @@
+{% extends 'layout/base.html.twig' %}
+
+{# O painel É a página, não um quadro dentro dela: a sidebar vai do topo ao rodapé da janela.
+   Por isso a navbar clara e o rodapé do site saem daqui, e o main perde container e padding.
+   A navegação do site inteiro continua acessível pela sidebar. #}
+{% block cabecalho %}{% endblock %}
+{% block rodape %}{% endblock %}
+{% block classe_main %}p-0{% endblock %}
+
+{% block conteudo %}
+<div class="pl-app">
+
+    <aside class="pl-side">
+        <div class="pl-brand"><span class="m"></span><span>Pro&#8209;Link</span></div>
+        <small>Administração</small>
+
+        <nav class="pl-nav">
+            <a href="{{ app_url }}/admin"{% if ativo|default('') == 'visao' %} class="active"{% endif %}>
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></span>
+                Visão geral
+            </a>
+            <a href="{{ app_url }}/admin/denuncias"{% if ativo|default('') == 'denuncias' %} class="active"{% endif %}>
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 4h12l-2.5 3L18 10H6"/></svg></span>
+                Denúncias
+            </a>
+            <a href="{{ app_url }}/admin/auditoria"{% if ativo|default('') == 'auditoria' %} class="active"{% endif %}>
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
+                Auditoria
+            </a>
+            {# Usuários e Integrações entram em 15/09. Link para rota inexistente vira 404 na
+               demonstração, então o item só aparece quando a tela existir. #}
+        </nav>
+
+        {% set u = usuario() %}
+        {% if u %}
+            <div class="foot">
+                <span class="av">{{ u.nome|slice(0, 1)|upper }}</span>
+                <span class="txt">{{ u.nome }}<span class="fn">Administração</span></span>
+            </div>
+        {% endif %}
+    </aside>
+
+    <div class="pl-main">
+        {# A topbar tinha só o título e ar sobrando. O bloco à direita recebe o estado da tela
+           (somente leitura, na auditoria) e a ação de página quando houver. Tela que não usa
+           deixa o bloco vazio, e a barra volta a ser só o título. #}
+        <div class="pl-topbar">
+            <h1>{% block titulo_painel %}{% endblock %}</h1>
+            <div class="pl-topbar-acoes">{% block topbar_acoes %}{% endblock %}</div>
+        </div>
+        <div class="pl-content">{% block painel %}{% endblock %}</div>
+    </div>
+
+</div>
+{% endblock %}

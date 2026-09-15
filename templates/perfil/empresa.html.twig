@@ -1,7 +1,7 @@
 {% extends 'layout/base.html.twig' %}
 {% import 'layout/_form.html.twig' as form %}
 
-{% block titulo %}Meu perfil — Pro-Link{% endblock %}
+{% block titulo %}Meu perfil · Pro-Link{% endblock %}
 
 {% block conteudo %}
 {% set p = perfil %}
@@ -63,7 +63,7 @@
         {% else %}
             <p class="text-body-secondary">
                 {{ p.arts|length }} ART(s) da Certidão de Acervo Operacional. Cada uma foi
-                registrada por um profissional do quadro técnico — a empresa responde por elas
+                registrada por um profissional do quadro técnico, e a empresa responde por elas
                 enquanto o vínculo estiver vigente.
             </p>
 
@@ -93,11 +93,11 @@
                                 <span class="text-body-secondary">· RNP {{ art.rnp }}</span>
                             </dd>
                             <dt class="col-sm-4">Contratante</dt>
-                            <dd class="col-sm-8">{{ art.contratante ?: '—' }}</dd>
+                            <dd class="col-sm-8">{{ art.contratante ?: 'Não informado' }}</dd>
                             <dt class="col-sm-4">Local</dt>
-                            <dd class="col-sm-8">{{ art.local ?: '—' }}</dd>
+                            <dd class="col-sm-8">{{ art.local ?: 'Não informado' }}</dd>
                             <dt class="col-sm-4">Situação</dt>
-                            <dd class="col-sm-8">{{ art.situacao ?: '—' }}</dd>
+                            <dd class="col-sm-8">{{ art.situacao ?: 'Não informado' }}</dd>
                             <dt class="col-sm-4">Consultado em</dt>
                             <dd class="col-sm-8">{{ art.dt_consulta }}</dd>
                         </dl>
@@ -106,7 +106,7 @@
                         <ul class="small mb-0">
                             {% for atividade in art.atividades %}
                                 <li><code>{{ atividade.tos_codigo }}</code>
-                                    {% if atividade.descricao %}— {{ atividade.descricao }}{% endif %}</li>
+                                    {% if atividade.descricao %}· {{ atividade.descricao }}{% endif %}</li>
                             {% else %}
                                 <li class="text-body-secondary">Sem atividades registradas.</li>
                             {% endfor %}

@@ -1,0 +1,92 @@
+{% extends 'admin/_layout.html.twig' %}
+{% import 'layout/_form.html.twig' as form %}
+
+{% block titulo %}Denúncia {{ denuncia.den_id }} · Pro-Link{% endblock %}
+{% block titulo_painel %}Denúncia {{ denuncia.den_id }}{% endblock %}
+
+{% block painel %}
+
+    {% set estado = {'PENDENTE': 'Pendente', 'EM_ANALISE': 'Em análise', 'RESOLVIDA': 'Resolvida'} %}
+    {% set cores  = {'PENDENTE': 'warn',     'EM_ANALISE': 'neutral',    'RESOLVIDA': 'ok'} %}
+    {% set rotulo_prov = {
+        'ADVERTIR': 'Advertir',
+        'BLOQUEAR': 'Bloquear a conta',
+        'REMOVER': 'Remover o conteúdo',
+        'IMPROCEDENTE': 'Improcedente'
+    } %}
+
+    <p class="mb-3">
+        <a class="pl-link-voltar" href="{{ app_url }}/admin/denuncias">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+            Voltar para a fila
+        </a>
+    </p>
+
+    <div class="pl-detalhe">
+
+        <div class="pl-card">
+            <div class="pl-det-topo">
+                <div>
+                    <p class="rot">Alvo</p>
+                    <p class="alvo">{{ denuncia.alvo_nome|default(denuncia.den_entidade|capitalize ~ ' #' ~ denuncia.den_entidade_id) }}</p>
+                    {% if denuncia.alvo_nome %}
+                        <p class="rot">Conta{% if denuncia.alvo_status == 'I' %} · bloqueada{% endif %}</p>
+                    {% endif %}
+                </div>
+                <span class="pl-pill {{ cores[denuncia.den_situacao]|default('neutral') }}">
+                    <span class="pd"></span>{{ estado[denuncia.den_situacao]|default(denuncia.den_situacao) }}
+                </span>
+            </div>
+
+            <dl class="pl-dl">
+                <dt>Tipo</dt>
+                <dd>{{ tipos[denuncia.den_tipo]|default(denuncia.den_tipo) }}</dd>
+
+                <dt>Autor</dt>
+                <dd>{{ denuncia.autor_nome }}</dd>
+
+                <dt>Recebida</dt>
+                <dd class="mono">{{ denuncia.den_dt_registro|date('d/m/Y H:i') }}</dd>
+
+                {% if denuncia.den_evidencia %}
+                    <dt>Evidência</dt>
+                    <dd>{{ denuncia.den_evidencia }}</dd>
+                {% endif %}
+
+                {% if denuncia.den_dt_tratamento %}
+                    <dt>Tratada em</dt>
+                    <dd class="mono">{{ denuncia.den_dt_tratamento|date('d/m/Y H:i') }}</dd>
+
+                    <dt>Providência</dt>
+                    <dd>{{ rotulo_prov[denuncia.den_providencia]|default('Nenhuma') }}</dd>
+                {% endif %}
+            </dl>
+
+            <div class="pl-descricao">
+                <p class="rot">Descrição</p>
+                <p>{{ denuncia.den_descricao }}</p>
+            </div>
+        </div>
+
+        <div class="pl-card">
+            <h2 class="pl-card-titulo">Registrar providência</h2>
+
+            <form method="post" action="{{ app_url }}/admin/denuncias/{{ denuncia.den_id }}">
+                {{ form.csrf() }}
+
+                {{ form.selecao('situacao', 'Situação', estado, denuncia.den_situacao, null, {required: true}, false) }}
+
+                {{ form.selecao('providencia', 'Providência', rotulo_prov, denuncia.den_providencia|default(''), null, {}, 'Nenhuma por enquanto') }}
+
+                <p class="pl-nota">
+                    Bloquear encerra todas as sessões ativas da conta na hora.<br>
+                    Toda ação de moderação é registrada na Auditoria.
+                </p>
+
+                {{ form.botao('Registrar providência') }}
+            </form>
+        </div>
+
+    </div>
+
+{% endblock %}

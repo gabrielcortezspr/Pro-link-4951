@@ -1,7 +1,7 @@
 {% extends 'layout/base.html.twig' %}
 {% import 'layout/_form.html.twig' as form %}
 
-{% block titulo %}Privacidade e meus dados — Pro-Link{% endblock %}
+{% block titulo %}Privacidade e meus dados · Pro-Link{% endblock %}
 
 {% block conteudo %}
 <h1 class="h3 mb-1">Privacidade e meus dados</h1>
@@ -23,7 +23,7 @@
                 apenas na sua exportação de dados.
             </span>
         </dd>
-        <dt class="col-sm-3">Telefone</dt><dd class="col-sm-9">{{ painel.usuario.telefone ?: '—' }}</dd>
+        <dt class="col-sm-3">Telefone</dt><dd class="col-sm-9">{{ painel.usuario.telefone ?: 'Não informado' }}</dd>
         <dt class="col-sm-3">Conta criada em</dt><dd class="col-sm-9">{{ painel.usuario.desde }}</dd>
     </dl>
 </section>
@@ -35,7 +35,7 @@
     </p>
 
     <div class="table-responsive">
-        <table class="table align-middle">
+        <table class="pl-table align-middle">
             <caption class="visually-hidden">Finalidades de uso dos seus dados e situação de cada uma</caption>
             <thead>
                 <tr>
@@ -84,7 +84,7 @@
         {% for sessao in painel.sessoes %}
             <li class="mb-2">
                 <code>{{ sessao.ses_ip ?: 'origem desconhecida' }}</code>
-                — aberta em {{ sessao.ses_dt_registro }}, expira em {{ sessao.ses_dt_expiracao }}
+                aberta em {{ sessao.ses_dt_registro }}, expira em {{ sessao.ses_dt_expiracao }}
                 <span class="form-text d-block">{{ sessao.ses_user_agent ?: 'navegador não informado' }}</span>
             </li>
         {% endfor %}
@@ -107,7 +107,7 @@
     <p class="text-body-secondary">
         Sua conta sai de toda consulta da plataforma, seu perfil deixa de aparecer em buscas e em
         compatibilizações, e todas as suas sessões são encerradas na hora. O registro de que você
-        pediu a exclusão permanece na trilha de auditoria — é o que comprova que o pedido foi
+        pediu a exclusão permanece na trilha de auditoria, e é o que comprova que o pedido foi
         atendido. Esta ação não pode ser desfeita por você.
     </p>
 

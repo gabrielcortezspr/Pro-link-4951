@@ -24,6 +24,9 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E1 — identidade e consentimento | D07, D08, D09, D10, D11, D12 |
 | E2 — integração com a API | D13 a D27, D28, D29 |
 | E1 — auditoria da etapa (resgatada) | D30, D31 |
+| Front — design system | D32, D33, D34, D35, D36, D37, D38 |
+| E6 — denúncias e painel | D39, D40, D41, D43 |
+| Front — padrão visual no pipeline | D42 |
 
 ---
 
@@ -1000,3 +1003,308 @@ o item 8.3.1 do edital não perdoaria; e um dígito a mais do que o necessário 
 agora travado por teste. Administrador deixou de poder excluir a própria conta pelo painel do
 titular — se fosse o único, a plataforma perderia moderação até alguém rodar `criar-admin.php` no
 servidor.
+## D32 · O visual é um design system próprio sobre o Bootstrap, não o tema padrão
+
+`14/09/2026` · Front · commit a seguir · regra em [`design.md`](design.md); telas em `mockups/`
+
+**Contexto.** O edital exige Bootstrap 5 no front. O Bootstrap puro entrega um visual genérico, e a
+experiência de uso é critério de nota (Anexo I: funcionalidade e experiência, 20 pontos, o maior
+peso). Do lado do design a equipe já tinha um sistema próprio pronto — sidebar, tokens, selo,
+tipografia — desenhado nas sete telas de `mockups/`.
+
+**Decisão.** O Bootstrap fica como base (grid, utilitários, JS de componentes, macros de
+formulário) e o nosso design entra como tema por cima: sobrescreve as variáveis `--bs-*` e adiciona
+os componentes que faltam. CSS3 também é exigência do edital, então tema próprio está em
+conformidade.
+
+**Alternativa recusada.** Duas. Bootstrap puro — atende a letra do edital mas joga fora o
+diferencial de UX. E CSS 100% custom sem Bootstrap — o nosso mockup original é assim, mas remover o
+Bootstrap fere a exigência de tecnologia. O meio-termo usa as duas coisas de verdade.
+
+**Consequência.** Os componentes nossos levam prefixo `pl-` porque `.btn`, `.card`, `.nav`, `.pill`
+e `table` são do Bootstrap: sem o prefixo, o nosso CSS quebraria toda tela já feita (auth, perfil,
+admin). As três classes que já existiam (`.selo-art`, `.dado-declarado`, `.perfil-em-construcao`)
+mantêm o nome e trocam só a aparência.
+
+---
+
+## D33 · Verificado e não-verificado viram símbolo — verde água e círculo cinza com X, não verde/amarelo
+
+`14/09/2026` · Front · commit a seguir · regra em [`design.md`](design.md); revisita o CSS da fundação
+
+**Contexto.** Que dado verificado pela API nunca se confunda com dado autodeclarado é o compromisso
+central da proposta, e o `prolink.css` da fundação já o traduzia: selo verde, tarja amarela. Ao
+trazer o design system a equipe reviu a execução dessa distinção.
+
+**Decisão.** O princípio fica; a execução muda. Verificação passa a ser um símbolo inline, à direita
+do texto: selo chanfrado verde água (`--pl-seal`) para o verificado, círculo liso cinza com um X
+para o não verificado. Sem tarja de texto, sem coluna separada, sem amarelo.
+
+**Alternativa recusada.** Manter verde/amarelo. O amarelo entrava em conflito com o laranja do CTA
+(dois avisos quentes competindo) e a tarja de texto poluía a leitura — testado nas telas e rejeitado.
+
+**Consequência.** O verde água vira cor de papel único: só verificação, nada mais usa. O edital não
+obriga cor nenhuma para isso (conferido em `edital-requisitos.md`), então é escolha de design
+legítima. Afeta código do parceiro (`perfil/index`, `perfil/empresa`, `privacidade`) — combinar
+antes de aplicar.
+
+---
+
+## D34 · Uma única cor de ação preenchida; secundário e dado em azul escuro
+
+`14/09/2026` · Front · commit a seguir · regra em [`design.md`](design.md)
+
+**Contexto.** Com laranja (CTA), azul e um teal para dados havia três tratamentos "clicáveis"
+competindo pela atenção, e não ficava claro qual era a ação principal.
+
+**Decisão.** Laranja é a única cor de ação preenchida (a que compromete: publicar, manifestar).
+Botão secundário é azul escuro contornado; barra de dado é azul escuro preenchido; link é azul
+brilhante; verde água é só verificação. Cada cor, um papel.
+
+**Alternativa recusada.** Usar azul petróleo/teal para dados e botões — confundia com o verde água
+do selo, que é vizinho na roda de cor.
+
+**Consequência.** Hierarquia de ação sem ambiguidade; a regra 60/30/10 fica explícita no
+`design.md`.
+
+---
+
+## D35 · Fundo neutro off-white quente, não cinza-azulado frio
+
+`14/09/2026` · Front · commit a seguir · regra em [`design.md`](design.md)
+
+**Contexto.** O cinza-azulado frio dá um ar corporativo e transacional; a plataforma lida com
+pessoas e reputação técnica.
+
+**Decisão.** Neutro off-white quente e claro (`--pl-page`/`--pl-app`), com cards brancos.
+
+**Alternativa recusada.** O cinza-azulado frio original — mais duro, menos "de pessoas".
+
+**Consequência.** Card precisa de fundo branco explícito: como `background` não é herdado em CSS,
+um quadro sem fundo deixa o off-white vazar e parece sujo. Regra registrada no `design.md`.
+
+---
+
+## D36 · Selo é marca inline e a linha de tabela tem uma ação só
+
+`14/09/2026` · Front · commit a seguir · regra em [`design.md`](design.md)
+
+**Contexto.** As primeiras telas tinham tarjas com texto ("ART verificada") e várias ações por
+linha de tabela, o que poluía e competia visualmente.
+
+**Decisão.** Verificação é só o símbolo colado à direita do texto (na tabela, ao lado do
+identificador). A linha de tabela tem uma ação — "Ver" — e as demais moram na página de detalhe,
+atrás de um menu de três pontos.
+
+**Alternativa recusada.** Tarjas rotuladas e duas ou mais ações por linha — é o padrão fácil, mas
+enche a tela de ruído e repete o mesmo rótulo em cada linha.
+
+**Consequência.** Telas mais limpas e uma leitura mais rápida; o detalhe passa a ser o lugar das
+ações menos frequentes.
+
+---
+
+## D37 · Perfil sem nenhuma ART fica fora do feed, e isso é declarado em vez de contornado
+
+`14/09/2026` · Front · commit a seguir · limite descrito em [`fluxos.md`](fluxos.md); marca em [`design.md`](design.md)
+
+**Contexto.** A proposta promete que o perfil em construção **nunca sai do pool**, como mitigação
+de viés contra quem está começando. Ao desenhar a marca de perfil em construção apareceu o caso
+que a promessa não cobre: o profissional com **zero** ARTs. O motor cruza a demanda com
+`crea_evidencias`, e evidência vem de ART. Com zero ARTs não há o que cruzar: a dimensão de
+competência é nula, o score fica abaixo do limiar e o perfil não entra em pool nenhum. A promessa
+vale para quem tem uma ou duas ARTs; para quem tem zero, é falsa.
+
+**Decisão.** Declarar o limite em vez de contorná-lo. O perfil sem ART não entra no feed de
+recomendação e continua encontrável na **busca ativa** por nome e modalidade, que vêm do cadastro
+validado na API e não dependem de acervo. O texto entra na declaração de uso de IA, vieses e
+limitações da entrega (12.3 e Anexo VI), junto das outras limitações já previstas para a E7.
+
+**Alternativa recusada.** Deixar o perfil sem ART entrar no pool com aderência baixa, para honrar
+a promessa ao pé da letra. Seria recomendar à empresa alguém sobre quem a plataforma não tem
+nenhuma evidência, contra a tese do projeto: capacidade **comprovada**, não autodeclarada. O
+remédio seria pior que a limitação, e a primeira pergunta da banca seria por que um perfil vazio
+aparece num feed que se diz baseado em evidência documental.
+
+**Consequência.** A frase "nunca sai do pool" passa a valer com a qualificação "desde que exista
+pelo menos uma ART", e é assim que deve ser dita na demonstração. A tela de estado vazio do acervo
+("nenhuma ART registrada ainda") fica para depois da entrega: não está em nenhum dos seis cenários
+e não paga o custo agora. Quem tem zero ART já enxerga o caminho pelo botão de associar ART que a
+tela de portfólio oferece.
+
+---
+
+## D38 · Erro de integridade não conta como o sistema descobriu
+
+`14/09/2026` · Front · commit a seguir · tela em `mockups/`; regra em [`design.md`](design.md)
+
+**Contexto.** A tela de selo divergente trazia, abaixo da mensagem, uma linha técnica com o
+identificador do evento de auditoria e a descrição do mecanismo ("hash gravado x HMAC
+recalculado"). A intenção era provar que a trilha existe.
+
+**Decisão.** A mensagem ao usuário diz o que aconteceu, o que o sistema fez e o que ele pode
+fazer, e para por aí. O identificador do evento e o mecanismo de verificação ficam na trilha de
+auditoria, visível para a administração. A tela do usuário apenas menciona que o detalhe está lá.
+
+**Alternativa recusada.** Manter o identificador visível para dar rastreabilidade a quem abre
+suporte. Não compensa: a linha revelava que a verificação é por HMAC, que a comparação é entre
+hash gravado e recalculado, e um identificador sequencial que permite inferir volume e enumerar
+eventos. É divulgação de informação em mensagem de erro (CWE-209), e num recurso cuja função é
+justamente resistir a adulteração.
+
+**Consequência.** Vale como regra para as telas de erro que vierem: mensagem de falha de
+integridade ou de autenticação descreve o efeito, nunca o mecanismo nem o identificador interno.
+Entra na autoavaliação do Anexo VI na E7.
+
+---
+
+## D39 · O bloqueio administrativo tem efeito imediato sem tocar em `Sessao`
+
+`14/09/2026` · E6 · commit a seguir · `public/index.php` (88-95), `AutenticacaoService::sessaoTemRespaldo`,
+`SessaoRepository::revogarTodasDoUsuario`
+
+**Contexto.** A operação atômica 5 exige que bloquear uma conta tire o acesso de quem já está
+logado. A E7 do `backlog.md` afirmava que isso não era possível hoje: `Sessao::autenticar()` copia
+id, nome e perfil para `$_SESSION` e nunca reconfere contra o banco, então o bloqueio "só valeria no
+próximo login". Se fosse verdade, ou a operação atômica 5 não fecharia, ou seria preciso mexer em
+autenticação a três dias da entrega, com RF01 e RF02 completos e verificados em cima.
+
+**Decisão.** Bloquear é `usu_status = 'I'` mais revogar todas as sessões do usuário, e nada além
+disso. Nenhuma linha de `Sessao` muda.
+
+A afirmação do backlog estava errada, e a medição mostrou por quê: o front controller chama
+`sessaoTemRespaldo()` em **toda** requisição autenticada, e esse método procura a linha em
+`sis_sessoes` e devolve falso quando ela está revogada. O caminho já existia; faltava alguém ligar
+os dois fatos. Conferido com requisição real, não por leitura: sessão viva em `/privacidade`
+respondendo 200; depois de `usu_status = 'I'` e `ses_dt_revogacao = NOW()`, a mesma sessão recebeu
+303 para `/login`. Novo login com a conta bloqueada é recusado pela mensagem única de credencial
+inválida, porque `UsuarioRepository::porEmail()` filtra `usu_status = :ativo`.
+
+**Alternativa recusada.** Fazer `Sessao` reconferir o usuário no banco a cada requisição. Custaria
+uma consulta em toda requisição autenticada e código novo no caminho crítico de autenticação, para
+comprar um efeito que já existe. A terceira alternativa, adiar o efeito imediato para a E7 e exibir
+"vale a partir do próximo acesso", ficou dispensada pelo mesmo motivo, e teria enfraquecido o
+cenário 6 na demonstração, onde a parte convincente é o usuário caindo na hora.
+
+**Consequência.** A operação atômica 5 fecha hoje sem risco para RF01 e RF02, que seguem em 140
+testes e 108 verificações do portfólio. Fica uma limitação declarada, e ela é estreita: **troca de
+papel** em sessão aberta continua valendo só no próximo login, porque o perfil é lido de
+`$_SESSION`. Isso afeta o rebaixamento para Terceiro da D20 e da D26, não o bloqueio. O edital pede
+controle de perfis de acesso (8.5) e moderação (RF06), não reflexo imediato de mudança de papel.
+Fica registrado também o método: a afirmação do backlog tinha três meses de vida e nunca havia sido
+medida.
+
+---
+
+## D40 · Um relógio só: o fuso do MariaDB segue o do PHP na conexão
+
+`14/09/2026` · E6 · commit a seguir · `Support\Database::conexao()`
+
+**Contexto.** O contêiner do MariaDB roda em UTC e o do PHP em `America/Manaus`, quatro horas de
+diferença. Isso não era um detalhe de exibição: as duas horas iam para a **mesma coluna** conforme
+o caminho do código. A sessão nasce com `DATE_ADD(NOW(), ...)` em `SessaoRepository` e o bloqueio
+por tentativas com `date()` em `AutenticacaoService`, e os dois convivem em `sis_usuarios`. A
+trilha de auditoria exibia o dia seguinte às 20h, e o corte do filtro de período comparava um
+`date()` local com uma coluna gravada em UTC.
+
+**Decisão.** `Database::conexao()` executa `SET time_zone` com o deslocamento do próprio fuso do
+PHP, lido de `(new DateTimeImmutable())->format('P')`. Um ponto, e os dois relógios passam a ser o
+mesmo. O deslocamento é derivado em vez de escrito à mão justamente para que mudar o fuso do PHP
+não recrie a divergência. Nome de fuso (`'America/Manaus'`) exigiria as tabelas de fuso carregadas
+no MariaDB, que a imagem não traz.
+
+**Alternativa recusada.** Manter o banco em UTC e converter na apresentação, com um filtro Twig.
+É a prática recomendada em sistema multi-fuso, e foi recusada por duas razões: não conserta a
+comparação entre colunas gravadas por caminhos diferentes, que é o defeito de verdade, e obrigaria
+cada tela nova a lembrar do filtro. A desvantagem clássica de gravar em hora local não se aplica
+aqui: o sistema é do CREA-AM, e o Amazonas não tem horário de verão desde 2008. Também foi
+recusado converter só na tela de auditoria: `denuncias.html.twig` tem o mesmo defeito, e o painel
+passaria a se contradizer, com a denúncia recebida às 20:19 e moderada às 16:19.
+
+**Consequência.** Registro novo grava a hora real, medido com PHP e `NOW()` no mesmo segundo. O
+histórico anterior continua em UTC e **não tem conserto**: `sis_auditoria` bloqueia UPDATE e DELETE
+por trigger (D04). Some quando o banco for recarregado para a demonstração, o que também limpa a
+massa de verificação. Some junto o rótulo "horários em UTC" que a tela declarava enquanto a hora
+exibida não era a local.
+
+---
+
+## D41 · Identificador de sistema não chega à tela
+
+`14/09/2026` · E6 · commit a seguir · `Support\Rotulos`, filtros em `Support\View`
+
+**Contexto.** O painel de auditoria lê constantes e nomes de esquema direto do banco, e eles
+chegavam crus ao usuário: o filtro de ação listava `ACESSO_NEGADO`, `BLOQUEIO_LOGIN`,
+`SELO_DIVERGENTE`; a coluna Entidade mostrava `pro_denuncias`; a coluna Campo mostrava
+`usu_status`. Além de feio, é vazamento gratuito da forma interna para quem não precisa dela.
+
+**Decisão.** Três mapas em `Support\Rotulos`, expostos como filtros Twig `rotulo_acao`,
+`rotulo_entidade` e `rotulo_campo`. Chave desconhecida cai num fallback por convenção (prefixo de
+tabela fora, underline vira espaço, primeira maiúscula) em vez de sumir ou estourar: ação nova
+entra em `Support\Auditoria` e a tela continua legível antes de alguém lembrar de vir aqui. O
+valor cru fica em `title=""`, porque quem audita de verdade quer o identificador exato.
+
+**Alternativa recusada.** Traduzir no controller. A regra é de apresentação e vale em qualquer
+template que toque auditoria, não só no painel; no controller, a segunda tela repetiria o mapa. E
+mapa no próprio template, que é o padrão que `denuncias.html.twig` já usava, foi mantido só para o
+vocabulário de **valor gravado** (`'A'`, `'PENDENTE'`), que é específico da tela; o que é
+vocabulário do sistema subiu para `Rotulos`.
+
+**Consequência.** As quatro finalidades de consentimento entraram no mapa de campos, porque em
+`sis_consentimentos` o `aud_campo` guarda a finalidade e não o nome de uma coluna, e o fallback
+devolvia "Consulta api", sem acento e sem a sigla. Fica um débito conhecido: as ~32 chaves do JSON
+de contexto ainda moram em `auditoria.html.twig`; se virarem vocabulário de mais de uma tela, o
+lugar delas é aqui.
+
+---
+
+## D42 · O padrão visual vira trava no repositório, não disciplina de quem revisa
+
+`14/09/2026` · Front · commit a seguir · `.claude/agents/designer-ui.md`,
+`scripts/verificar-padrao.php`, `scripts/hook-padrao.sh`, `CLAUDE.md`
+
+**Contexto.** Toda vez que uma tela foi escrita junto com o backend, saiu no padrão de dump de
+dados e teve de ser refeita depois da reclamação. A régua existia e estava combinada; o que
+faltava era ela valer sem alguém lembrar. A tela de auditoria fechou com 16 verificações no verde
+e subiu em 500 no navegador, porque nenhuma delas tocava a camada de apresentação.
+
+**Decisão.** Quatro peças, da mais forte para a mais fraca. Hook `PostToolUse`
+(`scripts/hook-padrao.sh`) confere cada arquivo escrito em milissegundos, sem Docker, e devolve o
+erro na hora. `scripts/verificar-padrao.php` confere o projeto inteiro, e o faz **sobre o HTML
+renderizado** além do texto do template, porque template limpo pode renderizar sujo. O agente
+`designer-ui`, versionado no repositório, é obrigatório antes de tela nova ou redesenho. E a regra
+escrita em `CLAUDE.md`, para quem não passar por nenhum dos três.
+
+**Alternativa recusada.** Confiar na revisão. Já era a política, e falhou três vezes no mesmo dia.
+Também recusado bloquear a escrita de template por hook `PreToolUse`: travaria o próprio agente
+designer, e o problema não é quem edita, é o que sai.
+
+**Consequência.** A primeira execução acusou 28 violações em telas dadas por prontas, e o merge
+com a main acusou mais 10 nas telas que vieram de lá. O verificador roda no `/encerrar` e sessão
+que mexeu em tela não fecha com violação aberta. Verde nele é o piso, não a aprovação: a régua
+continua sendo olho humano, e por isso o agente não foi substituído pelo script.
+
+---
+
+## D43 · A auditoria tem dois caminhos de leitura, e isso não é duplicação
+
+`14/09/2026` · E6 · commit a seguir · `Repository\AuditoriaRepository`
+
+**Contexto.** O merge de 14/09 juntou duas branches que criaram `AuditoriaRepository` no mesmo dia,
+sem saber uma da outra e sem nenhum método em comum: `registrar()` e `doUsuario()` de um lado,
+`listar()`, `contar()` e `acoesDistintas()` do outro. Os dois `SELECT` de leitura parecem a mesma
+consulta com nomes diferentes.
+
+**Decisão.** Ficam os dois no mesmo arquivo, com a razão escrita no docblock da classe.
+`doUsuario()` serve à exportação do titular (item 11.3) e devolve seis colunas; `listar()` serve ao
+painel do administrador e devolve tudo, com `LEFT JOIN` no nome de quem agiu e com paginação.
+
+**Alternativa recusada.** Unificar em `listar()` com parâmetros, e a exportação chamaria com o id
+do titular. Obrigaria a exportação a carregar `aud_user_agent` e os valores gravados, que é dado
+que o titular não deve levar num JSON que ele baixa. A economia seria de umas quinze linhas, ao
+custo de um caminho de privacidade decidido por parâmetro.
+
+**Consequência.** `UsuarioRepository::auditoriaDoUsuario()` foi removido no mesmo merge: a query
+mudou de dono e o método tinha ficado órfão, com `PrivacidadeService` já chamando o repositório de
+auditoria. Ficou um comentário de duas linhas no lugar, apontando para onde foi, para ninguém
+recriar.

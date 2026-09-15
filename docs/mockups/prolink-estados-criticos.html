@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pro-Link · Estados críticos de integridade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* =====================================================================
+   Pro-Link · HIERARQUIA DE COR DOS ESTADOS  (regra do Design System)
+   ---------------------------------------------------------------------
+   ÂMBAR  #E8A317  = INTEGRIDADE. Exclusivo de divergência entre o hash
+                     gravado e o HMAC recalculado sobre a API. Nada mais
+                     no produto pode usar âmbar.
+   AZUL   #EAF1FE  = SINCRONIZAÇÃO RECUPERÁVEL. A API não respondeu ou
+                     não retornou dados ainda. Estado transitório, sem
+                     suspeita sobre o dado e sem culpa do usuário.
+   VERMELHO #E24A4A = ERRO DESTRUTIVO OU BLOQUEIO. Revogação de consentimento,
+                     exclusão, falha que impede a operação. Não aparece
+                     em nenhuma das telas deste arquivo.
+   VERDE ÁGUA #0E7C86 = VERIFICAÇÃO CONFIRMADA. Nunca permanece visível
+                     sobre um item cuja integridade está suspensa.
+   ===================================================================== */
+:root{
+  --app-bg:#FBFAF6; --page:#F2EEE7; --card:#FFFFFF; --border:#EDE8DE; --border-2:#F7F3EC;
+  --ink:#0E1726; --muted:#5B6B82;
+  --faint:#8A9BB4;       /* decorativo */
+  --faint-2:#61708A;     /* texto secundário acessível */
+  --navy:#0B2A4A; --navy-2:#12315A; --blue:#2E6BE6; --blue-2:#63A0F0; --blue-100:#EAF1FE; --blue-br:#D3E3FB;
+  --seal:#0E7C86; --seal-bg:#E3F3F5; --seal-border:#BFE4E8;
+  --petrol:#1B4079;
+  --accent:#F26B21; --accent-2:#ff8a3d;
+  --ok:#1FA971; --ok-bg:#E7F6EF;
+  --warn:#E8A317;                 /* âmbar: integridade */
+  --warn-ink:#8A6206;             /* texto sobre âmbar, 5.5:1 no branco */
+  --warn-bg:#FDF7EA; --warn-br:#F0DCAE;
+  --danger:#E24A4A;
+  --r:12px;
+  --spring:cubic-bezier(.22,1.15,.36,1);
+  --display:"Space Grotesk",system-ui,sans-serif; --body:"Inter",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--body);line-height:1.55;-webkit-font-smoothing:antialiased}
+a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+.pl-outer{max-width:1280px;margin:0 auto;padding:34px 20px 70px}
+.pl-h1{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;letter-spacing:-.02em}
+.pl-lead{color:var(--muted);font-size:14px;margin:0 0 8px;max-width:88ch}
+.pl-cap{display:flex;align-items:center;gap:10px;margin:38px 0 12px;flex-wrap:wrap}
+.pl-cap .n{font-family:var(--display);font-weight:700;color:var(--blue);font-size:18px}
+.pl-cap h2{font-family:var(--display);font-weight:600;font-size:16px;margin:0}
+.pl-cap .rf{font-size:11.5px;color:var(--faint-2);border:1px solid var(--border);padding:3px 9px;border-radius:20px;background:var(--card)}
+.pl-note{font-size:12.5px;color:var(--faint-2);margin:0 0 12px;max-width:88ch}
+.pl-frame{position:relative;border-radius:18px;overflow:hidden;border:1px solid #cdd8e8;box-shadow:0 18px 44px rgba(11,42,74,.14);background:var(--app-bg)}
+.pl-seal{width:18px;height:18px;flex:none}
+.pl-vmark{width:16px;height:16px;flex:none;vertical-align:-3px}
+
+/* ===== app shell (profissional) ===== */
+.pl-app{display:grid;grid-template-columns:232px 1fr;background:var(--app-bg);min-height:600px}
+.pl-side{background:linear-gradient(180deg,var(--navy),var(--navy-2));padding:18px 15px;display:flex;flex-direction:column;gap:4px;white-space:nowrap;overflow:hidden}
+.pl-brand{display:flex;align-items:center;gap:9px;color:#fff;font-family:var(--display);font-weight:700;font-size:17px;margin:6px 8px 18px}
+.pl-brand .m{width:12px;height:12px;border-radius:4px;background:linear-gradient(135deg,var(--blue-2),var(--blue));transform:rotate(45deg);flex:none}
+.pl-side small{color:#93abcd;font-size:12px;margin:8px 10px 4px;font-weight:600}
+.pl-sidenav{display:flex;flex-direction:column;gap:4px}
+.pl-sidenav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;color:#bccfe8;text-decoration:none;font-size:13.5px;font-weight:500;cursor:pointer}
+.pl-sidenav a .ic{width:17px;height:17px;opacity:.9;flex:none}
+.pl-sidenav a.is-active{background:#fff;color:var(--navy);font-weight:600}
+.pl-foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-radius:11px;background:rgba(255,255,255,.06);color:#d3e1f4;font-size:12px}
+.pl-foot .av{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--blue-2),var(--blue));display:grid;place-items:center;color:#fff;font-weight:600;font-size:11px;font-family:var(--display);flex:none}
+.pl-main{display:flex;flex-direction:column;min-width:0}
+.pl-topbar{height:60px;display:flex;align-items:center;gap:12px;padding:0 24px;background:var(--card);border-bottom:1px solid var(--border);flex:none}
+.pl-topbar h3{font-family:var(--display);font-weight:600;font-size:16px;margin:0}
+.pl-sp{flex:1}
+.pl-ibtn{width:36px;height:36px;border-radius:9px;background:var(--app-bg);border:1px solid var(--border);display:grid;place-items:center;color:var(--muted)}
+.pl-ibtn svg{width:18px;height:18px}
+.pl-avtop{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--navy-2),var(--blue));display:grid;place-items:center;color:#fff;font-weight:600;font-size:12px;font-family:var(--display);flex:none}
+.pl-content{padding:24px;display:flex;flex-direction:column;gap:18px}
+
+/* ===== átomos ===== */
+.pl-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:0 8px 22px rgba(11,42,74,.05)}
+.pl-rowhead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.pl-rowhead .t{font-family:var(--display);font-weight:600;font-size:15px;margin:0}
+.pl-rowhead .subt{color:var(--muted);font-size:12.5px;margin:2px 0 0}
+.pl-toschip{display:inline-flex;align-items:center;gap:7px;background:var(--blue-100);color:#215ac2;border-radius:8px;padding:4px 10px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.pl-toschip .code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:500;color:#2F5AA8;font-size:10.5px}
+.pl-pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:20px;white-space:nowrap}
+.pl-pill.ok{color:#0F6B47;background:var(--ok-bg)} .pl-pill.ok .pd{width:6px;height:6px;border-radius:50%;background:var(--ok)}
+.pl-pill.mute{color:var(--faint-2);background:#F2F0EA;border:1px solid #E2DCD1}
+.pl-legend{display:flex;flex-wrap:wrap;gap:18px;font-size:11.5px;color:var(--faint-2)}
+.pl-legend span{display:inline-flex;align-items:center;gap:7px}
+.pl-legend .dot{width:9px;height:9px;border-radius:3px;flex:none}
+
+/* botões */
+.pl-cta{display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 20px;border:0;border-radius:var(--r);cursor:pointer;
+  background:linear-gradient(135deg,var(--accent-2),var(--accent));color:#fff;font-family:var(--body);font-weight:600;font-size:14px;
+  box-shadow:0 10px 22px rgba(242,107,33,.28);transition:transform .18s var(--spring),box-shadow .18s ease}
+.pl-cta:hover{transform:translateY(-2px);box-shadow:0 14px 28px rgba(242,107,33,.34)}
+.pl-btn-sec{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 18px;border-radius:var(--r);border:1px solid var(--petrol);background:transparent;
+  color:var(--petrol);font-family:var(--body);font-weight:600;font-size:13.5px;cursor:pointer;transition:background .15s ease}
+.pl-btn-sec:hover{background:rgba(27,64,121,.06)}
+.pl-btn-sec svg{width:16px;height:16px;flex:none}
+.pl-btn-plain{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px;border-radius:var(--r);border:1px solid var(--border);
+  background:var(--card);color:var(--ink);font-family:var(--body);font-weight:600;font-size:13px;cursor:pointer}
+
+/* ===== ART cards ===== */
+.pl-artcard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:11px}
+.pl-artcard + .pl-artcard{margin-top:12px}
+.pl-artobj{font-family:var(--display);font-weight:600;font-size:14.5px;margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pl-artmeta{color:var(--muted);font-size:12.5px;margin:3px 0 0}
+.pl-chiprow{display:flex;flex-wrap:wrap;gap:7px}
+.pl-desc{font-size:12.5px;color:var(--muted);background:var(--app-bg);border:1px solid var(--border-2);border-radius:10px;padding:10px 12px}
+.pl-desc .lbl{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-weight:600;color:var(--faint-2);font-size:11.5px}
+
+/* ART em divergência: âmbar, e o verde água some do item */
+.pl-artcard.is-flagged{border-color:var(--warn-br);background:linear-gradient(180deg,#FFFDF8,var(--warn-bg))}
+.pl-flag{background:var(--card);border:1px solid var(--warn-br);border-left:3px solid var(--warn);border-radius:12px;padding:15px 17px}
+.pl-flag h4{display:flex;align-items:center;gap:8px;font-family:var(--display);font-weight:600;font-size:13.5px;color:var(--warn-ink);margin:0 0 9px}
+.pl-flag h4 svg{width:17px;height:17px;flex:none}
+.pl-flag p{margin:0 0 7px;font-size:13px;color:var(--ink);line-height:1.55}
+.pl-flag p.sys{color:var(--muted)}
+.pl-flag .aud{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--faint-2);margin-top:3px}
+.pl-flag .act{margin-top:13px}
+
+/* ===== aviso brando de sincronização (azul, recuperável) ===== */
+.pl-notice{display:flex;gap:15px;align-items:flex-start;background:var(--blue-100);border:1px solid var(--blue-br);border-radius:16px;padding:20px 22px}
+.pl-notice .ic{order:2;width:38px;height:38px;border-radius:11px;background:#fff;border:1px solid var(--blue-br);display:grid;place-items:center;flex:none;color:var(--blue)}
+.pl-notice .ic svg{width:20px;height:20px}
+.pl-notice h3{font-family:var(--display);font-weight:600;font-size:15px;margin:0 0 5px}
+.pl-notice p{margin:0;font-size:13.5px;color:var(--ink);line-height:1.6;max-width:74ch}
+.pl-notice .act{margin-top:15px}
+.pl-notice .body{order:1;flex:1;min-width:0}   /* texto alinhado à borda esquerda; ícone vai para a direita */
+
+/* ===== dados do perfil ===== */
+.pl-prof{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.pl-prof .av{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;color:#fff;font-weight:700;font-family:var(--display);font-size:18px;
+  background:linear-gradient(135deg,var(--navy-2),var(--blue));flex:none}
+.pl-prof .nm{font-family:var(--display);font-weight:600;font-size:17px;line-height:1.25}
+.pl-prof .mt{color:var(--muted);font-size:12.5px;margin-top:2px}
+.pl-dl{margin:16px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 22px}
+.pl-dl>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.pl-dl dt{font-size:12px;color:var(--muted);margin:0}
+.pl-dl dd{margin:0;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.pl-empty{border:1px dashed var(--border);border-radius:14px;padding:26px 20px;text-align:center;background:var(--app-bg)}
+.pl-empty .et{font-family:var(--display);font-weight:600;font-size:14px;margin:0}
+.pl-empty .es{font-size:12.5px;color:var(--muted);margin:5px 0 0}
+
+/* ===== ficha de hierarquia ===== */
+.pl-rules{margin-top:38px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:0 8px 22px rgba(11,42,74,.05)}
+.pl-rules h3{font-family:var(--display);font-size:15px;font-weight:600;margin:0 0 4px}
+.pl-rules .sub{font-size:12.5px;color:var(--muted);margin:0 0 18px}
+.pl-swatches{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:20px}
+.pl-sw{border:1px solid var(--border);border-radius:14px;padding:14px;background:var(--card)}
+.pl-sw .chip{height:30px;border-radius:9px;margin-bottom:11px;display:flex;align-items:center;justify-content:center}
+.pl-sw .nm{font-family:var(--display);font-weight:600;font-size:13px;margin:0}
+.pl-sw .ds{font-size:11.5px;color:var(--faint-2);margin:4px 0 0;line-height:1.45}
+.pl-rules dl{margin:0;display:grid;grid-template-columns:186px 1fr;gap:10px 18px;font-size:13px}
+.pl-rules dt{color:var(--faint-2);font-weight:600}
+.pl-rules dd{margin:0}
+.pl-rules code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.12s !important}
+  .pl-cta:hover{transform:none !important}
+}
+@media (max-width:1000px){ .pl-swatches{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:860px){
+  .pl-app{grid-template-columns:1fr}
+  .pl-side{display:none}
+  .pl-dl{grid-template-columns:1fr}
+  .pl-rules dl{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- VERIFICADO: verde água, forma chanfrada -->
+  <symbol id="seal" viewBox="0 0 40 40">
+    <polygon points="39,20 34.5,23.9 36.5,29.5 30.6,30.6 29.5,36.5 23.9,34.5 20,39 16.1,34.5 10.5,36.5 9.4,30.6 3.6,29.5 5.5,23.9 1,20 5.5,16.1 3.6,10.5 9.4,9.4 10.5,3.6 16.1,5.5 20,1 23.9,5.5 29.5,3.6 30.6,9.4 36.5,10.5 34.5,16.1" fill="#0E7C86"/>
+    <path d="M13.5 20.5l4 4l9 -10" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <!-- NÃO VERIFICADO: círculo liso cinza com X -->
+  <symbol id="seal-x" viewBox="0 0 40 40">
+    <circle cx="20" cy="20" r="18.5" fill="#8895A8"/>
+    <path d="M14.5 14.5l11 11M25.5 14.5l-11 11" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <!-- INTEGRIDADE SUSPENSA: mesma forma chanfrada do selo, âmbar, com "!" -->
+  <symbol id="seal-alert" viewBox="0 0 40 40">
+    <polygon points="39,20 34.5,23.9 36.5,29.5 30.6,30.6 29.5,36.5 23.9,34.5 20,39 16.1,34.5 10.5,36.5 9.4,30.6 3.6,29.5 5.5,23.9 1,20 5.5,16.1 3.6,10.5 9.4,9.4 10.5,3.6 16.1,5.5 20,1 23.9,5.5 29.5,3.6 30.6,9.4 36.5,10.5 34.5,16.1" fill="#B0780B"/>
+    <path d="M20 10.8v11.4" fill="none" stroke="#fff" stroke-width="4.2" stroke-linecap="round"/>
+    <circle cx="20" cy="28.6" r="2.4" fill="#fff"/>
+  </symbol>
+</svg>
+
+<div class="pl-outer">
+  <h1 class="pl-h1">Estados críticos de integridade</h1>
+  <p class="pl-lead">Três estados que hoje saem como um aviso amarelo genérico e que são, na verdade, o núcleo do diferencial de integridade da plataforma. Cada um tem gravidade própria: um levanta suspeita sobre o dado, dois são sincronização pendente. O design separa os dois grupos por cor antes de qualquer leitura de texto.</p>
+  <p class="pl-note">Regra fixada neste arquivo e válida para o produto inteiro: âmbar pertence só à integridade, azul de informação pertence à sincronização recuperável, vermelho pertence só a erro destrutivo. O verde água da verificação nunca permanece sobre um item cuja integridade está suspensa.</p>
+
+  <!-- =========================== TELA 1 =========================== -->
+  <div class="pl-cap"><span class="n">01</span><h2>Selo divergente no portfólio</h2><span class="rf">RF03 · integridade · âmbar</span></div>
+  <p class="pl-note">O HMAC recalculado sobre o retorno atual da API não confere com o hash gravado no momento da validação. Apenas a ART afetada muda de estado; as outras duas seguem com o selo verde água, e esse contraste dentro da mesma lista é a leitura mais rápida da tela.</p>
+  <div class="pl-frame"><div class="pl-app">
+    <aside class="pl-side">
+      <div class="pl-brand"><span class="m"></span><span>Pro-Link</span></div>
+      <small>Profissional</small>
+      <nav class="pl-sidenav" aria-label="Menu do profissional">
+        <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg></span>Início</a>
+        <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></span>Meu Perfil</a>
+        <a class="is-active" aria-current="page"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg></span>Portfólio</a>
+        <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></span>Demandas Compatíveis</a>
+        <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></span>Visibilidade</a>
+      </nav>
+      <div class="pl-foot"><span class="av">MB</span><span>Marina Braga<br><span style="color:#9db4d4;font-size:11px">Profissional</span></span></div>
+    </aside>
+    <div class="pl-main">
+      <div class="pl-topbar"><h3>Portfólio</h3><div class="pl-sp"></div>
+        <div class="pl-ibtn" role="img" aria-label="Notificações"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M9.5 20a2.5 2.5 0 005 0"/></svg></div>
+        <div class="pl-avtop">MB</div>
+      </div>
+      <div class="pl-content">
+
+        <div class="pl-legend">
+          <span><span class="dot" style="background:var(--seal)"></span>Verificado pela API oficial do CREA-AM</span>
+          <span><span class="dot" style="background:var(--warn)"></span>Integridade suspensa, aguardando revalidação</span>
+          <span><span class="dot" style="background:var(--faint)"></span>Descrição complementar, não verificada pela API</span>
+        </div>
+
+        <div class="pl-card">
+          <div class="pl-rowhead">
+            <div>
+              <p class="t">ARTs (3)</p>
+              <p class="subt">Vinculadas por RNP, validadas na API do CREA-AM</p>
+            </div>
+            <button class="pl-btn-plain">Associar nova ART</button>
+          </div>
+
+          <div class="pl-artcard">
+            <div>
+              <p class="pl-artobj">Construção de escola municipal <svg class="pl-vmark" role="img" aria-label="Verificado pela API"><use href="#seal"/></svg></p>
+              <div class="pl-artmeta">ART AM20269998821 · Contratante: Prefeitura de Manaus · Manaus/AM · situação: Registrada</div>
+            </div>
+            <div class="pl-chiprow"><span class="pl-toschip">Construção Civil, Alvenaria <span class="code">TOS 1.1.1.1</span></span></div>
+          </div>
+
+          <div class="pl-artcard is-flagged">
+            <div>
+              <p class="pl-artobj">Reforma de ponte municipal <svg class="pl-vmark" role="img" aria-label="Integridade suspensa"><use href="#seal-alert"/></svg></p>
+              <div class="pl-artmeta">ART AM20269991234 · Contratante: Secretaria de Infraestrutura do AM · Manaus/AM · situação: Registrada</div>
+            </div>
+            <div class="pl-chiprow"><span class="pl-toschip">Construção Civil, Obras de Arte <span class="code">TOS 1.2.3.1</span></span></div>
+
+            <div class="pl-flag">
+              <h4><svg role="img" aria-label="Integridade suspensa"><use href="#seal-alert"/></svg>Selo de integridade suspenso</h4>
+              <p>O conteúdo desta ART não confere com o registro atual da API.</p>
+              <p class="sys">A divergência foi registrada na trilha de auditoria e o selo está suspenso.
+                <span class="aud">O detalhe técnico fica na trilha, visível para a administração.</span>
+              </p>
+              <div class="act">
+                <button class="pl-btn-sec">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5A8 8 0 105.5 17"/><path d="M20 5v6h-6"/></svg>
+                  Revalidar na API
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="pl-artcard">
+            <div>
+              <p class="pl-artobj">Reforço estrutural de galpão <svg class="pl-vmark" role="img" aria-label="Verificado pela API"><use href="#seal"/></svg></p>
+              <div class="pl-artmeta">ART AM20269994477 · Contratante: Amazonas Logística Ltda · Manaus/AM · situação: Registrada</div>
+            </div>
+            <div class="pl-chiprow"><span class="pl-toschip">Construção Civil, Estruturas <span class="code">TOS 1.1.2.3</span></span></div>
+            <div class="pl-desc">
+              <div class="lbl">Complementar <svg class="pl-vmark" role="img" aria-label="Não verificado"><use href="#seal-x"/></svg></div>
+              Substituição de treliças e reforço de pilares metálicos, execução em 4 meses.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div></div>
+
+  <!-- =========================== TELA 2 =========================== -->
+  <div class="pl-cap"><span class="n">02</span><h2>Registro no CREA ainda não validado</h2><span class="rf">RF01 · sincronização · azul</span></div>
+  <p class="pl-note">A API oficial não respondeu no momento do cadastro. Não há suspeita sobre nenhum dado, então não é âmbar. O campo afetado, o registro CREA, aparece com o símbolo de não verificado, nunca com o verde água.</p>
+  <div class="pl-frame"><div class="pl-app">
+    <aside class="pl-side">
+      <div class="pl-brand"><span class="m"></span><span>Pro-Link</span></div>
+      <small>Profissional</small>
+      <nav class="pl-sidenav" aria-label="Menu do profissional">
+        <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg></span>Início</a>
+        <a class="is-active" aria-current="page"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></span>Meu Perfil</a>
+        <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg></span>Portfólio</a>
+        <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></span>Demandas Compatíveis</a>
+        <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></span>Visibilidade</a>
+      </nav>
+      <div class="pl-foot"><span class="av">RM</span><span>Rafael Menezes<br><span style="color:#9db4d4;font-size:11px">Profissional</span></span></div>
+    </aside>
+    <div class="pl-main">
+      <div class="pl-topbar"><h3>Meu Perfil</h3><div class="pl-sp"></div>
+        <div class="pl-ibtn" role="img" aria-label="Notificações"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M9.5 20a2.5 2.5 0 005 0"/></svg></div>
+        <div class="pl-avtop">RM</div>
+      </div>
+      <div class="pl-content">
+
+        <div class="pl-notice">
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.6h.01"/></svg></span>
+          <div class="body">
+            <h3>Registro ainda não validado</h3>
+            <p>Seu registro no CREA ainda não foi validado. A API oficial não respondeu quando você criou a conta; enquanto isso seu perfil não aparece para ninguém.</p>
+            <div class="act"><button class="pl-cta">Validar meu registro</button></div>
+          </div>
+        </div>
+
+        <div class="pl-card">
+          <div class="pl-rowhead">
+            <div>
+              <p class="t">Dados do perfil</p>
+              <p class="subt">O que já está preenchido e o que depende da API</p>
+            </div>
+            <span class="pl-pill mute">Não listado</span>
+          </div>
+          <div class="pl-prof">
+            <span class="av">RM</span>
+            <div>
+              <div class="nm">Rafael Menezes</div>
+              <div class="mt">Cadastro criado em 12/09/2026</div>
+            </div>
+          </div>
+          <dl class="pl-dl">
+            <div><dt>Registro CREA-AM informado</dt><dd>AM134872 <svg class="pl-vmark" role="img" aria-label="Não verificado"><use href="#seal-x"/></svg></dd></div>
+            <div><dt>RNP informado</dt><dd>0412341688 <svg class="pl-vmark" role="img" aria-label="Não verificado"><use href="#seal-x"/></svg></dd></div>
+            <div><dt>Modalidade informada</dt><dd>Engenharia Civil <svg class="pl-vmark" role="img" aria-label="Não verificado"><use href="#seal-x"/></svg></dd></div>
+            <div><dt>Acervo de ARTs</dt><dd style="font-weight:500;color:var(--muted)">Disponível após a validação do registro</dd></div>
+          </dl>
+        </div>
+
+      </div>
+    </div>
+  </div></div>
+
+  <!-- =========================== TELA 3 =========================== -->
+  <div class="pl-cap"><span class="n">03</span><h2>Acervo ainda não importado</h2><span class="rf">RF03 · sincronização · azul</span></div>
+  <p class="pl-note">Mesma família visual da tela anterior, porque a gravidade é a mesma. O que separa as duas num relance é o ícone e o verbo da ação. Aqui o registro já está validado e mantém o verde água: o item afetado é o acervo, que simplesmente ainda não existe.</p>
+  <div class="pl-frame"><div class="pl-app">
+    <aside class="pl-side">
+      <div class="pl-brand"><span class="m"></span><span>Pro-Link</span></div>
+      <small>Profissional</small>
+      <nav class="pl-sidenav" aria-label="Menu do profissional">
+        <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg></span>Início</a>
+        <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></span>Meu Perfil</a>
+        <a class="is-active" aria-current="page"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg></span>Portfólio</a>
+        <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></span>Demandas Compatíveis</a>
+        <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></span>Visibilidade</a>
+      </nav>
+      <div class="pl-foot"><span class="av">RM</span><span>Rafael Menezes<br><span style="color:#9db4d4;font-size:11px">Profissional</span></span></div>
+    </aside>
+    <div class="pl-main">
+      <div class="pl-topbar"><h3>Portfólio</h3><div class="pl-sp"></div>
+        <div class="pl-ibtn" role="img" aria-label="Notificações"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M9.5 20a2.5 2.5 0 005 0"/></svg></div>
+        <div class="pl-avtop">RM</div>
+      </div>
+      <div class="pl-content">
+
+        <div class="pl-notice">
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="M8 10.5l4 4 4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg></span>
+          <div class="body">
+            <h3>Acervo ainda não importado</h3>
+            <p>Seu registro já está validado, mas o acervo ainda não foi importado. A API oficial não retornou as ARTs vinculadas ao seu RNP; enquanto isso seu portfólio aparece vazio para as empresas.</p>
+            <div class="act"><button class="pl-cta">Importar minhas ARTs</button></div>
+          </div>
+        </div>
+
+        <div class="pl-card">
+          <div class="pl-rowhead">
+            <div>
+              <p class="t">Registro</p>
+              <p class="subt">Validado na API oficial do CREA-AM</p>
+            </div>
+            <span class="pl-pill ok"><span class="pd"></span>Registro ativo</span>
+          </div>
+          <dl class="pl-dl">
+            <div><dt>Registro CREA-AM</dt><dd>AM134872 <svg class="pl-vmark" role="img" aria-label="Verificado pela API"><use href="#seal"/></svg></dd></div>
+            <div><dt>Modalidade</dt><dd>Engenharia Civil <svg class="pl-vmark" role="img" aria-label="Verificado pela API"><use href="#seal"/></svg></dd></div>
+          </dl>
+        </div>
+
+        <div class="pl-card">
+          <div class="pl-rowhead">
+            <div>
+              <p class="t">ARTs (0)</p>
+              <p class="subt">Vinculadas por RNP, validadas na API do CREA-AM</p>
+            </div>
+          </div>
+          <div class="pl-empty">
+            <p class="et">Nenhuma ART importada ainda</p>
+            <p class="es">Quando a importação rodar, cada ART entra aqui já com o selo de verificação e as atividades da Tabela TOS.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div></div>
+
+  <!-- =========================== ficha =========================== -->
+  <div class="pl-rules">
+    <h3>Hierarquia de cor dos estados</h3>
+    <p class="sub">Regra do Design System. Cada faixa de cor tem um dono, e nenhum outro estado pode tomá-la emprestada.</p>
+
+    <div class="pl-swatches">
+      <div class="pl-sw">
+        <div class="chip" style="background:#E8A317"><svg width="19" height="19" role="img" aria-label="Integridade suspensa"><use href="#seal-alert"/></svg></div>
+        <p class="nm">Âmbar, integridade</p>
+        <p class="ds">Divergência entre o hash gravado e o HMAC recalculado. Levanta suspeita sobre o dado. Suspende o selo e escreve na trilha de auditoria.</p>
+      </div>
+      <div class="pl-sw">
+        <div class="chip" style="background:#EAF1FE;border:1px solid #D3E3FB;color:#2E6BE6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.6h.01"/></svg></div>
+        <p class="nm">Azul, sincronização</p>
+        <p class="ds">A API não respondeu ou não retornou dados ainda. Estado transitório e recuperável, sem suspeita e sem culpa do usuário.</p>
+      </div>
+      <div class="pl-sw">
+        <div class="chip" style="background:#FBE9E9;border:1px solid #F2C9C9;color:#B23434"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 16H3z"/><path d="M12 9.5v4"/><path d="M12 16.6h.01"/></svg></div>
+        <p class="nm">Vermelho, bloqueio</p>
+        <p class="ds">Erro destrutivo ou operação impedida, como revogação de consentimento e exclusão de perfil. Não aparece em nenhuma das três telas acima.</p>
+      </div>
+      <div class="pl-sw">
+        <div class="chip" style="background:#E3F3F5;border:1px solid #BFE4E8"><svg width="19" height="19" role="img" aria-label="Verificado"><use href="#seal"/></svg></div>
+        <p class="nm">Verde água, verificação</p>
+        <p class="ds">Confirmação pela API oficial. Uso exclusivo. Some do item no instante em que a integridade daquele item é posta em dúvida.</p>
+      </div>
+    </div>
+
+    <dl>
+      <dt>Símbolo de integridade</dt><dd><code>#seal-alert</code> repete a silhueta chanfrada de <code>#seal</code> e troca só o preenchimento e o glifo. Mesma família, estado oposto.</dd>
+      <dt>Substituição, não adição</dt><dd>No item afetado o verde água é substituído, nunca acompanhado. Selo verde ao lado de aviso âmbar seria uma contradição visível.</dd>
+      <dt>Escopo do âmbar</dt><dd>Só o item divergente muda. A lista em volta permanece intacta, para que o desvio seja localizável de relance.</dd>
+      <dt>Ordem da mensagem</dt><dd>O que houve, o que o sistema já fez, o que fazer. Sempre nesta ordem, com uma única ação primária ao final.</dd>
+      <dt>Atribuição de causa</dt><dd>A copy nomeia o sistema ou a API como sujeito. Nenhuma frase começa por "Você não" nem sugere falha do usuário.</dd>
+      <dt>Exceção do laranja</dt><dd>Nos estados de sincronização o laranja é permitido porque a ação destrava o fluxo inteiro daquela conta. Um por tela, sem concorrente.</dd>
+    </dl>
+  </div>
+</div>
+</body>
+</html>

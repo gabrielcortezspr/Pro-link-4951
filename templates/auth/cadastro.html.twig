@@ -1,7 +1,7 @@
 {% extends 'layout/base.html.twig' %}
 {% import 'layout/_form.html.twig' as form %}
 
-{% block titulo %}Criar conta — Pro-Link{% endblock %}
+{% block titulo %}Criar conta · Pro-Link{% endblock %}
 
 {% block conteudo %}
 <div class="row justify-content-center">
@@ -37,7 +37,7 @@
                 {{ form.campo('documento', 'CPF ou CNPJ', 'text',
                     valores.documento|default(''), erros.documento|default(null),
                     {inputmode: 'numeric', maxlength: 18, required: true},
-                    'Só números ou com pontuação — tanto faz.') }}
+                    'Só números ou com pontuação, tanto faz.') }}
 
                 {{ form.campo('telefone', 'Telefone (opcional)', 'tel',
                     valores.telefone|default(''), erros.telefone|default(null),

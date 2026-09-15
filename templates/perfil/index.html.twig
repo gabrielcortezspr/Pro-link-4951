@@ -1,7 +1,7 @@
 {% extends 'layout/base.html.twig' %}
 {% import 'layout/_form.html.twig' as form %}
 
-{% block titulo %}Meu perfil — Pro-Link{% endblock %}
+{% block titulo %}Meu perfil · Pro-Link{% endblock %}
 
 {% block conteudo %}
 {% set p = perfil %}
@@ -58,7 +58,7 @@
     <p class="mb-3">
         <span class="badge text-bg-info">Perfil em construção</span>
         <span class="text-body-secondary">Seu acervo está começando. Você continua aparecendo nas
-        recomendações — a marca só dá contexto a quem te encontrar.</span>
+        recomendações. A marca só dá contexto a quem te encontrar.</span>
     </p>
 {% endif %}
 
@@ -94,11 +94,11 @@
 
                         <dl class="row small mb-2">
                             <dt class="col-sm-4">Contratante</dt>
-                            <dd class="col-sm-8">{{ art.contratante ?: '—' }}</dd>
+                            <dd class="col-sm-8">{{ art.contratante ?: 'Não informado' }}</dd>
                             <dt class="col-sm-4">Local</dt>
-                            <dd class="col-sm-8">{{ art.local ?: '—' }}</dd>
+                            <dd class="col-sm-8">{{ art.local ?: 'Não informado' }}</dd>
                             <dt class="col-sm-4">Situação</dt>
-                            <dd class="col-sm-8">{{ art.situacao ?: '—' }}</dd>
+                            <dd class="col-sm-8">{{ art.situacao ?: 'Não informado' }}</dd>
                             <dt class="col-sm-4">Consultado em</dt>
                             <dd class="col-sm-8">{{ art.dt_consulta }}</dd>
                         </dl>
@@ -107,7 +107,7 @@
                         <ul class="small mb-0">
                             {% for atividade in art.atividades %}
                                 <li><code>{{ atividade.tos_codigo }}</code>
-                                    {% if atividade.descricao %}— {{ atividade.descricao }}{% endif %}</li>
+                                    {% if atividade.descricao %}· {{ atividade.descricao }}{% endif %}</li>
                             {% else %}
                                 <li class="text-body-secondary">Sem atividades registradas.</li>
                             {% endfor %}
@@ -123,7 +123,7 @@
         <h2 class="h5 mt-4">Experiência declarada</h2>
         <p class="text-body-secondary small">
             O que você escreve aqui é <strong>autodeclarado</strong>: a plataforma não confere e
-            não sela. Vincular uma ART sua liga o relato a uma evidência — e mesmo assim os dois
+            não sela. Vincular uma ART sua liga o relato a uma evidência, e mesmo assim os dois
             continuam aparecendo separados.
         </p>
 
@@ -136,9 +136,15 @@
                         <div>
                             <h3 class="h6 mb-1">{{ exp.titulo }}</h3>
                             <p class="small mb-1 text-body-secondary">
-                                {% if exp.dt_inicio or exp.dt_fim %}
-                                    {{ exp.dt_inicio ?: 'início não informado' }} —
-                                    {{ exp.dt_fim ?: 'atual' }}
+                                {# Sem travessão de intervalo: a preposição diz a mesma coisa e lê melhor
+                                   em voz alta, inclusive por leitor de tela. Uma ponta só vira frase
+                                   inteira em vez de "início não informado a 2023". #}
+                                {% if exp.dt_inicio and exp.dt_fim %}
+                                    {{ exp.dt_inicio }} a {{ exp.dt_fim }}
+                                {% elseif exp.dt_inicio %}
+                                    Desde {{ exp.dt_inicio }}
+                                {% elseif exp.dt_fim %}
+                                    Até {{ exp.dt_fim }}
                                 {% else %}
                                     Período não informado
                                 {% endif %}
@@ -207,11 +213,11 @@
                     <select name="art_id" id="campo-art_id"
                             class="form-select{% if erro_art %} is-invalid{% endif %}"
                             {% if erro_art %}aria-invalid="true" aria-describedby="campo-art_id-erro"{% endif %}>
-                        <option value="">Nenhuma — experiência sem ART</option>
+                        <option value="">Nenhuma, experiência sem ART</option>
                         {% for art in p.arts %}
                             <option value="{{ art.id }}"
                                 {%- if valores.art_id|default('') == art.id %} selected{% endif %}>
-                                {{ art.numero }} — {{ art.objeto }}
+                                {{ art.numero }} · {{ art.objeto }}
                             </option>
                         {% endfor %}
                     </select>

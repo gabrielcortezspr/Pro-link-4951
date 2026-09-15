@@ -44,11 +44,22 @@ que você escrever aqui é a primeira coisa que o próximo agente vai ler.
 
    Se o arquivo passar de ~30 linhas, algo nele pertence a um commit, a `CLAUDE.md` ou a `docs/`.
 
-5. **Confira o `git status`.** Se houver mudança sem commit, liste em uma linha o que é e
+5. **Se a sessão mexeu em tela, rode a verificação do padrão visual** antes de propor commit:
+
+   ```
+   docker compose exec -T php php scripts/verificar-telas.php
+   docker compose exec -T php php scripts/verificar-padrao.php
+   ```
+
+   Violação aberta não fecha sessão: ou corrige, ou vira linha em `Lembrar` no `estado.md` com o
+   motivo de ter ficado. Verde aqui é o piso, não a aprovação: a régua de qualidade da interface
+   é olho humano, e tela nova passa pelo agente `designer-ui` antes de virar código.
+
+6. **Confira o `git status`.** Se houver mudança sem commit, liste em uma linha o que é e
    proponha uma mensagem de commit. **Não commite sem o usuário pedir.** Se o working tree
    estiver limpo, diga isso.
 
-6. **Feche com uma linha**: o próximo passo, e como retomar (`claude` no diretório — o hook faz
+7. **Feche com uma linha**: o próximo passo, e como retomar (`claude` no diretório, que o hook faz
    o resto).
 
 ## O que não fazer

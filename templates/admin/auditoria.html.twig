@@ -1,0 +1,375 @@
+{% extends 'admin/_layout.html.twig' %}
+
+{% block titulo %}Auditoria · Pro-Link{% endblock %}
+{% block titulo_painel %}Auditoria{% endblock %}
+
+{# Estado da tela na topbar, não no corpo: é propriedade da página inteira, não um aviso a ler
+   antes da tabela. Como faixa de largura total dentro de .pl-content ele tinha peso de banner
+   para uma nota de rodapé conceitual. O texto longo (o porquê da imutabilidade) fica embaixo da
+   tabela, que é onde alguém procura a garantia depois de ler os registros. #}
+{% block topbar_acoes %}
+    <span class="pl-somente-leitura">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8.5 11V7.5a3.5 3.5 0 017 0V11"/></svg>
+        Somente leitura
+    </span>
+{% endblock %}
+
+{# ---------------------------------------------------------------------------------------------
+   Rótulo de valor gravado.
+
+   Ação, tabela e coluna passam por Support\Rotulos (filtros rotulo_acao, rotulo_entidade e
+   rotulo_campo). O que sobra é o VALOR que foi gravado na trilha, e ele também chega cru:
+   'A', 'PENDENTE', 'PERFIL_FRAUDULENTO'. O mapa abaixo é o vocabulário desses valores, no mesmo
+   padrão de denuncias.html.twig e denuncia.html.twig, com os mesmos rótulos, para as três telas
+   do painel não divergirem.
+
+   Quando o valor não está no mapa e ainda assim é constante (MAIÚSCULA com underline), cai na
+   mesma convenção do fallback de Rotulos: underline vira espaço e a primeira letra sobe. Hash,
+   e-mail, número de ART e frase em português passam intactos, que é o que a auditoria precisa.
+
+   Letra isolada: 'A', 'I' e 'X' são situação de conta, e 'F' e 'J' são tipo de pessoa. São os
+   únicos códigos de uma letra que a trilha grava hoje. Valor novo de uma letra em outro sentido
+   entra aqui antes de aparecer na tela.
+--------------------------------------------------------------------------------------------- #}
+{% macro rotulo_valor(bruto, mapa) %}
+    {%- if bruto is null or bruto == '' -%}
+        <span class="nulo" aria-hidden="true"></span><span class="visually-hidden">sem valor</span>
+    {%- elseif mapa[bruto] is defined -%}
+        {{- mapa[bruto] -}}
+    {%- elseif bruto matches '/^[A-Z]{3,}(_[A-Z]+)*$/' -%}
+        {# Só letras: constante gravada em caixa alta. Qualquer dígito derruba o casamento, senão
+           número de ART ('AM20269999001') e código do CREA seriam "corrigidos" para minúscula. #}
+        {{- bruto|lower|replace({'_': ' '})|capitalize -}}
+    {%- elseif bruto matches '/^[a-z][a-z0-9]*(_[a-z0-9]+)+$/' -%}
+        {# Constante gravada em minúscula ('bloqueio_administrativo'). Underline na tela é
+           underline na tela, esteja em caixa alta ou não. E-mail, hash e frase não casam aqui:
+           o padrão exige underline e nada fora de letra e dígito. #}
+        {{- bruto|replace({'_': ' '})|capitalize -}}
+    {%- else -%}
+        {{- bruto -}}
+    {%- endif -%}
+{% endmacro %}
+
+{# Contexto gravado como JSON (consulta à API, criação de registro). Vira par rótulo/valor numa
+   linha só. O JSON inteiro fica no title da célula: quem audita de verdade quer o texto exato,
+   e ele não precisa ocupar a tela para isso. #}
+{% macro pares(bruto, mapa, chaves) %}
+    {%- import _self as r -%}
+    {%- for par in bruto|trim('{}')|split(',') -%}
+        {%- set kv = par|split(':', 2) -%}
+        {%- if kv|length == 2 -%}
+            {%- set chave = kv[0]|trim('" ') -%}
+            <span class="kv"><i>{{ chaves[chave]|default(chave|rotulo_campo) }}</i><b>{{ r.rotulo_valor(kv[1]|trim('" '), mapa) }}</b></span>
+        {%- endif -%}
+    {%- endfor -%}
+{% endmacro %}
+
+{% block painel %}
+
+    {% import _self as r %}
+
+    {# Severidade do evento, não da pessoa. 'Bloqueio de conta' é vermelho porque é ação sensível
+       de moderação: isso não qualifica quem executou nem o titular da conta afetada. O item 10.1
+       do edital veda ranking de profissionais, e nada aqui ordena ou julga pessoa.
+       Fora dos dois mapas, o evento é neutro, que é o caso da maioria. #}
+    {% set severo = {
+        'ACESSO_NEGADO':   'danger', 'LOGIN_FALHOU': 'danger',
+        'BLOQUEIO_LOGIN':  'danger', 'SELO_DIVERGENTE': 'danger',
+        'BLOQUEAR':        'warn',   'EXCLUIR':      'warn', 'EDITAR': 'warn',
+        'MODERAR':         'warn',   'REVOGAR':      'warn', 'EXPORTAR_DADOS': 'warn'
+    } %}
+
+    {% set valores = {
+        'A': 'Ativa', 'I': 'Inativa', 'X': 'Excluída',
+        'F': 'Pessoa física', 'J': 'Pessoa jurídica',
+        'PENDENTE': 'Pendente', 'EM_ANALISE': 'Em análise', 'RESOLVIDA': 'Resolvida',
+        'ADVERTIR': 'Advertir', 'BLOQUEAR': 'Bloquear a conta', 'REMOVER': 'Remover o conteúdo',
+        'IMPROCEDENTE': 'Improcedente',
+        'SPAM': 'Spam', 'PERFIL_FRAUDULENTO': 'Perfil fraudulento',
+        'DADO_ENGANOSO': 'Dado enganoso', 'CONTEUDO_IMPROPRIO': 'Conteúdo impróprio',
+        'OUTRO': 'Outro',
+        'USUARIO': 'Conta', 'DEMANDA': 'Demanda', 'PROFISSIONAL': 'Profissional',
+        'EMPRESA': 'Empresa', 'TERCEIRO': 'Terceiro', 'ADMIN': 'Administração',
+        'API_INDISPONIVEL': 'API indisponível'
+    } %}
+
+    {# Chaves do JSON de contexto. Não são coluna de tabela: são nomes escolhidos no ponto de
+       chamada de Support\Auditoria::registrar(), e por isso não estão (nem cabem) no mapa de
+       colunas de Support\Rotulos. Chave fora daqui cai no rotulo_campo, que já garante que
+       nada saia cru; este mapa existe só para os acentos e as siglas que a convenção perde
+       ("Sessoes revogadas", "Denuncia id"). Se virar vocabulário de mais de uma tela, o lugar
+       dele é Support\Rotulos. #}
+    {% set chaves = {
+        'rnp': 'RNP', 'arts': 'ARTs', 'atividades': 'Atividades', 'ja_existiam': 'Já existiam',
+        'cao': 'CAO da empresa', 'profissionais': 'Profissionais', 'empresa': 'Empresa',
+        'ativos': 'Ativos', 'vigentes': 'Vigentes', 'encerrados': 'Encerrados',
+        'registro_crea': 'Registro no CREA', 'razao_social': 'Razão social',
+        'resultado': 'Resultado', 'motivo': 'Motivo', 'entidade': 'Entidade',
+        'entidade_id': 'Registro nº', 'denuncia_id': 'Denúncia nº', 'id': 'Registro nº',
+        'tipo': 'Tipo', 'sessoes_revogadas': 'Sessões revogadas', 'perfil': 'Perfil de acesso',
+        'email': 'E-mail', 'tipo_pessoa': 'Tipo de pessoa', 'status_api': 'Situação na API',
+        'modalidades': 'Modalidades', 'art_numero': 'Nº da ART', 'numero': 'Número',
+        'tentou': 'Conta que tentou', 'tentativas': 'Tentativas',
+        'bloqueado_ate': 'Bloqueado até', 'documento': 'Documento', 'formato': 'Formato',
+        'acao': 'Ação'
+    } %}
+
+    {% set meses = {
+        1: 'janeiro', 2: 'fevereiro', 3: 'março',    4: 'abril',   5: 'maio',     6: 'junho',
+        7: 'julho',   8: 'agosto',    9: 'setembro', 10: 'outubro', 11: 'novembro', 12: 'dezembro'
+    } %}
+
+    {# Paginação e contagem de segurança vêm do controller. As verificações de etapa renderizam
+       esta tela só com o que o repositório devolve, então o padrão sem elas precisa ser uma
+       página única, e não um erro de variável ausente. #}
+    {% set p_atual  = pagina is defined     ? pagina    : 1 %}
+    {% set p_total  = paginas is defined    ? paginas   : 1 %}
+    {% set p_tam    = por_pagina is defined ? por_pagina : linhas|length %}
+    {% set n_seg    = seguranca is defined  ? seguranca : null %}
+    {% set filtrado = filtro.acao or filtro.usuario or filtro.dias != 7 %}
+    {% set faixa_de = (p_atual - 1) * p_tam + 1 %}
+
+    {# Base das ligações da tela: o filtro corrente sobrevive à troca de página, e clicar num
+       autor acrescenta o filtro de conta sem perder ação e período. #}
+    {% set q_periodo = 'dias=' ~ filtro.dias ~ (filtro.acao ? '&acao=' ~ filtro.acao|url_encode : '') %}
+    {% set q_atual   = q_periodo ~ (filtro.usuario ? '&usuario=' ~ filtro.usuario : '') %}
+    {% set base      = app_url ~ '/admin/auditoria?' %}
+
+    {# GET, não POST: filtro é leitura, e o front controller só exige token em escrita. #}
+    <form method="get" action="{{ app_url }}/admin/auditoria" class="pl-toolbar">
+        <div class="pl-filtros">
+            <div class="campo-acao">
+                <label class="form-label" for="f-acao">Evento</label>
+                <select class="form-select" name="acao" id="f-acao">
+                    <option value="">Todos os eventos</option>
+                    {% for a in acoes %}
+                        {# value cru porque é ele que o repositório compara; texto em português. #}
+                        <option value="{{ a }}"{% if filtro.acao == a %} selected{% endif %}>{{ a|rotulo_acao }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="campo-usuario">
+                <label class="form-label" for="f-usuario">Conta</label>
+                <input class="form-control" type="number" min="1" name="usuario" id="f-usuario"
+                       value="{{ filtro.usuario }}" placeholder="Todas"
+                       aria-describedby="f-usuario-dica">
+            </div>
+
+            <div class="campo-periodo">
+                <label class="form-label" for="f-dias">Período</label>
+                <select class="form-select" name="dias" id="f-dias">
+                    {% for d in [7, 30, 90] %}
+                        <option value="{{ d }}"{% if filtro.dias == d %} selected{% endif %}>Últimos {{ d }} dias</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="pl-filtros-acoes">
+                <button type="submit" class="pl-btn">Filtrar</button>
+                {# "Limpar" só existe quando há o que limpar: link morto em barra de filtro é
+                   affordance falsa. #}
+                {% if filtrado %}
+                    <a class="pl-btn ghost" href="{{ app_url }}/admin/auditoria">Limpar</a>
+                {% endif %}
+            </div>
+        </div>
+        <p class="form-text mt-2 mb-0" id="f-usuario-dica">
+            Clique no nome de quem praticou um evento, na tabela, para filtrar por aquela conta.
+        </p>
+    </form>
+
+    <section class="pl-card pl-log-card">
+
+        <div class="pl-log-topo">
+            <div>
+                <h2 class="pl-card-titulo">Eventos registrados</h2>
+                <p class="pl-log-resumo">
+                    <span><b>{{ total }}</b> no recorte atual</span>
+                    {% if n_seg %}
+                        <span class="seg"><i aria-hidden="true"></i><b>{{ n_seg }}</b>&nbsp;de segurança</span>
+                    {% endif %}
+                </p>
+            </div>
+            {# Faixa exibida no topo, número da página no rodapé: informação diferente em cada
+               ponta, em vez de repetir "Página 1 de 9" duas vezes no mesmo quadro. #}
+            {% if linhas|length %}
+                <p class="pl-pag mb-0"><span class="pos">Exibindo <b>{{ faixa_de }}</b> a <b>{{ faixa_de + linhas|length - 1 }}</b></span></p>
+            {% endif %}
+        </div>
+
+        <div class="table-responsive">
+            <table class="pl-table pl-log">
+                <caption class="visually-hidden">
+                    Trilha de auditoria, somente leitura. Um evento por linha, do mais recente
+                    para o mais antigo, agrupado por dia.
+                </caption>
+                <colgroup>
+                    <col class="c-hora"><col class="c-evento"><col class="c-autor">
+                    <col class="c-objeto"><col><col class="c-ref">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th scope="col">Hora</th>
+                        <th scope="col">Evento</th>
+                        <th scope="col">Praticado por</th>
+                        <th scope="col">Registro afetado</th>
+                        <th scope="col">Detalhe</th>
+                        <th scope="col" class="num">Nº</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for l in linhas %}
+
+                    {# Cabeçalho de dia: a data sai da linha e vira faixa. Repetir 14/09/2026 por
+                       extenso em 50 linhas gastava a coluna mais larga com a informação menos
+                       discriminante da tela. Compara com a linha anterior em vez de guardar
+                       estado, que dentro de um for do Twig é frágil. #}
+                    {% if loop.first or l.aud_dt_registro|date('Y-m-d') != linhas[loop.index0 - 1].aud_dt_registro|date('Y-m-d') %}
+                        <tr class="dia">
+                            <td colspan="6">
+                                <div class="w">
+                                    <span class="d">{{ l.aud_dt_registro|date('j') }} de {{ meses[l.aud_dt_registro|date('n')] }} de {{ l.aud_dt_registro|date('Y') }}</span>
+                                    {# O rótulo de fuso saiu quando Database::conexao() passou a alinhar o
+                                       relógio do MariaDB ao do PHP: hora gravada e hora exibida são a
+                                       mesma, e declarar o fuso deixou de ser necessário. Registro anterior
+                                       à correção continua gravado em UTC, ou seja, 4h adiantado. #}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+
+                    {% set nivel      = severo[l.aud_acao]|default('neutral') %}
+                    {% set bruto_ant  = l.aud_valor_anterior|default('') %}
+                    {% set bruto_novo = l.aud_valor_novo|default('') %}
+                    {% set contexto   = bruto_novo starts with '{' %}
+
+                    <tr class="lin{% if nivel == 'danger' %} critico{% endif %}">
+                        <td class="hora">{{ l.aud_dt_registro|date('H:i:s') }}</td>
+
+                        <td>
+                            {# title com a constante crua: o rótulo é o que se lê, o identificador
+                               exato continua ao alcance de quem audita. #}
+                            <span class="pl-evt {{ nivel }}" title="{{ l.aud_acao }}">
+                                <span class="pd" aria-hidden="true"></span>
+                                <span class="tx">{{ l.aud_acao|rotulo_acao }}</span>
+                            </span>
+                        </td>
+
+                        <td>
+                            {% if l.aud_usu_id and filtro.usuario != l.aud_usu_id %}
+                                <a class="autor" href="{{ base }}{{ q_periodo }}&amp;usuario={{ l.aud_usu_id }}"
+                                   title="Filtrar a trilha por esta conta (nº {{ l.aud_usu_id }})">{{ l.usu_nome|default('Conta nº ' ~ l.aud_usu_id) }}</a>
+                            {% elseif l.aud_usu_id %}
+                                <span class="autor">{{ l.usu_nome|default('Conta nº ' ~ l.aud_usu_id) }}</span>
+                            {% else %}
+                                {# aud_usu_id nulo é tentativa sem sessão, e é justamente o que a
+                                   trilha existe para guardar. Não é "anônimo" no sentido de oculto. #}
+                                <span class="autor anon">Sem sessão</span>
+                            {% endif %}
+                            {% if l.aud_ip == 'cli' %}
+                                <span class="orig" title="cli">Linha de comando</span>
+                            {% elseif l.aud_ip %}
+                                <span class="orig">{{ l.aud_ip }}</span>
+                            {% else %}
+                                <span class="orig">Origem não registrada</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <span class="obj" title="{{ l.aud_entidade }}">{{ l.aud_entidade|rotulo_entidade }}</span>
+                            {% if l.aud_entidade_id %}<span class="oid">nº {{ l.aud_entidade_id }}</span>{% endif %}
+                        </td>
+
+                        <td>
+                            {% if contexto %}
+                                <span class="det" title="{{ bruto_novo }}">{{ r.pares(bruto_novo, valores, chaves) }}</span>
+                            {% elseif l.aud_campo and (bruto_ant or bruto_novo) %}
+                                {# O "de X para Y" é o que faz a trilha valer como prova. Valor longo
+                                   (hash de 64 caracteres) corta pela largura real da coluna, com o
+                                   texto inteiro no title. #}
+                                {# "de X para Y" escrito por extenso no title: um ">" literal dentro
+                                   de atributo é legal em HTML mas quebra todo leitor que separa
+                                   marcação por expressão regular, inclusive o nosso verificador. #}
+                                <span class="det" title="{{ l.aud_campo }}: de {{ bruto_ant }} para {{ bruto_novo }}">
+                                    <span class="k">{{ l.aud_campo|rotulo_campo }}</span>
+                                    <span class="de">{{ r.rotulo_valor(bruto_ant, valores) }}</span>
+                                    <svg class="ar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+                                    <span class="para">{{ r.rotulo_valor(bruto_novo, valores) }}</span>
+                                </span>
+                            {% elseif bruto_novo %}
+                                <span class="det" title="{{ bruto_novo }}">{{ r.rotulo_valor(bruto_novo, valores) }}</span>
+                            {% else %}
+                                {# Evento sem alteração de campo (entrada, saída, consulta). Um traço
+                                   curto fecha a coluna sem repetir texto em dezenas de linhas; a
+                                   versão em palavras fica para o leitor de tela. #}
+                                <span class="det"><span class="nulo" aria-hidden="true"></span><span class="visually-hidden">Sem alteração de campo</span></span>
+                            {% endif %}
+                        </td>
+
+                        <td class="ref">{{ l.aud_id }}</td>
+                    </tr>
+
+                {% else %}
+
+                    <tr class="vazio">
+                        <td colspan="6">
+                            <p class="t">Nenhum evento neste recorte</p>
+                            <p class="s">
+                                {% if filtrado %}
+                                    A trilha não tem registro para este filtro no período escolhido.
+                                {% else %}
+                                    A trilha ainda não recebeu nenhum evento.
+                                {% endif %}
+                            </p>
+                            {% if filtrado %}
+                                <a class="pl-btn sm" href="{{ app_url }}/admin/auditoria">Ver todos os eventos</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pl-log-rodape">
+            <p class="pl-nota">
+                A trilha aceita apenas inserção. Nenhum perfil, incluindo a Administração, edita ou
+                apaga registro: a restrição é do banco, por trigger, e não da aplicação.
+            </p>
+
+            {% if p_total > 1 %}
+                <nav class="pl-pag" aria-label="Páginas da trilha">
+                    {% if p_atual > 1 %}
+                        <a class="pl-btn sm" href="{{ base }}{{ q_atual }}&amp;pagina={{ p_atual - 1 }}">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+                            Anterior
+                        </a>
+                    {% else %}
+                        <span class="pl-btn sm" aria-disabled="true">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+                            Anterior
+                        </span>
+                    {% endif %}
+
+                    <span class="pos">Página <b>{{ p_atual }}</b> de <b>{{ p_total }}</b></span>
+
+                    {% if p_atual < p_total %}
+                        <a class="pl-btn sm" href="{{ base }}{{ q_atual }}&amp;pagina={{ p_atual + 1 }}">
+                            Próxima
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                        </a>
+                    {% else %}
+                        <span class="pl-btn sm" aria-disabled="true">
+                            Próxima
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                        </span>
+                    {% endif %}
+                </nav>
+            {% endif %}
+        </div>
+
+    </section>
+
+{% endblock %}

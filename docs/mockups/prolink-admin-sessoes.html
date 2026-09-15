@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pro-Link · Sessões do motor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* =====================================================================
+   Pro-Link · Sessões do motor de compatibilização (Admin)
+   Hierarquia de cor herdada do DS:
+     verde água = verificação (exclusivo do selo)
+     azul escuro (petrol) = dado e ação secundária
+     âmbar = integridade    |    vermelho = bloqueio destrutivo
+   Nesta tela não há laranja: reproduzir uma sessão não altera nada.
+   ===================================================================== */
+:root{
+  --app-bg:#FBFAF6; --page:#F2EEE7; --card:#FFFFFF; --border:#EDE8DE; --border-2:#F7F3EC;
+  --ink:#0E1726; --muted:#5B6B82;
+  --faint:#8A9BB4;      /* decorativo */
+  --faint-2:#61708A;    /* texto secundário acessível */
+  --navy:#0B2A4A; --navy-2:#12315A; --blue:#2E6BE6; --blue-2:#63A0F0; --blue-100:#EAF1FE;
+  --seal:#0E7C86; --seal-bg:#E3F3F5; --seal-border:#BFE4E8;
+  --petrol:#1B4079;
+  --accent:#F26B21; --accent-2:#ff8a3d;
+  --ok:#1FA971; --ok-bg:#E7F6EF;
+  --warn:#E8A317; --warn-bg:#FDF7EA; --warn-br:#F0DCAE;
+  --danger:#E24A4A;
+  --build-ink:#61708A; --build-bg:#F7F5F0; --build-br:#E2DCD1;
+  --r:12px;
+  --spring:cubic-bezier(.22,1.15,.36,1);
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  --display:"Space Grotesk",system-ui,sans-serif; --body:"Inter",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--body);line-height:1.55;-webkit-font-smoothing:antialiased}
+a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+.pl-outer{max-width:1280px;margin:0 auto;padding:34px 20px 70px}
+.pl-h1{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;letter-spacing:-.02em}
+.pl-lead{color:var(--muted);font-size:14px;margin:0 0 8px;max-width:88ch}
+.pl-cap{display:flex;align-items:center;gap:10px;margin:38px 0 12px;flex-wrap:wrap}
+.pl-cap .n{font-family:var(--display);font-weight:700;color:var(--blue);font-size:18px}
+.pl-cap h2{font-family:var(--display);font-weight:600;font-size:16px;margin:0}
+.pl-cap .rf{font-size:11.5px;color:var(--faint-2);border:1px solid var(--border);padding:3px 9px;border-radius:20px;background:var(--card)}
+.pl-note{font-size:12.5px;color:var(--faint-2);margin:0 0 12px;max-width:88ch}
+.pl-frame{position:relative;border-radius:18px;overflow:hidden;border:1px solid #cdd8e8;box-shadow:0 18px 44px rgba(11,42,74,.14);background:var(--app-bg)}
+.pl-vmark{width:15px;height:15px;flex:none;vertical-align:-2px}
+
+/* ===== app shell do admin (valores idênticos ao prolink-admin.html) ===== */
+.pl-app{display:grid;grid-template-columns:232px 1fr;background:var(--app-bg);min-height:640px}
+.pl-side{background:linear-gradient(180deg,var(--navy),var(--navy-2));padding:18px 15px;display:flex;flex-direction:column;gap:4px;overflow:hidden;white-space:nowrap}
+.pl-brand{display:flex;align-items:center;gap:9px;color:#fff;font-family:var(--display);font-weight:700;font-size:17px;margin:6px 8px 18px}
+.pl-brand .m{width:12px;height:12px;border-radius:4px;background:linear-gradient(135deg,var(--blue-2),var(--blue));transform:rotate(45deg);flex:none}
+.pl-ham{width:30px;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);color:#cddcf1;cursor:pointer;display:grid;place-items:center;flex:none;margin-left:auto}
+.pl-ham svg{width:16px;height:16px}
+.pl-side small{color:#93abcd;font-size:12px;margin:8px 10px 4px;font-weight:600}
+.pl-sidenav{display:flex;flex-direction:column;gap:4px}
+.pl-sidenav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;color:#bccfe8;text-decoration:none;font-size:13.5px;font-weight:500}
+.pl-sidenav a .ic{width:17px;height:17px;opacity:.9;flex:none}
+.pl-sidenav a.is-active{background:#fff;color:var(--navy);font-weight:600}
+.pl-foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-radius:11px;background:rgba(255,255,255,.06);color:#d3e1f4;font-size:12px}
+.pl-foot .av{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--blue-2),var(--blue));display:grid;place-items:center;color:#fff;font-weight:600;font-size:11px;font-family:var(--display);flex:none}
+.pl-main{display:flex;flex-direction:column;min-width:0}
+.pl-topbar{height:60px;display:flex;align-items:center;gap:12px;padding:0 20px;background:var(--card);border-bottom:1px solid var(--border);flex:none}
+.pl-topbar h3{font-family:var(--display);font-weight:600;font-size:16px;margin:0}
+.pl-sp{flex:1}
+.pl-badge-ro{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;color:#215ac2;background:var(--blue-100);border:1px solid #cfe0fe;padding:5px 10px;border-radius:9px}
+.pl-badge-ro svg{width:14px;height:14px;flex:none}
+.pl-avtop{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--navy-2),var(--blue));display:grid;place-items:center;color:#fff;font-weight:600;font-size:12px;font-family:var(--display);flex:none}
+.pl-content{padding:22px;display:flex;flex-direction:column;gap:18px}
+
+/* ===== átomos ===== */
+.pl-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:0 8px 22px rgba(11,42,74,.05)}
+.pl-rowhead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.pl-rowhead .t{font-family:var(--display);font-weight:600;font-size:15px;margin:0}
+.pl-rowhead .subt{color:var(--muted);font-size:12.5px;margin:2px 0 0}
+.pl-toschip{display:inline-flex;align-items:center;gap:7px;background:var(--blue-100);color:#215ac2;border-radius:8px;padding:3px 9px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.pl-toschip .code{font-family:var(--mono);font-weight:500;color:#2F5AA8;font-size:10.5px}
+.pl-btn{height:38px;border-radius:var(--r);border:1px solid var(--border);background:var(--card);color:var(--ink);font-family:var(--body);font-weight:600;font-size:13px;padding:0 14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}
+.pl-btn.sm{height:32px;font-size:12px;padding:0 12px;border-radius:8px}
+.pl-btn.petrol{background:transparent;color:var(--petrol);border:1px solid var(--petrol)}
+.pl-btn.petrol:hover{background:rgba(27,64,121,.06)}
+.pl-btn[disabled]{opacity:.55;cursor:progress}
+.pl-btn svg{width:15px;height:15px;flex:none}
+.pl-backlink{display:inline-flex;align-items:center;gap:7px;color:var(--blue);font-size:13px;font-weight:600;text-decoration:none;border-radius:4px}
+.pl-backlink:hover{text-decoration:underline}
+.pl-backlink svg{width:15px;height:15px}
+.pl-building{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;color:var(--build-ink);background:var(--build-bg);border:1px solid var(--build-br);border-radius:7px;padding:2px 7px;white-space:nowrap}
+.pl-building svg{width:12px;height:12px;flex:none}
+
+/* ===== tabela (padrão do admin) ===== */
+.pl-table{width:100%;border-collapse:collapse;font-size:13px}
+.pl-table thead th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;padding:0 12px 10px;border-bottom:1px solid var(--border)}
+.pl-table tbody td{padding:14px 12px;border-bottom:1px solid var(--border-2);vertical-align:middle}
+.pl-table tbody tr:last-child td{border-bottom:0}
+.pl-table td.mono{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.pl-table td.num{font-variant-numeric:tabular-nums}
+.pl-acts{display:flex;gap:7px;justify-content:flex-end}
+.pl-pager{display:flex;align-items:center;justify-content:space-between;margin-top:14px;font-size:12.5px;color:var(--muted);flex-wrap:wrap;gap:10px}
+.pl-pager .pg{display:flex;gap:4px}
+.pl-pager .pg button{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--ink);cursor:pointer;font-family:var(--body)}
+.pl-pager .pg button.is-active{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+/* ===== cabeçalho de fatos da sessão ===== */
+.pl-facts{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:0}
+.pl-facts .pl-col{padding:4px 0}
+.pl-facts .pl-col + .pl-col{border-left:1px solid var(--border);padding-left:26px;margin-left:26px}
+.pl-lab{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--faint-2);margin:0 0 10px}
+.pl-fgrid{display:grid;grid-template-columns:112px 1fr;gap:9px 16px;font-size:13px;align-items:baseline}
+.pl-fgrid dt{color:var(--muted);margin:0}
+.pl-fgrid dd{margin:0;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.pl-fgrid dd.mono{font-family:var(--mono);font-size:12.5px;font-weight:500}
+
+/* semente: dado sensível de auditoria, selecionável e copiável */
+.pl-seed{margin-top:18px}
+.pl-seedbox{display:flex;align-items:center;gap:12px;background:var(--app-bg);border:1px solid var(--border);border-radius:var(--r);padding:12px 12px 12px 15px;flex-wrap:wrap}
+.pl-seedval{font-family:var(--mono);font-size:15px;letter-spacing:.02em;color:var(--ink);user-select:all;-webkit-user-select:all;flex:1;min-width:220px;overflow-wrap:anywhere;line-height:1.4}
+.pl-seedhint{font-size:11px;color:var(--faint-2);margin:8px 0 0;display:flex;align-items:flex-start;gap:6px}
+.pl-seedhint svg{width:13px;height:13px;flex:none;margin-top:2px}
+
+/* parâmetros da época */
+.pl-params{display:grid;grid-template-columns:1fr auto;gap:8px 16px;font-size:13px;align-items:baseline}
+.pl-params .k{color:var(--muted);font-family:var(--mono);font-size:12px;overflow-wrap:anywhere}
+.pl-params .v{font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.pl-histnote{margin-top:14px;font-size:11.5px;color:var(--faint-2);line-height:1.5;border-top:1px solid var(--border-2);padding-top:12px}
+
+/* ===== reprodução + pool ===== */
+.pl-repro{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.pl-repro .legend{font-size:12px;color:var(--faint-2);max-width:52ch;line-height:1.5}
+.pl-verdict{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--petrol);
+  background:#F0F3F8;border:1px solid #D9E1EC;border-radius:9px;padding:6px 11px}
+.pl-verdict svg{width:15px;height:15px;flex:none}
+
+.pl-poolhead,.pl-prow{display:grid;grid-template-columns:minmax(190px,1.5fr) 104px 104px 104px 104px minmax(150px,.9fr);gap:14px;align-items:center}
+.pl-poolhead{padding:0 14px 10px;border-bottom:1px solid var(--border)}
+.pl-poolhead span{font-size:11px;color:var(--muted);font-weight:600}
+.pl-poolhead .r{text-align:left}
+.pl-stack{position:relative;margin-top:6px}
+.pl-prow{position:absolute;left:0;right:0;top:0;height:60px;padding:0 14px;border-bottom:1px solid var(--border-2);background:var(--card);
+  transition:transform .46s var(--spring)}
+.pl-stack.is-working .pl-prow{opacity:.88}
+.pl-who{display:flex;align-items:center;gap:11px;min-width:0}
+.pl-who .av{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:#fff;font-weight:600;font-family:var(--display);font-size:12px;
+  background:linear-gradient(135deg,var(--navy-2),var(--blue));flex:none}
+.pl-who .nm{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;min-width:0}
+.pl-who .nm span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl-cell{display:flex;align-items:center;gap:8px}
+.pl-mini{flex:1;height:6px;background:#F1EDE5;border-radius:4px;overflow:hidden}
+.pl-mini span{display:block;height:100%;border-radius:4px;background:var(--petrol)}
+.pl-cell .v{font-size:11.5px;font-weight:600;width:32px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+.pl-evid{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pl-foot-note{font-size:11.5px;color:var(--faint-2);margin:0;line-height:1.5}
+.pl-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
+@media (max-width:1080px){
+  .pl-facts{grid-template-columns:1fr}
+  .pl-facts .pl-col + .pl-col{border-left:0;border-top:1px solid var(--border);padding-left:0;margin-left:0;padding-top:20px;margin-top:20px}
+}
+@media (max-width:900px){
+  .pl-app{grid-template-columns:1fr}
+  .pl-side{display:none}
+  .pl-poolhead{display:none}
+  .pl-prow{grid-template-columns:1fr 1fr;height:auto;position:static;padding:14px;gap:10px}
+  .pl-stack{height:auto !important}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="seal" viewBox="0 0 40 40">
+    <polygon points="39,20 34.5,23.9 36.5,29.5 30.6,30.6 29.5,36.5 23.9,34.5 20,39 16.1,34.5 10.5,36.5 9.4,30.6 3.6,29.5 5.5,23.9 1,20 5.5,16.1 3.6,10.5 9.4,9.4 10.5,3.6 16.1,5.5 20,1 23.9,5.5 29.5,3.6 30.6,9.4 36.5,10.5 34.5,16.1" fill="#0E7C86"/>
+    <path d="M13.5 20.5l4 4l9 -10" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="ic-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 20.5h18"/><rect x="5" y="13.2" width="14" height="5.8" rx="1.5"/><rect x="7.6" y="5.4" width="8.8" height="5.4" rx="1.5" stroke-dasharray="2.7 2.3"/>
+  </symbol>
+</svg>
+
+<div class="pl-outer">
+  <h1 class="pl-h1">Sessões do motor de compatibilização</h1>
+  <p class="pl-lead">Cada execução do motor grava empresa, demanda, semente, parâmetros vigentes e o pool com os critérios registrados por candidato. Reexecutar com a mesma semente devolve a mesma ordem. É isto que sustenta, na arguição, as duas afirmações do projeto: a ordem não é um ranking de qualidade, e ela é auditável.</p>
+  <p class="pl-note">Tela de administração. Aqui o detalhe técnico é bem-vindo, porque este é o lugar dele: os números por dimensão aparecem lado a lado para conferência, mas continuam sem nota agregada e sem coluna de posição.</p>
+
+  <!-- =========================== TELA 1 =========================== -->
+  <div class="pl-cap"><span class="n">01</span><h2>Lista de sessões</h2><span class="rf">RF06 · registro de execuções</span></div>
+  <p class="pl-note">Uma ação por linha. Reproduzir, exportar e inspecionar o pool moram no detalhe da sessão, nunca na lista.</p>
+  <div class="pl-frame"><div class="pl-app">
+    <aside class="pl-side">
+      <div class="pl-brand"><span class="m"></span><span class="name">Pro&#8209;Link</span>
+        <button class="pl-ham" aria-label="Recolher ou expandir menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></div>
+      <small>Administração</small>
+      <nav class="pl-sidenav" aria-label="Menu de administração">
+        <a href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></span><span class="lb">Visão Geral</span></a>
+        <a href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h12l-2.5 3L18 10H6"/></svg></span><span class="lb">Denúncias</span></a>
+        <a href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg></span><span class="lb">Auditoria</span></a>
+        <a class="is-active" href="#" aria-current="page"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg></span><span class="lb">Sessões do motor</span></a>
+        <a href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></span><span class="lb">Usuários</span></a>
+        <a href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 005 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span><span class="lb">Integrações</span></a>
+      </nav>
+      <div class="pl-foot"><span class="av">RT</span><span class="txt">Regina Torres<br><span style="color:#9db4d4;font-size:11px">Administradora</span></span></div>
+    </aside>
+    <div class="pl-main">
+      <div class="pl-topbar"><h3>Sessões do motor</h3><div class="pl-sp"></div>
+        <span class="pl-badge-ro"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="10" width="14" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.5 10V7.5a3.5 3.5 0 017 0V10" stroke="currentColor" stroke-width="2"/></svg> Registro imutável, somente leitura</span>
+        <div class="pl-avtop">RT</div>
+      </div>
+      <div class="pl-content">
+        <div class="pl-card" style="padding:8px 6px">
+          <table class="pl-table">
+            <caption class="pl-sr">Sessões do motor de compatibilização registradas</caption>
+            <thead><tr><th scope="col">Data e hora</th><th scope="col">Empresa</th><th scope="col">Demanda</th><th scope="col">Semente</th><th scope="col">Pool</th><th scope="col"><span class="pl-sr">Ação</span></th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="mono">14/09/2026 09:41:07</td><td>Amazônia Construções</td><td>Reforço estrutural de galpão industrial</td>
+                <td class="mono">9f4c1ab7…9e42</td><td class="num">8</td>
+                <td class="pl-acts"><button class="pl-btn sm petrol">Ver</button></td>
+              </tr>
+              <tr>
+                <td class="mono">14/09/2026 08:12:55</td><td>Construtora Alvorada</td><td>Reforma de ponte municipal</td>
+                <td class="mono">2b81d0e6…4a17</td><td class="num">14</td>
+                <td class="pl-acts"><button class="pl-btn sm petrol">Ver</button></td>
+              </tr>
+              <tr>
+                <td class="mono">13/09/2026 17:30:22</td><td>Engenharia Rio Negro</td><td>Execução de obra viária</td>
+                <td class="mono">c07fa934…b6d1</td><td class="num">11</td>
+                <td class="pl-acts"><button class="pl-btn sm petrol">Ver</button></td>
+              </tr>
+              <tr>
+                <td class="mono">13/09/2026 15:04:48</td><td>Sec. de Infraestrutura do AM</td><td>Projeto estrutural de ponte</td>
+                <td class="mono">5e6b28cf…07aa</td><td class="num">9</td>
+                <td class="pl-acts"><button class="pl-btn sm petrol">Ver</button></td>
+              </tr>
+              <tr>
+                <td class="mono">13/09/2026 10:57:13</td><td>Amazônia Construções</td><td>Laudo de cobertura metálica</td>
+                <td class="mono">ae3319d5…c2f8</td><td class="num">5</td>
+                <td class="pl-acts"><button class="pl-btn sm petrol">Ver</button></td>
+              </tr>
+              <tr>
+                <td class="mono">12/09/2026 16:22:39</td><td>Construtora Alvorada</td><td>Reforma de unidade escolar</td>
+                <td class="mono">71d8c40b…3ef9</td><td class="num">12</td>
+                <td class="pl-acts"><button class="pl-btn sm petrol">Ver</button></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="pl-pager" style="padding:0 8px 6px">
+            <span>Mostrando 1 a 6 de 148 sessões</span>
+            <div class="pg"><button aria-label="Página anterior">&lsaquo;</button><button class="is-active" aria-current="page">1</button><button>2</button><button>3</button><button aria-label="Próxima página">&rsaquo;</button></div>
+          </div>
+        </div>
+        <p class="pl-foot-note">A semente aparece truncada na lista. O valor completo fica no detalhe da sessão, junto com os parâmetros usados naquela execução.</p>
+      </div>
+    </div>
+  </div></div>
+
+  <!-- =========================== TELA 2 =========================== -->
+  <div class="pl-cap"><span class="n">02</span><h2>Detalhe da sessão e reprodução</h2><span class="rf">itens 10.1 e 12.3 · determinismo verificável</span></div>
+  <p class="pl-note">O botão de reprodução reexecuta o sorteio com a semente registrada. O pool embaralha à vista e assenta na mesma ordem, quantas vezes for acionado. É a demonstração que a banca consegue conferir sem ler código.</p>
+  <div class="pl-frame"><div class="pl-app">
+    <aside class="pl-side">
+      <div class="pl-brand"><span class="m"></span><span class="name">Pro&#8209;Link</span>
+        <button class="pl-ham" aria-label="Recolher ou expandir menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></div>
+      <small>Administração</small>
+      <nav class="pl-sidenav" aria-label="Menu de administração">
+        <a href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></span><span class="lb">Visão Geral</span></a>
+        <a href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h12l-2.5 3L18 10H6"/></svg></span><span class="lb">Denúncias</span></a>
+        <a href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg></span><span class="lb">Auditoria</span></a>
+        <a class="is-active" href="#" aria-current="page"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg></span><span class="lb">Sessões do motor</span></a>
+        <a href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></span><span class="lb">Usuários</span></a>
+        <a href="#"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 005 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span><span class="lb">Integrações</span></a>
+      </nav>
+      <div class="pl-foot"><span class="av">RT</span><span class="txt">Regina Torres<br><span style="color:#9db4d4;font-size:11px">Administradora</span></span></div>
+    </aside>
+    <div class="pl-main">
+      <div class="pl-topbar"><h3>Detalhe da sessão</h3><div class="pl-sp"></div>
+        <span class="pl-badge-ro"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="10" width="14" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.5 10V7.5a3.5 3.5 0 017 0V10" stroke="currentColor" stroke-width="2"/></svg> Registro imutável, somente leitura</span>
+        <div class="pl-avtop">RT</div>
+      </div>
+      <div class="pl-content">
+
+        <a class="pl-backlink" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Sessões do motor</a>
+
+        <!-- fatos + parâmetros -->
+        <div class="pl-card">
+          <div class="pl-facts">
+            <div class="pl-col">
+              <p class="pl-lab">Sessão registrada</p>
+              <dl class="pl-fgrid">
+                <dt>Identificador</dt><dd class="mono">ses_7qk3m2v9x4</dd>
+                <dt>Empresa</dt><dd>Amazônia Construções</dd>
+                <dt>Demanda</dt><dd>Reforço estrutural de galpão industrial<br><span class="pl-toschip" style="margin-top:6px">Estrutura metálica <span class="code">TOS 1.1.2.3</span></span></dd>
+                <dt>Executada em</dt><dd class="mono">14/09/2026 09:41:07</dd>
+                <dt>Tamanho do pool</dt><dd>8 profissionais</dd>
+              </dl>
+
+              <div class="pl-seed">
+                <p class="pl-lab">Semente da sessão</p>
+                <div class="pl-seedbox">
+                  <code class="pl-seedval" id="seedVal" tabindex="0">9f4c1ab7e0d84c3f8b2e6a5d17c09e42</code>
+                  <button class="pl-btn sm" id="copySeed" aria-label="Copiar semente da sessão">
+                    <svg id="copyIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>
+                    <span id="copyLabel">Copiar</span>
+                  </button>
+                </div>
+                <p class="pl-seedhint">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 017 0v2.5"/></svg>
+                  Dado sensível de auditoria. Compartilhe apenas em contexto de verificação.
+                </p>
+              </div>
+            </div>
+
+            <div class="pl-col">
+              <p class="pl-lab">Parâmetros usados nesta execução</p>
+              <div class="pl-params">
+                <span class="k">peso.atividade_tos</span><span class="v">0,50</span>
+                <span class="k">peso.modalidade</span><span class="v">0,20</span>
+                <span class="k">peso.localizacao</span><span class="v">0,15</span>
+                <span class="k">peso.disponibilidade</span><span class="v">0,15</span>
+                <span class="k">limiar_entrada</span><span class="v">0,60</span>
+                <span class="k">early_career.min_arts</span><span class="v">3</span>
+              </div>
+              <p class="pl-histnote">
+                Estes são os valores vigentes no instante da execução, não os valores atuais do painel. O registro é histórico: alterações posteriores nos parâmetros não reescrevem esta sessão.
+              </p>
+              <p class="pl-histnote" style="border-top:0;padding-top:0;margin-top:10px">
+                Os pesos compõem apenas o limiar de entrada no pool. A ordem de exibição vem da semente, nunca da composição dos pesos.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- reprodução + pool -->
+        <div class="pl-card">
+          <div class="pl-rowhead" style="margin-bottom:16px">
+            <div>
+              <p class="t">Pool na ordem da semente</p>
+              <p class="subt">Critérios registrados por candidato no momento da execução</p>
+            </div>
+            <div class="pl-repro">
+              <span class="pl-verdict" id="verdict" hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                <span id="verdictText">Ordem reproduzida idêntica à registrada</span>
+              </span>
+              <button class="pl-btn petrol" id="repro">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+                Reproduzir sessão
+              </button>
+            </div>
+          </div>
+
+          <div class="pl-poolhead" aria-hidden="true">
+            <span>Profissional</span><span class="r">Atividade TOS</span><span class="r">Modalidade</span><span class="r">Localização</span><span class="r">Disponibilidade</span><span>Evidências</span>
+          </div>
+
+          <div class="pl-stack" id="stack"></div>
+
+          <p class="pl-foot-note" style="margin-top:16px">A mesma semente produz sempre a mesma ordem. A posição não indica qualidade.</p>
+        </div>
+
+        <p class="pl-foot-note" id="reproLog">Esta reprodução foi registrada na trilha de auditoria, com data, administrador responsável e resultado da conferência.</p>
+        <p class="pl-sr" role="status" aria-live="polite" id="live"></p>
+
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<script>
+/* Pool na ordem gravada pela semente. Não está ordenado por nenhuma dimensão:
+   a sequência de Atividade TOS abaixo é 88, 84, 94, 62, 90, 89, 76, 91. */
+const pool = [
+  {ini:"RC", nome:"Ricardo Costa",     tos:88, mod:100, loc:100, disp:100, ev:"3 ARTs, 1 CAT sustentam"},
+  {ini:"LU", nome:"Larissa Uchôa",     tos:84, mod:100, loc:72,  disp:100, ev:"8 ARTs, 2 CATs sustentam"},
+  {ini:"MB", nome:"Marina Braga",      tos:94, mod:100, loc:100, disp:100, ev:"14 ARTs, 3 CATs sustentam"},
+  {ini:"GL", nome:"Gustavo Lemos",     tos:62, mod:100, loc:100, disp:100, ev:"12 ARTs, 1 CAT sustentam"},
+  {ini:"TN", nome:"Talita Nogueira",   tos:90, mod:100, loc:100, disp:100, ev:"2 ARTs sustentam", build:true},
+  {ini:"WB", nome:"Wesley Bentes",     tos:89, mod:100, loc:100, disp:78,  ev:"10 ARTs, 3 CATs sustentam"},
+  {ini:"AF", nome:"Alice Fernandes",   tos:76, mod:100, loc:85,  disp:100, ev:"6 ARTs sustentam"},
+  {ini:"BT", nome:"Bruno Tavares",     tos:91, mod:100, loc:100, disp:85,  ev:"11 ARTs, 2 CATs sustentam"}
+];
+
+const ROW_H = 60;
+const $ = function(id){ return document.getElementById(id); };
+const stack = $("stack");
+const rmq = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+function cell(v){
+  return '<div class="pl-cell"><div class="pl-mini"><span style="width:'+v+'%"></span></div><span class="v">'+v+'%</span></div>';
+}
+stack.innerHTML = pool.map(function(c){
+  return '<div class="pl-prow">'
+    + '<div class="pl-who"><span class="av">'+c.ini+'</span>'
+    +   '<span class="nm"><span>'+c.nome+'</span>'
+    +     '<svg class="pl-vmark" role="img" aria-label="Verificado pela API do CREA-AM"><use href="#seal"/></svg></span></div>'
+    + cell(c.tos) + cell(c.mod) + cell(c.loc) + cell(c.disp)
+    + '<div class="pl-evid"><span>'+c.ev+'</span>'
+    +   (c.build ? '<span class="pl-building"><svg aria-hidden="true"><use href="#ic-building"/></svg>Em construção</span>' : '')
+    + '</div>'
+    + '</div>';
+}).join('');
+
+const rows = Array.prototype.slice.call(stack.querySelectorAll('.pl-prow'));
+stack.style.height = (rows.length * ROW_H) + 'px';
+
+/* A ordem canônica é a ordem do DOM, que é a ordem da semente.
+   O embaralhamento mexe só em transform, então o DOM (e o leitor de tela) nunca sai da ordem gravada. */
+function place(slots){
+  rows.forEach(function(r,i){ r.style.transform = 'translateY(' + (slots[i]*ROW_H) + 'px)'; });
+}
+const canonical = rows.map(function(_,i){ return i; });
+function randSlots(n){
+  const a = []; for(let i=0;i<n;i++) a.push(i);
+  for(let i=n-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; }
+  return a;
+}
+place(canonical);
+
+const wait = function(ms){ return new Promise(function(r){ setTimeout(r, ms); }); };
+let busy = false, reproCount = 0;
+const btn = $("repro"), verdict = $("verdict");
+
+btn.addEventListener('click', function(){
+  if(busy) return;
+  busy = true;
+  btn.disabled = true;
+  btn.setAttribute('aria-busy','true');
+  verdict.hidden = true;
+  $("live").textContent = 'Reproduzindo a sessão com a semente registrada.';
+
+  const run = rmq.matches
+    ? Promise.resolve()
+    : (function(){
+        stack.classList.add('is-working');
+        let p = Promise.resolve();
+        for(let s=0;s<3;s++){
+          p = p.then(function(){ place(randSlots(rows.length)); return wait(210); });
+        }
+        return p.then(function(){ place(canonical); return wait(560); });
+      })();
+
+  run.then(function(){
+    stack.classList.remove('is-working');
+    place(canonical);
+    reproCount++;
+    verdict.hidden = false;
+    btn.disabled = false;
+    btn.removeAttribute('aria-busy');
+    busy = false;
+    $("reproLog").textContent = 'Reproduções desta sessão nesta visita: ' + reproCount
+      + '. Cada reprodução foi registrada na trilha de auditoria, com data, administrador responsável e resultado da conferência.';
+    $("live").textContent = 'Reprodução concluída. A ordem obtida é idêntica à ordem registrada na sessão.';
+  });
+});
+
+/* copiar a semente, com alternativa quando a API de área de transferência não está disponível */
+const copyBtn = $("copySeed"), copyLabel = $("copyLabel");
+let copyTimer = null;
+copyBtn.addEventListener('click', function(){
+  const text = $("seedVal").textContent.trim();
+  const done = function(ok){
+    copyLabel.textContent = ok ? 'Copiada' : 'Selecionada';
+    $("live").textContent = ok ? 'Semente copiada para a área de transferência.' : 'Semente selecionada. Use o atalho de cópia do seu sistema.';
+    clearTimeout(copyTimer);
+    copyTimer = setTimeout(function(){ copyLabel.textContent = 'Copiar'; }, 1900);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){ done(true); }, function(){ selectSeed(); done(false); });
+  } else {
+    selectSeed(); done(false);
+  }
+});
+function selectSeed(){
+  const el = $("seedVal");
+  const r = document.createRange(); r.selectNodeContents(el);
+  const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+}
+</script>
+</body>
+</html>

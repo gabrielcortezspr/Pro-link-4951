@@ -1,0 +1,45 @@
+{% extends 'layout/base.html.twig' %}
+{% import 'layout/_form.html.twig' as form %}
+
+{% block titulo %}Registrar denúncia · Pro-Link{% endblock %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        <h1 class="h3 mb-1">Registrar denúncia</h1>
+        <p class="text-body-secondary">
+            A denúncia vai para a fila de moderação e é apurada por um administrador.
+        </p>
+
+        {% if aviso is defined and aviso %}
+            <div class="alert alert-danger" role="alert">{{ aviso }}</div>
+        {% endif %}
+
+        <form method="post" action="{{ app_url }}/denuncias">
+            {{ form.csrf() }}
+            <input type="hidden" name="entidade" value="{{ entidade }}">
+            <input type="hidden" name="alvo_id" value="{{ alvo_id }}">
+
+            <div class="pl-card mb-3">
+                <p class="text-body-secondary mb-1" style="font-size:.8125rem">Alvo da denúncia</p>
+                <p class="mb-0 fw-semibold">{{ alvo_rotulo }}</p>
+            </div>
+
+            {{ form.selecao('tipo', 'Tipo de denúncia', tipos, valores.tipo|default(''), erros.tipo|default(null), {required: true}) }}
+
+            {{ form.area('descricao', 'Descrição', valores.descricao|default(''), erros.descricao|default(null), {required: true, rows: 5}, 'Descreva o ocorrido com o máximo de contexto possível.') }}
+
+            {{ form.campo('evidencia', 'Evidência (link ou referência)', 'text', valores.evidencia|default(''), erros.evidencia|default(null), {}, 'Opcional. Informe um link ou a referência de onde o ocorrido pode ser conferido.') }}
+
+            <p class="text-body-secondary" style="font-size:.8125rem">
+                Denúncia genérica, sem alvo ou contexto vinculado, não é permitida.<br>
+                Esta ação é registrada na trilha de auditoria com autor, alvo e data/hora.
+            </p>
+
+            {{ form.botao('Enviar denúncia') }}
+        </form>
+
+    </div>
+</div>
+{% endblock %}

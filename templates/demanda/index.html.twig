@@ -1,7 +1,7 @@
 {% extends 'layout/base.html.twig' %}
 {% import 'layout/_form.html.twig' as form %}
 
-{% block titulo %}Minhas demandas — Pro-Link{% endblock %}
+{% block titulo %}Minhas demandas · Pro-Link{% endblock %}
 
 {% block conteudo %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
@@ -11,12 +11,12 @@
 
 {% if demandas is empty %}
     <p class="text-body-secondary">
-        Nenhuma demanda ainda. Comece publicando o que você precisa que seja feito — a plataforma
+        Nenhuma demanda ainda. Comece publicando o que você precisa que seja feito. A plataforma
         procura quem já comprovou fazer aquilo, pela Tabela de Obras e Serviços.
     </p>
 {% else %}
     <div class="table-responsive">
-        <table class="table align-middle">
+        <table class="pl-table align-middle">
             <caption class="visually-hidden">Demandas publicadas por você, com situação e número de interessados</caption>
             <thead>
                 <tr>
