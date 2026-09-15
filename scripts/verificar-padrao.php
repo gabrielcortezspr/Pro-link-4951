@@ -275,12 +275,25 @@ foreach ($amostras as $tela => $dados) {
     // Só o texto visível: value="", title="" e class="" carregam o identificador cru de propósito.
     $visivel = (string) preg_replace('/<[^>]*>/', ' ', $html);
 
-    // 6. Constante de sistema vazando. ACESSO_NEGADO, EM_ANALISE, PERFIL_FRAUDULENTO.
-    if (preg_match('/\b[A-Z][A-Z0-9]{2,}_[A-Z0-9_]{2,}\b/', $visivel, $m)) {
+    // 6. Código TOS cru. `tos_codigo` vem da API como `TOS_1.1.2.3`, e o design (mockups) mostra
+    //    `TOS 1.1.2.3`, sem o sublinhado. Conferido **antes** e à parte da regra da constante
+    //    porque a regra genérica o pegava por acidente e só às vezes: `TOS_11.1` casa com
+    //    `[A-Z][A-Z0-9]{2,}_`, `TOS_1.1` não. A mesma falha passava ou não conforme o grupo do
+    //    código de amostra ter um ou dois dígitos — e a mensagem que saía falava de constante de
+    //    sistema, mandando quem lesse procurar a coisa errada.
+    if (preg_match('/\bTOS_\d/', $visivel, $m)) {
+        violar($tela, 'código TOS cru: a tela mostra "TOS 1.1.2.3", sem o sublinhado da API', $m[0]);
+    }
+
+    // 7. Constante de sistema vazando: ACESSO_NEGADO, PERFIL_FRAUDULENTO.
+    //    Exige 3+ letras antes do sublinhado, então EM_ANALISE escapa — está aqui escrito
+    //    porque o exemplo anterior citava justamente esse caso, que a regra nunca pegou.
+    //    Exclui o código TOS, que a regra acima já cobre com a mensagem certa.
+    if (preg_match('/\b(?!TOS_\d)[A-Z][A-Z0-9]{2,}_[A-Z0-9_]{2,}\b/', $visivel, $m)) {
         violar($tela, 'constante de sistema visível: passe por rótulo (Support\Rotulos)', $m[0]);
     }
 
-    // 7. Nome de tabela ou de coluna vazando. pro_denuncias, usu_status.
+    // 8. Nome de tabela ou de coluna vazando. pro_denuncias, usu_status.
     if (preg_match('/\b(sis|pro|crea|mat)_[a-z_]{3,}\b/', $visivel, $m)) {
         violar($tela, 'nome de tabela visível: use |rotulo_entidade', $m[0]);
     }

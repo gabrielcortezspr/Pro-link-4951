@@ -12,6 +12,7 @@ use ProLink\Service\ValidacaoException;
 use ProLink\Support\Flash;
 use ProLink\Support\Preferencias;
 use ProLink\Support\Requisicao;
+use ProLink\Support\Rotulos;
 use ProLink\Support\Sessao;
 use ProLink\Support\View;
 
@@ -109,6 +110,9 @@ final class DemandaController
             'busca'     => $busca,
             'resultados' => $ehDono && $busca !== '' ? $this->resultados($busca) : [],
             'erros'     => [],
+            // As execuções anteriores do motor, para a tela oferecer a volta ao último resultado.
+            // Só para o dono: o pool é dele, e a demanda publicada é visível a qualquer conta.
+            'execucoes' => $ehDono ? $this->motor->execucoesDa((int) $id) : [],
             ...self::vocabulario(),
         ]);
     }
@@ -238,19 +242,9 @@ final class DemandaController
             'pool'     => $resultado['pool'],
             'ocultos'  => $resultado['ocultos'],
             'execucoes' => $this->motor->execucoesDa((int) $id),
-            'dimensoes_rotulos' => self::DIMENSOES,
+            'dimensoes_rotulos' => Rotulos::DIMENSOES,
         ]);
     }
-
-    /** Nome de dimensão para a tela. Identificador de sistema não chega ao usuário. */
-    private const DIMENSOES = [
-        'competencia'     => 'Competência comprovada em ART',
-        'area'            => 'Área de atuação',
-        'localizacao'     => 'Localização do acervo',
-        'experiencia'     => 'Experiência declarada',
-        'contrato'        => 'Regime de contratação',
-        'disponibilidade' => 'Abrangência geográfica',
-    ];
 
     // ---------------------------------------------------------------- interno
 

@@ -231,6 +231,13 @@ final class CompatibilizacaoService
                 'nome'       => $candidato['nome'],
                 'resumo'     => $candidato['resumo'],
                 'em_construcao' => $candidato['em_construcao'],
+
+                // O registro no conselho, que é o que sustenta tudo o mais no card: sem ele o
+                // perfil é um nome com uma lista de números. `CandidatoRepository` já os lia para
+                // o portão de entrada no pool; não chegavam à leitura por esquecimento, não por
+                // decisão. RNP do profissional, registro de pessoa jurídica da empresa.
+                'rnp'           => $candidato['rnp'] ?? null,
+                'registro_crea' => $candidato['registro_crea'] ?? null,
                 'dimensoes'  => is_array($criterios) ? ($criterios['dimensoes'] ?? []) : [],
                 'evidencias' => is_array($criterios) ? ($criterios['evidencias'] ?? []) : [],
                 'ausentes'   => is_array($criterios) ? ($criterios['ausentes'] ?? []) : [],

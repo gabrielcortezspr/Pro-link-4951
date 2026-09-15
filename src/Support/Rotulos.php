@@ -119,6 +119,28 @@ final class Rotulos
     }
 
     /**
+     * As seis dimensões do item 3.2 do edital, em texto de tela.
+     *
+     * Ficam aqui, e não no controller que monta o feed, porque duas telas já precisam delas — o
+     * feed do demandante e a amostra que o verificador renderiza — e a terceira, o detalhe da
+     * sessão no painel do administrador, vem em seguida. Mapa privado num controller obriga cada
+     * chamador a duplicar a lista, e lista duplicada é lista que diverge.
+     */
+    public const DIMENSOES = [
+        'competencia'     => 'Competência comprovada em ART',
+        'area'            => 'Área de atuação',
+        'localizacao'     => 'Localização do acervo',
+        'experiencia'     => 'Experiência declarada',
+        'contrato'        => 'Regime de contratação',
+        'disponibilidade' => 'Abrangência geográfica',
+    ];
+
+    public static function dimensao(?string $valor): string
+    {
+        return self::traduzir($valor, self::DIMENSOES);
+    }
+
+    /**
      * Regime de contratação, nos dois lados: `prf_tipo_contrato` e `dem_tipo_contrato`.
      *
      * A lista fechada mora em `Support\Preferencias` — é ela que o formulário oferece e que o

@@ -1,0 +1,512 @@
+{% extends 'layout/base.html.twig' %}
+
+{#  O feed do demandante: o que uma execução do motor produziu, na visão de quem publicou a
+    demanda (RF04, cenário 3 do Anexo I).
+
+    A unidade de leitura é UM candidato. A ordem do pool saiu da semente e não significa nada, por
+    isso a tela não numera card, não soma dimensão em nota e não oferece ordenação (item 10.1 do
+    edital; D44). O que ela hierarquiza é o conteúdo dentro do card:
+
+      primário    nome do candidato e a evidência documental que sustenta a correspondência
+                  (código pedido, código do acervo, número de ART, CAT quando existe)
+      secundário  o perfil de aderência por dimensão, com os pesos daquela execução
+      terciário   o que é autodeclarado, o que não foi medido e a procedência da execução
+
+    O score composto não chega aqui de propósito, e a tela não o reconstrói somando dimensão. #}
+
+{% block titulo %}Perfis compatíveis · {{ demanda.dem_titulo }} · Pro-Link{% endblock %}
+
+{% block classe_main %}pl-feed{% endblock %}
+
+{% block conteudo %}
+{#  Selo de verificação (verde água) e marca de não verificado. Só os números de ART e CAT usam o
+    selo nesta tela: dimensão autodeclarada nunca leva verificação junto. #}
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="seal" viewBox="0 0 40 40">
+        <polygon points="39,20 34.5,23.9 36.5,29.5 30.6,30.6 29.5,36.5 23.9,34.5 20,39 16.1,34.5 10.5,36.5 9.4,30.6 3.6,29.5 5.5,23.9 1,20 5.5,16.1 3.6,10.5 9.4,9.4 10.5,3.6 16.1,5.5 20,1 23.9,5.5 29.5,3.6 30.6,9.4 36.5,10.5 34.5,16.1" fill="currentColor"/>
+        <path d="M13.5 20.5l4 4l9 -10" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+</svg>
+
+{% set atual_id = sessao.mts_id %}
+{% set anteriores = execucoes|default([]) %}
+{% set mais_recente = anteriores is not empty ? anteriores|first : null %}
+{% set codigos_atuais = demanda.tos|map(t => t.codigo) %}
+
+<div class="pl-ctxline">
+    <a class="pl-link-voltar" href="{{ raiz }}/demandas/{{ demanda.dem_id }}">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        Demanda
+    </a>
+    {#  O título da página é a demanda: é ela o assunto, e cada card é um perfil dentro dela.
+        Visualmente cabe numa linha de contexto; para a estrutura do documento continua sendo o
+        cabeçalho de nível 1. #}
+    <h1 class="dm"><span class="visually-hidden">Perfis compatíveis com a demanda </span>{{ demanda.dem_titulo }}</h1>
+    {% for t in demanda.tos|slice(0, 2) %}
+        <span class="pl-tos" title="{{ t.descricao }} ({{ t.codigo }})">
+            <span class="txt">{{ t.descricao }}</span>
+            <span class="code">{{ t.codigo|replace({'TOS_': 'TOS '}) }}</span>
+        </span>
+    {% endfor %}
+    {% if demanda.tos|length > 2 %}
+        <span>e mais {{ demanda.tos|length - 2 }} atividade{{ demanda.tos|length - 2 > 1 ? 's' : '' }}</span>
+    {% endif %}
+    <span class="sep"></span>
+    <span>{{ pool|length }} {{ pool|length == 1 ? 'perfil' : 'perfis' }} neste resultado</span>
+    <span class="sep"></span>
+    <span>ordem sorteada pela semente da sessão</span>
+
+    <span class="fim">
+        {#  Alternador entre o palco (um por vez) e a lista (todos). Nasce escondido: sem script a
+            tela já é a lista, e oferecer um botão que não faz nada seria promessa falsa. #}
+        <span class="pl-modo" id="feed-modo" role="group" aria-label="Modo de leitura do resultado" hidden>
+            <button type="button" id="feed-modo-palco" aria-pressed="true">Um por vez</button>
+            <button type="button" id="feed-modo-lista" aria-pressed="false">Lista</button>
+        </span>
+    </span>
+</div>
+
+{% if mais_recente and mais_recente.mts_id != atual_id %}
+    <div class="pl-aviso">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3 2" stroke-linecap="round"/>
+        </svg>
+        <p>
+            <b>Esta é uma busca anterior</b>, de {{ sessao.mts_dt_registro|date('d/m/Y') }} às
+            {{ sessao.mts_dt_registro|date('H:i') }}. Ela continua aqui inteira porque resultado
+            registrado não se reescreve. A busca mais recente desta demanda é de
+            {{ mais_recente.mts_dt_registro|date('d/m/Y') }} às {{ mais_recente.mts_dt_registro|date('H:i') }}:
+            <a href="{{ raiz }}/demandas/{{ demanda.dem_id }}/candidatos/{{ mais_recente.mts_id }}">abrir a mais recente</a>.
+        </p>
+    </div>
+{% endif %}
+
+{% if ocultos > 0 %}
+    <div class="pl-aviso">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M3 3l18 18"/><path d="M10.6 10.7a2 2 0 002.8 2.8"/>
+            <path d="M9.4 5.4A9.6 9.6 0 0112 5c5 0 9 4.5 9 7 0 .9-.5 2-1.4 3.1"/>
+            <path d="M6.2 6.8C4.1 8.3 3 10.2 3 12c0 2.5 4 7 9 7 1.4 0 2.7-.3 3.8-.9"/>
+        </svg>
+        <p>
+            {% if ocultos == 1 %}
+                <b>Um perfil deste resultado não está sendo exibido.</b>
+                Estava aberto quando a busca rodou e foi fechado depois. A plataforma não diz de
+                quem é: revogar a exibição tem efeito imediato, inclusive sobre um resultado já
+                gravado. Ele continua contado no total registrado da execução.
+            {% else %}
+                <b>{{ ocultos }} perfis deste resultado não estão sendo exibidos.</b>
+                Estavam abertos quando a busca rodou e foram fechados depois. A plataforma não diz
+                de quem são: revogar a exibição tem efeito imediato, inclusive sobre um resultado
+                já gravado. Eles continuam contados no total registrado da execução.
+            {% endif %}
+        </p>
+    </div>
+{% endif %}
+
+<section class="pl-stage lista" id="feed-palco" aria-label="Perfis compatíveis com esta demanda">
+    <div class="pl-track" id="feed-track">
+
+    {% if pool is empty %}
+        {#  Pool vazio: o motor rodou e ninguém passou no limiar. Estado com saída, não beco. #}
+        <article class="pl-cand fecho">
+            <p class="t">Nenhum perfil passou no limiar desta busca</p>
+            <p class="s">
+                A plataforma só indica quem tem capacidade comprovada em ART registrada no CREA
+                para os códigos desta demanda. Nesta execução o limiar era
+                {{ sessao.mts_limiar|number_format(2, ',', '.') }} e nenhum cadastro alcançou esse
+                patamar nos códigos pedidos. Isso não é uma avaliação de ninguém: é a ausência de
+                evidência documental para estas atividades, hoje, entre quem está cadastrado.
+            </p>
+            <p class="s">
+                Dois caminhos: rever os códigos da Tabela de Obras e Serviços, incluindo atividades
+                vizinhas do mesmo subgrupo, ou repetir a busca mais tarde, conforme novos acervos
+                são importados.
+            </p>
+            <div class="acoes">
+                <a class="pl-cta" href="{{ raiz }}/demandas/{{ demanda.dem_id }}">Revisar os códigos da demanda</a>
+                <form method="post" action="{{ raiz }}/demandas/{{ demanda.dem_id }}/compatibilizar">
+                    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                    <button type="submit" class="pl-btn">Buscar de novo</button>
+                </form>
+            </div>
+        </article>
+    {% endif %}
+
+    {% for c in pool %}
+        {% set partes = c.nome|trim|split(' ')|filter(p => p is not empty) %}
+        {% set iniciais = partes is empty ? '?'
+            : (partes|first|slice(0, 1) ~ (partes|length > 1 ? partes|last|slice(0, 1) : ''))|upper %}
+
+        <article class="pl-cand" data-feed-slide data-feed-nome="{{ c.nome }}"
+                 data-feed-iniciais="{{ iniciais }}" tabindex="-1"
+                 aria-label="{{ c.nome }}, {{ c.tipo == 'E' ? 'empresa' : 'profissional' }}">
+            <header class="pl-cand-topo">
+                <span class="pl-av" aria-hidden="true">{{ iniciais }}</span>
+                <div>
+                    <h2 class="nm">{{ c.nome }}</h2>
+                    <p class="meta">
+                        <span>{{ c.tipo == 'E' ? 'Empresa registrada no CREA' : 'Profissional registrado no CREA' }}</span>
+                        {% if c.em_construcao %}
+                            {#  Início de carreira é contexto, não alerta: o edital pede inclusão de
+                                quem está começando, e o perfil nunca sai do pool por causa disso. #}
+                            <span class="pl-pill neutral"
+                                  title="Acervo ainda pequeno. A marca dá contexto e não pesa contra o perfil.">
+                                <span class="pd"></span>Início de carreira
+                            </span>
+                        {% endif %}
+                    </p>
+                </div>
+            </header>
+
+            {#  Evidência primeiro: é ela que responde "por que esta pessoa apareceu". Um item por
+                código pedido pela demanda, inclusive os que ficaram sem correspondência neste
+                acervo, porque metade da resposta seria meia resposta. #}
+            <section class="pl-bloco">
+                <h3 class="pl-bloco-rot">Evidência que sustenta esta correspondência</h3>
+                <ul class="pl-ev">
+                    {% for t in demanda.tos %}
+                        {% set e = c.evidencias|filter(x => x.codigo_demanda == t.codigo)|first %}
+                        <li class="{{ e ? 'com' : 'sem' }}">
+                            <div class="cab">
+                                <span class="ativ">{{ t.descricao }}</span>
+                                <span class="pl-tos" title="{{ t.codigo }}">
+                                    <span class="code">{{ t.codigo|replace({'TOS_': 'TOS '}) }}</span>
+                                </span>
+                                <span class="pp">{{ t.peso >= 1 ? 'Atividade principal' : 'Atividade secundária' }}</span>
+                            </div>
+
+                            {% if e %}
+                                {% set pd = e.codigo_demanda|split('.') %}
+                                {% set pa = e.codigo_acervo|split('.') %}
+                                <p class="rel">
+                                    {% if e.codigo_demanda == e.codigo_acervo %}
+                                        Mesma atividade da demanda, registrada em ART.
+                                    {% elseif pd|slice(0, 3)|join('.') == pa|slice(0, 3)|join('.') %}
+                                        Mesma obra ou serviço, em material diferente. A ART está registrada em
+                                        <span class="cd" title="{{ e.codigo_acervo }}">{{ e.codigo_acervo|replace({'TOS_': 'TOS '}) }}</span>.
+                                    {% elseif pd|slice(0, 2)|join('.') == pa|slice(0, 2)|join('.') %}
+                                        Mesmo subgrupo da tabela, atividade diferente. A ART está registrada em
+                                        <span class="cd" title="{{ e.codigo_acervo }}">{{ e.codigo_acervo|replace({'TOS_': 'TOS '}) }}</span>.
+                                    {% else %}
+                                        Mesmo grupo da tabela. A ART está registrada em
+                                        <span class="cd" title="{{ e.codigo_acervo }}">{{ e.codigo_acervo|replace({'TOS_': 'TOS '}) }}</span>.
+                                    {% endif %}
+                                </p>
+                                <p class="docs">
+                                    {% for numero in e.arts|slice(0, 3) %}
+                                        <span class="selo-art doc" title="Número de ART confirmado na API oficial do CREA-AM.">
+                                            <svg class="pl-mark" viewBox="0 0 40 40" aria-hidden="true"><use href="#seal"/></svg>
+                                            <i>ART</i>{{ numero }}
+                                        </span>
+                                    {% endfor %}
+                                    {% if e.arts|length > 3 %}
+                                        <span class="mais">
+                                            e mais {{ e.arts|length - 3 }}
+                                            {{ e.arts|length - 3 == 1 ? 'ART registrada' : 'ARTs registradas' }} nesta atividade
+                                        </span>
+                                    {% endif %}
+                                    {% if e.cat %}
+                                        <span class="selo-art doc" title="Certidão de Acervo Técnico confirmada na API oficial do CREA-AM.">
+                                            <svg class="pl-mark" viewBox="0 0 40 40" aria-hidden="true"><use href="#seal"/></svg>
+                                            <i>CAT</i>{{ e.cat }}
+                                        </span>
+                                    {% endif %}
+                                </p>
+                            {% else %}
+                                <p class="rel">Sem ART deste acervo nesta atividade nem em atividade vizinha.</p>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+
+                    {#  Código que sustentou a correspondência e saiu da demanda depois da execução.
+                        Sem isto a evidência sumiria da tela sem explicação. #}
+                    {% for e in c.evidencias|filter(x => x.codigo_demanda not in codigos_atuais) %}
+                        <li class="com">
+                            <div class="cab">
+                                <span class="ativ">Atividade retirada da demanda</span>
+                                <span class="pl-tos" title="{{ e.codigo_demanda }}">
+                                    <span class="code">{{ e.codigo_demanda|replace({'TOS_': 'TOS '}) }}</span>
+                                </span>
+                            </div>
+                            <p class="rel">
+                                Este código estava na demanda quando a busca rodou e não está mais.
+                                A evidência fica registrada; uma busca nova não a consideraria.
+                            </p>
+                            <p class="docs">
+                                {% for numero in e.arts|slice(0, 3) %}
+                                    <span class="selo-art doc" title="Número de ART confirmado na API oficial do CREA-AM.">
+                                        <svg class="pl-mark" viewBox="0 0 40 40" aria-hidden="true"><use href="#seal"/></svg>
+                                        <i>ART</i>{{ numero }}
+                                    </span>
+                                {% endfor %}
+                                {% if e.cat %}
+                                    <span class="selo-art doc" title="Certidão de Acervo Técnico confirmada na API oficial do CREA-AM.">
+                                        <svg class="pl-mark" viewBox="0 0 40 40" aria-hidden="true"><use href="#seal"/></svg>
+                                        <i>CAT</i>{{ e.cat }}
+                                    </span>
+                                {% endif %}
+                            </p>
+                        </li>
+                    {% endfor %}
+
+                    {% if demanda.tos is empty and c.evidencias is empty %}
+                        <li class="sem">
+                            <p class="rel">
+                                Esta demanda está sem código da Tabela de Obras e Serviços neste
+                                momento, e a busca não guardou evidência para este perfil.
+                            </p>
+                        </li>
+                    {% endif %}
+                </ul>
+            </section>
+
+            {#  Aderência por dimensão: perfil, não nota. Sem soma, sem média visível, sem posição.
+                Dimensão sem dado aparece como "Não medida", que é diferente de medida e baixa. #}
+            <section class="pl-bloco">
+                <h3 class="pl-bloco-rot">Aderência a esta demanda, dimensão por dimensão</h3>
+                {% for chave, rotulo in dimensoes_rotulos %}
+                    {% set valor = c.dimensoes[chave]|default(null) %}
+                    {% set peso  = pesos[chave]|default(null) %}
+                    <div class="pl-dim{{ valor is null ? ' nao-medida' : '' }}">
+                        <span class="dlab" title="{{ peso is null
+                            ? 'Peso não registrado nesta execução.'
+                            : 'Peso ' ~ peso|number_format(2, ',', '.') ~ ' nesta execução.' }}">{{ rotulo }}</span>
+                        {% if valor is null %}
+                            <span class="pl-pill neutral" title="Sem dado para medir esta dimensão neste perfil.">
+                                <span class="pd"></span>Não medida
+                            </span>
+                        {% else %}
+                            <div class="pl-bar" role="img"
+                                 aria-label="{{ rotulo }}: {{ (valor * 100)|round }} por cento de aderência">
+                                <span style="width: {{ (valor * 100)|round }}%"></span>
+                            </div>
+                            <span class="pct">{{ (valor * 100)|round }}%</span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+
+                {% if c.ausentes is not empty %}
+                    <p class="pl-ausentes">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9"/><path d="M12 11v5" stroke-linecap="round"/><circle cx="12" cy="7.8" r=".9" fill="currentColor" stroke="none"/>
+                        </svg>
+                        <span>
+                            <b>{{ c.ausentes|length == 1 ? 'Uma dimensão' : c.ausentes|length ~ ' dimensões' }} sem dado neste perfil:</b>
+                            {% for a in c.ausentes %}{{ dimensoes_rotulos[a]|default('Dimensão não identificada') }}{% if not loop.last %}, {% endif %}{% endfor %}.
+                            Dimensão sem dado sai da conta em vez de valer zero, para que perfil
+                            incompleto não seja punido por estar incompleto.
+                        </span>
+                    </p>
+                {% endif %}
+            </section>
+
+            {% if c.resumo %}
+                <details class="pl-mais">
+                    <summary>
+                        Resumo informado pelo próprio perfil
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                    </summary>
+                    <div class="corpo">
+                        <div class="dado-declarado">
+                            <p class="mb-0" style="white-space: pre-line">{{ c.resumo|length > 600 ? c.resumo|slice(0, 600) ~ '…' : c.resumo }}</p>
+                        </div>
+                        <p class="pl-nota mt-2 mb-0">
+                            Texto escrito pelo próprio cadastro. A plataforma não confere e não sela
+                            conteúdo autodeclarado: o que leva selo verde nesta tela são os números
+                            de ART e CAT confirmados na API oficial.
+                        </p>
+                    </div>
+                </details>
+            {% endif %}
+
+            {#  Aqui entra a ação sobre o candidato (manifestar interesse, abrir o perfil completo
+                com o snapshot do momento do match). As duas são da E5 e ainda não têm rota: botão
+                que não leva a lugar nenhum seria pior do que a ausência dele. #}
+        </article>
+    {% endfor %}
+
+    {% if pool is not empty %}
+        <article class="pl-cand fecho" data-feed-slide data-feed-nome="" data-feed-iniciais="" tabindex="-1">
+            <p class="t">
+                {{ pool|length == 1
+                    ? 'Você viu o único perfil desta busca'
+                    : 'Você viu os ' ~ pool|length ~ ' perfis desta busca' }}
+            </p>
+            <p class="s">
+                Não há primeiro nem último: a ordem veio do sorteio pela semente desta sessão, e a
+                plataforma não classifica profissionais nem empresas. Perfis novos entram quando o
+                acervo verificado de alguém passa a cobrir os códigos desta demanda, e é por isso
+                que vale repetir a busca depois.
+            </p>
+            <div class="acoes">
+                <button type="button" class="pl-btn" id="feed-reiniciar" hidden>Rever do início</button>
+                <form method="post" action="{{ raiz }}/demandas/{{ demanda.dem_id }}/compatibilizar">
+                    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                    <button type="submit" class="pl-btn">Buscar de novo</button>
+                </form>
+                <a class="pl-link-voltar" href="{{ raiz }}/demandas/{{ demanda.dem_id }}">Voltar à demanda</a>
+            </div>
+        </article>
+
+        {#  A silhueta do próximo do pool: dá destino à passagem sem antecipar conteúdo que
+            competiria com o card em foco. Só existe no modo palco. #}
+        <button type="button" class="pl-peek" id="feed-peek" hidden>
+            <span class="pav" id="feed-peek-iniciais" aria-hidden="true"></span>
+            <span>
+                <span class="pr">Próximo do pool</span><br>
+                <span class="pn" id="feed-peek-nome"></span>
+            </span>
+        </button>
+    {% endif %}
+
+    </div>
+
+    {% if pool is not empty %}
+        <div class="pl-rail" id="feed-rail" hidden>
+            <button type="button" class="pl-arrow" id="feed-prev" aria-label="Perfil anterior do pool">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 15l-6-6-6 6"/></svg>
+            </button>
+            {#  Trilho contínuo, sem número: posição em pool sorteado não informa nada, e exibi-la
+                sugeriria uma classificação que não existe. #}
+            <div class="pl-progress" id="feed-progresso" aria-hidden="true"><span class="pl-thumb" id="feed-thumb"></span></div>
+            <button type="button" class="pl-arrow" id="feed-next" aria-label="Próximo perfil do pool">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+        </div>
+    {% endif %}
+
+    <p class="visually-hidden" role="status" aria-live="polite" id="feed-status"></p>
+</section>
+
+{#  Procedência: semente, limiar e pesos daquela execução. É o que torna o resultado reproduzível
+    e explicável (item 12.3), e por isso tem card próprio, não nota de rodapé. #}
+<section class="pl-card pl-audit" id="feed-compativeis-procedencia">
+    <div class="pl-audit-topo">
+        <div>
+            <h2 class="pl-card-titulo">Como este resultado foi produzido</h2>
+            <p class="pl-nota mb-0">
+                A mesma semente reproduz a mesma ordem, e os pesos abaixo são os que valiam no
+                instante da execução: recalibrar a plataforma amanhã não reescreve este resultado.
+                A correspondência é apenas indicativa e não constitui ranking, certificação nem
+                recomendação institucional.
+            </p>
+        </div>
+    </div>
+
+    <div class="pl-audit-grade">
+        <div>
+            <p class="rot">Executada em</p>
+            <p class="val">{{ sessao.mts_dt_registro|date('d/m/Y') }} às {{ sessao.mts_dt_registro|date('H:i') }}</p>
+        </div>
+        <div>
+            <p class="rot">Solicitada por</p>
+            <p class="val">{{ sessao.usu_nome|default('') ?: 'Não informado' }}</p>
+        </div>
+        <div>
+            <p class="rot">Limiar de entrada</p>
+            <p class="val">{{ sessao.mts_limiar|number_format(2, ',', '.') }}</p>
+        </div>
+        <div>
+            <p class="rot">Perfis registrados no pool</p>
+            <p class="val">{{ sessao.mts_total_pool }}</p>
+        </div>
+        <div>
+            <p class="rot">Exibidos agora</p>
+            <p class="val">{{ pool|length }}{% if ocultos > 0 %}<span class="dep"> ({{ ocultos }} {{ ocultos == 1 ? 'fechado' : 'fechados' }} depois)</span>{% endif %}</p>
+        </div>
+        <div>
+            <p class="rot">Semente da sessão</p>
+            <p class="val mono">{{ sessao.mts_semente }}</p>
+        </div>
+    </div>
+
+    <div class="pl-audit-cols">
+        <div>
+            <h3 class="pl-bloco-rot">Peso de cada dimensão nesta execução</h3>
+            <table class="pl-table">
+                <caption class="visually-hidden">
+                    Peso de cada dimensão da compatibilização nesta execução e origem do dado
+                </caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Dimensão</th>
+                        <th scope="col" class="num">Peso</th>
+                        <th scope="col">Origem do dado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for chave, rotulo in dimensoes_rotulos %}
+                        <tr>
+                            <td>{{ rotulo }}</td>
+                            <td class="num">
+                                {% if pesos[chave] is defined %}
+                                    {{ pesos[chave]|number_format(2, ',', '.') }}
+                                {% else %}
+                                    Não informado
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if chave in ['competencia', 'area', 'localizacao'] %}
+                                    Verificado na API oficial do CREA
+                                {% else %}
+                                    Informado pelo próprio perfil
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p class="pl-nota mt-3 mb-0">
+                As três dimensões verificadas somam mais que as três declaradas: é a tradução
+                numérica do compromisso de evidência documental. Dimensão sem dado sai da conta em
+                vez de valer zero. As evidências e a aderência são as que ficaram gravadas na
+                execução; nome e resumo vêm do perfil como está agora.
+            </p>
+        </div>
+
+        <div>
+            <h3 class="pl-bloco-rot">Buscas desta demanda</h3>
+            {% if anteriores is empty %}
+                <p class="pl-nota mb-0">Não há outro registro de busca para esta demanda.</p>
+            {% else %}
+                <ul class="pl-exec">
+                    {% for x in anteriores|slice(0, 8) %}
+                        <li>
+                            <span class="q">
+                                <span class="d">{{ x.mts_dt_registro|date('d/m/Y') }} às {{ x.mts_dt_registro|date('H:i') }}</span>
+                                <span class="n">
+                                    {{ x.mts_total_pool }} {{ x.mts_total_pool == 1 ? 'perfil' : 'perfis' }} no pool · limiar
+                                    {{ x.mts_limiar|number_format(2, ',', '.') }}
+                                </span>
+                            </span>
+                            {% if x.mts_id == atual_id %}
+                                <span class="pl-pill ok"><span class="pd"></span>Nesta tela</span>
+                            {% else %}
+                                <a class="pl-btn sm" href="{{ raiz }}/demandas/{{ demanda.dem_id }}/candidatos/{{ x.mts_id }}">Abrir</a>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+                {% if anteriores|length > 8 %}
+                    <p class="pl-nota mt-2 mb-0">
+                        As 8 buscas mais recentes desta demanda. As anteriores continuam registradas
+                        na trilha de auditoria.
+                    </p>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{#  Melhoria progressiva: o servidor entrega a lista completa, que é a tela válida sem script. O
+    arquivo abaixo liga o modo palco (um perfil por vez) e o alternador. Arquivo externo, e não
+    script embutido, porque a CSP recusa inline. #}
+<script src="{{ url_assets }}/js/feed-compativeis.js?v={{ assets_v }}" defer></script>
+{% endblock %}

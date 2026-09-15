@@ -395,3 +395,246 @@ textarea.form-control { min-height: 0; }
 .pl-pag .pos { font-size: 12.5px; color: var(--pl-muted); font-variant-numeric: tabular-nums;
     white-space: nowrap; }
 .pl-pag .pos b { color: var(--pl-ink); font-weight: 600; }
+
+/* ---------- 13. Feed de compatíveis: o resultado de uma execução do motor (E4) ---------- */
+/* A unidade de leitura é UM candidato. A ordem do pool vem da semente e não significa nada, então
+   a tela não numera, não pontua e não classifica (item 10.1): o que ela hierarquiza é o conteúdo
+   DENTRO do card. Primário o nome e a evidência documental que sustenta a correspondência;
+   secundário o perfil de aderência por dimensão; terciário o declarado e o que não foi medido.
+   Dois modos com a mesma marcação: lista (o que o servidor entrega, e o que sobra sem JavaScript)
+   e palco (um por vez, ligado pelo script). Verde água aparece aqui só nos números de ART e CAT. */
+.pl-feed { display: flex; flex-direction: column; background: var(--pl-app); }
+.pl-feed [hidden] { display: none !important; }
+.pl-feed > .alert { margin: 16px 24px 0; }
+
+/* 13.1 Contexto: uma linha, não um cabeçalho. A demanda já foi lida na tela anterior. */
+.pl-ctxline { display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 18px 24px 0; font-size: 12.5px; color: var(--pl-muted); }
+.pl-ctxline .dm { font-family: var(--pl-display); font-weight: 600; font-size: 16px;
+    color: var(--pl-ink); letter-spacing: -.01em; margin: 0; }
+.pl-ctxline .sep { width: 3px; height: 3px; border-radius: 50%; background: var(--pl-faint); flex: none; }
+.pl-ctxline .pl-tos { font-size: 11.5px; max-width: 340px; }
+/* Descrição da TOS é longa (grupo, subgrupo e obra/serviço concatenados). Na linha de contexto
+   ela corta pela largura real e o texto inteiro fica no title; o código nunca corta. */
+.pl-ctxline .pl-tos .txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-ctxline .pl-tos .code { flex: none; }
+.pl-ctxline .fim { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+/* Alternador de modo: estado atual preenchido, para não depender de sublinhado. */
+.pl-modo { display: inline-flex; border: 1px solid var(--pl-border); border-radius: 10px;
+    overflow: hidden; background: var(--pl-card); }
+.pl-modo button { height: 30px; padding: 0 12px; border: 0; background: transparent;
+    font-family: var(--pl-body); font-size: 12px; font-weight: 600; color: var(--pl-muted); cursor: pointer; }
+.pl-modo button + button { border-left: 1px solid var(--pl-border); }
+.pl-modo button[aria-pressed="true"] { background: var(--pl-data); color: #fff; }
+.pl-modo button:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: -2px; }
+
+/* 13.2 Aviso de estado da execução (antiga, perfil fechado depois). Nota, não banner. */
+.pl-aviso { display: flex; align-items: flex-start; gap: 10px; margin: 14px 24px 0;
+    padding: 11px 14px; border: 1px solid var(--pl-border); border-left: 3px solid var(--pl-faint);
+    border-radius: var(--pl-r); background: var(--pl-card); font-size: 12.5px;
+    color: var(--pl-muted); line-height: 1.55; }
+.pl-aviso b { color: var(--pl-ink); font-weight: 600; }
+.pl-aviso svg { width: 15px; height: 15px; flex: none; margin-top: 2px; color: var(--pl-faint); }
+.pl-aviso p { margin: 0; }
+
+/* 13.3 Palco. No modo lista é só um contêiner; no modo palco ganha o plano em perspectiva,
+   tom sobre tom, e o véu branco que separa o card do fundo. Nada de gradiente colorido. */
+.pl-stage { position: relative; padding: 22px 24px 30px; display: flex; justify-content: center; }
+.pl-stage.palco { padding: 30px 24px 44px; overflow: hidden; }
+.pl-stage.palco::before, .pl-stage.palco::after { content: ""; position: absolute; inset: 0;
+    pointer-events: none; }
+.pl-stage.palco::before {
+    background-image:
+        repeating-linear-gradient(to right, rgba(11,42,74,.05) 0 1px, transparent 1px 84px),
+        repeating-linear-gradient(to bottom, rgba(11,42,74,.05) 0 1px, transparent 1px 84px);
+    transform: perspective(520px) rotateX(64deg) scale(2.4); transform-origin: center 12%; }
+.pl-stage.palco::after {
+    background: radial-gradient(118% 66% at 50% 34%, var(--pl-app) 0%,
+        rgba(251,250,246,.86) 36%, rgba(251,250,246,0) 68%); }
+
+.pl-track { position: relative; z-index: 2; width: 100%; }
+.pl-stage.lista .pl-track { display: grid; gap: 18px; align-items: start;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); }
+.pl-stage.palco .pl-track { width: min(780px, 100%); display: flex; flex-direction: column;
+    align-items: center; }
+
+/* 13.4 O card do candidato. Mesma marcação nos dois modos; no palco ele cresce e ganha ar. */
+.pl-cand { position: relative; width: 100%; background: var(--pl-card);
+    border: 1px solid var(--pl-border); border-radius: 18px; padding: 22px 24px;
+    box-shadow: 0 2px 3px rgba(11,42,74,.04), 0 14px 32px rgba(11,42,74,.06); }
+.pl-stage.palco .pl-cand { border-radius: 24px; padding: 34px 38px 30px;
+    box-shadow: 0 2px 3px rgba(11,42,74,.04), 0 30px 64px rgba(11,42,74,.12); }
+.pl-cand:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 3px; }
+
+.pl-cand-topo { display: flex; align-items: center; gap: 14px; }
+.pl-av { width: 48px; height: 48px; border-radius: 14px; flex: none; display: grid;
+    place-items: center; color: #fff; font-family: var(--pl-display); font-weight: 700;
+    font-size: 16px; letter-spacing: .02em;
+    background: linear-gradient(135deg, var(--pl-navy-2), var(--pl-blue)); }
+.pl-stage.palco .pl-av { width: 64px; height: 64px; border-radius: 18px; font-size: 21px; }
+.pl-cand .nm { font-family: var(--pl-display); font-weight: 600; font-size: 20px;
+    letter-spacing: -.02em; line-height: 1.16; margin: 0; }
+.pl-stage.palco .pl-cand .nm { font-size: 30px; letter-spacing: -.03em; }
+.pl-cand .meta { margin: 5px 0 0; font-size: 12.5px; color: var(--pl-muted);
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.pl-bloco { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--pl-border-2); }
+.pl-bloco-rot { font-size: 10.5px; font-weight: 600; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--pl-muted); margin: 0 0 12px; }
+
+/* 13.5 Evidência: o coração do card. Um item por código pedido pela demanda, inclusive os que
+   ficaram sem correspondência — log de compatibilização sem o "não achei aqui" é meio log.
+   Filete azul escuro (dado), nunca caixa dentro de caixa. */
+.pl-ev { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 13px; }
+.pl-ev > li { padding-left: 13px; border-left: 2px solid var(--pl-data); }
+.pl-ev > li.sem { border-left-color: var(--pl-border); }
+.pl-ev .cab { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* Dentro da evidência a descrição é texto, não pílula: em duas linhas dentro de um chip azul ela
+   viraria um bloco de cor do tamanho do parágrafo. O chip fica só com o código. */
+.pl-ev .ativ { font-size: 13px; font-weight: 600; color: var(--pl-ink); line-height: 1.35; }
+.pl-ev .pl-tos { padding: 3px 8px; }
+.pl-ev .pp { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--pl-muted); }
+.pl-ev .rel { margin: 6px 0 0; font-size: 13px; color: var(--pl-ink); line-height: 1.5; }
+.pl-ev > li.sem .rel { color: var(--pl-muted); }
+.pl-ev .rel .cd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+    font-weight: 600; }
+.pl-ev .docs { margin: 8px 0 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pl-ev .docs .mais { font-size: 11.5px; color: var(--pl-muted); }
+/* O número do documento é o dado verificado: mesma família da coluna mono das tabelas. */
+.selo-art.doc { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px;
+    padding: .2rem .5rem; border-radius: 8px; }
+.selo-art.doc i { font-style: normal; font-family: var(--pl-body); font-weight: 700;
+    font-size: 10.5px; letter-spacing: .05em; }
+
+/* 13.6 Perfil de aderência. Reusa .pl-dim e .pl-bar; o que muda é a largura do rótulo (nome de
+   dimensão por extenso não cabe em 120px) e o estado "não medida", que não é barra em zero. */
+.pl-cand .pl-dim { grid-template-columns: minmax(0, 190px) minmax(0, 1fr) 46px; gap: 12px;
+    margin-bottom: 10px; }
+.pl-cand .pl-dim:last-child { margin-bottom: 0; }
+.pl-cand .pl-dim .dlab { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-dim.nao-medida .pl-pill { grid-column: 2 / -1; justify-self: start; }
+
+.pl-ausentes { display: flex; align-items: flex-start; gap: 8px; margin: 14px 0 0;
+    font-size: 11.5px; color: var(--pl-muted); line-height: 1.55; }
+.pl-ausentes svg { width: 14px; height: 14px; flex: none; margin-top: 2px; color: var(--pl-faint); }
+.pl-ausentes b { color: var(--pl-ink); font-weight: 600; }
+
+/* 13.7 Revelação progressiva sem dependência: <details> nativo com a aparência do sistema. */
+.pl-mais { margin-top: 16px; }
+.pl-mais > summary { display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+    list-style: none; font-size: 12.5px; font-weight: 600; color: var(--pl-muted); }
+.pl-mais > summary::-webkit-details-marker { display: none; }
+.pl-mais > summary:hover { color: var(--pl-data); }
+.pl-mais > summary:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px;
+    border-radius: 6px; }
+.pl-mais > summary svg { width: 14px; height: 14px; transition: transform .2s ease; }
+.pl-mais[open] > summary svg { transform: rotate(180deg); }
+.pl-mais .corpo { margin-top: 12px; }
+.pl-mais .corpo p { margin: 0 0 8px; font-size: 13px; line-height: 1.6; }
+.pl-mais .corpo p:last-child { margin-bottom: 0; }
+
+/* 13.8 Navegação do palco: sem número de posição, porque posição em pool sorteado não informa. */
+.pl-rail { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); z-index: 4;
+    display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.pl-arrow { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--pl-border);
+    background: var(--pl-card); color: var(--pl-muted); cursor: pointer; display: grid;
+    place-items: center; box-shadow: 0 6px 16px rgba(11,42,74,.08); }
+.pl-arrow:hover { color: var(--pl-data); border-color: var(--pl-faint); }
+.pl-arrow:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; }
+.pl-arrow[disabled] { opacity: .35; cursor: not-allowed; }
+.pl-arrow svg { width: 18px; height: 18px; }
+.pl-progress { position: relative; width: 2px; height: 116px; border-radius: 2px;
+    background: var(--pl-border); overflow: hidden; }
+.pl-thumb { position: absolute; left: 0; top: 0; width: 2px; border-radius: 2px;
+    background: var(--pl-data); opacity: .5; transition: transform .35s cubic-bezier(.22,1.15,.36,1); }
+
+/* O próximo do pool: silhueta sem conteúdo competindo. Só o nome, para a passagem ter destino. */
+.pl-peek { width: 88%; margin-top: -14px; display: flex; align-items: center; gap: 11px;
+    padding: 24px 30px 12px; text-align: left; cursor: pointer; font-family: var(--pl-body);
+    background: var(--pl-card); border: 1px solid var(--pl-border); border-top: 0;
+    border-radius: 0 0 20px 20px; box-shadow: 0 18px 30px rgba(11,42,74,.06);
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 38%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 38%, transparent 100%); }
+.pl-peek:hover .pn { color: var(--pl-data); }
+.pl-peek:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; }
+.pl-peek .pav { width: 28px; height: 28px; border-radius: 9px; flex: none; display: grid;
+    place-items: center; color: #fff; font-family: var(--pl-display); font-weight: 600;
+    font-size: 11px; background: linear-gradient(135deg, var(--pl-navy-2), var(--pl-blue));
+    filter: saturate(.3) opacity(.7); }
+.pl-peek .pr { font-size: 11px; color: var(--pl-muted); }
+.pl-peek .pn { font-family: var(--pl-display); font-weight: 600; font-size: 14.5px;
+    color: var(--pl-faint); letter-spacing: -.01em; }
+
+/* 13.9 Movimento: entrada do card e barras que crescem em cascata. Curto, e desligado para quem
+   pede menos movimento. */
+@keyframes pl-card-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes pl-bar-in { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.pl-stage.palco .pl-cand.is-entrando { animation: pl-card-in .34s cubic-bezier(.22,1.15,.36,1) both; }
+.pl-cand.is-entrando .pl-bar span { transform-origin: left center;
+    animation: pl-bar-in .5s cubic-bezier(.22,1.15,.36,1) both; }
+/* A primeira dimensão é o segundo filho do bloco: o rótulo da seção vem antes dela. */
+.pl-cand.is-entrando .pl-dim:nth-child(3) .pl-bar span { animation-delay: .05s; }
+.pl-cand.is-entrando .pl-dim:nth-child(4) .pl-bar span { animation-delay: .1s; }
+.pl-cand.is-entrando .pl-dim:nth-child(5) .pl-bar span { animation-delay: .15s; }
+.pl-cand.is-entrando .pl-dim:nth-child(6) .pl-bar span { animation-delay: .2s; }
+.pl-cand.is-entrando .pl-dim:nth-child(7) .pl-bar span { animation-delay: .25s; }
+@media (prefers-reduced-motion: reduce) {
+    .pl-stage.palco .pl-cand.is-entrando, .pl-cand.is-entrando .pl-bar span { animation: none; }
+    .pl-thumb { transition: none; }
+}
+
+/* 13.10 Fim do pool e pool vazio. Estado desenhado, com saída acionável, não parágrafo solto. */
+.pl-cand.fecho { display: flex; flex-direction: column; gap: 10px; }
+.pl-stage.lista .pl-cand.fecho { grid-column: 1 / -1; }
+.pl-cand.fecho .t { font-family: var(--pl-display); font-weight: 600; font-size: 21px;
+    letter-spacing: -.02em; margin: 0; }
+.pl-cand.fecho .s { font-size: 13px; color: var(--pl-muted); line-height: 1.6; margin: 0;
+    max-width: 68ch; }
+.pl-cand.fecho .acoes { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+.pl-cand.fecho .acoes form { margin: 0; }
+/* Botões vizinhos terminam na mesma linha de base: o .pl-cta cresce pelo padding e o .pl-btn tem
+   altura fixa de 38px, e lado a lado a diferença aparece. */
+.pl-cand.fecho .acoes .pl-cta, .pl-cand.fecho .acoes .pl-btn { height: 42px; padding: 0 20px; }
+
+/* 13.11 Procedência da execução. Não é rodapé: é a prova de que o resultado é reproduzível e
+   explicável (item 12.3), e no pitch é ela que sustenta o critério de segurança e ética. */
+.pl-audit { margin: 4px 24px 28px; }
+.pl-audit-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+    flex-wrap: wrap; }
+.pl-audit-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 14px 22px; margin: 16px 0 0; }
+.pl-audit-grade .rot { font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--pl-muted); margin: 0 0 3px; }
+.pl-audit-grade .val { font-size: 14px; font-weight: 600; color: var(--pl-ink);
+    font-variant-numeric: tabular-nums; margin: 0; }
+.pl-audit-grade .val .dep { font-size: 12px; font-weight: 400; color: var(--pl-muted); }
+.pl-audit-grade .val.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px; font-weight: 500; word-break: break-all; }
+.pl-audit-cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, 1fr);
+    gap: 24px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--pl-border-2); }
+.pl-audit .pl-table td.num, .pl-audit .pl-table th.num { text-align: right;
+    font-variant-numeric: tabular-nums; }
+.pl-audit .pl-table tbody td { padding: 9px 12px; }
+.pl-audit .pl-table thead th { padding: 0 12px 9px; }
+
+.pl-exec { list-style: none; margin: 0; padding: 0; }
+.pl-exec li { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 9px 0; border-bottom: 1px solid var(--pl-border-2); font-size: 12.5px; }
+.pl-exec li:last-child { border-bottom: 0; }
+.pl-exec .q { min-width: 0; }
+.pl-exec .d { font-weight: 600; color: var(--pl-ink); font-variant-numeric: tabular-nums; }
+.pl-exec .n { display: block; font-size: 11.5px; color: var(--pl-muted); }
+
+@media (max-width: 900px) {
+    .pl-stage.palco { padding: 22px 16px 34px; }
+    .pl-stage.palco .pl-cand { padding: 24px 20px 22px; }
+    .pl-stage.palco .pl-cand .nm { font-size: 24px; }
+    .pl-stage.lista .pl-track { grid-template-columns: 1fr; }
+    .pl-cand .pl-dim { grid-template-columns: minmax(0, 130px) minmax(0, 1fr) 42px; }
+    .pl-rail { right: 4px; }
+    .pl-audit-cols { grid-template-columns: 1fr; }
+    .pl-ctxline, .pl-aviso, .pl-audit { padding-left: 16px; padding-right: 16px; }
+    .pl-aviso, .pl-audit { margin-left: 16px; margin-right: 16px; padding-left: 14px; padding-right: 14px; }
+}

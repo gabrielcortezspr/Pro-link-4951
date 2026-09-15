@@ -48,7 +48,7 @@
                 {% for t in d.tos %}
                     <li class="list-group-item d-flex flex-wrap justify-content-between align-items-start gap-2">
                         <div>
-                            <code>{{ t.codigo }}</code>
+                            <code>{{ t.codigo|replace({'TOS_': 'TOS '}) }}</code>
                             {% if t.peso >= 1 %}
                                 <span class="badge text-bg-primary">Principal</span>
                             {% else %}
@@ -106,7 +106,7 @@
                         {% for r in resultados %}
                             <li class="list-group-item d-flex flex-wrap justify-content-between align-items-start gap-2">
                                 <div>
-                                    <code>{{ r.tos_codigo }}</code>
+                                    <code>{{ r.tos_codigo|replace({'TOS_': 'TOS '}) }}</code>
                                     <br><span class="small">{{ r.descricao }}</span>
                                 </div>
                                 <form method="post" action="{{ raiz }}/demandas/{{ d.dem_id }}/tos">
@@ -154,6 +154,58 @@
                 <p class="text-body-secondary small">
                     Encerrada em {{ d.dem_dt_encerramento }}. O histórico permanece.
                 </p>
+            {% endif %}
+
+            {#  Compatibilização (RF04). É a ação principal da demanda publicada, e por isso vem
+                antes do formulário de edição. POST porque cada execução grava uma sessão
+                auditável com semente, limiar e pesos; o resultado tem endereço próprio.
+
+                A única condição real do motor é ter código da Tabela de Obras e Serviços: sem ele
+                não há elo entre necessidade e capacidade. Quando falta, a tela orienta antes, em
+                vez de deixar o botão recusar depois. #}
+            {% set execucoes_da_demanda = execucoes|default([]) %}
+            {% set ultima_busca = execucoes_da_demanda is not empty ? execucoes_da_demanda|first : null %}
+
+            <h2 class="h5 mt-4">Quem pode atender</h2>
+
+            {% if d.tos is empty %}
+                <p class="text-body-secondary small">
+                    A busca por perfis compatíveis precisa de ao menos um código da Tabela de Obras
+                    e Serviços. É por ele que a plataforma encontra quem já registrou ART naquela
+                    atividade. Escolha um código ao lado e a busca fica disponível aqui.
+                </p>
+            {% else %}
+                <p class="text-body-secondary small">
+                    A plataforma procura, entre os cadastros, quem tem capacidade comprovada em ART
+                    para os códigos desta demanda, e mostra a evidência de cada correspondência. A
+                    ordem do resultado é sorteada: não há ranking, nota nem recomendação.
+                </p>
+
+                {% if d.dem_situacao != 'ENCERRADA' %}
+                    <form method="post" action="{{ raiz }}/demandas/{{ d.dem_id }}/compatibilizar" class="mb-2">
+                        {{ form.csrf() }}
+                        <button type="submit"
+                                class="btn {{ d.dem_dt_publicacao is null ? 'btn-outline-secondary' : 'btn-primary' }}">
+                            Buscar perfis compatíveis
+                        </button>
+                    </form>
+                {% endif %}
+
+                {% if ultima_busca %}
+                    <p class="small mb-3">
+                        <a href="{{ raiz }}/demandas/{{ d.dem_id }}/candidatos/{{ ultima_busca.mts_id }}">
+                            Ver o resultado da última busca
+                        </a>
+                        <span class="text-body-secondary">
+                            ({{ ultima_busca.mts_dt_registro|date('d/m/Y') }} às
+                            {{ ultima_busca.mts_dt_registro|date('H:i') }},
+                            {{ ultima_busca.mts_total_pool }}
+                            {{ ultima_busca.mts_total_pool == 1 ? 'perfil' : 'perfis' }} no pool)
+                        </span>
+                    </p>
+                {% elseif d.dem_situacao == 'ENCERRADA' %}
+                    <p class="text-body-secondary small">Esta demanda foi encerrada sem nenhuma busca registrada.</p>
+                {% endif %}
             {% endif %}
 
             {% if d.dem_situacao != 'ENCERRADA' %}

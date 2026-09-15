@@ -63,6 +63,7 @@ final class View
 
         // As duas preferências declaradas ficam gravadas como chave (`OBRA_CERTA`, `AM,RR`).
         // Mesma regra dos três acima: a tela mostra o rótulo, o cru fica em title="".
+        $twig->addFilter(new TwigFilter('rotulo_dimensao', [Rotulos::class, 'dimensao']));
         $twig->addFilter(new TwigFilter('rotulo_contrato', [Rotulos::class, 'contrato']));
         $twig->addFilter(new TwigFilter('rotulo_abrangencia', [Rotulos::class, 'abrangencia']));
 

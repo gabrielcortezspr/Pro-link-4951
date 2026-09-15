@@ -17,11 +17,13 @@ declare(strict_types=1);
 
 use ProLink\Repository\AuditoriaRepository;
 use ProLink\Repository\DemandaRepository;
+use ProLink\Service\CompatibilizacaoService;
 use ProLink\Service\DemandaService;
 use ProLink\Service\DenunciaService;
 use ProLink\Service\PerfilService;
 use ProLink\Support\Database;
 use ProLink\Support\Preferencias;
+use ProLink\Support\Rotulos;
 
 return (static function (): array {
     $auditoria = new AuditoriaRepository();
@@ -128,7 +130,38 @@ return (static function (): array {
             'busca'      => '',
             'resultados' => [],
             'erros'      => [],
+            'execucoes'  => (new CompatibilizacaoService())->execucoesDa((int) $primeiraDemandaId),
         ] + $vocabulario;
+    }
+
+    // Feed de compatíveis (E4). Lê pelo mesmo caminho do controller — `sessao()` —, e não com
+    // dado montado à mão: a amostra tem de conferir o que a tela recebe de verdade, com o pool na
+    // ordem gravada, os pesos da execução e a contagem de ocultos. É a tela com mais valor cru
+    // por centímetro do projeto, e a única em que código TOS, chave de contrato e nome de
+    // dimensão convivem na mesma página.
+    $ultima = $pdo
+        ->query("SELECT mts_id, mts_dem_id FROM mat_sessoes WHERE mts_status = 'A' ORDER BY mts_id DESC LIMIT 1")
+        ->fetch();
+
+    if ($ultima !== false) {
+        $motor    = new CompatibilizacaoService();
+        $daBusca  = (new DemandaService())->comTos((int) $ultima['mts_dem_id']);
+        $execucao = $daBusca === null
+            ? null
+            : $motor->sessao((int) $ultima['mts_id'], (int) $daBusca['dem_usu_id']);
+
+        if ($execucao !== null) {
+            $telas['demanda/candidatos.html.twig'] = [
+                'titulo'    => 'Perfis compatíveis · ' . $daBusca['dem_titulo'],
+                'demanda'   => $daBusca,
+                'sessao'    => $execucao['sessao'],
+                'pesos'     => $execucao['pesos'],
+                'pool'      => $execucao['pool'],
+                'ocultos'   => $execucao['ocultos'],
+                'execucoes' => $motor->execucoesDa((int) $daBusca['dem_id']),
+                'dimensoes_rotulos' => Rotulos::DIMENSOES,
+            ];
+        }
     }
 
     // A tela de detalhe só existe com registro; num banco recém-carregado não há denúncia.
