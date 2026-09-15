@@ -231,23 +231,22 @@ final class Compatibilidade
 
     /**
      * Experiência declarada: dimensão autodeclarada, e o peso dela diz isso (0.10 contra 0.40 da
-     * competência). Pontua por ter relato relacionado ao que a demanda pede, e pontua cheio
-     * quando o relato está amarrado a uma ART do próprio candidato, que é o único caso em que o
-     * autodeclarado encosta em evidência.
+     * competência). Pontua cheio quando algum relato está amarrado a uma ART do próprio
+     * candidato, que é o único caso em que o autodeclarado encosta em evidência; meio quando há
+     * relato sem ART; e sai da média quando não há relato nenhum.
      *
-     * @param list<array{vinculada: bool}> $experiencias relatos que tocam os códigos da demanda
+     * **Mede o que o candidato declarou, não o que casa com esta demanda.** A assinatura já
+     * recebeu a lista de relatos "que tocam os códigos da demanda", e isso era ficção: o serviço
+     * nunca teve como produzir esse recorte — casar relato livre com código TOS exigiria
+     * classificar texto, que é o caminho que o item 12.3 obriga a declarar como uso de IA. A
+     * decisão de não fazer isso é antiga e está registrada; o que mudou é a função parar de
+     * prometer o contrário. Ver `docs/matching.md`.
      */
-    public static function experiencia(array $experiencias, int $totalDeclarado): ?float
+    public static function experiencia(int $totalDeclarado, int $comArt): ?float
     {
         if ($totalDeclarado <= 0) {
             return null;
         }
-
-        if ($experiencias === []) {
-            return 0.0;
-        }
-
-        $comArt = count(array_filter($experiencias, static fn (array $e): bool => $e['vinculada']));
 
         return $comArt > 0 ? 1.0 : 0.5;
     }

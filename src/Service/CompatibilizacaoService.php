@@ -277,17 +277,8 @@ final class CompatibilizacaoService
         // A dimensão de experiência olha o que o candidato declarou, não o que casa com a
         // demanda: casar relato livre com código TOS exigiria classificar texto, que é o caminho
         // que o item 12.3 obriga a declarar como uso de IA. Fica autodeclarado e com peso de
-        // autodeclarado.
-        // array_merge, não o operador +: com chaves numéricas iguais o + descarta o segundo
-        // array inteiro, e a contagem de relatos sairia errada.
-        $comArt = (int) $candidato['experiencias_com_art'];
-        $total  = (int) $candidato['total_experiencias'];
-
-        $relatos = array_merge(
-            array_fill(0, $comArt, ['vinculada' => true]),
-            array_fill(0, max(0, $total - $comArt), ['vinculada' => false]),
-        );
-
+        // autodeclarado — e a assinatura de `Compatibilidade::experiencia()` diz isso, em vez de
+        // pedir um recorte por demanda que este serviço nunca teve como produzir.
         $valores = [
             'competencia'     => $competencia['score'],
             'area'            => Compatibilidade::area($grupos, $gruposDoCandidato),
@@ -297,8 +288,8 @@ final class CompatibilizacaoService
                 $locais,
             ),
             'experiencia'     => Compatibilidade::experiencia(
-                $relatos,
-                $total,
+                (int) $candidato['total_experiencias'],
+                (int) $candidato['experiencias_com_art'],
             ),
             'contrato'        => Compatibilidade::correspondenciaDeclarada(
                 $demanda['dem_tipo_contrato'] ?? null,

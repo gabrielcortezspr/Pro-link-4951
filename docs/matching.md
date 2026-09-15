@@ -149,7 +149,7 @@ no pool se passar do limiar.
 | Tipo de contrato | preferência declarada × demanda | não | 0.10 |
 | Abrangência geográfica | UFs declaradas × `dem_local_uf` | não | 0.10 |
 
-Quatro observações que a massa impõe:
+Cinco observações — as três primeiras impostas pela massa, as duas últimas por decisão nossa:
 
 **Dado verificado pesa mais que autodeclarado.** As três primeiras dimensões somam 0.70; as
 autodeclaradas, 0.30. É a tradução numérica do compromisso de evidência.
@@ -160,6 +160,13 @@ implementar como regra de negócio, mas não separa candidato nenhum nos dados f
 **Dimensão sem dado não penaliza.** Se o profissional não declarou abrangência geográfica, essa
 dimensão sai da média em vez de contar zero — senão o perfil incompleto é punido, e o edital
 pede explicitamente inclusão de quem está começando.
+
+**A dimensão de experiência não filtra por demanda.** Ela pontua por haver relato declarado, e
+cheio quando algum relato está amarrado a uma ART do próprio candidato — não por o relato tratar
+do que a demanda pede. Casar texto livre com código TOS exigiria classificar linguagem natural, e
+o item 12.3 obriga a declarar isso como uso de IA; a escolha foi não fazer. Está dito aqui porque
+a assinatura de `Compatibilidade::experiencia()` já prometeu o contrário, e prometer o que não se
+faz é pior do que a limitação em si.
 
 **As duas autodeclaradas falam um vocabulário fechado**, em `Support\Preferencias`. Tipo de
 contrato é uma chave de `CONTRATOS`; abrangência é `QUALQUER` ou uma lista de UFs (`AM,RR`). Não

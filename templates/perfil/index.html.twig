@@ -391,20 +391,7 @@
 {% block scripts %}
 {#  Melhoria progressiva, sem dependência nova: o estado inicial correto já vem do servidor (o
     grupo de UFs nasce desabilitado quando "Qualquer lugar do país" está gravado) e o backend
-    continua dando precedência a essa escolha. O script só evita que a pessoa marque 27 caixas
-    que a escolha de cima já tornou irrelevantes. #}
-<script>
-    (function () {
-        var qualquer = document.getElementById('campo-abrangencia-qualquer');
-        var ufs = document.getElementById('abrangencia-ufs');
-
-        if (!qualquer || !ufs) {
-            return;
-        }
-
-        qualquer.addEventListener('change', function () {
-            ufs.disabled = qualquer.checked;
-        });
-    })();
-</script>
+    continua dando precedência a essa escolha. Arquivo externo, e não script embutido, porque a
+    CSP recusa inline — ver docker/nginx/default.conf. #}
+<script src="{{ url_assets }}/js/perfil-abrangencia.js?v={{ assets_v }}" defer></script>
 {% endblock %}
