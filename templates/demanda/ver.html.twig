@@ -146,7 +146,7 @@
                     Publicada em {{ d.dem_dt_publicacao }}.
                 </p>
                 <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/encerrar" class="mb-3"
-                      onsubmit="return confirm('Encerrar esta demanda? Ela sai da vitrine e continua no seu painel.');">
+                      data-confirmar="Encerrar esta demanda? Ela sai da vitrine e continua no seu painel.">
                     {{ form.csrf() }}
                     <button type="submit" class="btn btn-outline-dark">Encerrar demanda</button>
                 </form>

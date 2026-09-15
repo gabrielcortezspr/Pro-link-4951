@@ -76,6 +76,10 @@
 {% endblock %}
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{#  Confirmação de ação destrutiva para toda tela: formulário com data-confirmar basta.
+    Fica aqui, e não em cada {% block scripts %}, porque esquecer o include devolveria
+    exatamente o defeito que este arquivo conserta — a pergunta sumir sem avisar. #}
+<script src="{{ url_assets }}/js/confirmar-acao.js?v={{ assets_v }}" defer></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

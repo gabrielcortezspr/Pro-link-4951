@@ -268,7 +268,7 @@
 
                     {% if p.eh_dono %}
                         <form method="post" action="{{ app_url }}/perfil/experiencias/{{ exp.id }}/excluir"
-                              onsubmit="return confirm('Remover esta experiência do seu perfil?');">
+                              data-confirmar="Remover esta experiência do seu perfil?">
                             {{ form.csrf() }}
                             <button type="submit" class="btn btn-sm btn-outline-secondary">Remover</button>
                         </form>
