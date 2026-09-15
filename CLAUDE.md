@@ -87,7 +87,28 @@ verificador é o piso, não a aprovação.
 secundário contornado. Token novo ou cor fora da seção 1 exige decisão registrada em
 `docs/decisoes.md`.
 
+**Um relógio só.** `Database::conexao()` alinha o fuso da sessão do MariaDB ao do PHP, derivando
+o deslocamento do próprio fuso do PHP (D40). Antes disso `NOW()` e `date()` gravavam horas
+diferentes na mesma coluna conforme o caminho do código. Não voltar a tratá-los como divergentes,
+e não escrever o deslocamento à mão.
+
 ## Armadilhas já conhecidas
+
+- **`pro_profissionais` tem UNIQUE em `prf_rnp`**, e contas de verificação antigas seguram RNPs da
+  massa, inclusive o de ANA CLARA COSTA. Conferir o RNP **antes** de criar a conta: sem isso o
+  cadastro passa, o vínculo estoura na chave duplicada, e sobra conta órfã segurando aquele CPF
+  para sempre (D15), depois de já ter gasto a chamada da API. Mesma coisa em `emp_registro_crea`.
+- **O aceite de termos são dois campos**, `aceite_uso` e `aceite_privacidade`, não um só.
+- **`PROLINK_API_TOKEN` é obrigatório mesmo sem chamar a API**: `/cadastro` constrói o
+  `TransporteCurl`, que lança se o token faltar. E `docker compose restart` não relê o `.env`: use
+  `docker compose up -d`, porque o Compose injeta as variáveis ao **criar** o contêiner.
+- **`ON DUPLICATE KEY UPDATE` só é confiável se nenhuma coluna do índice aceitar nulo.** Já custou
+  duas vezes (D25, D28).
+- **`ATTR_EMULATE_PREPARES` está desligado**: placeholder nomeado não pode repetir na mesma query.
+- **`semear-candidatos.php` consome duas chamadas da API por candidato.** Tem limite obrigatório
+  de propósito: cadastro individual não é varredura (item 10.4), mas duzentos seguidos pareceriam.
+- **Documento da massa usado uma vez fica consumido para sempre** (D15), e do lado da empresa só
+  as 15 de `massa-de-dados.md` passam no dígito verificador.
 
 - O CAO tem estrutura diferente da que a organização documentou: objeto plano, com
   `quadro_tecnico` → profissional → `arts` → `atividades`. Não existe `cao_arts`.
