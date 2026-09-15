@@ -90,6 +90,11 @@ $router->post('/demandas/{id}/tos',      DemandaController::class, 'alterarTos',
 $router->post('/demandas/{id}/publicar', DemandaController::class, 'publicar', PERFIS_DEMANDANTES);
 $router->post('/demandas/{id}/encerrar', DemandaController::class, 'encerrar', PERFIS_DEMANDANTES);
 
+// Compatibilização (RF04; operação atômica 2). Executar é POST porque grava uma sessão auditável
+// em mat_sessoes; ver o resultado é GET num endereço estável, que recarregar não reexecuta.
+$router->post('/demandas/{id}/compatibilizar', DemandaController::class, 'compatibilizar', PERFIS_DEMANDANTES);
+$router->get('/demandas/{id}/candidatos/{sessao}', DemandaController::class, 'candidatos', PERFIS_DEMANDANTES);
+
 // ---------------------------------------------------------------- denúncias (RF06)
 // Qualquer conta autenticada denuncia, inclusive Terceiro. Anônimo recebe 401.
 $router->get('/denuncias/nova', DenunciaController::class, 'formulario', PERFIS_AUTENTICADOS);

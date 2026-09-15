@@ -10,6 +10,7 @@ use ProLink\Repository\CompatibilizacaoRepository;
 use ProLink\Repository\DemandaRepository;
 use ProLink\Repository\EvidenciaRepository;
 use ProLink\Repository\ParametroRepository;
+use ProLink\Support\Auditoria;
 use ProLink\Support\Compatibilidade;
 use ProLink\Support\Database;
 use ProLink\Support\Modalidade;
@@ -75,11 +76,7 @@ final class CompatibilizacaoService
      */
     public function executar(int $demandaId, int $usuarioId, ?string $ip = null): array
     {
-        $demanda = $this->demandas->porId($demandaId);
-
-        if ($demanda === null) {
-            throw new ValidacaoException('Demanda não encontrada.');
-        }
+        $demanda = $this->exigirPropria($demandaId, $usuarioId);
 
         // Sem código TOS não há o que compatibilizar: a TOS é o elo entre necessidade e
         // capacidade, e um pool montado sem ela seria sugestão sem critério.
@@ -174,6 +171,125 @@ final class CompatibilizacaoService
             'avaliados' => $avaliados,
             'pool'      => $pool,
         ];
+    }
+
+    /**
+     * A sessão gravada, pronta para a tela: pool na ordem sorteada e com nome de candidato.
+     *
+     * Leitura pura — não roda o motor de novo. É o que torna o feed reproduzível: quem abrir o
+     * mesmo endereço amanhã vê a mesma lista, na mesma ordem, com os pesos que valiam no dia da
+     * execução, e não com os que o administrador calibrou depois (item 12.3).
+     *
+     * O candidato que fechou o perfil **depois** da execução sai da leitura. A sessão registrou
+     * que ele estava aberto naquele instante e isso não se reescreve; mas o feed é tela de agora,
+     * e a revogação do consentimento tem efeito imediato — mostrar seria publicar uma decisão que
+     * o titular já desfez.
+     *
+     * @return array{sessao: array<string, mixed>, pesos: array<string, float>,
+     *               pool: list<array<string, mixed>>, ocultos: int}|null
+     * @throws ValidacaoException quando a demanda não é de quem está pedindo
+     */
+    public function sessao(int $sessaoId, int $usuarioId): ?array
+    {
+        $sessao = $this->sessoes->porId($sessaoId);
+
+        if ($sessao === null) {
+            return null;
+        }
+
+        $this->exigirPropria((int) $sessao['mts_dem_id'], $usuarioId);
+
+        $linhas = $this->sessoes->pool($sessaoId);
+        $chaves = array_map(
+            static fn (array $l): string => $l['msp_candidato_tipo'] . ':' . $l['msp_candidato_id'],
+            $linhas,
+        );
+
+        $perfis  = $this->candidatos->porChaves($chaves);
+        $abertos = $this->visibilidade->perfisAbertos(array_column($perfis, 'usuario_id'));
+
+        $pool    = [];
+        $ocultos = 0;
+
+        foreach ($linhas as $linha) {
+            $chave     = $linha['msp_candidato_tipo'] . ':' . $linha['msp_candidato_id'];
+            $candidato = $perfis[$chave] ?? null;
+
+            if ($candidato === null || !($abertos[(int) $candidato['usuario_id']] ?? false)) {
+                $ocultos++;
+
+                continue;
+            }
+
+            $criterios = json_decode((string) $linha['msp_criterios'], true);
+
+            $pool[] = [
+                'chave'      => $chave,
+                'tipo'       => $candidato['tipo'],
+                'id'         => $candidato['id'],
+                'usuario_id' => $candidato['usuario_id'],
+                'nome'       => $candidato['nome'],
+                'resumo'     => $candidato['resumo'],
+                'em_construcao' => $candidato['em_construcao'],
+                'dimensoes'  => is_array($criterios) ? ($criterios['dimensoes'] ?? []) : [],
+                'evidencias' => is_array($criterios) ? ($criterios['evidencias'] ?? []) : [],
+                'ausentes'   => is_array($criterios) ? ($criterios['ausentes'] ?? []) : [],
+            ];
+        }
+
+        $pesos = json_decode((string) $sessao['mts_pesos'], true);
+
+        return [
+            'sessao'  => $sessao,
+            'pesos'   => is_array($pesos) ? $pesos : [],
+            'pool'    => $pool,
+            'ocultos' => $ocultos,
+        ];
+    }
+
+    /**
+     * As execuções anteriores de uma demanda, mais recentes primeiro.
+     *
+     * A tela mostra que houve outras e deixa voltar a elas. Não é histórico por capricho: a mesma
+     * demanda rodada depois de o acervo de alguém crescer dá outro pool, e poder comparar as duas
+     * é o que transforma "o sistema mudou de ideia" em "o dado mudou, e está registrado quando".
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function execucoesDa(int $demandaId): array
+    {
+        return $this->sessoes->daDemanda($demandaId);
+    }
+
+    /**
+     * A demanda, se for de quem está pedindo.
+     *
+     * O motor não tinha esta conferência: `executar()` recebia o id da demanda e o do usuário e
+     * não perguntava se um era do outro. Sem rota HTTP isso era teórico — o único chamador era um
+     * script de verificação. Com o feed, vira o caminho pelo qual um demandante rodaria o motor
+     * sobre a demanda alheia e leria o pool dela.
+     *
+     * Mesma mensagem para "não existe" e "não é sua", como em `DemandaService::exigirPropria()`:
+     * distinguir contaria a quem tentou que aquele id pertence a alguém (OWASP A01).
+     *
+     * @return array<string, mixed>
+     */
+    private function exigirPropria(int $demandaId, int $usuarioId): array
+    {
+        $demanda = $this->demandas->porId($demandaId);
+
+        if ($demanda !== null
+            && (int) $demanda['dem_usu_id'] === $usuarioId
+            && $demanda['dem_status'] === STATUS_ATIVO) {
+            return $demanda;
+        }
+
+        Auditoria::registrar(
+            Auditoria::ACESSO_NEGADO, 'mat_sessoes', $demandaId, null, null,
+            ['tentou' => $usuarioId], $usuarioId,
+        );
+
+        throw new ValidacaoException('Demanda não encontrada no seu painel.');
     }
 
     /**

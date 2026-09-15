@@ -6,10 +6,12 @@ namespace ProLink\Controller;
 
 use ProLink\Repository\DemandaRepository;
 use ProLink\Repository\TosRepository;
+use ProLink\Service\CompatibilizacaoService;
 use ProLink\Service\DemandaService;
 use ProLink\Service\ValidacaoException;
 use ProLink\Support\Flash;
 use ProLink\Support\Preferencias;
+use ProLink\Support\Requisicao;
 use ProLink\Support\Sessao;
 use ProLink\Support\View;
 
@@ -27,6 +29,7 @@ final class DemandaController
         private readonly DemandaService $demandas = new DemandaService(),
         private readonly DemandaRepository $repositorio = new DemandaRepository(),
         private readonly TosRepository $tos = new TosRepository(),
+        private readonly CompatibilizacaoService $motor = new CompatibilizacaoService(),
     ) {
     }
 
@@ -166,6 +169,88 @@ final class DemandaController
         Flash::sucesso('Demanda encerrada. Ela some da vitrine e continua no seu painel.');
         View::redirecionar('/demandas/' . (int) $id);
     }
+
+    // ---------------------------------------------------------------- compatibilização (E4)
+
+    /**
+     * Roda o motor e leva ao resultado (RF04; operação atômica 2).
+     *
+     * POST, e não um link: cada execução **grava uma sessão** em `mat_sessoes` com a semente, o
+     * limiar e os pesos vigentes. É escrita de estado auditada, e escrita de estado por GET seria
+     * escrita sem proteção de CSRF — a mesma razão pela qual sair da conta é POST.
+     *
+     * A separação entre executar e ver não é cerimônia: é o que faz o endereço do resultado ser
+     * estável. Recarregar a página de candidatos não sorteia uma ordem nova nem consome uma
+     * execução; quem quiser outra, pede outra.
+     */
+    public function compatibilizar(string $id): string
+    {
+        try {
+            $resultado = $this->motor->executar(
+                (int) $id,
+                (int) Sessao::usuarioId(),
+                Requisicao::ip(),
+            );
+        } catch (ValidacaoException $e) {
+            Flash::erro($e->getMessage());
+            View::redirecionar('/demandas/' . (int) $id);
+        }
+
+        Flash::sucesso($resultado['pool'] === []
+            ? 'Nenhum perfil com capacidade comprovada nestes códigos passou no limiar. '
+                . 'Revise os códigos da demanda ou tente códigos vizinhos na tabela.'
+            : sprintf(
+                'Busca concluída: %d perfil(is) com capacidade comprovada, de %d avaliado(s).',
+                count($resultado['pool']),
+                $resultado['avaliados'],
+            ));
+
+        View::redirecionar('/demandas/' . (int) $id . '/candidatos/' . $resultado['sessao_id']);
+    }
+
+    /**
+     * O feed do demandante: o resultado de uma execução do motor.
+     *
+     * Lê a sessão gravada em vez de recalcular, e é isso que sustenta a promessa do item 12.3 —
+     * o que a tela mostra é exatamente o que ficou registrado, com os pesos daquele instante.
+     */
+    public function candidatos(string $id, string $sessao): string
+    {
+        try {
+            $resultado = $this->motor->sessao((int) $sessao, (int) Sessao::usuarioId());
+        } catch (ValidacaoException $e) {
+            Flash::erro($e->getMessage());
+            View::redirecionar('/demandas');
+        }
+
+        $demanda = $this->demandas->comTos((int) $id);
+
+        if ($resultado === null || $demanda === null
+            || (int) $resultado['sessao']['mts_dem_id'] !== (int) $id) {
+            return View::erro(404, 'Resultado de busca não encontrado.');
+        }
+
+        return View::render('demanda/candidatos.html.twig', [
+            'titulo'   => 'Perfis compatíveis · ' . $demanda['dem_titulo'],
+            'demanda'  => $demanda,
+            'sessao'   => $resultado['sessao'],
+            'pesos'    => $resultado['pesos'],
+            'pool'     => $resultado['pool'],
+            'ocultos'  => $resultado['ocultos'],
+            'execucoes' => $this->motor->execucoesDa((int) $id),
+            'dimensoes_rotulos' => self::DIMENSOES,
+        ]);
+    }
+
+    /** Nome de dimensão para a tela. Identificador de sistema não chega ao usuário. */
+    private const DIMENSOES = [
+        'competencia'     => 'Competência comprovada em ART',
+        'area'            => 'Área de atuação',
+        'localizacao'     => 'Localização do acervo',
+        'experiencia'     => 'Experiência declarada',
+        'contrato'        => 'Regime de contratação',
+        'disponibilidade' => 'Abrangência geográfica',
+    ];
 
     // ---------------------------------------------------------------- interno
 
