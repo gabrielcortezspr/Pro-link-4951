@@ -236,8 +236,8 @@ final class CompatibilizacaoService
                 // perfil é um nome com uma lista de números. `CandidatoRepository` já os lia para
                 // o portão de entrada no pool; não chegavam à leitura por esquecimento, não por
                 // decisão. RNP do profissional, registro de pessoa jurídica da empresa.
-                'rnp'           => $candidato['rnp'] ?? null,
-                'registro_crea' => $candidato['registro_crea'] ?? null,
+                'rnp'           => $candidato['rnp'],
+                'registro_crea' => $candidato['registro_crea'],
                 'dimensoes'  => is_array($criterios) ? ($criterios['dimensoes'] ?? []) : [],
                 'evidencias' => is_array($criterios) ? ($criterios['evidencias'] ?? []) : [],
                 'ausentes'   => is_array($criterios) ? ($criterios['ausentes'] ?? []) : [],

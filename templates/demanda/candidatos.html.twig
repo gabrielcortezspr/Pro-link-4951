@@ -135,6 +135,13 @@
     {% endif %}
 
     {% for c in pool %}
+        {#  O registro no conselho é o que transforma o nome numa identidade verificável, e é a
+            âncora de credibilidade do card. Mesmo vocabulário e mesma ordem do perfil
+            (`perfil/index.html.twig`): RNP primeiro, registro regional depois. Profissional tem
+            RNP; empresa tem o registro de pessoa jurídica. Qualquer um dos dois pode faltar, e aí
+            a frase volta a dizer o que o número diria. #}
+        {% set rnp = c.rnp|default(null) %}
+        {% set registro = c.registro_crea|default(null) %}
         {% set partes = c.nome|trim|split(' ')|filter(p => p is not empty) %}
         {% set iniciais = partes is empty ? '?'
             : (partes|first|slice(0, 1) ~ (partes|length > 1 ? partes|last|slice(0, 1) : ''))|upper %}
@@ -147,7 +154,17 @@
                 <div>
                     <h2 class="nm">{{ c.nome }}</h2>
                     <p class="meta">
-                        <span>{{ c.tipo == 'E' ? 'Empresa registrada no CREA' : 'Profissional registrado no CREA' }}</span>
+                        {% if rnp or registro %}
+                            <span>{{ c.tipo == 'E' ? 'Empresa' : 'Profissional' }}</span>
+                            {% if rnp %}
+                                <span class="reg" title="Registro Nacional do Profissional. É por ele que o acervo deste perfil foi consultado na API oficial do CREA.">RNP <b>{{ rnp }}</b></span>
+                            {% endif %}
+                            {% if registro %}
+                                <span class="reg" title="Número do registro no CREA.">Registro CREA <b>{{ registro }}</b></span>
+                            {% endif %}
+                        {% else %}
+                            <span>{{ c.tipo == 'E' ? 'Empresa registrada no CREA' : 'Profissional registrado no CREA' }}</span>
+                        {% endif %}
                         {% if c.em_construcao %}
                             {#  Início de carreira é contexto, não alerta: o edital pede inclusão de
                                 quem está começando, e o perfil nunca sai do pool por causa disso. #}
@@ -294,7 +311,7 @@
                         </svg>
                         <span>
                             <b>{{ c.ausentes|length == 1 ? 'Uma dimensão' : c.ausentes|length ~ ' dimensões' }} sem dado neste perfil:</b>
-                            {% for a in c.ausentes %}{{ dimensoes_rotulos[a]|default('Dimensão não identificada') }}{% if not loop.last %}, {% endif %}{% endfor %}.
+                            {% for a in c.ausentes %}{{ a|rotulo_dimensao }}{% if not loop.last %}, {% endif %}{% endfor %}.
                             Dimensão sem dado sai da conta em vez de valer zero, para que perfil
                             incompleto não seja punido por estar incompleto.
                         </span>

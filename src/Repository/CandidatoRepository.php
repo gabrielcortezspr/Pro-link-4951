@@ -60,7 +60,8 @@ final class CandidatoRepository extends Repositorio
         [$marcadores, $params] = $this->marcadores($ids);
 
         $stmt = $this->pdo->prepare(
-            'SELECT p.prf_id, p.prf_usu_id, p.prf_rnp, p.prf_nome_api, p.prf_status_api,
+            'SELECT p.prf_id, p.prf_usu_id, p.prf_rnp, p.prf_registro_crea,
+                    p.prf_nome_api, p.prf_status_api,
                     p.prf_resumo, p.prf_tipo_contrato, p.prf_disponibilidade, p.prf_em_construcao,
                     u.usu_nome,
                     (SELECT COUNT(*) FROM pro_experiencias e
@@ -95,6 +96,10 @@ final class CandidatoRepository extends Repositorio
                 'usuario_id'         => (int) $linha['prf_usu_id'],
                 'nome'               => (string) ($linha['prf_nome_api'] ?: $linha['usu_nome']),
                 'rnp'                => (string) $linha['prf_rnp'],
+                // Nulo em conta cujo registro nunca foi validado (D20). A tela trata a ausência;
+                // o que não podia continuar era a coluna existir, a empresa trazê-la e o
+                // profissional não — o `?? null` de quem lia escondia a diferença.
+                'registro_crea'      => $linha['prf_registro_crea'],
                 'registro_ativo'     => ($linha['prf_status_api'] ?? null) === 'A',
                 'resumo'             => $linha['prf_resumo'],
                 'tipo_contrato'      => $linha['prf_tipo_contrato'],
@@ -146,6 +151,11 @@ final class CandidatoRepository extends Repositorio
                 'usuario_id'         => (int) $linha['emp_usu_id'],
                 'nome'               => (string) ($linha['emp_nome_fantasia'] ?: $linha['emp_razao_social']),
                 'registro_crea'      => (string) $linha['emp_registro_crea'],
+                // Empresa não tem RNP — quem tem registro nacional é a pessoa. Explícito, e não
+                // ausente, para as duas metades deste repositório devolverem o mesmo formato:
+                // foi a assimetria que deixou `registro_crea` faltar no profissional sem ninguém
+                // notar, porque quem lia usava `?? null` e recebia o silêncio como resposta.
+                'rnp'                => null,
                 // A API não devolve situação de empresa: não existe equivalente ao prf_status_api.
                 // O portão da empresa é a existência da linha, conferida em VisibilidadeService.
                 'registro_ativo'     => true,
