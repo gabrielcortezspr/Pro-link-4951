@@ -208,6 +208,30 @@ requisitos, vê no painel, encerra.
 
 ## E4 — Motor de compatibilização (12–13/09)
 
+> **Motor pronto e verificado em 14/09**, branch `claude/e4-motor`. A camada visível fica para o
+> Gabriel: feed do demandante, explicação de compatibilidade no card e `/admin/sessoes/{id}`.
+>
+> Pronto: `Support\Compatibilidade` (as seis dimensões e a composição, 20 testes sem banco),
+> `Support\Modalidade`, `Repository\Evidencia`, `Repository\Candidato`,
+> `Repository\Compatibilizacao` e `Service\Compatibilizacao::executar()`, a **operação atômica
+> 2** completa: lê os parâmetros, recorta o índice, pontua, filtra pelo limiar, sorteia pela
+> semente e grava `mat_sessoes` mais `mat_sessao_pool` numa transação. Decisões D40 a D43.
+> Critério verificado por `php scripts/verificar-e4.php`: 30 conferências contra o banco.
+>
+> A base foi povoada pelo fluxo real com `scripts/semear-candidatos.php`: 19 candidatos, 115
+> linhas de evidência, 41 ARTs, 81 códigos TOS. Antes eram 2 candidatos, e um era conta de teste.
+>
+> `match.early_career.min_arts` **decidido em 3**, agora com medição: a distribuição real é 2 a 4
+> ARTs, média 3,2. O limiar 3 marca 23% dos profissionais; 4 marcaria 62%, e rótulo que vale para
+> a maioria não informa nada. O receio registrado aqui, de que 3 marcasse metade da plataforma,
+> não se confirmou.
+>
+> **O que falta, para quem pegar:** o pool sai de `CompatibilizacaoService::executar()` já
+> embaralhado e com `criterios` por candidato (score por dimensão, quais dimensões saíram da média
+> e as ARTs que sustentam cada código). O mockup do feed está em
+> `docs/mockups/prolink-feed-imersivo-v3.html`, aprovado. Tela nova passa pelo agente
+> `designer-ui` antes de virar código (`CLAUDE.md`).
+
 **Cobre:** RF04 (compatibilização, pesquisa, filtros); edital 3.2, 10.1, 10.2, 12.2, 12.3;
 proposta cenário 03, diferenciais 1 e 3. **Destrava o cenário 3 — o centro da avaliação.**
 Desenho em `matching.md`; não reinventar aqui.

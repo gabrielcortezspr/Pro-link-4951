@@ -26,6 +26,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E1 — auditoria da etapa (resgatada) | D30, D31 |
 | Front — design system | D32, D33, D34, D35, D36, D37, D38 |
 | E6 — denúncias e painel | D39, D40, D41, D43 |
+| E4 — motor de compatibilização | D44 |
 | Front — padrão visual no pipeline | D42 |
 
 ---
@@ -1308,3 +1309,33 @@ custo de um caminho de privacidade decidido por parâmetro.
 mudou de dono e o método tinha ficado órfão, com `PrivacidadeService` já chamando o repositório de
 auditoria. Ficou um comentário de duas linhas no lugar, apontando para onde foi, para ninguém
 recriar.
+
+---
+
+## D44 · O score filtra o pool, e quem ordena é a semente
+
+`14/09/2026` · E4 · commit a seguir · `Support\Compatibilidade::embaralhar`, `CompatibilizacaoRepository::pool`
+
+**Contexto.** O item 10.1 do edital veda ranking de profissionais e o 10.2 diz que a
+correspondência é apenas indicativa. Um motor de compatibilização produz naturalmente um número
+por candidato, e a coisa mais natural do mundo é ordenar a lista por ele. Isso é ranking, mesmo
+chamando de "relevância".
+
+**Decisão.** O score decide **quem entra** no pool, comparado com o limiar, e nada mais. A ordem
+sai de `embaralhar()`, que ordena por hash de (semente da sessão + chave do candidato). A semente
+é gravada em `mat_sessoes`, então qualquer sessão passada é reproduzível pelo administrador
+(item 12.3), e a mesma semente devolve a mesma ordem em qualquer máquina.
+
+Hash em vez de `shuffle()` com seed: `shuffle` depende do estado e da versão do gerador do PHP, e
+a ordem poderia divergir entre a máquina de desenvolvimento e a da apresentação, o que destruiria
+justamente a propriedade que a semente existe para garantir.
+
+**Alternativa recusada.** Ordenar por score e não exibir o número. A ordem *é* o ranking: a
+primeira posição é lida como recomendação institucional, que é exatamente o que o item 10.1
+proíbe. Também recusado gravar a posição em `mat_sessao_pool`, e a verificação confere que a
+tabela não tem coluna de posição, ordem ou rank.
+
+**Consequência.** A leitura do pool devolve por `msp_id`, nunca por score, porque ordenar na
+leitura reintroduziria o ranking pela porta dos fundos. Dois testes travam a propriedade: um monta
+o pool em ordem decrescente de score e prova que a saída difere; outro prova que a mesma semente
+devolve sempre a mesma ordem.

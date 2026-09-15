@@ -1,0 +1,269 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Verificação da E4 — motor de compatibilização (RF04, itens 3.2, 10.1, 10.2, 12.3).
+ *
+ * A aritmética já é coberta por PHPUnit em `tests/Support/CompatibilidadeTest.php`, sem banco.
+ * Aqui mora o que só a conexão prova: a query por prefixo sobre a view, os portões de entrada no
+ * pool, a transação da operação atômica 2 e a reprodutibilidade da sessão gravada.
+ *
+ * Uso: docker compose exec php php scripts/verificar-e4.php
+ *
+ * Idempotente por acréscimo: cada rodada cria uma demanda de verificação e uma sessão nova. Elas
+ * ficam, porque sessão de compatibilização é registro de auditoria e mat_sessoes não é lixo.
+ */
+
+require_once dirname(__DIR__) . '/_config.php';
+
+use ProLink\Repository\CandidatoRepository;
+use ProLink\Repository\CompatibilizacaoRepository;
+use ProLink\Repository\DemandaRepository;
+use ProLink\Repository\EvidenciaRepository;
+use ProLink\Service\CompatibilizacaoService;
+use ProLink\Service\ValidacaoException;
+use ProLink\Support\Database;
+
+$aprovado = 0;
+$falhou   = 0;
+$pdo      = Database::conexao();
+
+function conferir(string $descricao, bool $condicao, string $detalhe = ''): void
+{
+    global $aprovado, $falhou;
+
+    if ($condicao) {
+        $aprovado++;
+        printf("  \e[32mok\e[0m    %s\n", $descricao);
+
+        return;
+    }
+
+    $falhou++;
+    printf("  \e[31mFALHOU\e[0m %s%s\n", $descricao, $detalhe !== '' ? "  ({$detalhe})" : '');
+}
+
+function secao(string $titulo): void
+{
+    printf("\n\e[1m%s\e[0m\n", $titulo);
+}
+
+/** Recusa esperada: devolve true quando a chamada lança ValidacaoException. */
+function recusa(callable $chamada): bool
+{
+    try {
+        $chamada();
+    } catch (ValidacaoException) {
+        return true;
+    }
+
+    return false;
+}
+
+// ---------------------------------------------------------------- cenário
+
+$evidencias = new EvidenciaRepository();
+$candidatos = new CandidatoRepository();
+$demandas   = new DemandaRepository();
+$sessoes    = new CompatibilizacaoRepository();
+$motor      = new CompatibilizacaoService();
+
+// O acervo desta base decide o cenário, e não o contrário: a massa tem vínculos ART -> TOS
+// aleatórios, então demanda escrita antes de olhar o índice não encontraria ninguém (ver
+// docs/matching.md, "Cenários de demonstração").
+$stmt = $pdo->query(
+    'SELECT evi_tos_codigo, COUNT(DISTINCT CONCAT(evi_candidato_tipo, evi_candidato_id)) AS candidatos
+       FROM crea_evidencias GROUP BY evi_tos_codigo ORDER BY candidatos DESC, evi_tos_codigo LIMIT 1'
+);
+$maisComum = $stmt->fetch();
+
+if ($maisComum === false) {
+    printf(
+        "\e[31mÍndice de evidência vazio.\e[0m  Nenhum candidato tem ART importada.\n"
+        . "Cadastre ao menos um profissional pelo formulário para a E4 ter o que medir.\n"
+    );
+
+    exit(1);
+}
+
+$codigoAlvo = (string) $maisComum['evi_tos_codigo'];
+
+// O demandante não pode ser candidato da própria demanda, então precisa ser uma conta sem acervo.
+$demandanteId = (int) $pdo->query(
+    "SELECT u.usu_id FROM sis_usuarios u
+       JOIN sis_perfis p ON p.per_id = u.usu_per_id
+      WHERE u.usu_status = 'A' AND p.per_codigo IN ('EMPRESA', 'TERCEIRO', 'ADMIN')
+      ORDER BY u.usu_id LIMIT 1"
+)->fetchColumn();
+
+if ($demandanteId === 0) {
+    printf("\e[31mNenhuma conta pode publicar demanda.\e[0m\n");
+
+    exit(1);
+}
+
+$demandaId = $demandas->criar([
+    'usuario_id'      => $demandanteId,
+    'titulo'          => 'Demanda de verificação automática da E4',
+    'escopo'          => 'Criada por scripts/verificar-e4.php sobre o código de maior acervo.',
+    'local_uf'        => 'AM',
+    'local_municipio' => 'Manaus',
+    'tipo_contrato'   => null,
+    'alvo'            => 'A',
+]);
+
+$demandas->sincronizarTos($demandaId, [$codigoAlvo => 1.0]);
+
+printf(
+    "\e[2mdemanda %d, código %s, %d candidato(s) com esse código no acervo\e[0m\n",
+    $demandaId,
+    $codigoAlvo,
+    (int) $maisComum['candidatos'],
+);
+
+// ---------------------------------------------------------------- índice
+
+secao('Índice de evidência');
+
+$niveis = ProLink\Support\Tos::niveis($codigoAlvo);
+$grupo  = (string) $niveis[0];
+
+conferir('a view devolve evidência para o grupo pedido', $evidencias->porPrimeiroNivel([$grupo]) !== []);
+conferir('grupo inexistente devolve vazio', $evidencias->porPrimeiroNivel(['999']) === []);
+conferir('lista vazia não consulta o banco', $evidencias->porPrimeiroNivel([]) === []);
+
+$agrupado = $evidencias->agrupadoPorCandidato([$grupo]);
+conferir('agrupa por candidato com a chave tipo:id', $agrupado !== [] && preg_match('/^[PE]:\d+$/', (string) array_key_first($agrupado)) === 1);
+
+$perfis = $candidatos->porChaves(array_keys($agrupado));
+conferir('todo candidato do índice tem perfil carregável', count($perfis) === count($agrupado), sprintf('%d perfis para %d candidatos', count($perfis), count($agrupado)));
+
+// ---------------------------------------------------------------- execução
+
+secao('Operação atômica 2');
+
+$r = $motor->executar($demandaId, $demandanteId, '127.0.0.1');
+
+conferir('executar() devolve sessão gravada', $r['sessao_id'] > 0, "id {$r['sessao_id']}");
+conferir('a semente tem os 32 caracteres da coluna', strlen($r['semente']) === 32);
+conferir('avaliou ao menos um candidato', $r['avaliados'] >= 1, "avaliados: {$r['avaliados']}");
+conferir('o pool não é maior que os avaliados', count($r['pool']) <= $r['avaliados']);
+
+foreach ($r['pool'] as $c) {
+    conferir(
+        "candidato {$c['chave']} está acima do limiar",
+        $c['score'] >= $r['limiar'],
+        "score {$c['score']} contra limiar {$r['limiar']}",
+    );
+    conferir("candidato {$c['chave']} traz evidência documental", $c['criterios']['evidencias'] !== []);
+}
+
+$gravada = $sessoes->porId($r['sessao_id']);
+conferir('a sessão é recuperável pelo id', $gravada !== null);
+conferir('a semente gravada é a mesma devolvida', ($gravada['mts_semente'] ?? '') === $r['semente']);
+conferir('a sessão guarda os pesos vigentes, não só a referência', json_decode((string) ($gravada['mts_pesos'] ?? ''), true) === $r['pesos']);
+conferir('o total do pool bate com as linhas gravadas', (int) ($gravada['mts_total_pool'] ?? -1) === count($r['pool']));
+
+$poolGravado = $sessoes->pool($r['sessao_id']);
+conferir('o pool gravado tem uma linha por candidato', count($poolGravado) === count($r['pool']));
+
+conferir(
+    'a ordem gravada é a ordem sorteada, não a ordem de score',
+    array_map(static fn (array $l): string => $l['msp_candidato_tipo'] . ':' . $l['msp_candidato_id'], $poolGravado)
+        === array_column($r['pool'], 'chave'),
+);
+
+// ---------------------------------------------------------------- item 10.1 e 12.3
+
+secao('Sem ranking, e reproduzível');
+
+$reproduzido = ProLink\Support\Compatibilidade::embaralhar(
+    array_map(static fn (array $c): array => ['chave' => $c['chave']], $r['pool']),
+    $r['semente'],
+);
+
+conferir(
+    'a semente gravada reproduz a mesma ordem',
+    array_column($reproduzido, 'chave') === array_column($r['pool'], 'chave'),
+);
+
+// A tabela não tem coluna de posição, e não pode ganhar uma: posição gravada é ranking
+// persistido (item 10.1). Conferido no esquema, não numa linha, porque pool vazio não prova nada.
+$colunas = $pdo->query('SHOW COLUMNS FROM mat_sessao_pool')->fetchAll(PDO::FETCH_COLUMN);
+
+conferir(
+    'a tabela do pool não tem coluna de posição nem de ordem',
+    array_filter($colunas, static fn (string $c): bool => (bool) preg_match('/posicao|ordem|rank/i', $c)) === [],
+    implode(', ', $colunas),
+);
+
+// ---------------------------------------------------------------- portões
+
+secao('Portões de entrada');
+
+$chavesNoPool = array_column($r['pool'], 'chave');
+$doDemandante = null;
+
+foreach ($candidatos->porChaves(array_keys($agrupado)) as $chave => $perfil) {
+    if ((int) $perfil['usuario_id'] === $demandanteId) {
+        $doDemandante = $chave;
+    }
+}
+
+conferir(
+    'quem publicou não entra no próprio pool',
+    $doDemandante === null || !in_array($doDemandante, $chavesNoPool, true),
+    $doDemandante === null ? 'o demandante não tem acervo nesta base' : "candidato {$doDemandante}",
+);
+
+// Alvo restrito a empresa: nenhum profissional pode sobrar no pool.
+$soEmpresa = $demandas->criar([
+    'usuario_id'      => $demandanteId,
+    'titulo'          => 'Demanda de verificação, alvo restrito a empresa',
+    'escopo'          => 'Confere o portão de alvo.',
+    'local_uf'        => 'AM',
+    'local_municipio' => 'Manaus',
+    'tipo_contrato'   => null,
+    'alvo'            => 'E',
+]);
+$demandas->sincronizarTos($soEmpresa, [$codigoAlvo => 1.0]);
+
+$rEmpresa = $motor->executar($soEmpresa, $demandanteId, null);
+
+conferir(
+    'demanda dirigida a empresa não traz profissional',
+    array_filter($rEmpresa['pool'], static fn (array $c): bool => $c['tipo'] === 'P') === [],
+);
+
+// ---------------------------------------------------------------- recusas
+
+secao('Recusas');
+
+conferir('demanda inexistente é recusada', recusa(fn () => $motor->executar(999999, $demandanteId, null)));
+
+$semTos = $demandas->criar([
+    'usuario_id'      => $demandanteId,
+    'titulo'          => 'Demanda de verificação sem código TOS',
+    'escopo'          => 'Confere a recusa por falta de código.',
+    'local_uf'        => 'AM',
+    'local_municipio' => 'Manaus',
+    'tipo_contrato'   => null,
+    'alvo'            => 'A',
+]);
+
+conferir('demanda sem código TOS é recusada', recusa(fn () => $motor->executar($semTos, $demandanteId, null)));
+
+conferir(
+    'a recusa não deixa sessão órfã gravada',
+    $sessoes->daDemanda($semTos) === [],
+);
+
+printf(
+    "\n%s  %d aprovadas, %d falharam\n",
+    $falhou === 0 ? "\e[32mE4 (MOTOR DE COMPATIBILIZAÇÃO) VERIFICADA\e[0m" : "\e[31mE4 COM FALHA\e[0m",
+    $aprovado,
+    $falhou,
+);
+
+exit($falhou === 0 ? 0 : 1);
