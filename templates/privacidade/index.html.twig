@@ -59,7 +59,7 @@
                         {% endif %}
                     </td>
                     <td class="text-end">
-                        <form method="post" action="{{ app_url }}/privacidade/consentimento" class="d-inline">
+                        <form method="post" action="{{ raiz }}/privacidade/consentimento" class="d-inline">
                             {{ form.csrf() }}
                             <input type="hidden" name="finalidade" value="{{ chave }}">
                             <input type="hidden" name="acao" value="{{ estado.concedido ? 'revogar' : 'conceder' }}">
@@ -98,7 +98,7 @@
         Baixa um arquivo JSON com sua conta, seus consentimentos, suas sessões e o histórico das
         suas ações na plataforma.
     </p>
-    <a class="btn btn-outline-secondary" href="{{ app_url }}/privacidade/exportar">Baixar meus dados (JSON)</a>
+    <a class="btn btn-outline-secondary" href="{{ raiz }}/privacidade/exportar">Baixar meus dados (JSON)</a>
 </section>
 
 {% if painel.usuario.perfil != 'ADMIN' %}
@@ -111,7 +111,7 @@
         atendido. Esta ação não pode ser desfeita por você.
     </p>
 
-    <form method="post" action="{{ app_url }}/privacidade/excluir" class="row g-2 align-items-end">
+    <form method="post" action="{{ raiz }}/privacidade/excluir" class="row g-2 align-items-end">
         {{ form.csrf() }}
         <div class="col-auto">
             {{ form.campo('confirmacao', 'Digite EXCLUIR para confirmar', 'text', '', null,

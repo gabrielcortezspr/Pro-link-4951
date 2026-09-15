@@ -16,7 +16,7 @@
     } %}
 
     <p class="mb-3">
-        <a class="pl-link-voltar" href="{{ app_url }}/admin/denuncias">
+        <a class="pl-link-voltar" href="{{ raiz }}/admin/denuncias">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
             Voltar para a fila
         </a>
@@ -71,7 +71,7 @@
         <div class="pl-card">
             <h2 class="pl-card-titulo">Registrar providência</h2>
 
-            <form method="post" action="{{ app_url }}/admin/denuncias/{{ denuncia.den_id }}">
+            <form method="post" action="{{ raiz }}/admin/denuncias/{{ denuncia.den_id }}">
                 {{ form.csrf() }}
 
                 {{ form.selecao('situacao', 'Situação', estado, denuncia.den_situacao, null, {required: true}, false) }}

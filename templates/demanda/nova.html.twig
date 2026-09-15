@@ -19,7 +19,7 @@
     <div class="alert alert-danger" role="alert">{{ aviso }}</div>
 {% endif %}
 
-<form method="post" action="{{ app_url }}/demandas" class="col-lg-8">
+<form method="post" action="{{ raiz }}/demandas" class="col-lg-8">
     {{ form.csrf() }}
 
     {{ form.campo('titulo', 'Título', 'text', valores.titulo|default(''),
@@ -52,6 +52,6 @@
     }, valores.alvo|default('A'), erros.alvo|default(null), {required: true}, false) }}
 
     {{ form.botao('Salvar rascunho') }}
-    <a class="btn btn-link" href="{{ app_url }}/demandas">Cancelar</a>
+    <a class="btn btn-link" href="{{ raiz }}/demandas">Cancelar</a>
 </form>
 {% endblock %}

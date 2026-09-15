@@ -13,7 +13,7 @@
 
         {% if aviso|default(null) %}<div class="alert alert-danger" role="alert">{{ aviso }}</div>{% endif %}
 
-        <form method="post" action="{{ app_url }}/redefinir-senha/{{ token }}" novalidate>
+        <form method="post" action="{{ raiz }}/redefinir-senha/{{ token }}" novalidate>
             {{ form.csrf() }}
 
             {{ form.senha('senha', 'Nova senha', erros.senha|default(null),

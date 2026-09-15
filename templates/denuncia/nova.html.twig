@@ -16,7 +16,7 @@
             <div class="alert alert-danger" role="alert">{{ aviso }}</div>
         {% endif %}
 
-        <form method="post" action="{{ app_url }}/denuncias">
+        <form method="post" action="{{ raiz }}/denuncias">
             {{ form.csrf() }}
             <input type="hidden" name="entidade" value="{{ entidade }}">
             <input type="hidden" name="alvo_id" value="{{ alvo_id }}">

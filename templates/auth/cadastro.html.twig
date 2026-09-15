@@ -14,7 +14,7 @@
 
         {% if aviso|default(null) %}<div class="alert alert-danger" role="alert">{{ aviso }}</div>{% endif %}
 
-        <form method="post" action="{{ app_url }}/cadastro" novalidate>
+        <form method="post" action="{{ raiz }}/cadastro" novalidate>
             {{ form.csrf() }}
 
             <fieldset class="mb-4">
@@ -68,12 +68,12 @@
 
                 {{ form.caixa('aceite_uso', 'Li e aceito os',
                     valores.aceite_uso|default(false), erros.aceite_uso|default(null), {required: true},
-                    {url: app_url ~ '/termos/uso', texto: 'Termos de Uso'},
+                    {url: raiz ~ '/termos/uso', texto: 'Termos de Uso'},
                     termos.USO is defined ? '(versão ' ~ termos.USO.ter_versao ~ ')' : null) }}
 
                 {{ form.caixa('aceite_privacidade', 'Li e aceito a',
                     valores.aceite_privacidade|default(false), erros.aceite_privacidade|default(null), {required: true},
-                    {url: app_url ~ '/termos/privacidade', texto: 'Política de Privacidade'},
+                    {url: raiz ~ '/termos/privacidade', texto: 'Política de Privacidade'},
                     termos.PRIVACIDADE is defined ? '(versão ' ~ termos.PRIVACIDADE.ter_versao ~ ')' : null) }}
 
                 <hr class="my-3">
@@ -96,7 +96,7 @@
             </fieldset>
 
             {{ form.botao('Criar conta') }}
-            <a class="btn btn-link" href="{{ app_url }}/login">Já tenho conta</a>
+            <a class="btn btn-link" href="{{ raiz }}/login">Já tenho conta</a>
         </form>
     </div>
 </div>

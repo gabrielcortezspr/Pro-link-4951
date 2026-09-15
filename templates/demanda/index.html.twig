@@ -6,7 +6,7 @@
 {% block conteudo %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <h1 class="h3 mb-0">Minhas demandas</h1>
-    <a class="btn btn-primary" href="{{ app_url }}/demandas/nova">Nova demanda</a>
+    <a class="btn btn-primary" href="{{ raiz }}/demandas/nova">Nova demanda</a>
 </div>
 
 {% if demandas is empty %}
@@ -29,7 +29,7 @@
                 {% for d in demandas %}
                     <tr>
                         <td>
-                            <a href="{{ app_url }}/demandas/{{ d.dem_id }}">{{ d.dem_titulo }}</a>
+                            <a href="{{ raiz }}/demandas/{{ d.dem_id }}">{{ d.dem_titulo }}</a>
                             {% if d.dem_local_municipio %}
                                 <br><span class="small text-body-secondary">
                                     {{ d.dem_local_municipio }}{% if d.dem_local_uf %}/{{ d.dem_local_uf }}{% endif %}

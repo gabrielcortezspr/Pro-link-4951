@@ -60,7 +60,16 @@ if (APP_DEBUG) {
 // ---------------------------------------------------------------- URLs
 
 define('APP_URL', rtrim((string) env('APP_URL', 'http://localhost:8080'), '/'));
-define('URL_ASSETS', APP_URL . '/assets');
+
+/**
+ * Caminho da aplicação dentro do host — vazio na raiz, `/prolink` se um dia ela for montada num
+ * subdiretório. É a base de todo endereço servido a navegador.
+ */
+define('APP_BASE', rtrim((string) (parse_url(APP_URL, PHP_URL_PATH) ?: ''), '/'));
+
+// Relativos de propósito: a CSP julga por origem, e `'self'` é a origem pela qual o navegador
+// chegou, não a do .env. Asset com URL absoluta some quando os dois divergem.
+define('URL_ASSETS', APP_BASE . '/assets');
 define('URL_IMG', URL_ASSETS . '/img');
 
 // ---------------------------------------------------------------- caminhos físicos

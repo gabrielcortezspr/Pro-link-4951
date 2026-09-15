@@ -23,7 +23,7 @@
             A API oficial não respondeu quando a conta foi criada. Enquanto isso, o perfil não
             aparece para ninguém.
         </div>
-        <form method="post" action="{{ app_url }}/perfil/validar-registro">
+        <form method="post" action="{{ raiz }}/perfil/validar-registro">
             {{ form.csrf() }}
             <button type="submit" class="btn btn-warning">Validar o registro</button>
         </form>
@@ -34,7 +34,7 @@
             <strong>O quadro técnico e o acervo não foram importados.</strong>
             O registro está validado, mas não conseguimos ler a Certidão de Acervo Operacional.
         </div>
-        <form method="post" action="{{ app_url }}/perfil/validar-registro">
+        <form method="post" action="{{ raiz }}/perfil/validar-registro">
             {{ form.csrf() }}
             <button type="submit" class="btn btn-warning">Importar quadro técnico e acervo</button>
         </form>
@@ -46,7 +46,7 @@
         <strong>O perfil da empresa está fechado.</strong>
         Ninguém além de você o enxerga, mesmo o que estiver marcado como público. Isso acontece
         quando o consentimento de exibição está revogado
-        (<a href="{{ app_url }}/privacidade">painel de privacidade</a>)
+        (<a href="{{ raiz }}/privacidade">painel de privacidade</a>)
         ou enquanto o registro no CREA não estiver validado.
     </div>
 {% endif %}
@@ -123,7 +123,7 @@
             Nada fica visível sem você escolher. O padrão de tudo é <strong>Só eu</strong>.
         </p>
 
-        <form method="post" action="{{ app_url }}/perfil/visibilidade">
+        <form method="post" action="{{ raiz }}/perfil/visibilidade">
             {{ form.csrf() }}
 
             <fieldset class="mb-3">

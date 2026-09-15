@@ -12,7 +12,7 @@
             redefinição.
         </p>
 
-        <form method="post" action="{{ app_url }}/recuperar-senha" novalidate>
+        <form method="post" action="{{ raiz }}/recuperar-senha" novalidate>
             {{ form.csrf() }}
 
             {{ form.campo('email', 'E-mail', 'email',
@@ -20,7 +20,7 @@
                 {autocomplete: 'email', required: true}) }}
 
             {{ form.botao('Enviar link') }}
-            <a class="btn btn-link" href="{{ app_url }}/login">Voltar</a>
+            <a class="btn btn-link" href="{{ raiz }}/login">Voltar</a>
         </form>
     </div>
 </div>

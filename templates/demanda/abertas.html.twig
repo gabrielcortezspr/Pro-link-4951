@@ -16,7 +16,7 @@
         <article class="card mb-3">
             <div class="card-body">
                 <h2 class="h6 mb-1">
-                    <a href="{{ app_url }}/demandas/{{ d.dem_id }}">{{ d.dem_titulo }}</a>
+                    <a href="{{ raiz }}/demandas/{{ d.dem_id }}">{{ d.dem_titulo }}</a>
                 </h2>
                 <p class="small text-body-secondary mb-2">
                     {% if d.dem_local_municipio %}{{ d.dem_local_municipio }}{% if d.dem_local_uf %}/{{ d.dem_local_uf }}{% endif %} · {% endif %}

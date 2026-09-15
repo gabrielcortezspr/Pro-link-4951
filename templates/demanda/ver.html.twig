@@ -58,7 +58,7 @@
                         </div>
                         {% if eh_dono and d.dem_situacao != 'ENCERRADA' %}
                             <div class="d-flex gap-1">
-                                <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/tos">
+                                <form method="post" action="{{ raiz }}/demandas/{{ d.dem_id }}/tos">
                                     {{ form.csrf() }}
                                     <input type="hidden" name="codigo" value="{{ t.codigo }}">
                                     <input type="hidden" name="acao" value="{{ t.peso >= 1 ? 'secundaria' : 'principal' }}">
@@ -66,7 +66,7 @@
                                         {{ t.peso >= 1 ? 'Tornar secundária' : 'Tornar principal' }}
                                     </button>
                                 </form>
-                                <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/tos">
+                                <form method="post" action="{{ raiz }}/demandas/{{ d.dem_id }}/tos">
                                     {{ form.csrf() }}
                                     <input type="hidden" name="codigo" value="{{ t.codigo }}">
                                     <input type="hidden" name="acao" value="remover">
@@ -82,7 +82,7 @@
         {% if eh_dono and d.dem_situacao != 'ENCERRADA' %}
             {# Busca por GET: o resultado precisa sobreviver a um recarregamento e ser
                compartilhável, e a demanda já está salva — não há o que perder no caminho. #}
-            <form method="get" action="{{ app_url }}/demandas/{{ d.dem_id }}" class="row g-2 align-items-end mb-3">
+            <form method="get" action="{{ raiz }}/demandas/{{ d.dem_id }}" class="row g-2 align-items-end mb-3">
                 <div class="col-sm-9">
                     <label for="campo-q" class="form-label">Procurar atividade</label>
                     <input type="search" name="q" id="campo-q" class="form-control"
@@ -109,7 +109,7 @@
                                     <code>{{ r.tos_codigo }}</code>
                                     <br><span class="small">{{ r.descricao }}</span>
                                 </div>
-                                <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/tos">
+                                <form method="post" action="{{ raiz }}/demandas/{{ d.dem_id }}/tos">
                                     {{ form.csrf() }}
                                     <input type="hidden" name="codigo" value="{{ r.tos_codigo }}">
                                     <input type="hidden" name="acao" value="adicionar">
@@ -131,7 +131,7 @@
                 <p class="text-body-secondary small">
                     Enquanto for rascunho, ninguém além de você enxerga esta demanda.
                 </p>
-                <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/publicar" class="mb-3">
+                <form method="post" action="{{ raiz }}/demandas/{{ d.dem_id }}/publicar" class="mb-3">
                     {{ form.csrf() }}
                     <button type="submit" class="btn btn-primary"
                             {% if d.tos is empty %}disabled aria-describedby="sem-tos"{% endif %}>
@@ -145,7 +145,7 @@
                 <p class="text-body-secondary small">
                     Publicada em {{ d.dem_dt_publicacao }}.
                 </p>
-                <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/encerrar" class="mb-3"
+                <form method="post" action="{{ raiz }}/demandas/{{ d.dem_id }}/encerrar" class="mb-3"
                       onsubmit="return confirm('Encerrar esta demanda? Ela sai da vitrine e continua no seu painel.');">
                     {{ form.csrf() }}
                     <button type="submit" class="btn btn-outline-dark">Encerrar demanda</button>
@@ -158,7 +158,7 @@
 
             {% if d.dem_situacao != 'ENCERRADA' %}
                 <h2 class="h5 mt-4">Editar</h2>
-                <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}">
+                <form method="post" action="{{ raiz }}/demandas/{{ d.dem_id }}">
                     {{ form.csrf() }}
                     {{ form.campo('titulo', 'Título', 'text', d.dem_titulo, erros.titulo|default(null), {required: true}) }}
                     {{ form.area('escopo', 'Escopo', d.dem_escopo, erros.escopo|default(null), {required: true, rows: 5}) }}

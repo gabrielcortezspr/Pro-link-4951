@@ -133,10 +133,10 @@
        autor acrescenta o filtro de conta sem perder ação e período. #}
     {% set q_periodo = 'dias=' ~ filtro.dias ~ (filtro.acao ? '&acao=' ~ filtro.acao|url_encode : '') %}
     {% set q_atual   = q_periodo ~ (filtro.usuario ? '&usuario=' ~ filtro.usuario : '') %}
-    {% set base      = app_url ~ '/admin/auditoria?' %}
+    {% set base      = raiz ~ '/admin/auditoria?' %}
 
     {# GET, não POST: filtro é leitura, e o front controller só exige token em escrita. #}
-    <form method="get" action="{{ app_url }}/admin/auditoria" class="pl-toolbar">
+    <form method="get" action="{{ raiz }}/admin/auditoria" class="pl-toolbar">
         <div class="pl-filtros">
             <div class="campo-acao">
                 <label class="form-label" for="f-acao">Evento</label>
@@ -170,7 +170,7 @@
                 {# "Limpar" só existe quando há o que limpar: link morto em barra de filtro é
                    affordance falsa. #}
                 {% if filtrado %}
-                    <a class="pl-btn ghost" href="{{ app_url }}/admin/auditoria">Limpar</a>
+                    <a class="pl-btn ghost" href="{{ raiz }}/admin/auditoria">Limpar</a>
                 {% endif %}
             </div>
         </div>
@@ -323,7 +323,7 @@
                                 {% endif %}
                             </p>
                             {% if filtrado %}
-                                <a class="pl-btn sm" href="{{ app_url }}/admin/auditoria">Ver todos os eventos</a>
+                                <a class="pl-btn sm" href="{{ raiz }}/admin/auditoria">Ver todos os eventos</a>
                             {% endif %}
                         </td>
                     </tr>

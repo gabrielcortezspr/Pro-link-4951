@@ -31,6 +31,19 @@ final class View
             'strict_variables' => APP_DEBUG,
         ]);
 
+        // Duas raízes, e a diferença não é estética.
+        //
+        // `raiz` é o caminho, sem esquema nem host: é o que toda tela usa para montar link, ação
+        // de formulário e endereço de asset. Tem de ser relativo porque a CSP julga por origem, e
+        // `'self'` é a origem pela qual o navegador **chegou**, não a que está no `.env`. Com URL
+        // absoluta, abrir a aplicação por um host diferente do APP_URL — o IP da máquina numa
+        // apresentação, por exemplo — faz o navegador recusar a própria folha de estilo e barrar
+        // o envio dos formulários por `form-action 'self'`. Medido no Chromium: acessando por
+        // 127.0.0.1 com APP_URL em localhost, "Refused to load the stylesheet prolink.css".
+        //
+        // `app_url` continua absoluto e serve ao que sai da aplicação: e-mail não tem origem para
+        // resolver caminho relativo contra.
+        $twig->addGlobal('raiz', rtrim((string) (parse_url(APP_URL, PHP_URL_PATH) ?: ''), '/'));
         $twig->addGlobal('app_url', APP_URL);
         $twig->addGlobal('url_img', URL_IMG);
         $twig->addGlobal('url_assets', URL_ASSETS);

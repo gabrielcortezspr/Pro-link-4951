@@ -26,7 +26,7 @@
             A API oficial não respondeu quando você criou a conta. Enquanto isso, seu perfil não
             aparece para ninguém.
         </div>
-        <form method="post" action="{{ app_url }}/perfil/validar-registro">
+        <form method="post" action="{{ raiz }}/perfil/validar-registro">
             {{ form.csrf() }}
             <button type="submit" class="btn btn-warning">Validar meu registro</button>
         </form>
@@ -37,7 +37,7 @@
             <strong>Seu acervo não foi importado.</strong>
             Seu registro está validado, mas não conseguimos ler suas ARTs no CREA.
         </div>
-        <form method="post" action="{{ app_url }}/perfil/validar-registro">
+        <form method="post" action="{{ raiz }}/perfil/validar-registro">
             {{ form.csrf() }}
             <button type="submit" class="btn btn-warning">Importar minhas ARTs</button>
         </form>
@@ -49,7 +49,7 @@
         <strong>Seu perfil está fechado.</strong>
         Ninguém além de você o enxerga, mesmo o que estiver marcado como público. Isso acontece
         quando o consentimento de exibição está revogado
-        (<a href="{{ app_url }}/privacidade">painel de privacidade</a>)
+        (<a href="{{ raiz }}/privacidade">painel de privacidade</a>)
         ou quando seu registro não está regular no CREA.
     </div>
 {% endif %}
@@ -153,7 +153,7 @@
         </div>
 
         {% if p.eh_dono %}
-            <form method="post" action="{{ app_url }}/perfil/preferencias" class="border rounded p-3">
+            <form method="post" action="{{ raiz }}/perfil/preferencias" class="border rounded p-3">
                 {{ form.csrf() }}
                 <h3 class="h6">Editar preferências</h3>
 
@@ -267,7 +267,7 @@
                     {% endif %}
 
                     {% if p.eh_dono %}
-                        <form method="post" action="{{ app_url }}/perfil/experiencias/{{ exp.id }}/excluir"
+                        <form method="post" action="{{ raiz }}/perfil/experiencias/{{ exp.id }}/excluir"
                               onsubmit="return confirm('Remover esta experiência do seu perfil?');">
                             {{ form.csrf() }}
                             <button type="submit" class="btn btn-sm btn-outline-secondary">Remover</button>
@@ -278,7 +278,7 @@
         {% endif %}
 
         {% if p.eh_dono %}
-            <form method="post" action="{{ app_url }}/perfil/experiencias" class="border rounded p-3 mt-3">
+            <form method="post" action="{{ raiz }}/perfil/experiencias" class="border rounded p-3 mt-3">
                 {{ form.csrf() }}
                 <h3 class="h6">Adicionar experiência</h3>
 
@@ -339,7 +339,7 @@
             Nada fica visível sem você escolher. O padrão de tudo é <strong>Só eu</strong>.
         </p>
 
-        <form method="post" action="{{ app_url }}/perfil/visibilidade">
+        <form method="post" action="{{ raiz }}/perfil/visibilidade">
             {{ form.csrf() }}
 
             <fieldset class="mb-3">

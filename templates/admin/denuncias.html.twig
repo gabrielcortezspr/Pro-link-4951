@@ -13,11 +13,11 @@
 
     <nav class="mb-3 d-flex flex-wrap gap-2" aria-label="Filtrar por situação">
         <a class="pl-btn sm{% if situacao is null %} active{% endif %}"
-           href="{{ app_url }}/admin/denuncias"
+           href="{{ raiz }}/admin/denuncias"
            {% if situacao is null %}aria-current="page"{% endif %}>Todas</a>
         {% for s in situacoes %}
             <a class="pl-btn sm{% if situacao == s %} active{% endif %}"
-               href="{{ app_url }}/admin/denuncias?situacao={{ s }}"
+               href="{{ raiz }}/admin/denuncias?situacao={{ s }}"
                {% if situacao == s %}aria-current="page"{% endif %}>{{ abas[s]|default(s) }}</a>
         {% endfor %}
     </nav>
@@ -52,7 +52,7 @@
                         </td>
                         {# Uma ação por linha: as demais moram no detalhe (docs/design.md). #}
                         <td class="text-end">
-                            <a class="pl-btn sm" href="{{ app_url }}/admin/denuncias/{{ d.den_id }}">Ver</a>
+                            <a class="pl-btn sm" href="{{ raiz }}/admin/denuncias/{{ d.den_id }}">Ver</a>
                         </td>
                     </tr>
                 {% else %}
