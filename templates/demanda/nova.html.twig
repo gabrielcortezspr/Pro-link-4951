@@ -4,6 +4,11 @@
 {% block titulo %}Nova demanda · Pro-Link{% endblock %}
 
 {% block conteudo %}
+{#  `ufs_possiveis` é lista simples e a macro `selecao` espera mapa chave => rótulo. A chave aqui
+    é a própria sigla, que é string: `merge` só renumera chave inteira, então a armadilha do
+    <select> de ART (ver perfil/index) não se aplica. #}
+{% set ufs_mapa = ufs_possiveis|reduce((mapa, uf) => mapa|merge({(uf): uf}), {}) %}
+
 <h1 class="h3 mb-1">Nova demanda</h1>
 <p class="text-body-secondary">
     A demanda nasce como rascunho. Depois de salvar você escolhe os códigos da Tabela de Obras e
@@ -30,14 +35,15 @@
                 valores.local_municipio|default(''), erros.local_municipio|default(null)) }}
         </div>
         <div class="col-sm-4">
-            {{ form.campo('local_uf', 'UF', 'text', valores.local_uf|default(''),
-                erros.local_uf|default(null), {maxlength: 2}) }}
+            {#  Lista fechada dos dois lados: é a UF daqui que o motor compara com a abrangência
+                declarada pelo candidato. Texto livre nunca casava. #}
+            {{ form.selecao('local_uf', 'UF', ufs_mapa, valores.local_uf|default(''),
+                erros.local_uf|default(null), {}, 'Não informada') }}
         </div>
     </div>
 
-    {{ form.campo('tipo_contrato', 'Tipo de contrato', 'text',
-        valores.tipo_contrato|default(''), erros.tipo_contrato|default(null), {},
-        'Ex.: CLT, PJ, obra certa. Opcional.') }}
+    {{ form.selecao('tipo_contrato', 'Tipo de contrato', contratos_possiveis,
+        valores.tipo_contrato|default(''), erros.tipo_contrato|default(null), {}, 'A combinar') }}
 
     {{ form.selecao('alvo', 'Quem pode atender', {
         'A': 'Profissionais e empresas',

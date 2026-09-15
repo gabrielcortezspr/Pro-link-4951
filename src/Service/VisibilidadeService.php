@@ -65,30 +65,88 @@ final class VisibilidadeService
 
     /**
      * Os portões globais. Chamado uma vez por visão, nunca por campo.
+     *
+     * Delega ao caminho em lote em vez de repetir a regra. A duplicação seria tentadora — um
+     * `if` a menos para um titular só — e seria exatamente o jeito de os dois caminhos passarem a
+     * discordar sobre quem aparece no motor e quem aparece no perfil público.
      */
     public function perfilAberto(int $usuarioId): bool
     {
-        if (!$this->consentimentos->concedido($usuarioId, FINALIDADE_EXIBICAO_PERFIL)) {
-            return false;
+        return $this->perfisAbertos([$usuarioId])[$usuarioId] ?? false;
+    }
+
+    /**
+     * Os mesmos portões, para muitos titulares de uma vez — duas a quatro consultas no total,
+     * conforme os perfis que aparecerem no lote, e não três por candidato.
+     *
+     * É o caminho do motor. `CompatibilizacaoService` confere o portão por candidato antes de
+     * pontuar, e com a versão de um titular só isso era N+1 na abertura do feed: três consultas
+     * vezes o número de candidatos, num arquivo cujo vizinho (`CandidatoRepository`) foi escrito
+     * justamente para evitar isso.
+     *
+     * A ordem das negativas é a mesma da versão individual, e importa para quem depura: sem
+     * consentimento fecha antes de tudo; conta inativa fecha em seguida; só então o registro no
+     * conselho é olhado.
+     *
+     * @param  list<int> $usuarioIds
+     * @return array<int, bool> usuario_id => perfil aberto
+     */
+    public function perfisAbertos(array $usuarioIds): array
+    {
+        $usuarioIds = array_values(array_unique(array_map('intval', $usuarioIds)));
+
+        if ($usuarioIds === []) {
+            return [];
         }
 
-        // porId() já filtra usu_status = 'A', então conta excluída pelo titular volta null aqui
-        // e o perfil fecha junto — que é o efeito esperado da exclusão lógica (D05).
-        $usuario = $this->usuarios->porId($usuarioId);
+        $consentiu = $this->consentimentos->concedidosEmLote($usuarioIds, FINALIDADE_EXIBICAO_PERFIL);
 
-        if ($usuario === null) {
-            return false;
+        // perfisAtivos() já filtra usu_status = 'A', então conta excluída pelo titular ou
+        // bloqueada pela moderação simplesmente não volta — e a ausência fecha o perfil, que é o
+        // efeito esperado da exclusão lógica (D05) e do bloqueio da E6.
+        $perfis = $this->usuarios->perfisAtivos($usuarioIds);
+
+        // Cada tabela de registro é consultada só se houver alguém daquele perfil no lote. Sem
+        // isto, conferir um titular só custaria quatro consultas onde antes eram três — o caminho
+        // individual pagaria pela existência do caminho em lote, e `buscarPorIds()` já devolve
+        // vazio sem ir ao banco quando a lista chega vazia.
+        $porPerfil = static fn (string $codigo): array => array_keys(
+            array_filter($perfis, static fn (string $p): bool => $p === $codigo),
+        );
+
+        $situacaoApi = $this->profissionais->statusApiEmLote($porPerfil(PERFIL_PROFISSIONAL));
+        $empresaOk   = $this->empresas->validadasEmLote($porPerfil(PERFIL_EMPRESA));
+
+        $abertos = [];
+
+        foreach ($usuarioIds as $id) {
+            $abertos[$id] = ($consentiu[$id] ?? false)
+                && isset($perfis[$id])
+                && self::registroSustenta($perfis[$id], $situacaoApi, $empresaOk, $id);
         }
 
-        $perfil = $usuario['per_codigo'] ?? '';
+        return $abertos;
+    }
 
+    /**
+     * O registro no conselho sustenta a exibição deste perfil?
+     *
+     * @param array<int, ?string> $situacaoApi
+     * @param array<int, bool>    $empresaOk
+     */
+    private static function registroSustenta(
+        string $perfil,
+        array $situacaoApi,
+        array $empresaOk,
+        int $usuarioId,
+    ): bool {
         // Empresa: a API não devolve situação de empresa — a busca por CNPJ traz razão social,
         // nome fantasia, registro e data, e não existe `emp_status`. Não há, portanto, o
         // equivalente ao `prf_status_api != 'A'`. O que se pode conferir é a pendência da D20,
         // que vale igual dos dois lados: sem linha em `pro_empresas`, a conta afirma um registro
         // no CREA que nós ainda não confirmamos, e exibir seria publicar essa afirmação.
         if ($perfil === PERFIL_EMPRESA) {
-            return $this->empresas->porUsuario($usuarioId) !== null;
+            return $empresaOk[$usuarioId] ?? false;
         }
 
         // Terceiro não tem registro no conselho para conferir: para ele o consentimento é o
@@ -97,12 +155,10 @@ final class VisibilidadeService
             return true;
         }
 
-        $profissional = $this->profissionais->porUsuario($usuarioId);
-
         // Profissional sem linha é validação pendente (D20): a conta diz que a pessoa tem
         // registro no CREA e nós ainda não confirmamos. Exibir seria publicar uma afirmação que
         // não podemos sustentar, então fica fechado até validar.
-        return $profissional !== null && ($profissional['prf_status_api'] ?? null) === 'A';
+        return ($situacaoApi[$usuarioId] ?? null) === 'A';
     }
 
     /**

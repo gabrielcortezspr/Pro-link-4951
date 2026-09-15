@@ -48,6 +48,11 @@ final class View
         $twig->addFilter(new TwigFilter('rotulo_entidade', [Rotulos::class, 'entidade']));
         $twig->addFilter(new TwigFilter('rotulo_campo', [Rotulos::class, 'campo']));
 
+        // As duas preferências declaradas ficam gravadas como chave (`OBRA_CERTA`, `AM,RR`).
+        // Mesma regra dos três acima: a tela mostra o rótulo, o cru fica em title="".
+        $twig->addFilter(new TwigFilter('rotulo_contrato', [Rotulos::class, 'contrato']));
+        $twig->addFilter(new TwigFilter('rotulo_abrangencia', [Rotulos::class, 'abrangencia']));
+
         // Funções, não globais: o valor é lido no momento do render, depois do login/logout.
         $twig->addFunction(new TwigFunction('usuario', [Sessao::class, 'usuarioAtual']));
         $twig->addFunction(new TwigFunction('csrf_token', [Csrf::class, 'token']));

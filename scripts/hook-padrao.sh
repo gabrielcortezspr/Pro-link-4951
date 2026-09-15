@@ -60,9 +60,9 @@ fi
 
 # Identificador de banco impresso sem passar por rótulo. Só o caso direto; o vazamento que vem de
 # dado é pego na verificação renderizada.
-if printf '%s' "$texto" | grep -Eq '\{\{[^}]*\b(aud_acao|aud_entidade|aud_campo)\b[^}]*\}\}' \
+if printf '%s' "$texto" | grep -Eq '\{\{[^}]*\b(aud_acao|aud_entidade|aud_campo|dem_tipo_contrato|prf_tipo_contrato|prf_disponibilidade)\b[^}]*\}\}' \
    && ! printf '%s' "$texto" | grep -q 'rotulo_'; then
-    anotar "identificador de sistema impresso cru. Use |rotulo_acao, |rotulo_entidade, |rotulo_campo."
+    anotar "identificador de sistema impresso cru. Use |rotulo_acao, |rotulo_entidade, |rotulo_campo, |rotulo_contrato, |rotulo_abrangencia."
 fi
 
 [ -z "$achados" ] && exit 0

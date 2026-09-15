@@ -253,8 +253,25 @@ final class Compatibilidade
     }
 
     /**
-     * Tipo de contrato e disponibilidade geográfica: preferência declarada contra o que a demanda
-     * pede. Ambas autodeclaradas, ambas nulas quando o candidato não declarou.
+     * Abrangência geográfica: a UF onde a demanda acontece está entre as que o candidato aceita?
+     *
+     * Dimensão própria, e não mais um `correspondenciaDeclarada()` entre a UF da demanda e o
+     * campo de abrangência. A comparação exata entre os dois era errada por construção: de um
+     * lado vinha "AM", do outro um texto livre que nunca seria a string "AM", e a dimensão
+     * devolvia 0.0 — afirmando que o candidato não atende, quando o que havia era um campo que o
+     * motor não sabia ler. Agora o vocabulário é fechado (`Support\Preferencias`) e o que não dá
+     * para ler volta null, saindo da média como manda a regra do topo desta classe.
+     */
+    public static function abrangencia(?string $ufDaDemanda, ?string $declarada): ?float
+    {
+        $cobre = Preferencias::abrangenciaCobre($declarada, $ufDaDemanda);
+
+        return $cobre === null ? null : ($cobre ? 1.0 : 0.0);
+    }
+
+    /**
+     * Tipo de contrato: preferência declarada contra o que a demanda pede. Autodeclarada dos dois
+     * lados, nula quando qualquer um dos dois não declarou.
      *
      * "QUALQUER" dos dois lados casa com tudo: é declaração de flexibilidade, não ausência de
      * dado, e por isso pontua cheio em vez de sair da média.
@@ -269,7 +286,7 @@ final class Compatibilidade
             return null;
         }
 
-        if ($daDemanda === 'QUALQUER' || $doCandidato === 'QUALQUER') {
+        if ($daDemanda === Preferencias::QUALQUER || $doCandidato === Preferencias::QUALQUER) {
             return 1.0;
         }
 

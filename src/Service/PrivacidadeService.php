@@ -204,20 +204,15 @@ final class PrivacidadeService
         });
     }
 
-    /** Decifra o documento. Usado só para o próprio titular ver o dado dele. */
+    /**
+     * Decifra o documento. Usado só para o próprio titular ver o dado dele.
+     *
+     * Conta sem documento devolve string vazia, e não erro: `Documento::mascarar('')` e
+     * `formatar('')` já sabem virar "Não informado", e o painel de privacidade não pode deixar de
+     * abrir por causa de um campo.
+     */
     private function documentoEmClaro(array $usuario): string
     {
-        $cifrado = $usuario['usu_documento_cif'] ?? null;
-
-        if ($cifrado === null || $cifrado === '') {
-            return '';
-        }
-
-        // Stream quando o driver devolve o VARBINARY como recurso.
-        if (is_resource($cifrado)) {
-            $cifrado = (string) stream_get_contents($cifrado);
-        }
-
-        return Crypto::decifrar((string) $cifrado);
+        return Crypto::decifrarColuna($usuario['usu_documento_cif'] ?? null) ?? '';
     }
 }

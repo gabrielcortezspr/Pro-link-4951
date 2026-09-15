@@ -108,13 +108,19 @@ final class CompatibilizacaoService
             array_column(array_filter($perfis, static fn (array $p): bool => $p['tipo'] === 'P'), 'id')
         );
 
+        // O portão de privacidade de todos os candidatos numa tacada. Perguntar por candidato
+        // dentro do laço eram três consultas vezes o número de candidatos, a cada abertura do
+        // feed — o N+1 que `CandidatoRepository` evita do lado dos perfis e que o portão
+        // reintroduzia logo abaixo.
+        $abertos = $this->visibilidade->perfisAbertos(array_column($perfis, 'usuario_id'));
+
         $pool      = [];
         $avaliados = 0;
 
         foreach ($acervos as $chave => $acervo) {
             $candidato = $perfis[$chave] ?? null;
 
-            if ($candidato === null || !$this->podeEntrarNoPool($candidato, $demanda)) {
+            if ($candidato === null || !$this->podeEntrarNoPool($candidato, $demanda, $abertos)) {
                 continue;
             }
 
@@ -201,8 +207,9 @@ final class CompatibilizacaoService
      *
      * @param array<string, mixed> $candidato
      * @param array<string, mixed> $demanda
+     * @param array<int, bool>     $abertos portão de privacidade já resolvido em lote
      */
-    private function podeEntrarNoPool(array $candidato, array $demanda): bool
+    private function podeEntrarNoPool(array $candidato, array $demanda, array $abertos): bool
     {
         // Quem publicou não é candidato da própria demanda.
         if ((int) $candidato['usuario_id'] === (int) $demanda['dem_usu_id']) {
@@ -226,7 +233,10 @@ final class CompatibilizacaoService
 
         // O mesmo portão do perfil público: consentimento de exibição revogado, conta excluída ou
         // registro pendente fecham o perfil, e perfil fechado não é oferecido a ninguém.
-        return $this->visibilidade->perfilAberto((int) $candidato['usuario_id']);
+        //
+        // Ausência no mapa é "fechado", nunca "aberto": se um candidato escapou do lote por
+        // qualquer motivo, o desfecho seguro é não oferecê-lo.
+        return $abertos[(int) $candidato['usuario_id']] ?? false;
     }
 
     /**
@@ -294,7 +304,10 @@ final class CompatibilizacaoService
                 $demanda['dem_tipo_contrato'] ?? null,
                 $candidato['tipo_contrato'],
             ),
-            'disponibilidade' => Compatibilidade::correspondenciaDeclarada(
+            // A UF da demanda contra a abrangência declarada. Antes isto passava pela mesma
+            // `correspondenciaDeclarada()` do contrato, comparando "AM" com um campo de texto
+            // livre: nunca casava, e devolvia 0.0 em vez de null.
+            'disponibilidade' => Compatibilidade::abrangencia(
                 $demanda['dem_local_uf'] ?? null,
                 $candidato['disponibilidade'],
             ),

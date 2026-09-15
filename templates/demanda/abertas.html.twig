@@ -20,7 +20,10 @@
                 </h2>
                 <p class="small text-body-secondary mb-2">
                     {% if d.dem_local_municipio %}{{ d.dem_local_municipio }}{% if d.dem_local_uf %}/{{ d.dem_local_uf }}{% endif %} · {% endif %}
-                    {{ d.dem_tipo_contrato ?: 'Contrato a combinar' }}
+                    {#  Mesmo motivo do detalhe da demanda: o gravado é a chave da lista fechada
+                        (OBRA_CERTA), e chave em caixa alta não chega na tela. O valor cru fica
+                        no title. #}
+                    <span{% if d.dem_tipo_contrato %} title="{{ d.dem_tipo_contrato }}"{% endif %}>{{ d.dem_tipo_contrato|rotulo_contrato ?: 'Contrato a combinar' }}</span>
                     {% if d.dem_situacao == 'COM_INTERESSADOS' %} · <span class="badge text-bg-success">Com interessados</span>{% endif %}
                 </p>
                 <p class="mb-0">{{ d.dem_escopo|slice(0, 240) }}{% if d.dem_escopo|length > 240 %}…{% endif %}</p>

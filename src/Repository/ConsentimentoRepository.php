@@ -89,6 +89,41 @@ final class ConsentimentoRepository extends Repositorio
         return $consentimento !== null && (int) $consentimento['con_concedido'] === 1;
     }
 
+    /**
+     * A mesma pergunta de `concedido()`, para muitos titulares de uma vez.
+     *
+     * Existe por causa do motor: o portão de privacidade é conferido por candidato, e uma consulta
+     * por candidato dentro do laço é o N+1 que `CandidatoRepository` foi escrito para evitar.
+     *
+     * Ausência de linha é ausência de consentimento, então quem não voltar da consulta fica
+     * `false` — nunca indefinido. Consentimento que "não se sabe" seria consentimento presumido, e
+     * presumir é o oposto do item 11.3.
+     *
+     * @param  list<int> $usuarioIds
+     * @return array<int, bool>
+     */
+    public function concedidosEmLote(array $usuarioIds, string $finalidade): array
+    {
+        $concedido = array_fill_keys(array_map('intval', $usuarioIds), false);
+
+        $linhas = $this->buscarPorIds(
+            static fn (array $m): string =>
+                'SELECT con_usu_id, con_concedido
+                   FROM sis_consentimentos
+                  WHERE con_usu_id IN (' . implode(', ', $m) . ')
+                    AND con_finalidade = :finalidade
+                    AND con_status = :ativo',
+            $usuarioIds,
+            [':finalidade' => $finalidade, ':ativo' => STATUS_ATIVO],
+        );
+
+        foreach ($linhas as $linha) {
+            $concedido[(int) $linha['con_usu_id']] = (int) $linha['con_concedido'] === 1;
+        }
+
+        return $concedido;
+    }
+
     /** @return list<array<string, mixed>> */
     public function doUsuario(int $usuarioId): array
     {

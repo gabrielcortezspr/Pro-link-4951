@@ -235,13 +235,13 @@ final class PerfilCreaService
     private function cpfDoUsuario(int $usuarioId): string
     {
         $usuario = $this->usuarios->porId($usuarioId);
-        $cifrado = $usuario['usu_documento_cif'] ?? null;
+        $cpf     = Crypto::decifrarColuna($usuario['usu_documento_cif'] ?? null);
 
-        if (!is_string($cifrado) || $cifrado === '') {
+        if ($cpf === null) {
             throw new ValidacaoException('Esta conta não tem CPF guardado para consultar no CREA.');
         }
 
-        return Crypto::decifrar($cifrado);
+        return $cpf;
     }
 
     private function exigirConsentimento(int $usuarioId): void

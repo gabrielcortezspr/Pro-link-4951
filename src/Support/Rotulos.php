@@ -119,6 +119,42 @@ final class Rotulos
     }
 
     /**
+     * Regime de contratação, nos dois lados: `prf_tipo_contrato` e `dem_tipo_contrato`.
+     *
+     * A lista fechada mora em `Support\Preferencias` — é ela que o formulário oferece e que o
+     * motor compara. Aqui ela só vira texto de tela, porque o que está gravado é a chave
+     * (`OBRA_CERTA`), e chave em SNAKE_CASE na tela é exatamente o que esta classe existe para
+     * impedir. Sem mapa próprio: a fonte da verdade é uma só, e duplicá-la aqui garantiria que
+     * um dia as duas discordassem.
+     */
+    public static function contrato(?string $valor): string
+    {
+        return self::traduzir($valor, Preferencias::CONTRATOS);
+    }
+
+    /**
+     * Abrangência geográfica declarada, em texto corrido.
+     *
+     * `QUALQUER` é uma escolha, não ausência de dado, e a tela precisa dizer isso com todas as
+     * letras — "Qualquer lugar do país" e "Não informado" significam coisas opostas para quem
+     * está decidindo a quem oferecer uma demanda.
+     */
+    public static function abrangencia(?string $valor): string
+    {
+        if ($valor === null || $valor === '') {
+            return '';
+        }
+
+        if ($valor === Preferencias::QUALQUER) {
+            return 'Qualquer lugar do país';
+        }
+
+        $ufs = Preferencias::ufsDaAbrangencia($valor);
+
+        return $ufs === [] ? '' : implode(' · ', $ufs);
+    }
+
+    /**
      * Fallback por convenção para chave fora do mapa: tira o prefixo de tabela quando houver,
      * troca underline por espaço e capitaliza. Pior caso é um rótulo desajeitado, nunca o
      * identificador cru na tela.

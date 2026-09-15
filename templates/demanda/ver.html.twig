@@ -5,11 +5,17 @@
 
 {% block conteudo %}
 {% set d = demanda %}
+{#  `ufs_possiveis` é lista simples e a macro `selecao` espera mapa chave => rótulo. A chave aqui
+    é a própria sigla, que é string: `merge` só renumera chave inteira, então a armadilha do
+    <select> de ART (ver perfil/index) não se aplica. #}
+{% set ufs_mapa = ufs_possiveis|reduce((mapa, uf) => mapa|merge({(uf): uf}), {}) %}
 
 <h1 class="h3 mb-1">{{ d.dem_titulo }}</h1>
 <p class="text-body-secondary">
     {% if d.dem_local_municipio %}{{ d.dem_local_municipio }}{% if d.dem_local_uf %}/{{ d.dem_local_uf }}{% endif %} · {% endif %}
-    {{ d.dem_tipo_contrato ?: 'Contrato a combinar' }} ·
+    {#  O gravado é a chave da lista fechada (OBRA_CERTA): o rótulo é obrigação da tela, e o
+        valor cru fica no title para quem audita. #}
+    <span{% if d.dem_tipo_contrato %} title="{{ d.dem_tipo_contrato }}"{% endif %}>{{ d.dem_tipo_contrato|rotulo_contrato ?: 'Contrato a combinar' }}</span> ·
     {% if d.dem_dt_publicacao is null %}
         <span class="badge text-bg-secondary">Rascunho, só você vê</span>
     {% elseif d.dem_situacao == 'ENCERRADA' %}
@@ -161,10 +167,12 @@
                             {{ form.campo('local_municipio', 'Município', 'text', d.dem_local_municipio, null) }}
                         </div>
                         <div class="col-4">
-                            {{ form.campo('local_uf', 'UF', 'text', d.dem_local_uf, erros.local_uf|default(null), {maxlength: 2}) }}
+                            {{ form.selecao('local_uf', 'UF', ufs_mapa, d.dem_local_uf,
+                                erros.local_uf|default(null), {}, 'Não informada') }}
                         </div>
                     </div>
-                    {{ form.campo('tipo_contrato', 'Tipo de contrato', 'text', d.dem_tipo_contrato, null) }}
+                    {{ form.selecao('tipo_contrato', 'Tipo de contrato', contratos_possiveis,
+                        d.dem_tipo_contrato, erros.tipo_contrato|default(null), {}, 'A combinar') }}
                     {{ form.selecao('alvo', 'Quem pode atender', {
                         'A': 'Profissionais e empresas',
                         'P': 'Somente profissionais',

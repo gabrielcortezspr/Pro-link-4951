@@ -49,6 +49,38 @@ final class UsuarioRepository extends Repositorio
         return $stmt->fetch() ?: null;
     }
 
+    /**
+     * Perfil de acesso de vários usuários ativos, de uma vez.
+     *
+     * Só `usu_status = 'A'`, como toda consulta operacional daqui: conta excluída ou bloqueada
+     * simplesmente não volta, e quem chama lê a ausência como "fechado". É o que faz a exclusão
+     * lógica (D05) e o bloqueio administrativo (E6) valerem também dentro do motor.
+     *
+     * @param  list<int> $ids
+     * @return array<int, string> usu_id => per_codigo
+     */
+    public function perfisAtivos(array $ids): array
+    {
+        $linhas = $this->buscarPorIds(
+            static fn (array $m): string =>
+                'SELECT usu_id, per_codigo
+                   FROM sis_usuarios
+                   JOIN sis_perfis ON per_id = usu_per_id
+                  WHERE usu_id IN (' . implode(', ', $m) . ')
+                    AND usu_status = :ativo',
+            $ids,
+            [':ativo' => STATUS_ATIVO],
+        );
+
+        $perfis = [];
+
+        foreach ($linhas as $linha) {
+            $perfis[(int) $linha['usu_id']] = (string) $linha['per_codigo'];
+        }
+
+        return $perfis;
+    }
+
     /** Unicidade: sem filtro de status, de propósito — ver o cabeçalho da classe. */
     public function emailEmUso(string $email): bool
     {

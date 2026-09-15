@@ -64,6 +64,33 @@ final class Crypto
     }
 
     /**
+     * Decifra uma coluna `*_documento_cif` como o driver a devolveu.
+     *
+     * Existe porque o mesmo VARBINARY chega em duas formas. A escrita usa `PDO::PARAM_LOB`, sem o
+     * qual o driver trunca no primeiro byte nulo do pacote AES-GCM; e o preço disso é que a
+     * leitura pode voltar **recurso** em vez de string, dependendo do driver e de como a linha foi
+     * buscada. Três serviços liam a coluna e só um tratava o caso: os outros dois recusavam o
+     * recurso com `!is_string()` e diziam "esta conta não tem CPF guardado" — uma mensagem falsa,
+     * justamente no caminho de revalidação da D20, que é o que a demonstração usa quando a API
+     * estava fora do ar no cadastro.
+     *
+     * Devolve null quando não há documento guardado; quem precisa de erro decide lá em cima, com
+     * a palavra certa (CPF ou CNPJ) na mensagem.
+     */
+    public static function decifrarColuna(mixed $pacote): ?string
+    {
+        if (is_resource($pacote)) {
+            $pacote = stream_get_contents($pacote);
+        }
+
+        if (!is_string($pacote) || $pacote === '') {
+            return null;
+        }
+
+        return self::decifrar($pacote);
+    }
+
+    /**
      * Hash de token de alta entropia: sessão (sis_sessoes) e recuperação de senha
      * (sis_recuperacoes). SHA-256 simples basta — diferente de documento, que é de baixa entropia
      * e precisa do pepper de hashBusca() para não ceder a dicionário.

@@ -106,8 +106,42 @@ foreach ($templates as $nome => $fonte) {
 
 secao('HTML renderizado');
 
-/** @var array<string, array<string, mixed>> $amostras */
-$amostras = require __DIR__ . '/amostras.php';
+/**
+ * A parte renderizada precisa do banco: `amostras.php` monta as telas com dado de verdade, que é
+ * justamente o ponto — template limpo pode render sujo.
+ *
+ * Banco parado é o estado normal de quem acabou de abrir a sessão, e até aqui isso despejava três
+ * exceções encadeadas e um stack trace no lugar do relatório. Agora a parte estática vale por si,
+ * e a renderizada diz o que fazer para rodar. O código de saída distingue os dois casos: 0 quando
+ * conferiu tudo, 2 quando conferiu só metade — assim o `/encerrar` e o hook não leem "verde" onde
+ * houve meia verificação.
+ *
+ * @var array<string, array<string, mixed>>|null $amostras
+ */
+$amostras = null;
+
+try {
+    $amostras = require __DIR__ . '/amostras.php';
+} catch (Throwable $e) {
+    printf(
+        "\n\e[33m!\e[0m Banco indisponível: a verificação do HTML renderizado não rodou.\n"
+        . "  %s\n"
+        . "  Suba o ambiente e repita:  docker compose up -d && docker compose exec php php %s\n",
+        $e->getMessage(),
+        'scripts/' . basename(__FILE__),
+    );
+}
+
+if ($amostras === null) {
+    printf(
+        "\n%s  %d conferências estáticas, %d violações · HTML renderizado não conferido\n",
+        $violacoes === 0 ? "\e[33mPADRÃO VISUAL PARCIAL\e[0m" : "\e[31mPADRÃO VISUAL VIOLADO\e[0m",
+        $conferido,
+        $violacoes,
+    );
+
+    exit($violacoes === 0 ? 2 : 1);
+}
 
 foreach ($amostras as $tela => $dados) {
     try {

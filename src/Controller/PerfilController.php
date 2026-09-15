@@ -9,9 +9,11 @@ use ProLink\Service\ExperienciaService;
 use ProLink\Service\PerfilCreaService;
 use ProLink\Service\PerfilEmpresaService;
 use ProLink\Service\PerfilService;
+use ProLink\Service\PreferenciaService;
 use ProLink\Service\ValidacaoException;
 use ProLink\Service\VisibilidadeService;
 use ProLink\Support\Flash;
+use ProLink\Support\Preferencias;
 use ProLink\Support\Sessao;
 use ProLink\Support\View;
 use Throwable;
@@ -40,6 +42,7 @@ final class PerfilController
         private readonly PerfilCreaService $perfilCrea = new PerfilCreaService(),
         private readonly EmpresaCreaService $empresaCrea = new EmpresaCreaService(),
         private readonly ExperienciaService $experiencias = new ExperienciaService(),
+        private readonly PreferenciaService $preferencias = new PreferenciaService(),
     ) {
     }
 
@@ -93,6 +96,29 @@ final class PerfilController
         }
 
         Flash::sucesso('Experiência removida do seu perfil.');
+        View::redirecionar('/perfil');
+    }
+
+    /**
+     * Salva as preferências declaradas (resumo, regime de contratação, abrangência).
+     *
+     * Erro de validação não redireciona, pela mesma razão da experiência: o resumo é texto longo,
+     * e perdê-lo por causa de um regime fora da lista seria o jeito mais fácil de a pessoa
+     * desistir de preencher — e o perfil sem estes campos é o que deixava duas das seis dimensões
+     * do motor fora da conta.
+     */
+    public function salvarPreferencias(): string
+    {
+        try {
+            $mudou = $this->preferencias->salvar((int) Sessao::usuarioId(), $_POST);
+        } catch (ValidacaoException $e) {
+            return $this->renderizar($e->erros(), $e->getMessage());
+        }
+
+        Flash::sucesso($mudou
+            ? 'Preferências atualizadas. Elas entram como dado declarado, com peso menor que o '
+                . 'que o CREA confirma.'
+            : 'Nada mudou nas suas preferências.');
         View::redirecionar('/perfil');
     }
 
@@ -176,6 +202,16 @@ final class PerfilController
                 VISIBILIDADE_AUTENTICADO => 'Quem tem conta',
                 VISIBILIDADE_PUBLICO     => 'Qualquer pessoa',
             ],
+
+            // O vocabulário das duas dimensões autodeclaradas, para o formulário oferecer a
+            // mesma lista fechada que o motor compara. Sai de Support\Preferencias, e não de uma
+            // lista escrita no template: opção nova no vocabulário aparece sozinha na tela.
+            'contratos_possiveis' => Preferencias::CONTRATOS,
+            'ufs_possiveis'       => Preferencias::UFS,
+            'abrangencia_qualquer' => Preferencias::QUALQUER,
+            'abrangencia_atual'    => Preferencias::ufsDaAbrangencia(
+                $perfil['campos']['DISPONIBILIDADE'] ?? null,
+            ),
         ]);
     }
 

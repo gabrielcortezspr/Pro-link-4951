@@ -147,9 +147,9 @@ no pool se passar do limiar.
 | Localização | `art_local_uf` / `art_local_municipio` × local da demanda | sim, API | 0.15 |
 | Experiências declaradas | texto autodeclarado do perfil | não | 0.10 |
 | Tipo de contrato | preferência declarada × demanda | não | 0.10 |
-| Disponibilidade geográfica | raio declarado × local da demanda | não | 0.10 |
+| Abrangência geográfica | UFs declaradas × `dem_local_uf` | não | 0.10 |
 
-Três observações que a massa impõe:
+Quatro observações que a massa impõe:
 
 **Dado verificado pesa mais que autodeclarado.** As três primeiras dimensões somam 0.70; as
 autodeclaradas, 0.30. É a tradução numérica do compromisso de evidência.
@@ -157,9 +157,17 @@ autodeclaradas, 0.30. É a tradução numérica do compromisso de evidência.
 **Localização é fraca nesta massa.** Todas as ARTs observadas são de Manaus/AM. A dimensão vale
 implementar como regra de negócio, mas não separa candidato nenhum nos dados fictícios.
 
-**Dimensão sem dado não penaliza.** Se o profissional não declarou disponibilidade geográfica,
-essa dimensão sai da média em vez de contar zero — senão o perfil incompleto é punido, e o edital
+**Dimensão sem dado não penaliza.** Se o profissional não declarou abrangência geográfica, essa
+dimensão sai da média em vez de contar zero — senão o perfil incompleto é punido, e o edital
 pede explicitamente inclusão de quem está começando.
+
+**As duas autodeclaradas falam um vocabulário fechado**, em `Support\Preferencias`. Tipo de
+contrato é uma chave de `CONTRATOS`; abrangência é `QUALQUER` ou uma lista de UFs (`AM,RR`). Não
+é preciosismo: enquanto os dois campos eram texto livre, a demanda dizia `AM`, o perfil dizia
+"Manaus e região metropolitana", a comparação exata falhava sempre e a dimensão devolvia **zero**
+— que é a afirmação "não atende", e não era verdade. Campo que o motor não sabe ler devolve null
+e sai da média; só valor legível e discordante vale zero. Raio em quilômetros foi recusado: a API
+não devolve coordenada de município, e geocodificar seria inventar precisão que o dado não tem.
 
 Sinais de força dentro da dimensão de competência, em ordem:
 

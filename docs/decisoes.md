@@ -1339,3 +1339,56 @@ tabela não tem coluna de posição, ordem ou rank.
 leitura reintroduziria o ranking pela porta dos fundos. Dois testes travam a propriedade: um monta
 o pool em ordem decrescente de score e prova que a saída difere; outro prova que a mesma semente
 devolve sempre a mesma ordem.
+
+## D45 · As duas dimensões autodeclaradas falam um vocabulário fechado
+
+`15/09/2026` · revisão · commit a seguir · `Support\Preferencias`, `Compatibilidade::abrangencia`, `PreferenciaService`
+
+**Contexto.** Uma revisão do código inteiro encontrou duas das seis dimensões do item 3.2 mortas,
+por dois defeitos que se escondiam um ao outro.
+
+O primeiro: `prf_tipo_contrato` e `prf_disponibilidade` não eram escritas por **nenhum** caminho do
+código. `PerfilService` as exibia, `CandidatoRepository` as lia, `ProfissionalRepository::salvar()`
+até documentava por que não as toca — e não existia formulário nem serviço que as gravasse. O motor
+rodava com quatro dimensões em vez de seis, calado, porque a regra que protege o perfil incompleto
+(dimensão nula sai da média) também esconde a dimensão que ninguém pode preencher.
+
+O segundo: a dimensão de abrangência comparava `dem_local_uf` (`"AM"`) com um campo cujo comentário
+de esquema dizia "raio ou municípios", por `strcasecmp` exato. Nenhum texto real casaria. Se o
+primeiro defeito fosse corrigido sozinho, a dimensão passaria a devolver **0.0** — a afirmação
+"este candidato não atende" — para todo mundo que preenchesse o campo.
+
+**Decisão.** Os dois lados passam a falar uma lista fechada, em `Support\Preferencias`: tipo de
+contrato é uma chave de `CONTRATOS`, abrangência é `QUALQUER` ou uma lista de UFs (`AM,RR`),
+normalizada em ordem canônica para que a mesma escolha grave sempre a mesma string. A comparação
+de abrangência ganha função própria, `Compatibilidade::abrangencia()`, e **texto que o vocabulário
+não reconhece devolve null**, não zero: coluna com resquício do tempo em que o campo era livre sai
+da média em vez de punir quem a preencheu. `PreferenciaService` dá o caminho de escrita, e a tela
+de demanda troca os dois campos de texto por seleção.
+
+**Alternativa recusada.** Raio em quilômetros, que é o que o comentário original prometia. A API
+não devolve coordenada de município e nenhuma das duas pontas sabe informar distância com
+honestidade; geocodificar seria inventar precisão que o dado não tem, e ainda transformaria uma
+dimensão autodeclarada de peso 0.10 na mais cara de calcular. Também recusado deixar o campo livre
+e comparar por texto normalizado: "Manaus e região" e "Amazonas" continuariam sendo a mesma
+intenção escrita de dois jeitos, e a dimensão voltaria a depender de sorte.
+
+## D46 · `sis_auditoria` não tem `_log` nem `_status`, e é a única
+
+`15/09/2026` · revisão · commit a seguir · `_arq/estrutura.sql`
+
+**Contexto.** O Anexo I do edital pede `_dt_registro`, `_log` e `_status` em toda tabela, e o
+`CLAUDE.md` repete a regra. Das 28 tabelas do esquema, 27 cumprem; `sis_auditoria` tem só
+`aud_dt_registro`. A ausência era deliberada desde a D04 e não estava escrita em lugar nenhum —
+numa conferência coluna a coluna, o que aparece é uma tabela fora do padrão sem justificativa.
+
+**Decisão.** Fica como está, e a exceção passa a ser declarada aqui. `_status` é a marca de
+exclusão lógica (item 8.6j): uma trilha de auditoria com coluna de exclusão é uma trilha que pode
+ser apagada por `UPDATE`, que é exatamente o que a trigger da D04 existe para impedir. `_log` é
+campo de anotação editável, e a tabela recusa `UPDATE` por construção — a coluna nasceria morta.
+Acrescentar as duas para satisfazer a contagem produziria um esquema que *parece* cumprir a norma
+enquanto contradiz o item 8.5g, que é a razão de a tabela existir.
+
+**Alternativa recusada.** Criar as duas colunas com `DEFAULT` fixo e nunca usá-las. Passaria em
+qualquer conferência automática e seria pior: um avaliador que lesse `aud_status` concluiria que
+registro de auditoria pode ser excluído nesta plataforma.
