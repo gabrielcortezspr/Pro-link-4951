@@ -1,7 +1,7 @@
 {% extends 'layout/base.html.twig' %}
 {% import 'layout/_form.html.twig' as form %}
 
-{% block titulo %}{{ demanda.dem_titulo }} — Pro-Link{% endblock %}
+{% block titulo %}{{ demanda.dem_titulo }} · Pro-Link{% endblock %}
 
 {% block conteudo %}
 {% set d = demanda %}
@@ -11,7 +11,7 @@
     {% if d.dem_local_municipio %}{{ d.dem_local_municipio }}{% if d.dem_local_uf %}/{{ d.dem_local_uf }}{% endif %} · {% endif %}
     {{ d.dem_tipo_contrato ?: 'Contrato a combinar' }} ·
     {% if d.dem_dt_publicacao is null %}
-        <span class="badge text-bg-secondary">Rascunho — só você vê</span>
+        <span class="badge text-bg-secondary">Rascunho, só você vê</span>
     {% elseif d.dem_situacao == 'ENCERRADA' %}
         <span class="badge text-bg-dark">Encerrada</span>
     {% elseif d.dem_situacao == 'COM_INTERESSADOS' %}
@@ -29,7 +29,7 @@
         <h2 class="h5 mt-4">Atividades da Tabela de Obras e Serviços</h2>
         <p class="text-body-secondary small">
             É por estes códigos que a plataforma encontra quem já comprovou fazer este tipo de
-            serviço — a ART registrada no CREA aponta para os mesmos códigos.
+            serviço: a ART registrada no CREA aponta para os mesmos códigos.
         </p>
 
         {% if d.tos is empty %}

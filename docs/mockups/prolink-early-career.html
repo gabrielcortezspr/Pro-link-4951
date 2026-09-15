@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pro-Link · Perfil em construção</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* ===== Pro-Link Design System (canônico, inline). Classes prefixadas pl- para não colidir com Bootstrap. ===== */
+:root{
+  --app-bg:#FBFAF6; --page:#F2EEE7; --card:#FFFFFF; --border:#EDE8DE; --border-2:#F7F3EC;
+  --ink:#0E1726; --muted:#5B6B82;
+  --faint:#8A9BB4;        /* decorativo, nunca texto */
+  --faint-2:#61708A;      /* texto secundário acessível */
+  --navy:#0B2A4A; --navy-2:#12315A; --blue:#2E6BE6; --blue-2:#63A0F0; --blue-100:#EAF1FE;
+  --seal:#0E7C86; --seal-bg:#E3F3F5; --seal-border:#BFE4E8;   /* verde água = só verificação */
+  --petrol:#1B4079;                                           /* azul escuro = barra de dado + outline */
+  --accent:#F26B21; --accent-2:#ff8a3d;                       /* laranja = única ação preenchida */
+  --ok:#1FA971; --ok-bg:#E7F6EF;
+  --build-ink:#61708A; --build-bg:#F7F5F0; --build-br:#E2DCD1; /* marcador de perfil em construção: neutro */
+  --r:12px;
+  --spring:cubic-bezier(.22,1.15,.36,1);
+  --display:"Space Grotesk",system-ui,sans-serif; --body:"Inter",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--body);line-height:1.55;-webkit-font-smoothing:antialiased}
+a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+.pl-outer{max-width:1280px;margin:0 auto;padding:34px 20px 70px}
+.pl-h1{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;letter-spacing:-.02em}
+.pl-lead{color:var(--muted);font-size:14px;margin:0 0 8px;max-width:86ch}
+.pl-cap{display:flex;align-items:center;gap:10px;margin:38px 0 12px;flex-wrap:wrap}
+.pl-cap .n{font-family:var(--display);font-weight:700;color:var(--blue);font-size:18px}
+.pl-cap h2{font-family:var(--display);font-weight:600;font-size:16px;margin:0}
+.pl-cap .rf{font-size:11.5px;color:var(--faint-2);border:1px solid var(--border);padding:3px 9px;border-radius:20px;background:var(--card)}
+.pl-note{font-size:12.5px;color:var(--faint-2);margin:0 0 12px;max-width:86ch}
+.pl-frame{position:relative;border-radius:18px;overflow:hidden;border:1px solid #cdd8e8;box-shadow:0 18px 44px rgba(11,42,74,.14);background:var(--app-bg)}
+.pl-pad{padding:clamp(22px,3vw,38px)}
+.pl-seal{width:18px;height:18px;flex:none}
+.pl-vmark{width:15px;height:15px;flex:none;vertical-align:-2px}
+
+/* ===== MARCADOR: perfil em construção (neutro, nunca semântico) ===== */
+.pl-building{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;
+  color:var(--build-ink);background:var(--build-bg);border:1px solid var(--build-br);
+  border-radius:8px;padding:4px 9px;white-space:nowrap;line-height:1.3}
+.pl-building svg{width:13px;height:13px;flex:none}
+
+/* ===== botões ===== */
+.pl-cta{display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 22px;border:0;border-radius:14px;cursor:pointer;
+  background:linear-gradient(135deg,var(--accent-2),var(--accent));color:#fff;font-family:var(--body);font-weight:600;font-size:14px;
+  box-shadow:0 10px 24px rgba(242,107,33,.28);transition:transform .18s var(--spring),box-shadow .18s ease}
+.pl-cta:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(242,107,33,.34)}
+.pl-btn-sec{display:inline-flex;align-items:center;height:48px;padding:0 20px;border-radius:14px;border:1px solid var(--petrol);background:transparent;
+  color:var(--petrol);font-family:var(--body);font-weight:600;font-size:13.5px;cursor:pointer;transition:background .15s ease}
+.pl-btn-sec:hover{background:rgba(27,64,121,.06)}
+.pl-btn-sm{display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 14px;border-radius:var(--r);
+  border:1px solid var(--petrol);background:transparent;color:var(--petrol);font-family:var(--body);font-weight:600;font-size:13px;cursor:pointer}
+.pl-link{display:inline-flex;align-items:center;gap:7px;color:var(--blue);font-weight:600;font-size:13.5px;text-decoration:none;border-radius:4px}
+.pl-link:hover{text-decoration:underline}
+.pl-link svg{width:15px;height:15px;flex:none}
+
+/* ===== átomos DS ===== */
+.pl-pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:20px;white-space:nowrap}
+.pl-pill.ok{color:#0F6B47;background:var(--ok-bg)} .pl-pill.ok .pd{width:6px;height:6px;border-radius:50%;background:var(--ok)}
+.pl-toschip{display:inline-flex;align-items:center;gap:7px;background:var(--blue-100);color:#215ac2;border-radius:8px;padding:3px 9px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.pl-toschip .code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:500;color:#2F5AA8;font-size:10.5px}
+.pl-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:0 8px 22px rgba(11,42,74,.05)}
+.pl-rowhead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.pl-rowhead .t{font-family:var(--display);font-weight:600;font-size:15px;margin:0}
+.pl-rowhead .subt{color:var(--muted);font-size:12.5px;margin:2px 0 0}
+
+/* ===== TELA 1: palco do feed imersivo (fiel à v3) ===== */
+.pl-stage{position:relative;display:grid;place-items:center;padding:38px 40px 46px;overflow:hidden;min-height:660px}
+#motif{position:absolute;inset:0;z-index:0;pointer-events:none}
+.pl-stage::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(118% 68% at 50% 36%,#FFFFFF 0%,rgba(255,255,255,.86) 34%,rgba(251,250,246,0) 66%)}
+.pl-track{position:relative;z-index:2;width:min(660px,100%);display:flex;flex-direction:column;align-items:center}
+.pl-focus{position:relative;z-index:2;width:100%;min-height:560px;display:flex;flex-direction:column;
+  background:var(--card);border:1px solid var(--border);border-radius:26px;padding:46px 48px 40px;
+  box-shadow:0 2px 3px rgba(11,42,74,.04),0 34px 70px rgba(11,42,74,.13)}
+.pl-av{width:72px;height:72px;border-radius:20px;display:grid;place-items:center;color:#fff;font-weight:700;font-family:var(--display);font-size:25px;
+  background:linear-gradient(135deg,var(--navy-2),var(--blue));box-shadow:0 12px 26px rgba(19,49,90,.24);flex:none}
+.pl-name{font-family:var(--display);font-weight:600;font-size:42px;line-height:1.08;letter-spacing:-.03em;margin:22px 0 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pl-name .pl-seal{width:22px;height:22px}
+.pl-meta{font-size:13.5px;color:var(--muted);margin:8px 0 0}
+/* o marcador vive AQUI: colado no acervo, longe do nome */
+.pl-acervo{font-size:13.5px;color:var(--ink);margin:4px 0 0;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.pl-adher{margin-top:34px}
+.pl-adher .lb{font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--faint-2);margin:0 0 14px}
+.pl-dim{position:relative;display:grid;grid-template-columns:128px 1fr 44px;align-items:center;gap:16px;margin-bottom:14px;border-radius:8px}
+.pl-dim:last-child{margin-bottom:0}
+.pl-dim .dlab{font-size:13px;color:var(--muted);line-height:1}
+.pl-dim .pct{font-size:13px;font-weight:600;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums;line-height:1}
+.pl-bar{height:8px;background:#F1EDE5;border-radius:6px;overflow:hidden}
+.pl-bar span{display:block;height:100%;border-radius:6px;background:var(--petrol);width:0;transition:width .68s var(--spring)}
+.pl-tip{position:absolute;left:144px;right:0;bottom:calc(100% + 10px);z-index:8;
+  background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px 13px;
+  font-size:12px;line-height:1.5;color:var(--muted);box-shadow:0 14px 30px rgba(11,42,74,.14);
+  opacity:0;visibility:hidden;transform:translateY(4px);pointer-events:none;
+  transition:opacity .16s ease,transform .16s var(--spring),visibility .16s}
+.pl-tip b{display:block;color:var(--ink);font-weight:600;margin-bottom:3px}
+.pl-tip .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--ink)}
+.pl-dim:hover .pl-tip,.pl-dim:focus-visible .pl-tip{opacity:1;visibility:visible;transform:none}
+.pl-disc{margin-top:26px;align-self:flex-start;display:inline-flex;align-items:center;gap:7px;background:none;border:0;padding:0;cursor:pointer;
+  font-family:var(--body);font-size:12.5px;font-weight:600;color:var(--muted);transition:color .15s ease}
+.pl-disc:hover{color:var(--petrol)}
+.pl-disc svg{width:14px;height:14px;transition:transform .28s var(--spring)}
+.pl-disc[aria-expanded="true"] svg{transform:rotate(180deg)}
+.pl-more{display:grid;grid-template-rows:0fr;opacity:0;margin-top:0;
+  transition:grid-template-rows .34s var(--spring),opacity .22s ease,margin-top .34s ease}
+.pl-more>.inner{overflow:hidden}
+.pl-more.is-open{grid-template-rows:1fr;opacity:1;margin-top:16px}
+.pl-more .ev{font-size:13px;color:var(--ink);line-height:1.6;margin:0;padding-left:14px;border-left:2px solid var(--petrol)}
+.pl-more .ev .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;font-weight:600}
+.pl-more .fine{font-size:11.5px;color:var(--faint-2);line-height:1.5;margin:14px 0 0;display:flex;align-items:flex-start;gap:7px}
+.pl-more .fine svg{width:13px;height:13px;flex:none;margin-top:2px}
+.pl-actions{margin-top:34px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pl-peek{position:relative;z-index:1;margin-top:-16px;width:88%;background:var(--card);border:1px solid var(--border);border-top:0;
+  border-radius:0 0 22px 22px;padding:26px 34px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;font-family:var(--body);
+  box-shadow:0 20px 34px rgba(11,42,74,.07);
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 38%,transparent 100%);mask-image:linear-gradient(180deg,#000 0%,#000 38%,transparent 100%);
+  transition:transform .2s var(--spring)}
+.pl-peek:hover{transform:translateY(3px)}
+.pl-peek .pav{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#fff;font-weight:600;font-family:var(--display);font-size:11px;
+  background:linear-gradient(135deg,var(--navy-2),var(--blue));flex:none;filter:saturate(.3) opacity(.7)}
+.pl-peek .pn{font-family:var(--display);font-weight:600;font-size:15px;color:var(--faint-2);letter-spacing:-.01em}
+.pl-rail{position:absolute;right:18px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:16px;z-index:4}
+.pl-arrow{width:42px;height:42px;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;
+  display:grid;place-items:center;box-shadow:0 6px 16px rgba(11,42,74,.08);transition:color .15s ease,border-color .15s ease,transform .18s var(--spring)}
+.pl-arrow:hover{color:var(--petrol);border-color:#cdd8e8;transform:translateY(-2px)}
+.pl-arrow svg{width:18px;height:18px}
+.pl-progress{position:relative;width:2px;height:132px;border-radius:2px;background:#E6E1D8;overflow:hidden;margin:2px 0}
+.pl-thumb{position:absolute;left:0;width:2px;border-radius:2px;background:var(--petrol);opacity:.5}
+
+/* ===== TELA 2: perfil visto pelo próprio ===== */
+.pl-selfrow{display:flex;align-items:center;gap:16px;margin-top:18px;flex-wrap:wrap}
+.pl-avmd{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;color:#fff;font-weight:700;font-family:var(--display);font-size:18px;
+  background:linear-gradient(135deg,var(--navy-2),var(--blue));flex:none}
+.pl-selfrow .nm{font-family:var(--display);font-weight:600;font-size:17px;line-height:1.25;display:flex;align-items:center;gap:8px}
+.pl-selfrow .mt{color:var(--muted);font-size:12.5px;margin-top:2px}
+.pl-acline{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:8px;font-size:13px}
+/* microcopy acolhedora: só o dono do perfil vê */
+.pl-support{margin-top:18px;background:var(--build-bg);border:1px solid var(--build-br);border-radius:var(--r);
+  padding:14px 16px;display:flex;gap:11px;align-items:flex-start}
+.pl-support .ic{width:17px;height:17px;flex:none;color:var(--build-ink);margin-top:2px}
+.pl-support p{margin:0;font-size:13px;color:var(--ink);line-height:1.55}
+.pl-support .act{margin-top:10px}
+
+/* ===== TELA 3: perfil visto pela empresa ===== */
+.pl-phead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.pl-pid{display:flex;gap:14px;align-items:center}
+.pl-pid .av{width:58px;height:58px;border-radius:16px;background:linear-gradient(135deg,var(--navy-2),var(--blue));display:grid;place-items:center;color:#fff;font-weight:700;font-family:var(--display);font-size:18px;flex:none}
+.pl-pid h4{font-family:var(--display);font-size:18px;font-weight:600;margin:0 0 2px;display:flex;align-items:center;gap:8px}
+.pl-pid .mt{font-size:12.5px;color:var(--muted);margin:0}
+.pl-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:14px}
+.pl-table thead th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;padding:0 12px 10px;border-bottom:1px solid var(--border)}
+.pl-table tbody td{padding:13px 12px;border-bottom:1px solid var(--border-2);vertical-align:middle}
+.pl-table tbody tr:last-child td{border-bottom:0}
+.pl-table td.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--muted)}
+.pl-endact{display:flex;justify-content:flex-end;margin-top:18px}
+
+/* ===== TELA 4: busca ===== */
+.pl-searchrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.pl-sbar{flex:1;min-width:240px;height:46px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);display:flex;align-items:center;gap:9px;padding:0 14px;color:var(--ink);font-size:14px}
+.pl-sbar svg{width:16px;height:16px;flex:none}
+.pl-sel{height:46px;border-radius:var(--r);border:1px solid var(--border);background:var(--card);color:var(--ink);font-family:var(--body);font-size:14px;padding:0 36px 0 12px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235B6B82' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;cursor:pointer}
+/* toggle do filtro: mesmo gabarito de altura dos outros campos */
+.pl-filter{height:46px;display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:0 14px}
+.pl-filter .txt{display:flex;flex-direction:column;line-height:1.2}
+.pl-filter .lb{font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
+.pl-filter .hint{font-size:11px;color:var(--faint-2)}
+.pl-switch{position:relative;display:inline-block;width:40px;height:23px;flex:none}
+.pl-switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:2}
+.pl-switch .track{position:absolute;inset:0;background:#DDD8CE;border-radius:20px;transition:background .2s ease;pointer-events:none}
+.pl-switch .track:before{content:"";position:absolute;width:17px;height:17px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s var(--spring);box-shadow:0 1px 3px rgba(11,42,74,.28)}
+.pl-switch input:checked ~ .track{background:var(--petrol)}
+.pl-switch input:checked ~ .track:before{transform:translateX(17px)}
+.pl-switch input:focus-visible ~ .track{outline:2px solid var(--blue);outline-offset:2px}
+.pl-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:6px 0 16px}
+.pl-count{font-family:var(--display);font-weight:600;font-size:15px}
+.pl-vis{font-size:12.5px;color:var(--faint-2);display:inline-flex;align-items:center;gap:7px}
+.pl-vis svg{width:14px;height:14px;flex:none}
+.pl-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.pl-rescard{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 8px 22px rgba(11,42,74,.05);display:flex;flex-direction:column;gap:14px}
+.pl-rescard.is-extra{animation:fadeUp .34s var(--spring)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.pl-rh{display:flex;gap:12px;align-items:center}
+.pl-rh .av{width:50px;height:50px;border-radius:14px;display:grid;place-items:center;color:#fff;font-weight:600;font-family:var(--display);font-size:16px;flex:none;background:linear-gradient(135deg,var(--blue-2),var(--blue))}
+.pl-rh .nm{font-family:var(--display);font-weight:600;font-size:16px;margin:0;display:flex;align-items:center;gap:7px}
+.pl-rh .mt{font-size:12.5px;color:var(--muted);margin:2px 0 0}
+/* na busca o marcador também fica na linha do acervo */
+.pl-metae{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);border-top:1px solid var(--border-2);padding-top:13px}
+.pl-metae b{color:var(--ink);font-family:var(--display)}
+.pl-achip{font-size:11px;font-weight:600;color:#215ac2;background:var(--blue-100);border-radius:20px;padding:4px 10px;white-space:nowrap}
+.pl-resbtn{height:40px;width:100%;border-radius:var(--r);border:1px solid var(--petrol);color:var(--petrol);background:transparent;font-family:var(--body);font-weight:600;font-size:13.5px;cursor:pointer}
+.pl-resbtn:hover{background:rgba(27,64,121,.06)}
+[hidden]{display:none !important}
+
+/* ===== ficha de regras do marcador ===== */
+.pl-rules{margin-top:38px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:0 8px 22px rgba(11,42,74,.05)}
+.pl-rules h3{font-family:var(--display);font-size:15px;font-weight:600;margin:0 0 4px}
+.pl-rules .sub{font-size:12.5px;color:var(--muted);margin:0 0 16px}
+.pl-rules dl{margin:0;display:grid;grid-template-columns:170px 1fr;gap:10px 18px;font-size:13px}
+.pl-rules dt{color:var(--faint-2);font-weight:600}
+.pl-rules dd{margin:0}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.12s !important;transition-delay:0ms !important}
+  .pl-cta:hover,.pl-arrow:hover,.pl-peek:hover{transform:none !important}
+}
+@media (max-width:900px){
+  .pl-stage{padding:24px 20px 40px;min-height:0}
+  .pl-focus{padding:34px 28px 30px;min-height:0}
+  .pl-name{font-size:32px}
+  .pl-dim{grid-template-columns:104px 1fr 40px;gap:12px}
+  .pl-tip{left:0}
+  .pl-rail{right:6px}
+  .pl-grid3{grid-template-columns:1fr 1fr}
+  .pl-rules dl{grid-template-columns:1fr}
+}
+@media (max-width:620px){ .pl-grid3{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- selo de verificação: verde água, uso exclusivo -->
+  <symbol id="seal" viewBox="0 0 40 40"><polygon points="39,20 34.5,23.9 36.5,29.5 30.6,30.6 29.5,36.5 23.9,34.5 20,39 16.1,34.5 10.5,36.5 9.4,30.6 3.6,29.5 5.5,23.9 1,20 5.5,16.1 3.6,10.5 9.4,9.4 10.5,3.6 16.1,5.5 20,1 23.9,5.5 29.5,3.6 30.6,9.4 36.5,10.5 34.5,16.1" fill="#0E7C86"/><path d="M13.5 20.5l4 4l9 -10" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="seal-x" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18.5" fill="#8895A8"/><path d="M14.5 14.5l11 11M25.5 14.5l-11 11" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <!-- marcador: fiada assentada + fiada por assentar. Linguagem de obra, não de alerta. -->
+  <symbol id="ic-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 20.5h18"/><rect x="5" y="13.2" width="14" height="5.8" rx="1.5"/><rect x="7.6" y="5.4" width="8.8" height="5.4" rx="1.5" stroke-dasharray="2.7 2.3"/>
+  </symbol>
+</svg>
+
+<div class="pl-outer">
+  <h1 class="pl-h1">Perfil em construção</h1>
+  <p class="pl-lead">O backend marca <code>prf_em_construcao = 1</code> quando o profissional tem menos de 3 ARTs verificadas, limiar definido como parâmetro pelo administrador. O perfil marcado <strong>nunca sai do pool de compatíveis</strong> e nunca perde posição, porque não existe posição: a ordem é aleatória por sessão. A marca só dá contexto de leitura do acervo. Esta é a mitigação de viés declarada no item 12.3 da entrega: incluir sem igualar ao experiente, e sem rebaixar.</p>
+  <p class="pl-note">Regra de posicionamento adotada nas quatro telas: o marcador aparece sempre colado à contagem de acervo, nunca ao lado do nome. Acervo é dado; nome é identidade.</p>
+
+  <!-- =========================== 01 =========================== -->
+  <div class="pl-cap"><span class="n">01</span><h2>Card do feed imersivo, candidata com acervo em formação</h2><span class="rf">RF04 · visão da empresa</span></div>
+  <p class="pl-note">Diferença em relação ao card normal da v3: uma única adição, o chip ao lado de "2 ARTs verificadas". Barras de aderência, evidência, selo, ações e hierarquia permanecem exatamente iguais.</p>
+  <div class="pl-frame">
+    <section class="pl-stage" id="stage" aria-label="Card do feed de compatíveis">
+      <canvas id="motif" aria-hidden="true"></canvas>
+
+      <div class="pl-track">
+        <article class="pl-focus">
+          <span class="pl-av">TN</span>
+          <h2 class="pl-name">Talita Nogueira <svg class="pl-seal" role="img" aria-label="Perfil verificado pela API do CREA-AM"><use href="#seal"/></svg></h2>
+          <p class="pl-meta">Engenharia Civil · Manaus, AM</p>
+          <p class="pl-acervo">
+            <span>2 ARTs verificadas</span>
+            <svg class="pl-vmark" role="img" aria-label="Verificado pela API do CREA-AM"><use href="#seal"/></svg>
+            <span class="pl-building"><svg aria-hidden="true"><use href="#ic-building"/></svg>Perfil em construção</span>
+          </p>
+
+          <div class="pl-adher">
+            <p class="lb">Aderência a esta demanda</p>
+
+            <div class="pl-dim" tabindex="0" aria-describedby="t1">
+              <span class="dlab">Atividade TOS</span>
+              <div class="pl-bar"><span data-w="90"></span></div>
+              <span class="pct">90%</span>
+              <div class="pl-tip" id="t1" role="tooltip"><b>Atividade TOS 90%</b>As duas ARTs do acervo estão na mesma linha estrutural, e a <span class="mono">AM20269992576</span> cobre o <span class="mono">TOS 1.1.2.3</span>, a mesma atividade da demanda.</div>
+            </div>
+            <div class="pl-dim" tabindex="0" aria-describedby="t2">
+              <span class="dlab">Modalidade</span>
+              <div class="pl-bar"><span data-w="100"></span></div>
+              <span class="pct">100%</span>
+              <div class="pl-tip" id="t2" role="tooltip"><b>Modalidade 100%</b>Registro ativo em Engenharia Civil no CREA-AM, a modalidade exigida por esta demanda. O pool já é filtrado por modalidade.</div>
+            </div>
+            <div class="pl-dim" tabindex="0" aria-describedby="t3">
+              <span class="dlab">Localização</span>
+              <div class="pl-bar"><span data-w="100"></span></div>
+              <span class="pct">100%</span>
+              <div class="pl-tip" id="t3" role="tooltip"><b>Localização 100%</b>Atuação registrada em Manaus, AM, o mesmo município da obra.</div>
+            </div>
+            <div class="pl-dim" tabindex="0" aria-describedby="t4">
+              <span class="dlab">Disponível</span>
+              <div class="pl-bar"><span data-w="100"></span></div>
+              <span class="pct">100%</span>
+              <div class="pl-tip" id="t4" role="tooltip"><b>Disponível 100%</b>Disponibilidade integral no período, informada pela profissional. Dado não verificado pela API.</div>
+            </div>
+          </div>
+
+          <button class="pl-disc" id="disc" aria-expanded="false" aria-controls="more">
+            Por que compatível
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="pl-more" id="more">
+            <div class="inner">
+              <p class="ev">A ART <span class="mono">AM20269992576</span> cobre o <span class="mono">TOS 1.1.2.3</span> em reforço de estrutura metálica de galpão, e a segunda ART do acervo está no mesmo grupo estrutural. Sem CAT vinculada a esta atividade. Registro CREA-AM <span class="mono">AM131204</span>, RNP <span class="mono">0412341455</span>, ativo na modalidade requerida.</p>
+              <p class="fine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2" stroke-linecap="round"/></svg><span>Snapshot do perfil no momento do match, 14/09/2026. Edições posteriores da profissional não alteram o que está exibido aqui.</span></p>
+              <p class="fine"><svg role="img" aria-label="Não verificado"><use href="#seal-x"/></svg><span>Disponibilidade e tipo de contrato são informados pela profissional e não passam pela verificação da API.</span></p>
+            </div>
+          </div>
+
+          <div class="pl-actions">
+            <button class="pl-cta">Manifestar interesse</button>
+            <button class="pl-btn-sec">Ver perfil completo</button>
+          </div>
+        </article>
+
+        <button class="pl-peek" aria-label="Ir para o próximo profissional do pool">
+          <span class="pav" aria-hidden="true">BT</span>
+          <span class="pn" aria-hidden="true">Bruno Tavares</span>
+        </button>
+      </div>
+
+      <div class="pl-rail">
+        <button class="pl-arrow" aria-label="Profissional anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg></button>
+        <div class="pl-progress" aria-hidden="true"><span class="pl-thumb" style="height:14px;transform:translateY(50px)"></span></div>
+        <button class="pl-arrow" aria-label="Próximo profissional"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+      </div>
+    </section>
+  </div>
+
+  <!-- =========================== 02 =========================== -->
+  <div class="pl-cap"><span class="n">02</span><h2>Perfil visto pelo próprio profissional</h2><span class="rf">RF01 · microcopy de apoio</span></div>
+  <p class="pl-note">Só aqui aparece a copy acolhedora e a saída construtiva. É a única tela em que o sistema fala com a pessoa marcada.</p>
+  <div class="pl-frame"><div class="pl-pad">
+    <div class="pl-card">
+      <div class="pl-rowhead">
+        <div>
+          <p class="t">Seu perfil</p>
+          <p class="subt">Como as empresas veem sua verificação</p>
+        </div>
+        <span class="pl-pill ok"><span class="pd"></span>Perfil público</span>
+      </div>
+
+      <div class="pl-selfrow">
+        <span class="pl-avmd">TN</span>
+        <div style="flex:1;min-width:200px">
+          <div class="nm">Talita Nogueira <svg class="pl-seal" role="img" aria-label="Perfil verificado pela API do CREA-AM"><use href="#seal"/></svg></div>
+          <div class="mt">Engenharia Civil · RNP 0412341455 · Registro CREA-AM AM131204</div>
+          <div class="pl-acline">
+            <span>2 ARTs verificadas</span>
+            <svg class="pl-vmark" role="img" aria-label="Verificado pela API do CREA-AM"><use href="#seal"/></svg>
+            <span class="pl-building"><svg aria-hidden="true"><use href="#ic-building"/></svg>Perfil em construção</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pl-support">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#ic-building"/></svg>
+        <div>
+          <p>Perfil em construção. Seu acervo está começando; você continua aparecendo nas recomendações normalmente.</p>
+          <div class="act">
+            <a class="pl-link" href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+              Associar nova ART
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+
+  <!-- =========================== 03 =========================== -->
+  <div class="pl-cap"><span class="n">03</span><h2>Perfil visto pela empresa</h2><span class="rf">RF05 · copy neutra</span></div>
+  <p class="pl-note">Mesma marca, leitura de contexto e nada mais. Sem acolhimento, sem justificativa, sem pedido de complacência: a empresa recebe um fato sobre o acervo.</p>
+  <div class="pl-frame"><div class="pl-pad">
+    <div class="pl-card">
+      <div class="pl-phead">
+        <div class="pl-pid">
+          <span class="av">TN</span>
+          <div>
+            <h4>Talita Nogueira <svg class="pl-seal" role="img" aria-label="Perfil verificado pela API do CREA-AM"><use href="#seal"/></svg></h4>
+            <p class="mt">RNP 0412341455 · Registro CREA-AM AM131204 · Engenharia Civil · Manaus, AM</p>
+            <div class="pl-acline">
+              <span>2 ARTs verificadas</span>
+              <svg class="pl-vmark" role="img" aria-label="Verificado pela API do CREA-AM"><use href="#seal"/></svg>
+              <span class="pl-building"><svg aria-hidden="true"><use href="#ic-building"/></svg>Perfil em construção · acervo em formação</span>
+            </div>
+          </div>
+        </div>
+        <span class="pl-pill ok"><span class="pd"></span>Registro ativo</span>
+      </div>
+    </div>
+
+    <div class="pl-card" style="margin-top:16px">
+      <div class="pl-rowhead">
+        <div>
+          <p class="t">Acervo de ARTs</p>
+          <p class="subt">Validadas via API oficial do CREA-AM</p>
+        </div>
+      </div>
+      <table class="pl-table">
+        <thead><tr><th>ART</th><th>Objeto</th><th>Contratante</th><th>Atividade TOS</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="mono">AM20269992576 <svg class="pl-vmark" role="img" aria-label="Verificado"><use href="#seal"/></svg></td>
+            <td>Reforço de estrutura metálica de galpão</td>
+            <td>Amazonas Logística Ltda</td>
+            <td><span class="pl-toschip">Estruturas <span class="code">TOS 1.1.2.3</span></span></td>
+          </tr>
+          <tr>
+            <td class="mono">AM20269993118 <svg class="pl-vmark" role="img" aria-label="Verificado"><use href="#seal"/></svg></td>
+            <td>Recuperação de cobertura metálica</td>
+            <td>Cooperativa Agroindustrial do Amazonas</td>
+            <td><span class="pl-toschip">Estruturas <span class="code">TOS 1.1.2.5</span></span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pl-endact">
+      <button class="pl-cta">Manifestar interesse</button>
+    </div>
+  </div></div>
+
+  <!-- =========================== 04 =========================== -->
+  <div class="pl-cap"><span class="n">04</span><h2>Busca ativa com o filtro opt-in</h2><span class="rf">RF01 · desligado por padrão</span></div>
+  <p class="pl-note">A busca ativa é o único lugar onde a marca vira filtro, e ele nasce desligado. O feed passivo continua sem filtro nenhum: lá o perfil em construção sempre entra no pool.</p>
+  <div class="pl-frame"><div class="pl-pad">
+
+    <div class="pl-searchrow">
+      <div class="pl-sbar">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="#8A9BB4" stroke-width="2"/><path d="M20 20l-3.6-3.6" stroke="#8A9BB4" stroke-width="2" stroke-linecap="round"/></svg>
+        reforço estrutural
+      </div>
+      <select class="pl-sel" aria-label="Filtrar por modalidade"><option>Modalidade: todas</option><option>Engenharia Civil</option><option>Engenharia Elétrica</option></select>
+      <select class="pl-sel" aria-label="Filtrar por local"><option>Local: Amazonas</option><option>Manaus</option><option>Interior</option></select>
+      <div class="pl-filter">
+        <span class="pl-switch">
+          <input type="checkbox" id="fBuild" aria-describedby="fBuildHint">
+          <span class="track" aria-hidden="true"></span>
+        </span>
+        <span class="txt">
+          <label class="lb" for="fBuild">Incluir perfis em construção</label>
+          <span class="hint" id="fBuildHint">Acervo com menos de 3 ARTs. <span id="fCount">+3 perfis</span></span>
+        </span>
+      </div>
+    </div>
+
+    <div class="pl-toolbar">
+      <span class="pl-count" id="resCount">7 profissionais encontrados</span>
+      <span class="pl-vis">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9.5" rx="2" fill="#8A9BB4"/><path d="M8 10.5V8a4 4 0 018 0v2.5" stroke="#8A9BB4" stroke-width="2"/></svg>
+        Só perfis que autorizaram busca sem cadastro
+      </span>
+    </div>
+
+    <div class="pl-grid3">
+      <div class="pl-rescard">
+        <div class="pl-rh"><span class="av">MB</span><div><p class="nm">Marina Braga <svg class="pl-vmark" role="img" aria-label="Verificado"><use href="#seal"/></svg></p><p class="mt">Eng. Civil · Manaus, AM</p></div></div>
+        <div class="pl-metae"><span><b>14</b> ARTs</span><span><b>3</b> CATs</span><span class="pl-achip">Estrutural</span></div>
+        <button class="pl-resbtn">Ver perfil</button>
+      </div>
+      <div class="pl-rescard">
+        <div class="pl-rh"><span class="av" style="background:linear-gradient(135deg,#12315A,#2E6BE6)">DC</span><div><p class="nm">Davi Castro <svg class="pl-vmark" role="img" aria-label="Verificado"><use href="#seal"/></svg></p><p class="mt">Eng. Civil · Manaus, AM</p></div></div>
+        <div class="pl-metae"><span><b>9</b> ARTs</span><span class="pl-achip">Fundações</span></div>
+        <button class="pl-resbtn">Ver perfil</button>
+      </div>
+      <div class="pl-rescard">
+        <div class="pl-rh"><span class="av" style="background:linear-gradient(135deg,#9FC3FF,#63A0F0)">AF</span><div><p class="nm">Alice Fernandes <svg class="pl-vmark" role="img" aria-label="Verificado"><use href="#seal"/></svg></p><p class="mt">Eng. Civil · Iranduba, AM</p></div></div>
+        <div class="pl-metae"><span><b>6</b> ARTs</span><span class="pl-achip">Hidrossanitário</span></div>
+        <button class="pl-resbtn">Ver perfil</button>
+      </div>
+
+      <div class="pl-rescard is-extra" data-extra hidden>
+        <div class="pl-rh"><span class="av">TN</span><div><p class="nm">Talita Nogueira <svg class="pl-vmark" role="img" aria-label="Verificado"><use href="#seal"/></svg></p><p class="mt">Eng. Civil · Manaus, AM</p></div></div>
+        <div class="pl-metae"><span><b>2</b> ARTs</span><span class="pl-building"><svg aria-hidden="true"><use href="#ic-building"/></svg>Em construção</span></div>
+        <button class="pl-resbtn">Ver perfil</button>
+      </div>
+      <div class="pl-rescard is-extra" data-extra hidden>
+        <div class="pl-rh"><span class="av" style="background:linear-gradient(135deg,#12315A,#2E6BE6)">IS</span><div><p class="nm">Igor Sampaio <svg class="pl-vmark" role="img" aria-label="Verificado"><use href="#seal"/></svg></p><p class="mt">Eng. Civil · Iranduba, AM</p></div></div>
+        <div class="pl-metae"><span><b>1</b> ART</span><span class="pl-building"><svg aria-hidden="true"><use href="#ic-building"/></svg>Em construção</span></div>
+        <button class="pl-resbtn">Ver perfil</button>
+      </div>
+      <div class="pl-rescard is-extra" data-extra hidden>
+        <div class="pl-rh"><span class="av" style="background:linear-gradient(135deg,#9FC3FF,#63A0F0)">NF</span><div><p class="nm">Núbia Farias <svg class="pl-vmark" role="img" aria-label="Verificado"><use href="#seal"/></svg></p><p class="mt">Eng. Civil · Manaus, AM</p></div></div>
+        <div class="pl-metae"><span><b>2</b> ARTs</span><span><b>1</b> CAT</span><span class="pl-building"><svg aria-hidden="true"><use href="#ic-building"/></svg>Em construção</span></div>
+        <button class="pl-resbtn">Ver perfil</button>
+      </div>
+    </div>
+
+    <p class="vs-only" role="status" aria-live="polite" id="resLive" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap"></p>
+  </div></div>
+
+  <!-- ficha de regras -->
+  <div class="pl-rules">
+    <h3>Regras do marcador</h3>
+    <p class="sub">Fixadas para as quatro telas, e para qualquer tela futura que exiba um perfil marcado.</p>
+    <dl>
+      <dt>Gatilho</dt><dd>Backend liga <code>prf_em_construcao</code> quando o acervo verificado tem menos de 3 ARTs. O limiar é parâmetro do administrador, não constante de código.</dd>
+      <dt>Efeito no motor</dt><dd>Nenhum. Não entra no cálculo de aderência, não altera a ordem aleatória por sessão, não remove do pool.</dd>
+      <dt>Posição</dt><dd>Sempre adjacente à contagem de acervo. Nunca ao lado do nome, do avatar ou do selo de verificação.</dd>
+      <dt>Cor</dt><dd>Neutro do sistema, texto <code>#61708A</code> sobre fundo <code>#F7F5F0</code>. Proibidos: amarelo de aviso, vermelho, verde água da verificação, e o cinza do símbolo de não verificado.</dd>
+      <dt>Ícone</dt><dd>Fiada assentada com a fiada seguinte pontilhada. Linguagem de obra em andamento. Proibidos: alerta, relógio, ampulheta, estrela.</dd>
+      <dt>Vocabulário</dt><dd>"Perfil em construção" e "acervo em formação". Proibidos: iniciante, júnior, novato, inexperiente, básico, limitado.</dd>
+      <dt>Copy por público</dt><dd>Ao dono do perfil: acolhedora, com saída construtiva. À empresa: fato neutro, sem adjetivo e sem pedido.</dd>
+      <dt>Filtro</dt><dd>Existe só na busca ativa, sempre desligado por padrão, e declara o efeito antes do clique. O feed passivo não tem esse filtro.</dd>
+    </dl>
+  </div>
+</div>
+
+<script>
+/* ===== motivo de fundo do palco: plano em perspectiva que ganha volume (tela 01) ===== */
+function drawMotif(){
+  const cv=document.getElementById('motif'), st=document.getElementById('stage');
+  if(!cv||!st) return;
+  const w=st.clientWidth, h=st.clientHeight;
+  if(!w||!h) return;
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
+  cv.style.width=w+'px'; cv.style.height=h+'px';
+  const g=cv.getContext('2d');
+  g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,w,h);
+  const vpx=w*0.5, vpy=h*0.24, base=h*1.06, INK='11,42,74';
+  const P=function(t,u){ const y=vpy+(base-vpy)*Math.pow(t,2.5); const s=(y-vpy)/(base-vpy); return {x:vpx+u*w*0.95*s, y:y}; };
+  g.lineWidth=1;
+  for(let r=1;r<=18;r++){
+    const t=r/18, a=P(t,-1.7), b=P(t,1.7);
+    g.strokeStyle='rgba('+INK+','+(0.010+0.038*t).toFixed(3)+')';
+    g.beginPath(); g.moveTo(a.x,a.y); g.lineTo(b.x,b.y); g.stroke();
+  }
+  for(let c=-9;c<=9;c++){
+    const u=c/5, a=P(0.035,u), b=P(1,u);
+    g.strokeStyle='rgba('+INK+',0.030)';
+    g.beginPath(); g.moveTo(a.x,a.y); g.lineTo(b.x,b.y); g.stroke();
+  }
+  const boxes=[{t1:.50,t2:.68,u1:-1.44,u2:-1.02},{t1:.62,t2:.84,u1:1.06,u2:1.52},{t1:.30,t2:.40,u1:.74,u2:1.00}];
+  boxes.forEach(function(b){
+    const c1=P(b.t1,b.u1), c2=P(b.t1,b.u2), c3=P(b.t2,b.u2), c4=P(b.t2,b.u1);
+    const hgt=(c4.y-c1.y)*2.7;
+    const t1=[c1.x,c1.y-hgt], t2=[c2.x,c2.y-hgt], t3=[c3.x,c3.y-hgt], t4=[c4.x,c4.y-hgt];
+    g.strokeStyle='rgba('+INK+',0.058)';
+    g.beginPath(); g.moveTo(c1.x,c1.y); g.lineTo(c2.x,c2.y); g.lineTo(c3.x,c3.y); g.lineTo(c4.x,c4.y); g.closePath(); g.stroke();
+    g.beginPath(); g.moveTo(t1[0],t1[1]); g.lineTo(t2[0],t2[1]); g.lineTo(t3[0],t3[1]); g.lineTo(t4[0],t4[1]); g.closePath(); g.stroke();
+    g.fillStyle='rgba('+INK+',0.016)';
+    g.beginPath(); g.moveTo(t1[0],t1[1]); g.lineTo(t2[0],t2[1]); g.lineTo(t3[0],t3[1]); g.lineTo(t4[0],t4[1]); g.closePath(); g.fill();
+    [[c1,t1],[c2,t2],[c3,t3],[c4,t4]].forEach(function(pr){
+      g.beginPath(); g.moveTo(pr[0].x,pr[0].y); g.lineTo(pr[1][0],pr[1][1]); g.stroke();
+    });
+  });
+}
+
+/* barras de aderência: preenchem no load (tela 01) */
+function fillBars(){
+  requestAnimationFrame(function(){
+    document.querySelectorAll('.pl-bar span[data-w]').forEach(function(s){ s.style.width=s.dataset.w+'%'; });
+  });
+}
+
+/* progressive disclosure (tela 01) */
+const disc=document.getElementById('disc'), more=document.getElementById('more');
+disc.addEventListener('click', function(){
+  const open=more.classList.toggle('is-open');
+  disc.setAttribute('aria-expanded', open ? 'true' : 'false');
+});
+
+/* filtro opt-in da busca (tela 04): OFF por padrão */
+const BASE=7, EXTRA=3;
+const fBuild=document.getElementById('fBuild');
+fBuild.checked=false;
+fBuild.addEventListener('change', function(){
+  const on=fBuild.checked;
+  document.querySelectorAll('[data-extra]').forEach(function(el){ el.hidden = !on; });
+  document.getElementById('resCount').textContent = (on ? BASE+EXTRA : BASE) + ' profissionais encontrados';
+  document.getElementById('fCount').textContent = on ? '3 perfis incluídos' : '+3 perfis';
+  document.getElementById('resLive').textContent = on
+    ? '3 perfis em construção incluídos nos resultados. Total de ' + (BASE+EXTRA) + ' profissionais.'
+    : 'Perfis em construção removidos dos resultados. Total de ' + BASE + ' profissionais.';
+});
+
+fillBars();
+drawMotif();
+window.addEventListener('load', drawMotif);
+let rz; window.addEventListener('resize', function(){ clearTimeout(rz); rz=setTimeout(drawMotif,150); });
+</script>
+</body>
+</html>

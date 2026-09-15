@@ -156,4 +156,21 @@ final class UsuarioRepository extends Repositorio
         $stmt = $this->pdo->prepare('UPDATE sis_usuarios SET usu_status = :excluido WHERE usu_id = :id');
         $stmt->execute([':excluido' => STATUS_EXCLUIDO, ':id' => $id]);
     }
+
+    /**
+     * Muda o status da conta. O bloqueio administrativo usa STATUS_INATIVO.
+     *
+     * Não reaproveita marcarExcluido: 'X' é exclusão a pedido do titular (D05) e 'I' é bloqueio
+     * pela moderação. Misturar os dois apaga na trilha a diferença entre quem saiu e quem foi
+     * barrado, que é justamente o que a auditoria precisa distinguir.
+     */
+    public function alterarStatus(int $id, string $status): void
+    {
+        $stmt = $this->pdo->prepare('UPDATE sis_usuarios SET usu_status = :status WHERE usu_id = :id');
+        $stmt->execute([':status' => $status, ':id' => $id]);
+    }
+
+    // A leitura da auditoria do titular saiu daqui para AuditoriaRepository::doUsuario(): query de
+    // sis_auditoria pertence ao repositório de auditoria, e mantê-la nos dois lugares deixaria a
+    // mesma consulta com duas donas.
 }

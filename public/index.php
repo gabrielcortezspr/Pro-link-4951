@@ -17,6 +17,7 @@ require_once dirname(__DIR__) . '/_config.php';
 use ProLink\Controller\AdminController;
 use ProLink\Controller\AuthController;
 use ProLink\Controller\DemandaController;
+use ProLink\Controller\DenunciaController;
 use ProLink\Controller\HomeController;
 use ProLink\Controller\PerfilController;
 use ProLink\Controller\PrivacidadeController;
@@ -85,8 +86,18 @@ $router->post('/demandas/{id}/tos',      DemandaController::class, 'alterarTos',
 $router->post('/demandas/{id}/publicar', DemandaController::class, 'publicar', PERFIS_DEMANDANTES);
 $router->post('/demandas/{id}/encerrar', DemandaController::class, 'encerrar', PERFIS_DEMANDANTES);
 
+// ---------------------------------------------------------------- denúncias (RF06)
+// Qualquer conta autenticada denuncia, inclusive Terceiro. Anônimo recebe 401.
+$router->get('/denuncias/nova', DenunciaController::class, 'formulario', PERFIS_AUTENTICADOS);
+$router->post('/denuncias',     DenunciaController::class, 'registrar',  PERFIS_AUTENTICADOS);
+
 // ---------------------------------------------------------------- administração (RF06)
 $router->get('/admin',                AdminController::class, 'index', PERFIL_ADMIN);
+$router->get('/admin/denuncias',      AdminController::class, 'denuncias', PERFIL_ADMIN);
+$router->get('/admin/auditoria',      AdminController::class, 'auditoria', PERFIL_ADMIN);
+// Depois da rota sem parâmetro: o Router percorre na ordem de registro, e {id} casaria antes.
+$router->get('/admin/denuncias/{id}',  AdminController::class, 'denuncia', PERFIL_ADMIN);
+$router->post('/admin/denuncias/{id}', AdminController::class, 'tratar',   PERFIL_ADMIN);
 
 // Próximas, na ordem do backlog: /perfil, /demandas — ver docs/backlog.md
 

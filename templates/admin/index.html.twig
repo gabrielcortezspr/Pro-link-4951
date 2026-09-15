@@ -1,8 +1,23 @@
-{% extends 'layout/base.html.twig' %}
+{% extends 'admin/_layout.html.twig' %}
 
-{% block titulo %}Administração — Pro-Link{% endblock %}
+{% block titulo %}Administração · Pro-Link{% endblock %}
+{% block titulo_painel %}Visão geral{% endblock %}
 
-{% block conteudo %}
-    <h1 class="h4">Painel administrativo</h1>
-    <p class="text-body-secondary">Moderação, auditoria, denúncias, indicadores e parâmetros entram na etapa E6.</p>
+{% block painel %}
+    <div class="row g-3">
+        {% for rotulo in ['Usuários', 'Demandas ativas', 'Manifestações', 'Denúncias abertas'] %}
+            <div class="col-6 col-lg-3">
+                <div class="pl-kpi">
+                    <div class="lab">{{ rotulo }}</div>
+                    {# Indicador ainda não medido. Um traço no tamanho do número lia como valor,
+                       e leitor de tela não lê traço nenhum: aqui o estado está escrito. #}
+                    <div class="val vazio">Não medido</div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <p class="pl-nota mt-3 mb-0">
+        Os indicadores entram em 15/09. Demandas e manifestações dependem da RF04 e da RF05.
+    </p>
 {% endblock %}

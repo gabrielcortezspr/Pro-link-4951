@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pro-Link · Feed de Compatíveis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* ===== Pro-Link Design System (canônico, inline) ===== */
+:root{
+  --app-bg:#FBFAF6; --page:#F2EEE7; --card:#FFFFFF; --border:#EDE8DE; --border-2:#F7F3EC;
+  --ink:#0E1726; --muted:#5B6B82;
+  --faint:#8A9BB4;        /* só elementos decorativos, nunca texto */
+  --faint-2:#61708A;      /* texto secundário acessível: 5.0:1 no branco, 4.8:1 no off-white */
+  --navy:#0B2A4A; --navy-2:#12315A; --blue:#2E6BE6; --blue-2:#63A0F0; --blue-100:#EAF1FE;
+  --seal:#0E7C86; --seal-bg:#E3F3F5; --seal-border:#BFE4E8;   /* verde água = só verificação */
+  --petrol:#1B4079;                                           /* azul escuro = barra de dado + outline secundário */
+  --accent:#F26B21; --accent-2:#ff8a3d;                       /* laranja = única ação preenchida */
+  --ok:#1FA971; --ok-bg:#E7F6EF; --danger:#E24A4A;
+  --r:12px;
+  --spring:cubic-bezier(.22,1.15,.36,1);   /* overshoot leve */
+  --display:"Space Grotesk",system-ui,sans-serif; --body:"Inter",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--body);line-height:1.55;-webkit-font-smoothing:antialiased}
+.outer{max-width:1360px;margin:0 auto;padding:34px 20px 70px}
+h1.pt{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;letter-spacing:-.02em}
+.lead{color:var(--muted);font-size:14px;margin:0 0 22px;max-width:88ch}
+.frame{position:relative;border-radius:18px;overflow:hidden;border:1px solid #cdd8e8;box-shadow:0 18px 44px rgba(11,42,74,.14);background:var(--app-bg)}
+.seal{width:18px;height:18px;flex:none}
+.vmark{width:15px;height:15px;flex:none;vertical-align:-2px}
+.vs-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* 5. anel de foco consistente em tudo que é interativo */
+a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+/* ===== app shell ===== */
+.app{display:grid;grid-template-columns:232px 1fr;background:var(--app-bg);min-height:820px;transition:grid-template-columns .22s ease}
+.app.collapsed{grid-template-columns:66px 1fr}
+.side{background:linear-gradient(180deg,var(--navy),var(--navy-2));padding:18px 15px;display:flex;flex-direction:column;gap:4px;overflow:hidden;white-space:nowrap}
+.brand{display:flex;align-items:center;gap:9px;color:#fff;font-family:var(--display);font-weight:700;font-size:17px;margin:6px 8px 18px}
+.brand .m{width:12px;height:12px;border-radius:4px;background:linear-gradient(135deg,var(--blue-2),var(--blue));transform:rotate(45deg);flex:none}
+.side small{color:#93abcd;font-size:12px;margin:8px 10px 4px;font-weight:600}
+.pl-side-nav{display:flex;flex-direction:column;gap:4px}
+.pl-side-nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;color:#bccfe8;text-decoration:none;font-size:13.5px;font-weight:500;cursor:pointer}
+.pl-side-nav a .ic{width:17px;height:17px;opacity:.9;flex:none}
+.pl-side-nav a.is-active{background:#fff;color:var(--navy);font-weight:600}
+.side .foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-radius:11px;background:rgba(255,255,255,.06);color:#d3e1f4;font-size:12px}
+.side .foot .av{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--blue-2),var(--blue));display:grid;place-items:center;color:#fff;font-weight:600;font-size:11px;font-family:var(--display);flex:none}
+.app.collapsed .name,.app.collapsed .lb,.app.collapsed small,.app.collapsed .foot .txt{display:none}
+.app.collapsed .brand{justify-content:center;margin:6px 0 18px}
+.app.collapsed .pl-side-nav a{justify-content:center;padding:10px 0}
+.app.collapsed .foot{justify-content:center;padding:10px 0}
+.ham{width:30px;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);color:#cddcf1;cursor:pointer;display:grid;place-items:center;flex:none}
+.ham svg{width:16px;height:16px}
+.brand .ham{margin-left:auto}
+.app.collapsed .brand .m{display:none} .app.collapsed .brand .ham{margin-left:0}
+.main{display:flex;flex-direction:column;min-width:0}
+.topbar{height:60px;display:flex;align-items:center;gap:12px;padding:0 24px;background:var(--card);border-bottom:1px solid var(--border);flex:none}
+.topbar h3{font-family:var(--display);font-weight:600;font-size:16px;margin:0}
+.sp{flex:1}
+.ibtn{width:36px;height:36px;border-radius:9px;background:var(--app-bg);border:1px solid var(--border);display:grid;place-items:center;color:var(--muted);position:relative}
+.ibtn svg{width:18px;height:18px}
+.av{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--navy-2),var(--blue));display:grid;place-items:center;color:#fff;font-weight:600;font-size:12px;font-family:var(--display);flex:none}
+
+/* ===== 8. cabeçalho da demanda: UMA linha discreta ===== */
+.pl-ctxline{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 40px 0;font-size:12.5px;color:var(--muted);flex:none}
+.pl-ctxline .dm{color:var(--ink);font-weight:600}
+.pl-ctxline .sep{width:3px;height:3px;border-radius:50%;background:#c3ccd9;flex:none}
+.toschip{display:inline-flex;align-items:center;gap:7px;background:var(--blue-100);color:#215ac2;border-radius:8px;padding:3px 9px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.toschip .code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:500;color:#2F5AA8;font-size:10.5px}
+
+/* ===== palco tipo player ===== */
+.pl-stage{flex:1;position:relative;display:grid;place-items:center;padding:34px 40px 44px;overflow:hidden}
+/* 1. assinatura da tridimensionalidade: plano em perspectiva virando volume, tom sobre tom */
+#motif{position:absolute;inset:0;z-index:0;pointer-events:none}
+.pl-stage::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(118% 68% at 50% 36%,#FFFFFF 0%,rgba(255,255,255,.86) 34%,rgba(251,250,246,0) 66%)}
+.pl-track{position:relative;z-index:2;width:min(660px,100%);display:flex;flex-direction:column;align-items:center}
+
+/* card em foco */
+.pl-focus{position:relative;z-index:2;width:100%;min-height:560px;display:flex;flex-direction:column;
+  background:var(--card);border:1px solid var(--border);border-radius:26px;padding:46px 48px 40px;
+  box-shadow:0 2px 3px rgba(11,42,74,.04),0 34px 70px rgba(11,42,74,.13)}
+.pl-focus.is-end{justify-content:center}
+.pl-focus.is-end .pl-av{display:none}
+
+/* 2. avatar é o elemento compartilhado: persiste e morfa entre candidatos */
+.pl-av{width:72px;height:72px;border-radius:20px;display:grid;place-items:center;color:#fff;font-weight:700;font-family:var(--display);font-size:25px;
+  background:linear-gradient(135deg,var(--navy-2),var(--blue));box-shadow:0 12px 26px rgba(19,49,90,.24);flex:none;will-change:transform}
+.pl-flow{will-change:transform,opacity}
+.pl-name{font-family:var(--display);font-weight:600;font-size:42px;line-height:1.08;letter-spacing:-.03em;margin:22px 0 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pl-name .seal{width:22px;height:22px}
+.pl-meta{font-size:13.5px;color:var(--muted);margin:8px 0 0}
+.pl-acervo{font-size:13.5px;color:var(--ink);margin:4px 0 0;display:flex;align-items:center;gap:7px}
+
+/* aderência: o lugar da nota */
+.pl-adher{margin-top:34px}
+.pl-adher .lb{font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--faint-2);margin:0 0 14px}
+.dim{position:relative;display:grid;grid-template-columns:128px 1fr 44px;align-items:center;gap:16px;margin-bottom:14px;border-radius:8px}
+.dim:last-child{margin-bottom:0}
+.dim .dlab{font-size:13px;color:var(--muted);line-height:1}
+.dim .pct{font-size:13px;font-weight:600;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums;line-height:1}
+.bar{height:8px;background:#F1EDE5;border-radius:6px;overflow:hidden}
+.bar span{display:block;height:100%;border-radius:6px;background:var(--petrol);width:0;transition:width .68s var(--spring)}
+
+/* 3. tooltip por dimensão: invisível até hover ou foco */
+.pl-tip{position:absolute;left:144px;right:0;bottom:calc(100% + 10px);z-index:8;
+  background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px 13px;
+  font-size:12px;line-height:1.5;color:var(--muted);box-shadow:0 14px 30px rgba(11,42,74,.14);
+  opacity:0;visibility:hidden;transform:translateY(4px);pointer-events:none;
+  transition:opacity .16s ease,transform .16s var(--spring),visibility .16s}
+.pl-tip b{display:block;color:var(--ink);font-weight:600;margin-bottom:3px}
+.pl-tip .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--ink)}
+.dim:hover .pl-tip,.dim:focus-visible .pl-tip{opacity:1;visibility:visible;transform:none}
+.pl-focus.tips-off .pl-tip{opacity:0;visibility:hidden;transform:translateY(4px)}
+
+/* 2b. progressive disclosure */
+.pl-toggle{margin-top:26px;align-self:flex-start;display:inline-flex;align-items:center;gap:7px;background:none;border:0;padding:0;cursor:pointer;
+  font-family:var(--body);font-size:12.5px;font-weight:600;color:var(--muted);transition:color .15s ease}
+.pl-toggle:hover{color:var(--petrol)}
+.pl-toggle svg{width:14px;height:14px;transition:transform .28s var(--spring)}
+.pl-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}
+.pl-more{display:grid;grid-template-rows:0fr;opacity:0;margin-top:0;
+  transition:grid-template-rows .34s var(--spring),opacity .22s ease,margin-top .34s ease}
+.pl-more>.inner{overflow:hidden}
+.pl-more.is-open{grid-template-rows:1fr;opacity:1;margin-top:16px}
+.pl-more .ev{font-size:13px;color:var(--ink);line-height:1.6;margin:0;padding-left:14px;border-left:2px solid var(--petrol)}
+.pl-more .ev .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;font-weight:600}
+.pl-more .fine{font-size:11.5px;color:var(--faint-2);line-height:1.5;margin:14px 0 0;display:flex;align-items:flex-start;gap:7px}
+.pl-more .fine svg{width:13px;height:13px;flex:none;margin-top:2px}
+
+/* ações: um laranja, um outline */
+.pl-actions{margin-top:34px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pl-cta{display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 22px;border:0;border-radius:14px;cursor:pointer;
+  background:linear-gradient(135deg,var(--accent-2),var(--accent));color:#fff;font-family:var(--body);font-weight:600;font-size:14px;
+  box-shadow:0 10px 24px rgba(242,107,33,.28);transition:transform .18s var(--spring),box-shadow .18s ease}
+.pl-cta:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(242,107,33,.34)}
+.pl-btn-sec{display:inline-flex;align-items:center;height:48px;padding:0 20px;border-radius:14px;border:1px solid var(--petrol);background:transparent;
+  color:var(--petrol);font-family:var(--body);font-weight:600;font-size:13.5px;cursor:pointer;transition:background .15s ease}
+.pl-btn-sec:hover{background:rgba(27,64,121,.06)}
+.pl-done{display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 20px;border-radius:14px;background:var(--ok-bg);border:1px solid #bfe6d3;color:#0F6B47;font-weight:600;font-size:13.5px}
+.pl-done svg{width:16px;height:16px}
+
+/* 4. fim de pool */
+.pl-end .et{font-family:var(--display);font-weight:600;font-size:26px;letter-spacing:-.02em;line-height:1.2;margin:0}
+.pl-end .es{font-size:13.5px;color:var(--muted);margin:12px 0 0;max-width:46ch}
+.pl-end .ea{margin-top:32px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.pl-link{color:var(--blue);font-weight:600;font-size:13.5px;text-decoration:none;border-radius:4px}
+.pl-link:hover{text-decoration:underline}
+
+/* o próximo: silhueta, sem conteúdo competindo */
+.pl-peek{position:relative;z-index:1;margin-top:-16px;width:88%;background:var(--card);border:1px solid var(--border);border-top:0;
+  border-radius:0 0 22px 22px;padding:26px 34px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;font-family:var(--body);
+  box-shadow:0 20px 34px rgba(11,42,74,.07);
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 38%,transparent 100%);mask-image:linear-gradient(180deg,#000 0%,#000 38%,transparent 100%);
+  transition:transform .2s var(--spring),border-color .2s ease}
+.pl-peek:hover{transform:translateY(3px)}
+.pl-peek:hover .pn{color:var(--petrol)}
+.pl-peek.is-hidden{visibility:hidden;pointer-events:none}
+.pl-peek .pav{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#fff;font-weight:600;font-family:var(--display);font-size:11px;
+  background:linear-gradient(135deg,var(--navy-2),var(--blue));flex:none;filter:saturate(.3) opacity(.7)}
+.pl-peek .pn{font-family:var(--display);font-weight:600;font-size:15px;color:var(--faint-2);letter-spacing:-.01em;transition:color .2s ease}
+
+/* navegação única: setas verticais + roda + dots discretos */
+.pl-rail{position:absolute;right:18px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:16px;z-index:4}
+.pl-arrow{width:42px;height:42px;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;
+  display:grid;place-items:center;box-shadow:0 6px 16px rgba(11,42,74,.08);transition:color .15s ease,border-color .15s ease,transform .18s var(--spring)}
+.pl-arrow:hover{color:var(--petrol);border-color:#cdd8e8;transform:translateY(-2px)}
+.pl-arrow[disabled]{opacity:.4;cursor:not-allowed;transform:none}
+.pl-arrow svg{width:18px;height:18px}
+/* indicador de progresso contínuo: trilho de 2px, sem número de posição */
+.pl-progress{position:relative;width:2px;height:132px;border-radius:2px;background:#E6E1D8;overflow:hidden;margin:2px 0}
+.pl-thumb{position:absolute;left:0;top:0;width:2px;border-radius:2px;background:var(--petrol);opacity:.5;
+  transition:transform .4s var(--spring),height .3s ease}
+.pl-hint{position:absolute;left:40px;bottom:20px;font-size:11.5px;color:var(--faint-2);display:flex;align-items:center;gap:7px;z-index:4}
+.pl-hint svg{width:13px;height:13px}
+
+/* 5. motion acessível */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.12s !important;transition-delay:0ms !important}
+  .pl-cta:hover,.pl-arrow:hover,.pl-peek:hover{transform:none !important}
+  .pl-tip{transform:none !important}
+}
+
+@media (max-width:900px){
+  .pl-stage{padding:24px 20px 40px}
+  .pl-focus{padding:34px 28px 30px;min-height:0}
+  .pl-name{font-size:32px}
+  .dim{grid-template-columns:104px 1fr 40px;gap:12px}
+  .pl-tip{left:0}
+  .pl-rail{right:6px}
+  .pl-hint{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- selo verde água + selo-x cinza (não verificado) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="seal" viewBox="0 0 40 40"><polygon points="39,20 34.5,23.9 36.5,29.5 30.6,30.6 29.5,36.5 23.9,34.5 20,39 16.1,34.5 10.5,36.5 9.4,30.6 3.6,29.5 5.5,23.9 1,20 5.5,16.1 3.6,10.5 9.4,9.4 10.5,3.6 16.1,5.5 20,1 23.9,5.5 29.5,3.6 30.6,9.4 36.5,10.5 34.5,16.1" fill="#0E7C86"/><path d="M13.5 20.5l4 4l9 -10" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="seal-x" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18.5" fill="#8895A8"/><path d="M14.5 14.5l11 11M25.5 14.5l-11 11" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<div class="outer">
+  <h1 class="pt">Feed de Compatíveis</h1>
+  <p class="lead">Feed passivo de recomendação na visão da empresa. Um profissional compatível por vez, navegação vertical, e a aderência por dimensão no lugar que um streaming daria à nota. A evidência da compatibilidade abre sob demanda. Ordem aleatória por sessão, sem ranking.</p>
+
+  <div class="frame"><div class="app" id="app">
+    <aside class="side">
+      <div class="brand"><span class="m"></span><span class="name">Pro-Link</span>
+        <button class="ham" aria-label="Recolher menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></div>
+      <small>Empresa</small>
+      <nav class="pl-side-nav" aria-label="Menu da empresa">
+        <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5L12 4l8 7.5"/><path d="M6 10v9a1 1 0 001 1h4v-6h2v6h4a1 1 0 001-1v-9"/></svg></span><span class="lb">Início</span></a>
+        <a class="is-active" aria-current="page"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg></span><span class="lb">Compatíveis</span></a>
+        <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v14a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 17h6"/></svg></span><span class="lb">Minhas Demandas</span></a>
+        <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v10a1 1 0 001 1h12a1 1 0 001-1V8"/><path d="M10 12h4"/></svg></span><span class="lb">Acervo da Empresa</span></a>
+        <a><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg></span><span class="lb">Perfil</span></a>
+      </nav>
+      <div class="foot"><span class="av">AC</span><span class="txt">Amazônia Construções<br><span style="color:#9db4d4;font-size:11px">Empresa · AM61859</span></span></div>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <h3>Compatíveis</h3>
+        <div class="sp"></div>
+        <div class="ibtn" role="img" aria-label="Notificações"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M9.5 20a2.5 2.5 0 005 0"/></svg></div>
+        <div class="av">AC</div>
+      </div>
+
+      <!-- contexto em uma linha -->
+      <div class="pl-ctxline">
+        <span class="dm">Reforço estrutural de galpão industrial</span>
+        <span class="toschip">Estrutura metálica <span class="code">TOS 1.1.2.3</span></span>
+        <span class="sep"></span>
+        <span><span id="poolN">14</span> no pool</span>
+        <span class="sep"></span>
+        <span>ordem aleatória por sessão</span>
+      </div>
+
+      <!-- palco -->
+      <section class="pl-stage" id="stage" aria-label="Feed de profissionais compatíveis">
+        <canvas id="motif" aria-hidden="true"></canvas>
+
+        <div class="pl-track">
+
+          <article class="pl-focus" id="focus">
+            <span class="pl-av" id="f-av"><span id="f-ini">MB</span></span>
+
+            <div class="pl-flow" id="flow">
+              <h2 class="pl-name" id="f-name"></h2>
+              <p class="pl-meta" id="f-meta"></p>
+              <p class="pl-acervo"><span id="f-acervo"></span> <svg class="vmark" role="img" aria-label="Verificado pela API do CREA-AM"><use href="#seal"/></svg></p>
+
+              <div class="pl-adher">
+                <p class="lb">Aderência a esta demanda</p>
+                <div id="f-dims"></div>
+              </div>
+
+              <button class="pl-toggle" id="toggle" aria-expanded="false" aria-controls="more">
+                Por que compatível
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <div class="pl-more" id="more">
+                <div class="inner">
+                  <p class="ev" id="f-ev"></p>
+                  <p class="fine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2" stroke-linecap="round"/></svg><span id="f-snap"></span></p>
+                  <p class="fine"><svg role="img" aria-label="Não verificado"><use href="#seal-x"/></svg><span id="f-self"></span></p>
+                </div>
+              </div>
+
+              <div class="pl-actions" id="f-actions"></div>
+            </div>
+
+            <div class="pl-end" id="end" hidden>
+              <p class="et" id="end-title"></p>
+              <p class="es">O pool é reordenado a cada sessão, com semente auditável. Novos profissionais entram quando o acervo verificado passa a atender esta demanda.</p>
+              <div class="ea">
+                <button class="pl-btn-sec" id="restart">Rever do início</button>
+                <a class="pl-link" href="#" id="back">Voltar às demandas</a>
+              </div>
+            </div>
+          </article>
+
+          <button class="pl-peek" id="peek" aria-label="Ir para o próximo profissional do pool">
+            <span class="pav" id="p-av" aria-hidden="true">DL</span>
+            <span class="pn" id="p-name" aria-hidden="true">Davi Castro</span>
+          </button>
+
+        </div>
+
+        <div class="pl-rail">
+          <button class="pl-arrow" id="prev" aria-label="Profissional anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg></button>
+          <div class="pl-progress" id="track" aria-hidden="true"><span class="pl-thumb" id="thumb"></span></div>
+          <button class="pl-arrow" id="next" aria-label="Próximo profissional"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        </div>
+
+        <div class="pl-hint" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="8" height="18" rx="4"/><path d="M12 7v3"/></svg>
+          Role para navegar
+        </div>
+
+        <p class="vs-only" role="status" aria-live="polite" id="live"></p>
+      </section>
+
+    </div>
+  </div></div>
+</div>
+
+<script>
+/* ===== dados fictícios no estilo da API oficial do CREA-AM =====
+   Demanda: reforço estrutural de galpão industrial, TOS 1.1.2.3.
+   A ORDEM ABAIXO É A SEMENTE DA SESSÃO: embaralhada de propósito.
+   Não está ordenada por aderência, por acervo nem por qualquer critério de qualidade. */
+const raw = [
+  {ini:"MB", nome:"Marina Braga",         reg:"AM99170",  rnp:"0412340135", cidade:"Manaus",      arts:14, cats:3, cat:"AM20269995566/2027", tos:94, loc:100, disp:100,
+   tosWhy:'A ART <span class="mono">AM20269998821</span> cobre o <span class="mono">TOS 1.1.2.3</span>, a mesma atividade da demanda, e uma segunda ART cobre atividade do mesmo grupo estrutural.'},
+  {ini:"PN", nome:"Paulo Nakamura",       reg:"AM110982", rnp:"0412340636", cidade:"Manaus",      arts:5,  cats:0, cat:null,                 tos:69, loc:100, disp:100,
+   tosWhy:'A ART <span class="mono">AM20269996134</span> cobre atividade vizinha ao <span class="mono">TOS 1.1.2.3</span>, em montagem de estrutura metálica, não em reforço.'},
+  {ini:"CA", nome:"Cíntia Albuquerque",   reg:"AM95761",  rnp:"0412340744", cidade:"Manaus",      arts:17, cats:4, cat:"AM20269991702/2028", tos:97, loc:100, disp:62,
+   tosWhy:'Quatro ARTs cobrem o <span class="mono">TOS 1.1.2.3</span>, entre elas a <span class="mono">AM20269990915</span>, em reforço de galpão industrial de porte equivalente.'},
+  {ini:"DC", nome:"Davi Castro",          reg:"AM100455", rnp:"0412340211", cidade:"Manaus",      arts:9,  cats:0, cat:null,                 tos:81, loc:100, disp:70,
+   tosWhy:'A ART <span class="mono">AM20269991020</span> cobre o <span class="mono">TOS 1.1.2.3</span> em reforço de estrutura metálica de galpão, registro único nessa atividade.'},
+  {ini:"LU", nome:"Larissa Uchôa",        reg:"AM64019",  rnp:"0412340522", cidade:"Itacoatiara", arts:8,  cats:2, cat:"AM20269992910/2027", tos:84, loc:72,  disp:100,
+   tosWhy:'A ART <span class="mono">AM20269992208</span> cobre o <span class="mono">TOS 1.1.2.3</span> em recuperação estrutural de galpão de armazenagem.'},
+  {ini:"GL", nome:"Gustavo Lemos",        reg:"AM69850",  rnp:"0412341294", cidade:"Manaus",      arts:12, cats:1, cat:"AM20269998330/2027", tos:62, loc:100, disp:100,
+   tosWhy:'O acervo concentra alvenaria e fundação; um único registro toca o <span class="mono">TOS 1.1.2.3</span>, de forma acessória.'},
+  {ini:"TR", nome:"Tainá Rocha",          reg:"AM117629", rnp:"0412341188", cidade:"Iranduba",    arts:6,  cats:2, cat:"AM20269996688/2027", tos:86, loc:85,  disp:100,
+   tosWhy:'A ART <span class="mono">AM20269998047</span> cobre o <span class="mono">TOS 1.1.2.3</span> em reforço estrutural de cobertura metálica.'},
+  {ini:"RC", nome:"Ricardo Costa",        reg:"AM123481", rnp:"0412340051", cidade:"Manaus",      arts:3,  cats:1, cat:"AM20269997781/2027", tos:88, loc:100, disp:100,
+   tosWhy:'A ART <span class="mono">AM20269991245</span> cobre o <span class="mono">TOS 1.1.2.3</span> em reforma de estrutura de ponte, com escopo próximo ao da demanda.'},
+  {ini:"EM", nome:"Everton Maciel",       reg:"AM72338",  rnp:"0412340859", cidade:"Parintins",   arts:7,  cats:1, cat:"AM20269995014/2027", tos:78, loc:64,  disp:100,
+   tosWhy:'A ART <span class="mono">AM20269995520</span> cobre o <span class="mono">TOS 1.1.2.3</span> em obra de menor porte que a desta demanda.'},
+  {ini:"BT", nome:"Bruno Tavares",        reg:"AM88243",  rnp:"0412340417", cidade:"Manaus",      arts:11, cats:2, cat:"AM20269990234/2027", tos:91, loc:100, disp:85,
+   tosWhy:'Três ARTs cobrem o <span class="mono">TOS 1.1.2.3</span>, sendo a <span class="mono">AM20269994477</span> em reforço de estrutura metálica industrial.'},
+  {ini:"JP", nome:"Juliana Prado",        reg:"AM103574", rnp:"0412340962", cidade:"Manaus",      arts:4,  cats:0, cat:null,                 tos:73, loc:100, disp:95,
+   tosWhy:'A ART <span class="mono">AM20269997302</span> cobre atividade do mesmo grupo estrutural, com registro parcial no <span class="mono">TOS 1.1.2.3</span>.'},
+  {ini:"AF", nome:"Alice Fernandes",      reg:"AM77120",  rnp:"0412340308", cidade:"Iranduba",    arts:6,  cats:0, cat:null,                 tos:76, loc:85,  disp:100,
+   tosWhy:'A ART <span class="mono">AM20269993310</span> cobre atividade do mesmo grupo estrutural do <span class="mono">TOS 1.1.2.3</span>, sem registro na atividade exata.'},
+  {ini:"RS", nome:"Renata Siqueira",      reg:"AM126013", rnp:"0412341307", cidade:"Itacoatiara", arts:9,  cats:2, cat:"AM20269999820/2028", tos:92, loc:72,  disp:88,
+   tosWhy:'A ART <span class="mono">AM20269999163</span> cobre o <span class="mono">TOS 1.1.2.3</span> em reforço de estrutura metálica de galpão, com CAT emitida para a mesma obra.'},
+  {ini:"WB", nome:"Wesley Bentes",        reg:"AM81406",  rnp:"0412341075", cidade:"Manaus",      arts:10, cats:3, cat:"AM20269994155/2027", tos:89, loc:100, disp:78,
+   tosWhy:'Duas ARTs cobrem o <span class="mono">TOS 1.1.2.3</span>, a mais recente em reforço de pilares metálicos, <span class="mono">AM20269993861</span>.'}
+];
+
+function mono(s){ return '<span class="mono">'+s+'</span>'; }
+function acervoTxt(c){
+  const a = c.arts + (c.arts>1 ? ' ARTs' : ' ART');
+  if(!c.cats) return a + ' verificadas';
+  return a + ' · ' + c.cats + (c.cats>1 ? ' CATs' : ' CAT') + ' verificadas';
+}
+function locWhy(c){
+  return c.cidade==='Manaus'
+    ? 'Atuação registrada em Manaus, AM, o mesmo município da obra.'
+    : 'Sede em '+c.cidade+', AM. A obra desta demanda é em Manaus, AM.';
+}
+function dispWhy(c){
+  return (c.disp===100 ? 'Disponibilidade integral' : 'Disponibilidade parcial')
+       + ' no período, informada pelo profissional. Dado não verificado pela API.';
+}
+function dimsFor(c){
+  return [
+    {k:"Atividade TOS", v:c.tos,  w:c.tosWhy},
+    {k:"Modalidade",    v:100,    w:'Registro ativo em Engenharia Civil no CREA-AM, a modalidade exigida por esta demanda. O pool já é filtrado por modalidade.'},
+    {k:"Localização",   v:c.loc,  w:locWhy(c)},
+    {k:"Disponível",    v:c.disp, w:dispWhy(c)}
+  ];
+}
+function evFor(c){
+  return c.tosWhy
+       + (c.cat ? ' Sustentada pela CAT '+mono(c.cat)+'.' : ' Sem CAT vinculada a esta atividade.')
+       + ' Registro CREA-AM '+mono(c.reg)+', RNP '+mono(c.rnp)+', ativo na modalidade requerida.';
+}
+
+const pool = raw.map(function(c){
+  return {
+    ini:c.ini, nome:c.nome,
+    meta:'Engenharia Civil · '+c.cidade+', AM',
+    acervo:acervoTxt(c),
+    dims:dimsFor(c),
+    ev:evFor(c),
+    snap:'Snapshot do perfil no momento do match, 14/09/2026. Edições posteriores do profissional não alteram o que está exibido aqui.',
+    self:(c.disp===100
+      ? 'Disponibilidade e tipo de contrato são informados pelo profissional e não passam pela verificação da API.'
+      : 'Disponibilidade parcial no período, informada pelo profissional e não verificada pela API.')
+  };
+});
+
+const END = pool.length;                       // índice do estado de fim de pool
+const manifested = new Array(pool.length).fill(false);
+let i = 0, busy = false;
+
+const $ = (id)=>document.getElementById(id);
+const focusEl=$("focus"), flowEl=$("flow"), endEl=$("end"), avEl=$("f-av"), iniEl=$("f-ini"),
+      peekEl=$("peek"), moreEl=$("more"), toggleEl=$("toggle"), prevEl=$("prev"), nextEl=$("next");
+
+const rmq = window.matchMedia('(prefers-reduced-motion: reduce)');
+const reduced = ()=> rmq.matches;
+const SPRING = 'cubic-bezier(.22,1.15,.36,1)';
+
+function firstLast(n){ const p=n.split(' '); return p.length>1 ? p[0]+' '+p[p.length-1] : p[0]; }
+function cancelAnims(el){ if(el.getAnimations) el.getAnimations().forEach(function(a){ a.cancel(); }); }
+
+/* indicador de progresso contínuo: segmento que desce pelo trilho. Sem número, sem posição declarada. */
+function paintProgress(){
+  const track=$("track"), thumb=$("thumb"), n=pool.length;
+  const H=track.clientHeight||132;
+  const th=Math.max(14, Math.round(H/n));
+  const idx=(i===END) ? n-1 : i;
+  const y=(n>1) ? Math.round((H-th)*(idx/(n-1))) : 0;
+  thumb.style.height=th+'px';
+  thumb.style.transform='translateY('+y+'px)';
+}
+
+/* ===== 1. assinatura da tridimensionalidade: plano em perspectiva que ganha volume ===== */
+function drawMotif(){
+  const cv=$("motif"), st=$("stage");
+  const w=st.clientWidth, h=st.clientHeight;
+  if(!w||!h) return;
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
+  cv.style.width=w+'px'; cv.style.height=h+'px';
+  const g=cv.getContext('2d');
+  g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,w,h);
+
+  const vpx=w*0.5, vpy=h*0.24, base=h*1.06, INK='11,42,74';
+  // ponto do plano: t = profundidade (0 no horizonte, 1 na frente), u = lateral
+  const P=(t,u)=>{ const y=vpy+(base-vpy)*Math.pow(t,2.5); const s=(y-vpy)/(base-vpy); return {x:vpx+u*w*0.95*s, y}; };
+
+  g.lineWidth=1;
+  // linhas de profundidade (o plano)
+  for(let r=1;r<=18;r++){
+    const t=r/18, a=P(t,-1.7), b=P(t,1.7);
+    g.strokeStyle='rgba('+INK+','+(0.010+0.038*t).toFixed(3)+')';
+    g.beginPath(); g.moveTo(a.x,a.y); g.lineTo(b.x,b.y); g.stroke();
+  }
+  // linhas convergentes (o eixo que cria a fuga)
+  for(let c=-9;c<=9;c++){
+    const u=c/5, a=P(0.035,u), b=P(1,u);
+    g.strokeStyle='rgba('+INK+',0.030)';
+    g.beginPath(); g.moveTo(a.x,a.y); g.lineTo(b.x,b.y); g.stroke();
+  }
+  // o plano vira volume: prismas em wireframe sobre a malha (o eixo Z)
+  const boxes=[{t1:.50,t2:.68,u1:-1.44,u2:-1.02,hf:.20},
+               {t1:.62,t2:.84,u1:1.06,u2:1.52,hf:.26},
+               {t1:.30,t2:.40,u1:.74,u2:1.00,hf:.13}];
+  boxes.forEach(function(b){
+    const c1=P(b.t1,b.u1), c2=P(b.t1,b.u2), c3=P(b.t2,b.u2), c4=P(b.t2,b.u1);
+    // altura do prisma cresce com a proximidade: o plano ganha o eixo Z
+    const hgt=(c4.y-c1.y)*2.7;
+    const t1=[c1.x,c1.y-hgt], t2=[c2.x,c2.y-hgt], t3=[c3.x,c3.y-hgt], t4=[c4.x,c4.y-hgt];
+    g.strokeStyle='rgba('+INK+',0.058)';
+    g.beginPath(); g.moveTo(c1.x,c1.y); g.lineTo(c2.x,c2.y); g.lineTo(c3.x,c3.y); g.lineTo(c4.x,c4.y); g.closePath(); g.stroke();
+    g.beginPath(); g.moveTo(t1[0],t1[1]); g.lineTo(t2[0],t2[1]); g.lineTo(t3[0],t3[1]); g.lineTo(t4[0],t4[1]); g.closePath(); g.stroke();
+    g.fillStyle='rgba('+INK+',0.016)';
+    g.beginPath(); g.moveTo(t1[0],t1[1]); g.lineTo(t2[0],t2[1]); g.lineTo(t3[0],t3[1]); g.lineTo(t4[0],t4[1]); g.closePath(); g.fill();
+    [[c1,t1],[c2,t2],[c3,t3],[c4,t4]].forEach(function(pr){
+      g.beginPath(); g.moveTo(pr[0].x,pr[0].y); g.lineTo(pr[1][0],pr[1][1]); g.stroke();
+    });
+  });
+}
+
+/* ===== ações ===== */
+function renderActions(){
+  const done=manifested[i];
+  $("f-actions").innerHTML=(done
+    ? '<span class="pl-done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Interesse manifestado</span>'
+    : '<button class="pl-cta" id="cta">Manifestar interesse</button>')
+    + '<button class="pl-btn-sec">Ver perfil completo</button>';
+  const cta=$("cta");
+  if(cta) cta.addEventListener('click',function(){
+    manifested[i]=true; renderActions();
+    $("live").textContent='Interesse manifestado. Registrado no histórico e enviado por e-mail à outra parte.';
+  });
+}
+
+/* ===== pintura ===== */
+function paint(){
+  const atEnd = (i===END);
+  focusEl.classList.toggle('is-end', atEnd);
+  flowEl.hidden = atEnd;
+  endEl.hidden = !atEnd;
+  peekEl.classList.toggle('is-hidden', atEnd || i===pool.length-1);
+  prevEl.disabled = (i===0);
+  nextEl.disabled = atEnd;
+
+  paintProgress();
+
+  if(atEnd){
+    $("end-title").textContent = 'Você viu os ' + pool.length + ' compatíveis desta demanda';
+    $("live").textContent = 'Fim do pool. Você viu os ' + pool.length + ' profissionais compatíveis desta demanda.';
+    return;
+  }
+
+  const c=pool[i], n=pool[(i+1)%pool.length];
+  iniEl.textContent=c.ini;
+  $("f-name").innerHTML = c.nome + ' <svg class="seal" role="img" aria-label="Perfil verificado pela API do CREA-AM"><use href="#seal"/></svg>';
+  $("f-meta").textContent=c.meta;
+  $("f-acervo").textContent=c.acervo;
+  $("f-dims").innerHTML = c.dims.map(function(d,k){
+    return '<div class="dim" tabindex="0" aria-describedby="tip-'+k+'">'
+         +   '<span class="dlab">'+d.k+'</span>'
+         +   '<div class="bar"><span data-w="'+d.v+'"></span></div>'
+         +   '<span class="pct">'+d.v+'%</span>'
+         +   '<div class="pl-tip" id="tip-'+k+'" role="tooltip"><b>'+d.k+' '+d.v+'%</b>'+d.w+'</div>'
+         + '</div>';
+  }).join('');
+  $("f-ev").innerHTML=c.ev;
+  $("f-snap").textContent=c.snap;
+  $("f-self").textContent=c.self;
+  renderActions();
+
+  $("p-av").textContent=n.ini;
+  $("p-name").textContent=firstLast(n.nome);
+  $("live").textContent = c.nome + ', ' + c.meta + '. Em foco no feed.';
+
+  /* 2b. stagger: cada barra parte 60ms depois da anterior */
+  const step = reduced() ? 0 : 60;
+  requestAnimationFrame(function(){
+    document.querySelectorAll('#f-dims .bar span').forEach(function(s,k){
+      s.style.transitionDelay = (k*step)+'ms';
+      s.style.width = s.dataset.w + '%';
+    });
+  });
+}
+
+function closeMore(){ moreEl.classList.remove('is-open'); toggleEl.setAttribute('aria-expanded','false'); }
+
+/* ===== 2. transição com elemento compartilhado: o card e o avatar persistem, o conteúdo flui ===== */
+function goto(target, dir){
+  if(busy) return;
+  if(target<0 || target>END) return;
+  if(target===i) return;
+  busy=true;
+  closeMore();
+  focusEl.classList.remove('tips-off');
+  const RM=reduced(), dy=RM?0:22;
+
+  const exitKF = RM ? [{opacity:1},{opacity:0}]
+                    : [{opacity:1,transform:'translateY(0)'},{opacity:0,transform:'translateY('+(dir>0?-dy:dy)+'px)'}];
+  const enterKF= RM ? [{opacity:0},{opacity:1}]
+                    : [{opacity:0,transform:'translateY('+(dir>0?dy:-dy)+'px)'},{opacity:1,transform:'none'}];
+
+  const outEl = (i===END) ? endEl : flowEl;
+  cancelAnims(outEl);
+
+  if(!RM){
+    // o avatar não sai de cena: ele morfa (dip + overshoot) enquanto o conteúdo troca
+    avEl.animate([{transform:'scale(1) rotate(0deg)'},{transform:'scale(.84) rotate(-5deg)'},{transform:'scale(1) rotate(0deg)'}],
+                 {duration:620, easing:SPRING});
+  }
+  iniEl.animate([{opacity:1},{opacity:0}],{duration:RM?90:150,fill:'forwards'});
+  peekEl.animate([{opacity:1},{opacity:0}],{duration:RM?90:160,fill:'forwards'});
+
+  const exit = outEl.animate(exitKF,{duration:RM?110:180,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'});
+  exit.onfinish = function(){
+    i = target;
+    paint();
+    const inEl = (i===END) ? endEl : flowEl;
+    cancelAnims(inEl);
+    iniEl.animate([{opacity:0},{opacity:1}],{duration:RM?110:260,fill:'forwards'});
+    peekEl.animate([{opacity:0},{opacity:1}],{duration:RM?110:300,delay:RM?0:60,fill:'forwards'});
+    const enter = inEl.animate(enterKF,{duration:RM?130:380,easing:SPRING,fill:'forwards'});
+    enter.onfinish = function(){ busy=false; };
+  };
+}
+
+/* contagem do pool derivada dos dados, nunca hardcoded */
+$("poolN").textContent = pool.length;
+
+nextEl.addEventListener('click', function(){ goto(i+1, 1); });
+prevEl.addEventListener('click', function(){ goto(i-1, -1); });
+peekEl.addEventListener('click', function(){ goto(i+1, 1); });
+$("restart").addEventListener('click', function(){ goto(0, -1); });
+$("back").addEventListener('click', function(e){ e.preventDefault(); });
+
+toggleEl.addEventListener('click', function(){
+  const open = moreEl.classList.toggle('is-open');
+  toggleEl.setAttribute('aria-expanded', open ? 'true' : 'false');
+});
+
+/* roda do mouse dentro do palco */
+let wheelLock=0;
+$("stage").addEventListener('wheel', function(e){
+  if(Math.abs(e.deltaY)<8) return;
+  e.preventDefault();
+  const now=Date.now();
+  if(now<wheelLock) return;
+  wheelLock = now + 560;
+  goto(i + (e.deltaY>0?1:-1), e.deltaY>0?1:-1);
+}, {passive:false});
+
+/* teclado: setas verticais navegam, Esc fecha tooltip */
+document.addEventListener('keydown', function(e){
+  const t=(e.target.tagName||'').toLowerCase();
+  if(t==='input'||t==='textarea'||t==='select') return;
+  if(e.key==='ArrowDown'){ e.preventDefault(); goto(i+1,1); }
+  else if(e.key==='ArrowUp'){ e.preventDefault(); goto(i-1,-1); }
+  else if(e.key==='Escape'){
+    focusEl.classList.add('tips-off');
+    const a=document.activeElement;
+    if(a && a.classList && a.classList.contains('dim')) a.blur();
+  }
+});
+focusEl.addEventListener('pointermove', function(){ focusEl.classList.remove('tips-off'); });
+
+document.querySelector('.ham').addEventListener('click', function(){
+  $("app").classList.toggle('collapsed');
+  setTimeout(drawMotif, 260);
+});
+
+let rz;
+window.addEventListener('resize', function(){ clearTimeout(rz); rz=setTimeout(drawMotif,150); });
+if(rmq.addEventListener) rmq.addEventListener('change', function(){ paint(); });
+
+paint();
+drawMotif();
+window.addEventListener('load', drawMotif);
+</script>
+</body>
+</html>

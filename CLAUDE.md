@@ -64,6 +64,29 @@ com trigger.
 **Nomenclatura do edital.** Tabela `modulo_entidade`, campo com prefixo de três letras, PK
 `<prefixo>_id`, constraints `pk_`/`fk_`, e `_dt_registro`, `_log`, `_status` em toda tabela.
 
+**Tela não se escreve direto.** Tela nova ou redesenho de tela existente passa pelo agente
+`designer-ui` (`.claude/agents/designer-ui.md`) antes de virar código. Corrigir um rótulo ou ligar
+um campo que já existe, não; mudar layout, hierarquia ou componente, sim. O motivo é registrado:
+toda vez que uma tela foi escrita junto com o backend, saiu no padrão de dump de dados e teve de
+ser refeita. A régua não é "funciona", é *delightful* — se der para olhar um elemento e pensar
+"dá pra passar", não dá.
+
+**Nenhum identificador de sistema aparece na tela.** Ação, nome de tabela e nome de coluna passam
+por `Support\Rotulos` (filtros `rotulo_acao`, `rotulo_entidade`, `rotulo_campo`). `ACESSO_NEGADO`,
+`pro_denuncias` e `usu_status` são forma interna: quem lê a tela vê "Acesso negado", "Denúncia",
+"Situação da conta". O valor cru fica em `title=""` para quem audita.
+
+**Padrão visual, o que a máquina confere.** `scripts/verificar-padrao.php` roda a cada tela
+fechada e no `/encerrar`: sem emoji (ícone é SVG monocromático), sem travessão em texto de
+interface (separador de título é `·`, valor ausente é "Não informado"), cor só pelos tokens da
+seção 1 do `prolink.css`, tabela sempre `.pl-table`, nenhuma dependência de front nova. Verde no
+verificador é o piso, não a aprovação.
+
+**A paleta tem dono.** `--pl-seal` (verde água) é exclusivo de selo de verificação; `--pl-accent`
+(laranja) é a única ação preenchida da interface; `--pl-data` (azul escuro) é dado e botão
+secundário contornado. Token novo ou cor fora da seção 1 exige decisão registrada em
+`docs/decisoes.md`.
+
 ## Armadilhas já conhecidas
 
 - O CAO tem estrutura diferente da que a organização documentou: objeto plano, com
@@ -90,5 +113,10 @@ entrada nova citando a antiga; nunca reescreva uma entrada.
 
 Princípio de manutenção: **cada fato é escrito num lugar só.** Configuração de infraestrutura no
 `.env`, parâmetros do motor em `sis_parametros`, índice de documentação no `README.md`, regras de
-negócio do motor em `docs/matching.md`, estado em `docs/estado.md`. Diretório só é criado quando
-o primeiro arquivo entra.
+negócio do motor em `docs/matching.md`, regras de design e do front em `docs/design.md`, o caminho
+das telas em `docs/fluxos.md`, estado em `docs/estado.md`. Diretório só é criado quando o primeiro
+arquivo entra.
+
+Front-end: o visual segue o **design system em `docs/design.md`** (tema sobre o Bootstrap 5,
+componentes com prefixo `pl-`, verde água só para verificação). Antes de mexer em template ou CSS,
+leia-o; as telas de referência estão em `docs/mockups/`. É o padrão único dos dois lados da dupla.

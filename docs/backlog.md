@@ -267,6 +267,13 @@ abre o perfil e troca uma mensagem.
 
 ## E6 — Denúncias e painel administrativo (15/09)
 
+> **Antecipada para a noite de 14/09**, porque não depende da E3 nem da E4 e roda em paralelo com
+> elas. Plano em `docs/sprint-2026-09-14-e6.md`, branch `claude/e6-denuncias-admin`. Blocos 0 e 1
+> fechados: ambiente de pé nesta máquina (140 testes, 379 asserções) e a decisão que travava a
+> operação atômica 5 resolvida por experimento — **revogar as sessões já derruba quem está logado**,
+> então o bloqueio tem efeito imediato sem tocar em `Sessao`. A suposição contrária, registrada na
+> E7 mais abaixo, está errada.
+
 **Cobre:** RF06; edital 8.6j (lixeira), 8.5g; proposta cenários 05 e 06. **Destrava os
 cenários 5 e 6.**
 
