@@ -28,7 +28,8 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E6 — denúncias e painel | D39, D40, D41, D43 |
 | E4 — motor de compatibilização | D44 |
 | Front — padrão visual no pipeline | D42 |
-| Revisão de código (15/09) | D45, D46, D47, D48, D49, D50 |
+| Revisão de código (15/09) | D45, D46, D47, D48, D49, D50, D54 |
+| E4 — feed do demandante | D51, D52, D53, D55 |
 
 ---
 
@@ -1500,3 +1501,120 @@ não por mérito: continua sendo a escolha certa e está anotada como pendência
 acessíveis para aparecer com estilo. No Demo Day presencial, sem internet ou com rede filtrada, a
 apresentação é feita sem CSS. A verificação automática protege contra a política divergir do
 layout, mas não contra a rede: essa é a pendência acima.
+
+## D51 · Executar o motor e ver o resultado são dois endereços
+
+`15/09/2026` · E4 · commit `7909906` · `public/index.php`, `DemandaController::compatibilizar`
+
+**Contexto.** O feed precisa de um gatilho. O caminho curto é um só endereço que, ao ser aberto,
+roda o motor e mostra o pool.
+
+**Decisão.** Executar é `POST /demandas/{id}/compatibilizar`; ver é
+`GET /demandas/{id}/candidatos/{sessao}`. Cada execução grava uma sessão em `mat_sessoes` com a
+semente, o limiar e os pesos vigentes — é escrita de estado auditada, e escrita de estado por GET
+seria escrita sem proteção de CSRF, pela mesma razão que sair da conta é POST. A leitura não
+recalcula: lê a sessão gravada.
+
+**Alternativa recusada.** Um GET que executa. Além do CSRF, quebraria a coisa que dá valor ao
+registro: recarregar a página sortearia uma ordem nova, o endereço não poderia ser compartilhado
+nem revisitado, e cada F5 gastaria uma execução. O item 12.3 pede reprodutibilidade, e endereço
+que produz resultado diferente a cada visita não reproduz nada.
+
+**Consequência.** O histórico de execuções da mesma demanda cresce — uma linha por clique. É
+intencional (comparar duas execuções é o que mostra que o dado mudou, não o critério), mas quer
+dizer que `mat_sessoes` é tabela que só cresce e ninguém poda. Se virar problema, poda é ato
+administrativo com trilha, não faxina automática.
+
+## D52 · No feed, a hierarquia é dentro do card; entre cards não existe
+
+`15/09/2026` · E4 · commit `890e489` · `templates/demanda/candidatos.html.twig`
+
+**Contexto.** O motor produz um número por candidato e a tela precisa apresentar dezenas deles.
+Toda convenção de interface para lista de resultados — numerar, ordenar, destacar os primeiros,
+mostrar "cobre 2 de 3 códigos" — é ranking, e o item 10.1 veda ranking de profissionais.
+
+**Decisão.** A ordem vem sorteada pela semente e **não significa nada**, então a tela não
+hierarquiza a relação entre cards: não numera, não ordena, não destaca, não agrega contagem. O que
+ela hierarquiza é o conteúdo *dentro* de um card, e o primário é a evidência documental — um item
+por código da demanda, com as ARTs que o sustentam e a CAT quando existe. O score composto sequer
+é passado ao template, para não haver tentação de derivá-lo.
+
+Dois desdobramentos que vêm do mesmo raciocínio: o código da demanda **sem** correspondência
+aparece na lista, dizendo que não há ART naquele acervo — evidência que só mostra o que deu certo
+é meia evidência; e dimensão não medida é visualmente distinta de dimensão medida e baixa, porque
+`null` e zero são afirmações diferentes.
+
+**Alternativa recusada.** Ordenar por score e simplesmente não exibir o número. A ordem *é* o
+ranking: a primeira posição é lida como recomendação institucional. Também recusada a contagem
+agregada do tipo "atende 2 de 3 códigos" — é o tipo de número que vira classificação na cabeça de
+quem lê, e a lista item a item mostra o mesmo sem produzir um placar.
+
+**Consequência.** A tela é mais longa e mais densa do que uma lista ordenada seria, e exige do
+demandante ler em vez de confiar na primeira linha. É o custo aceito: a plataforma se propõe a
+mostrar evidência, não a escolher por ele (item 10.2).
+
+## D53 · O selo verde água fica no documento, não ao lado do nome
+
+`15/09/2026` · E4 · commit `890e489` · `templates/demanda/candidatos.html.twig`, [`design.md`](design.md)
+
+**Contexto.** O mockup aprovado do feed põe o selo de verificação ao lado do nome do candidato,
+lendo-se como "perfil verificado". É o gesto natural, e está no artefato que a equipe aprovou.
+
+**Decisão.** O selo fica só nos números de ART e de CAT. O que a API do CREA confirma são os
+documentos: que a ART existe, que pertence àquele RNP, que a CAT a cobre. "Perfil verificado" é
+uma afirmação maior do que a que temos como sustentar — o perfil tem partes autodeclaradas na
+mesma tela, e um selo no nome as cobriria por vizinhança. RNP e registro no conselho também não
+levam selo: são identidade, não evidência.
+
+**Alternativa recusada.** Seguir o mockup. Foi recusado com o mockup na mão, e não por
+esquecimento: é o único ponto em que a tela entregue diverge do artefato aprovado, e o motivo é
+que o desenho promete mais do que o dado entrega.
+
+**Consequência.** Quem comparar a tela com o mockup vai achar que faltou o selo. Esta entrada é a
+resposta, e o mockup fica desatualizado nesse detalhe — por decisão, não por deriva.
+
+## D54 · Endereço de tela é caminho, não URL absoluta
+
+`15/09/2026` · revisão · commit `994a5be` · `_config.php`, `Support\View`
+
+**Contexto.** Todas as telas montavam endereço com `{{ app_url }}`, absoluto, vindo do `.env`.
+Com a CSP da D50 no ar, abrir a aplicação por um host diferente do `APP_URL` — o IP da máquina numa
+apresentação, `127.0.0.1` em vez de `localhost` — faz o navegador tratar as duas como origens
+diferentes e **recusar a própria folha de estilo da aplicação**; `form-action 'self'` barra o envio
+dos formulários pelo mesmo motivo. Medido no Chromium antes e depois.
+
+**Decisão.** As telas usam `raiz`, que é só o componente de caminho do `APP_URL` — vazio na raiz,
+`/prolink` se um dia a aplicação for montada em subdiretório. `app_url` continua absoluto e serve
+ao que sai da aplicação: e-mail não tem origem contra a qual resolver caminho relativo, e é o
+único lugar que ainda o usa.
+
+**Alternativa recusada.** Manter o absoluto e afrouxar a CSP para aceitar qualquer origem. Trocaria
+a diretiva que carrega o peso real contra XSS por uma conveniência de configuração — e não
+resolveria o caso sem CSP, em que o endereço absoluto apontava para o `localhost` de quem abriu a
+página, que é igualmente fatal e mais difícil de diagnosticar.
+
+**Consequência.** Ninguém mais pode supor que `{{ app_url }}` funciona numa tela: o revisor precisa
+saber qual das duas usar, e a regra ("navegador usa `raiz`, e-mail usa `app_url`") vive no
+comentário de `View::motor()`. Em troca, a aplicação passa a funcionar por qualquer host sem
+reconfigurar o `.env`.
+
+## D55 · O código TOS aparece como `TOS 1.1.2.3`, e a máquina confere isso de propósito
+
+`15/09/2026` · E4 · commit `890e489` · `scripts/verificar-padrao.php`, telas de demanda
+
+**Contexto.** `tos_codigo` chega da API como `TOS_1.1.2.3`, e os mockups aprovados mostram
+`TOS 1.1.2.3`, sem o sublinhado. A regra do verificador que caça constante de sistema
+(`[A-Z][A-Z0-9]{2,}_...`) acusava o código cru **por acidente**, e só às vezes: `TOS_11.10.1.4`
+casa, `TOS_1.1.2.3` não. A mesma falha passava ou não conforme o grupo do código de amostra ter um
+ou dois dígitos, e a mensagem mandava procurar constante onde havia dado de domínio.
+
+**Decisão.** O código cru na tela vira regra própria, com mensagem própria, conferida antes da
+regra da constante — que passa a excluí-lo explicitamente. A forma de exibição é a do mockup.
+
+**Alternativa recusada.** Exibir o código verbatim e alargar a regra do verificador para ignorá-lo.
+Manteria o identificador oficial intacto na tela, que é um argumento real para quem quer conferir
+na tabela do CREA, mas contraria o desenho aprovado — e o `title` do elemento já carrega o valor
+como veio da API, para quem audita.
+
+**Consequência.** São duas regras onde havia uma, e quem for "simplificar" juntando-as reintroduz o
+falso positivo dependente de dado. O comentário no script diz isso; esta entrada é o porquê.

@@ -235,12 +235,23 @@ requisitos, vê no painel, encerra.
 > a escrita, e o formulário no perfil. O portão de privacidade do pool, que era N+1, passou a
 > resolver em lote.
 >
-> **O que falta, para quem pegar:** o pool sai de `CompatibilizacaoService::executar()` já
-> embaralhado e com `criterios` por candidato (score por dimensão, quais dimensões saíram da média
-> e as ARTs que sustentam cada código). O mockup do feed está em
-> `docs/mockups/prolink-feed-imersivo-v3.html`, aprovado. Tela nova passa pelo agente
-> `designer-ui` antes de virar código (`CLAUDE.md`). **O serviço continua sem chamador HTTP:**
-> `verificar-e4.php` é o único caminho que o executa, e é isso que o feed resolve.
+> **Feed entregue em 15/09** (`7909906`, `890e489`, `8ed1a55`), pelo agente `designer-ui` sobre o
+> mockup aprovado. Executar é POST e ver é GET, em endereços separados (D51); a hierarquia mora
+> dentro do card e entre cards não existe — sem número, sem ordem, sem contagem agregada (D52); o
+> selo verde água fica no documento e não ao lado do nome, divergindo do mockup por decisão
+> registrada (D53). A tela traz o quadro de procedência com semente, limiar e os pesos da
+> execução, que é o artefato do item 12.3.
+>
+> Ao ligar a rota apareceu um **IDOR**: `executar()` recebia o id da demanda e o do usuário e
+> nunca perguntava se um era do outro. Era teórico enquanto o único chamador era um script que
+> sempre passava o dono; com o feed, seria o caminho para ler o pool alheio.
+>
+> **O que falta desta etapa:** a explicação de compatibilidade no card já está, mas
+> `/admin/sessoes/{id}` não — o replay pela semente no painel do administrador segue pendente, e
+> é ele que fecha a prova visual dos itens 10.1 e 12.3. Duas pendências de motor ficaram
+> declaradas em vez de emendadas: a evidência não traz a descrição do código do acervo, e a sessão
+> não grava os códigos TOS da execução (esta muda esquema), o que impede distinguir "código sem
+> correspondência" de "código acrescentado depois".
 
 **Cobre:** RF04 (compatibilização, pesquisa, filtros); edital 3.2, 10.1, 10.2, 12.2, 12.3;
 proposta cenário 03, diferenciais 1 e 3. **Destrava o cenário 3 — o centro da avaliação.**
