@@ -40,17 +40,29 @@ final class NotificacaoRepository extends Repositorio
         return (int) $this->pdo->lastInsertId();
     }
 
-    /** @return list<array<string, mixed>> */
+    /**
+     * O que ainda não saiu e ainda vale tentar.
+     *
+     * O teto de `MAIL_MAX_TENTATIVAS` não é otimização: sem ele, a mensagem cujo destinatário não
+     * existe volta em toda execução, e a fila passa a gastar o lote inteiro reencenando a mesma
+     * falha permanente — empurrando para o fim o que sairia. A linha não é apagada nem marcada
+     * como enviada: fica com `not_erro` preenchido, visível para quem for investigar.
+     *
+     * @return list<array<string, mixed>>
+     */
     public function pendentes(int $limite = 50): array
     {
         $stmt = $this->pdo->prepare(
             'SELECT not_id, not_usu_id, not_tipo, not_destinatario, not_assunto, not_corpo, not_tentativas
                FROM sis_notificacoes
-              WHERE not_dt_envio IS NULL AND not_status = :ativo
+              WHERE not_dt_envio IS NULL
+                AND not_status = :ativo
+                AND not_tentativas < :teto
               ORDER BY not_id
               LIMIT :limite'
         );
         $stmt->bindValue(':ativo', STATUS_ATIVO);
+        $stmt->bindValue(':teto', MAIL_MAX_TENTATIVAS, \PDO::PARAM_INT);
         $stmt->bindValue(':limite', $limite, \PDO::PARAM_INT);
         $stmt->execute();
 

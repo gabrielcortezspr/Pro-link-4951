@@ -105,6 +105,24 @@ define('MAIL_ENCRYPTION', env('MAIL_ENCRYPTION', 'tls'));
 define('MAIL_FROM_ADDRESS', env('MAIL_FROM_ADDRESS', 'nao-responda@prolink.local'));
 define('MAIL_FROM_NAME', env('MAIL_FROM_NAME', 'Pro-Link'));
 
+/**
+ * Quantas vezes uma notificação é retentada antes de a fila desistir dela.
+ *
+ * Sem teto, `pendentes()` devolve para sempre a mensagem cujo destinatário não existe, e a fila
+ * gasta toda execução tentando de novo o que nunca vai sair — enquanto empurra para o fim da
+ * fila o que sairia.
+ */
+define('MAIL_MAX_TENTATIVAS', (int) env('MAIL_MAX_TENTATIVAS', 3));
+
+/**
+ * Quantas notificações saem a cada requisição, no despacho pós-resposta.
+ *
+ * Pequeno de propósito: o despacho roda depois de a resposta já ter ido ao navegador, mas ainda
+ * ocupa o processo do php-fpm. Uma fila represada drena em várias requisições em vez de prender
+ * um processo por minutos.
+ */
+define('MAIL_LOTE_POS_RESPOSTA', (int) env('MAIL_LOTE_POS_RESPOSTA', 5));
+
 // ---------------------------------------------------------------- segurança
 
 /** Chave de 32 bytes para AES-256-GCM em repouso (CPF/CNPJ). */

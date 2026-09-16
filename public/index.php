@@ -26,6 +26,7 @@ use ProLink\Controller\PrivacidadeController;
 use ProLink\Controller\SaudeController;
 use ProLink\Controller\TermoController;
 use ProLink\Repository\SessaoRepository;
+use ProLink\Service\NotificacaoService;
 use ProLink\Support\Auditoria;
 use ProLink\Support\Csrf;
 use ProLink\Support\Flash;
@@ -126,6 +127,42 @@ $router->get('/admin/denuncias/{id}',  AdminController::class, 'denuncia', PERFI
 $router->post('/admin/denuncias/{id}', AdminController::class, 'tratar',   PERFIL_ADMIN);
 
 // Próximas, na ordem do backlog: /perfil, /demandas — ver docs/backlog.md
+
+// ---------------------------------------------------------------- fila de e-mail
+//
+// O gatilho que faltava desde a E1: `despachar()` existia e nada o chamava, então a fila só
+// andava quando alguém rodava um script à mão.
+//
+// **Por que em `register_shutdown_function` e não no fim do arquivo.** O front controller sai por
+// `exit` em seis caminhos — 404, 401, 403, CSRF inválido, e todo `View::redirecionar()`, que é
+// `never`. Código no fim do arquivo não roda em nenhum deles, e manifestação que redireciona
+// depois de gravar é justamente o caso que mais precisa do e-mail. O shutdown dispara em todos.
+//
+// **Por que depois de `fastcgi_finish_request()`.** SMTP é rede: sem isso o navegador ficaria
+// esperando o e-mail sair para receber a página. A função existe porque o contêiner é
+// `php:8.2-fpm-alpine`; o `function_exists` cobre a execução por CLI, onde o conceito não se
+// aplica e a resposta já foi embora de qualquer jeito.
+//
+// **O lote é pequeno de propósito** (MAIL_LOTE_POS_RESPOSTA): a resposta já foi, mas o processo
+// do php-fpm continua ocupado. Fila represada drena em várias requisições em vez de prender um
+// processo por minutos.
+//
+// Falha aqui nunca chega ao usuário: a resposta já saiu, e o que resta é registro.
+register_shutdown_function(static function (): void {
+    if (MAIL_HOST === '') {
+        return;
+    }
+
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    }
+
+    try {
+        (new NotificacaoService())->despachar(MAIL_LOTE_POS_RESPOSTA);
+    } catch (Throwable $e) {
+        error_log('Falha no despacho pos-resposta da fila: ' . $e->getMessage());
+    }
+});
 
 // ---------------------------------------------------------------- despacho
 $rota = $router->resolver(Requisicao::metodo(), Requisicao::caminho());
