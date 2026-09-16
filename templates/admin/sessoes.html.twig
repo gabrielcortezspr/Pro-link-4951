@@ -1,0 +1,160 @@
+{% extends 'admin/_layout.html.twig' %}
+{% import 'layout/_ui.html.twig' as ui %}
+
+{#
+    Sessões do motor de compatibilização (RF04, item 12.3).
+
+    A unidade de leitura é UMA execução do motor, não uma linha de tabela. Primário: sobre qual
+    demanda ela rodou e quando. Secundário: quem a disparou e quantos candidatos entraram no
+    pool. Terciário: a procedência, que é o par semente/limiar que permite refazer o sorteio.
+
+    A tela é gêmea da trilha de auditoria e usa a mesma mecânica de log (cabeçalho de dia, hora
+    monoespaçada, hover de linha): as duas respondem "o que aconteceu, e quando", e divergir no
+    desenho faria o painel parecer duas aplicações.
+
+    Ordenar sessão por data não é ranking. O que o item 10.1 veda é ordenar PESSOAS por mérito, e
+    nada aqui ordena pessoa: o tamanho do pool é contagem, não nota.
+#}
+
+{% block titulo %}Sessões do motor · Pro-Link{% endblock %}
+{% block titulo_painel %}Sessões do motor{% endblock %}
+
+{% block topbar_acoes %}
+    <span class="pl-somente-leitura">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8.5 11V7.5a3.5 3.5 0 017 0V11"/></svg>
+        Somente leitura
+    </span>
+    {{ ui.info('O que é uma sessão do motor',
+        'Toda vez que o motor procura quem atende a uma demanda, ele grava a execução inteira: a semente sorteada, o limiar, os pesos vigentes naquele instante e o conjunto de candidatos avaliado. Abrir uma sessão refaz o sorteio com a semente gravada, na hora, e compara com a ordem que ficou no banco. Esta área não altera nada.', 'fim') }}
+{% endblock %}
+
+{% block painel %}
+
+    {% set meses = {
+        1: 'janeiro', 2: 'fevereiro', 3: 'março',    4: 'abril',    5: 'maio',      6: 'junho',
+        7: 'julho',   8: 'agosto',    9: 'setembro', 10: 'outubro', 11: 'novembro', 12: 'dezembro'
+    } %}
+
+    {# O repositório devolve as mais recentes com teto. Quando a lista bate no teto, a tela diz
+       isso no rodapé: lista cortada em silêncio faz alguém concluir que o motor rodou 50 vezes. #}
+    {% set teto = 50 %}
+
+    <section class="pl-card pl-log-card">
+
+        <div class="pl-log-topo">
+            <div>
+                <h2 class="pl-card-titulo">Execuções registradas</h2>
+                <p class="pl-log-resumo">
+                    <span><b>{{ sessoes|length }}</b> {{ sessoes|length == 1 ? 'sessão' : 'sessões' }}</span>
+                    <span aria-hidden="true">·</span>
+                    {# Item 10.2: a qualificação do que a lista mostra fica visível, não atrás do
+                       clique do "i". O detalhe de COMO é que vai para a explicação sob demanda. #}
+                    <span>a ordem de cada pool é sorteada pela semente da sessão, sem ranking</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="pl-table pl-log pl-sess">
+                <caption class="visually-hidden">
+                    Sessões do motor de compatibilização, da mais recente para a mais antiga,
+                    agrupadas por dia. Uma execução por linha.
+                </caption>
+                <colgroup>
+                    <col class="c-hora"><col><col class="c-quem">
+                    <col class="c-pool"><col class="c-proc"><col class="c-abrir">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th scope="col">Hora</th>
+                        <th scope="col">Demanda compatibilizada</th>
+                        <th scope="col">Executada por</th>
+                        <th scope="col" class="num">Pool</th>
+                        <th scope="col">Procedência</th>
+                        <th scope="col"><span class="visually-hidden">Reprodução</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for s in sessoes %}
+
+                    {# A data sai da linha e vira faixa de dia, como na trilha: repetir a mesma
+                       data por extenso em 50 linhas gasta espaço com a informação menos
+                       discriminante da tela. #}
+                    {% if loop.first or s.mts_dt_registro|date('Y-m-d') != sessoes[loop.index0 - 1].mts_dt_registro|date('Y-m-d') %}
+                        <tr class="dia">
+                            <td colspan="6">
+                                <div class="w">
+                                    <span class="d">{{ s.mts_dt_registro|date('j') }} de {{ meses[s.mts_dt_registro|date('n')] }} de {{ s.mts_dt_registro|date('Y') }}</span>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+
+                    <tr class="lin">
+                        <td class="hora">{{ s.mts_dt_registro|date('H:i:s') }}</td>
+
+                        <td>
+                            {# O título é texto livre do demandante, e às vezes traz um código da
+                               Tabela de Obras e Serviços dentro dele. A normalização é a mesma que
+                               ui.tos() aplica em toda a interface (TOS_1.1.1 vira TOS 1.1.1): o
+                               código continua legível, e nenhum identificador sai cru na tela. #}
+                            <a class="as" href="{{ app_url }}/admin/sessoes/{{ s.mts_id }}"
+                               title="{{ s.dem_titulo }}">{{ s.dem_titulo|replace({'TOS_': 'TOS '}) }}</a>
+                            <span class="sub">Sessão nº {{ s.mts_id }} <span aria-hidden="true">·</span> Demanda nº {{ s.mts_dem_id }}</span>
+                        </td>
+
+                        <td>
+                            {# mts_usu_id é obrigatório e tem chave estrangeira: nome ausente aqui
+                               significa cadastro sem a linha, não execução anônima. #}
+                            <span class="autor{% if not s.usu_nome %} anon{% endif %}">{{ s.usu_nome|default('Conta não localizada') }}</span>
+                        </td>
+
+                        <td class="qt{% if s.mts_total_pool == 0 %} zero{% endif %}">{{ s.mts_total_pool }}</td>
+
+                        <td>
+                            <span class="det">
+                                <span class="kv"><i>Semente</i><b title="{{ s.mts_semente }}">{{ s.mts_semente|slice(0, 8) }}…</b></span>
+                                <span class="kv"><i>Limiar</i><b>{{ (s.mts_limiar * 100)|round }}%</b></span>
+                            </span>
+                        </td>
+
+                        {# Uma ação por linha (docs/design.md). O título também leva ao mesmo
+                           lugar; o botão existe para a ação ser nomeada, porque "abrir a sessão"
+                           e "reproduzir a sessão" são a mesma coisa e só a segunda se anuncia. #}
+                        <td class="abrir">
+                            <a class="pl-btn sm" href="{{ app_url }}/admin/sessoes/{{ s.mts_id }}">
+                                Reproduzir
+                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="M13 6l6 6-6 6"/></svg>
+                            </a>
+                        </td>
+                    </tr>
+
+                {% else %}
+
+                    <tr class="vazio">
+                        <td colspan="6">
+                            <p class="t">O motor ainda não rodou</p>
+                            <p class="s">
+                                A primeira sessão é gravada quando alguém abre a lista de compatíveis
+                                de uma demanda que já tem atividade da Tabela de Obras e Serviços.
+                            </p>
+                        </td>
+                    </tr>
+
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if sessoes|length >= teto %}
+            <div class="pl-sess-rodape">
+                <p class="pl-nota mb-0">
+                    A lista mostra as {{ teto }} execuções mais recentes. As anteriores continuam
+                    gravadas e continuam reproduzíveis pelo número da sessão.
+                </p>
+            </div>
+        {% endif %}
+
+    </section>
+
+{% endblock %}

@@ -103,6 +103,28 @@ final class Rotulos
         'art_hash'          => 'Hash de validação',
     ];
 
+    /**
+     * As seis dimensões do motor de compatibilização (item 3.2), em nome de gente.
+     *
+     * A chave gravada em `mat_sessao_pool` é a do cálculo (`competencia`, `localizacao`), e é
+     * ela que chega ao feed tanto nos valores quanto na lista de dimensões ausentes. Sem este
+     * mapa, "Declarar o que não foi medido" sairia na tela como "contrato, disponibilidade" em
+     * caixa baixa, que é identificador de sistema com outra roupa.
+     */
+    private const DIMENSOES = [
+        'competencia'     => 'Competência técnica',
+        'area'            => 'Área de atuação',
+        'localizacao'     => 'Localização',
+        'experiencia'     => 'Experiência',
+        'contrato'        => 'Tipo de contrato',
+        'disponibilidade' => 'Disponibilidade',
+    ];
+
+    public static function dimensao(?string $valor): string
+    {
+        return self::traduzir($valor, self::DIMENSOES);
+    }
+
     public static function acao(?string $valor): string
     {
         return self::traduzir($valor, self::ACOES);

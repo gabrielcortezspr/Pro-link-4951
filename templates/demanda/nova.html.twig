@@ -1,7 +1,12 @@
 {% extends 'layout/base.html.twig' %}
 {% import 'layout/_form.html.twig' as form %}
+{% import 'layout/_ui.html.twig' as ui %}
 
 {% block titulo %}Nova demanda · Pro-Link{% endblock %}
+
+{#  Formulário: medida de leitura, não largura de tabela. O card é o objeto da tela, e a moldura
+    ao redor dele é intencional, do mesmo jeito que no palco do feed. #}
+{% block classe_main %}pl-wrap leitura{% endblock %}
 
 {% block conteudo %}
 {#  `ufs_possiveis` é lista simples e a macro `selecao` espera mapa chave => rótulo. A chave aqui
@@ -9,17 +14,21 @@
     <select> de ART (ver perfil/index) não se aplica. #}
 {% set ufs_mapa = ufs_possiveis|reduce((mapa, uf) => mapa|merge({(uf): uf}), {}) %}
 
-<h1 class="h3 mb-1">Nova demanda</h1>
-<p class="text-body-secondary">
-    A demanda nasce como rascunho. Depois de salvar você escolhe os códigos da Tabela de Obras e
-    Serviços: é por eles que a plataforma encontra quem já comprovou fazer este tipo de serviço.
-</p>
+<div class="pl-head">
+    <div class="tit">
+        <div class="pl-linha-titulo">
+            <h1>Nova demanda</h1>
+            {{ ui.info('Por que a demanda nasce rascunho',
+                'Salvar cria o rascunho, que só você enxerga. A publicação é um segundo passo porque antes dela é preciso escolher as atividades da Tabela de Obras e Serviços: é por elas que a plataforma encontra quem já comprovou fazer este tipo de serviço.') }}
+        </div>
+    </div>
+</div>
 
 {% if aviso is defined and aviso %}
     <div class="alert alert-danger" role="alert">{{ aviso }}</div>
 {% endif %}
 
-<form method="post" action="{{ app_url }}/demandas" class="col-lg-8">
+<form method="post" action="{{ app_url }}/demandas" class="pl-card">
     {{ form.csrf() }}
 
     {{ form.campo('titulo', 'Título', 'text', valores.titulo|default(''),
@@ -42,16 +51,23 @@
         </div>
     </div>
 
-    {{ form.selecao('tipo_contrato', 'Tipo de contrato', contratos_possiveis,
-        valores.tipo_contrato|default(''), erros.tipo_contrato|default(null), {}, 'A combinar') }}
+    <div class="row">
+        <div class="col-sm-6">
+            {{ form.selecao('tipo_contrato', 'Tipo de contrato', contratos_possiveis,
+                valores.tipo_contrato|default(''), erros.tipo_contrato|default(null), {}, 'A combinar') }}
+        </div>
+        <div class="col-sm-6">
+            {{ form.selecao('alvo', 'Quem pode atender', {
+                'A': 'Profissionais e empresas',
+                'P': 'Somente profissionais',
+                'E': 'Somente empresas'
+            }, valores.alvo|default('A'), erros.alvo|default(null), {required: true}, false) }}
+        </div>
+    </div>
 
-    {{ form.selecao('alvo', 'Quem pode atender', {
-        'A': 'Profissionais e empresas',
-        'P': 'Somente profissionais',
-        'E': 'Somente empresas'
-    }, valores.alvo|default('A'), erros.alvo|default(null), {required: true}, false) }}
-
-    {{ form.botao('Salvar rascunho') }}
-    <a class="btn btn-link" href="{{ app_url }}/demandas">Cancelar</a>
+    <div class="pl-acoes-form">
+        {{ form.botao('Salvar rascunho') }}
+        <a class="pl-btn ghost" href="{{ app_url }}/demandas">Cancelar</a>
+    </div>
 </form>
 {% endblock %}

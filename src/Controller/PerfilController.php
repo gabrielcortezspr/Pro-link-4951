@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ProLink\Controller;
 
+use ProLink\Repository\UsuarioRepository;
 use ProLink\Service\EmpresaCreaService;
 use ProLink\Service\ExperienciaService;
 use ProLink\Service\PerfilCreaService;
@@ -43,12 +44,55 @@ final class PerfilController
         private readonly EmpresaCreaService $empresaCrea = new EmpresaCreaService(),
         private readonly ExperienciaService $experiencias = new ExperienciaService(),
         private readonly PreferenciaService $preferencias = new PreferenciaService(),
+        private readonly UsuarioRepository $usuarios = new UsuarioRepository(),
     ) {
     }
 
     public function index(): string
     {
         return $this->renderizar();
+    }
+
+    /**
+     * O perfil de outra pessoa (RF03; destino do "ver perfil completo" do feed).
+     *
+     * Nenhuma regra de visibilidade mora aqui: o espectador é passado ao serviço e a `Visao`
+     * decide campo a campo o que sobra. Abrir o próprio id por esta rota devolve a visão de dono,
+     * pela mesma razão — é a `Visao` que compara, não o controller.
+     *
+     * O template sai do perfil de **quem é visitado**, não de quem visita: uma empresa olhando um
+     * profissional tem de ver a tela de profissional.
+     */
+    public function publico(string $id): string
+    {
+        $alvoId = (int) $id;
+
+        // Null quando ninguém entrou, e **não** zero: a Visao decide `autenticado` por
+        // `!== null`, então um 0 aqui daria ao anônimo o alcance de quem tem conta, entregando
+        // o que cada titular abriu só para autenticados. A rota é pública (Anexo I, item 3), e é
+        // exatamente por isso que a distinção precisa sobreviver até aqui.
+        $espectador = Sessao::usuarioId();
+
+        // Conta inexistente, excluída ou bloqueada não volta de perfisAtivos, e a ausência fecha
+        // o perfil — mesmo efeito da exclusão lógica (D05) e do bloqueio da E6.
+        $perfilAlvo = $this->usuarios->perfisAtivos([$alvoId])[$alvoId] ?? null;
+
+        if ($perfilAlvo === null) {
+            return View::erro(404, 'Perfil não encontrado.');
+        }
+
+        $ehEmpresa = $perfilAlvo === PERFIL_EMPRESA;
+
+        $perfil = $ehEmpresa
+            ? $this->perfisEmpresa->montar($alvoId, $espectador)
+            : $this->perfis->montar($alvoId, $espectador);
+
+        if ($perfil === null) {
+            return View::erro(404, 'Perfil não encontrado.');
+        }
+
+        return View::render($ehEmpresa ? 'perfil/empresa.html.twig' : 'perfil/index.html.twig',
+            $this->variaveis($perfil, $perfil['identidade']['nome'] ?? 'Perfil'));
     }
 
     // ---------------------------------------------------------------- experiência autodeclarada
@@ -191,8 +235,27 @@ final class PerfilController
             return View::erro(404, 'Perfil não encontrado.');
         }
 
-        return View::render($ehEmpresa ? 'perfil/empresa.html.twig' : 'perfil/index.html.twig', [
-            'titulo'  => 'Meu perfil',
+        return View::render($ehEmpresa ? 'perfil/empresa.html.twig' : 'perfil/index.html.twig',
+            $this->variaveis($perfil, 'Meu perfil', $erros, $aviso));
+    }
+
+    /**
+     * As variáveis que as duas telas de perfil esperam, para o dono e para o visitante.
+     *
+     * Um lugar só porque `strict_variables` está ligado em desenvolvimento: chave faltando é
+     * exceção, não string vazia, e a tela do visitante percorre os mesmos blocos da tela do dono
+     * — o que muda é `perfil.eh_dono`, que a `Visao` resolveu lá no serviço. O vocabulário e os
+     * níveis de visibilidade viajam mesmo para o visitante: os blocos que os consomem estão atrás
+     * de `eh_dono`, e passá-los custa menos que espalhar `default()` pelos templates.
+     *
+     * @param  array<string, mixed>  $perfil
+     * @param  array<string, string> $erros
+     * @return array<string, mixed>
+     */
+    private function variaveis(array $perfil, string $titulo, array $erros = [], ?string $aviso = null): array
+    {
+        return [
+            'titulo'  => $titulo,
             'perfil'  => $perfil,
             'erros'   => $erros,
             'aviso'   => $aviso,
@@ -212,7 +275,7 @@ final class PerfilController
             'abrangencia_atual'    => Preferencias::ufsDaAbrangencia(
                 $perfil['campos']['DISPONIBILIDADE'] ?? null,
             ),
-        ]);
+        ];
     }
 
     /**

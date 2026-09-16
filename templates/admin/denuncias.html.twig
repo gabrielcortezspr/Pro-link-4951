@@ -39,8 +39,8 @@
                 {% for d in fila %}
                     <tr>
                         <td>
-                            {{ d.alvo_nome|default(d.den_entidade|capitalize ~ ' #' ~ d.den_entidade_id) }}
-                            {% if d.alvo_nome %}<span class="text-body-secondary d-block" style="font-size:.75rem">Conta</span>{% endif %}
+                            <span class="lin-tt">{{ d.alvo_nome|default(d.den_entidade|rotulo_entidade ~ ' nº ' ~ d.den_entidade_id) }}</span>
+                            {% if d.alvo_nome %}<span class="lin-sub">Conta</span>{% endif %}
                         </td>
                         <td>{{ tipos[d.den_tipo]|default(d.den_tipo) }}</td>
                         <td>{{ d.autor_nome }}</td>
@@ -57,7 +57,15 @@
                     </tr>
                 {% else %}
                     <tr>
-                        <td colspan="6" class="text-body-secondary">Nenhuma denúncia nesta situação.</td>
+                        <td colspan="6">
+                            <div class="pl-vazio">
+                                <p class="t">Nenhuma denúncia nesta situação</p>
+                                <p class="s">
+                                    A fila fica vazia quando não há nada pendente de apuração neste
+                                    recorte. Troque a aba para ver as demais.
+                                </p>
+                            </div>
+                        </td>
                     </tr>
                 {% endfor %}
                 </tbody>

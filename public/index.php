@@ -16,6 +16,8 @@ require_once dirname(__DIR__) . '/_config.php';
 
 use ProLink\Controller\AdminController;
 use ProLink\Controller\AuthController;
+use ProLink\Controller\BuscaController;
+use ProLink\Controller\CompativelController;
 use ProLink\Controller\DemandaController;
 use ProLink\Controller\DenunciaController;
 use ProLink\Controller\HomeController;
@@ -56,6 +58,12 @@ $router->post('/redefinir-senha/{token}', AuthController::class, 'redefinir');
 $router->post('/sair',                AuthController::class, 'sair', PERFIS_AUTENTICADOS);
 
 // ---------------------------------------------------------------- privacidade do titular (11.3)
+// ---------------------------------------------------------------- busca ativa (RF04)
+// Aberta a quem não tem conta: o edital dá "pesquisar profissionais" e "ver perfil" ao perfil
+// Público (Anexo I, item 3). O anônimo não deixa de ver a tela, ele vê menos dela — quem decide
+// campo a campo é a Visao, pelo alcance de Visibilidade::alcanceDe().
+$router->get('/profissionais', BuscaController::class, 'profissionais', PERFIL_PUBLICO);
+
 $router->get('/perfil',                       PerfilController::class, 'index', PERFIS_AUTENTICADOS);
 $router->post('/perfil/visibilidade',        PerfilController::class, 'definirVisibilidade', PERFIS_AUTENTICADOS);
 // Um caminho só para os dois perfis que têm registro no conselho: o controller despacha pelo
@@ -71,6 +79,11 @@ $router->post('/perfil/preferencias',        PerfilController::class, 'salvarPre
 $router->post('/perfil/experiencias',                 PerfilController::class, 'criarExperiencia', PERFIL_PROFISSIONAL);
 $router->post('/perfil/experiencias/{id}',            PerfilController::class, 'editarExperiencia', PERFIL_PROFISSIONAL);
 $router->post('/perfil/experiencias/{id}/excluir',    PerfilController::class, 'excluirExperiencia', PERFIL_PROFISSIONAL);
+
+// Perfil de outra pessoa. Depois das rotas literais acima, porque {id} casaria 'visibilidade'
+// antes delas. PerfilService::montar() já recebe o espectador e filtra pela Visao: quem não é o
+// dono vê só o que o dono abriu.
+$router->get('/perfil/{id}', PerfilController::class, 'publico', PERFIL_PUBLICO);
 
 $router->get('/privacidade',                  PrivacidadeController::class, 'index', PERFIS_AUTENTICADOS);
 $router->post('/privacidade/consentimento',   PrivacidadeController::class, 'definirConsentimento', PERFIS_AUTENTICADOS);
@@ -90,6 +103,11 @@ $router->post('/demandas/{id}/tos',      DemandaController::class, 'alterarTos',
 $router->post('/demandas/{id}/publicar', DemandaController::class, 'publicar', PERFIS_DEMANDANTES);
 $router->post('/demandas/{id}/encerrar', DemandaController::class, 'encerrar', PERFIS_DEMANDANTES);
 
+// O feed é do dono da demanda, logo dos perfis que publicam. GET relê a última sessão gravada;
+// POST manda calcular outra — ver CompativelController.
+$router->get('/demandas/{id}/compativeis',  CompativelController::class, 'index',     PERFIS_DEMANDANTES);
+$router->post('/demandas/{id}/compativeis', CompativelController::class, 'atualizar', PERFIS_DEMANDANTES);
+
 // ---------------------------------------------------------------- denúncias (RF06)
 // Qualquer conta autenticada denuncia, inclusive Terceiro. Anônimo recebe 401.
 $router->get('/denuncias/nova', DenunciaController::class, 'formulario', PERFIS_AUTENTICADOS);
@@ -99,6 +117,10 @@ $router->post('/denuncias',     DenunciaController::class, 'registrar',  PERFIS_
 $router->get('/admin',                AdminController::class, 'index', PERFIL_ADMIN);
 $router->get('/admin/denuncias',      AdminController::class, 'denuncias', PERFIL_ADMIN);
 $router->get('/admin/auditoria',      AdminController::class, 'auditoria', PERFIL_ADMIN);
+$router->get('/admin/sessoes',        AdminController::class, 'sessoes', PERFIL_ADMIN);
+// Depois da rota sem parâmetro, pelo mesmo motivo das denúncias: o Router percorre na ordem de
+// registro e {id} casaria 'sessoes' antes.
+$router->get('/admin/sessoes/{id}',   AdminController::class, 'sessao', PERFIL_ADMIN);
 // Depois da rota sem parâmetro: o Router percorre na ordem de registro, e {id} casaria antes.
 $router->get('/admin/denuncias/{id}',  AdminController::class, 'denuncia', PERFIL_ADMIN);
 $router->post('/admin/denuncias/{id}', AdminController::class, 'tratar',   PERFIL_ADMIN);

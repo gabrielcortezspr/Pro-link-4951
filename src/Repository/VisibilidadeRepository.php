@@ -51,6 +51,45 @@ final class VisibilidadeRepository extends Repositorio
     }
 
     /**
+     * O mesmo mapa da `mapaDoUsuario()`, para vários titulares numa consulta só.
+     *
+     * Existe para o feed. Lá a pergunta "esta ART está aberta?" é feita para dezenas de ARTs de
+     * dezenas de titulares diferentes na mesma tela, e uma consulta por titular devolveria o N+1
+     * que o portão de privacidade do pool acabou de perder — com o agravante de que aqui o
+     * número cresce com o tamanho do pool, que é justamente o que se quer que cresça.
+     *
+     * @param  list<int> $usuarioIds
+     * @return array<int, array<string, string>> usuário => (chave do alvo => nível)
+     */
+    public function mapaDeUsuarios(array $usuarioIds): array
+    {
+        $linhas = $this->buscarPorIds(
+            static fn (array $m): string =>
+                'SELECT vis_usu_id, vis_entidade, vis_entidade_id, vis_campo, vis_nivel
+                   FROM pro_visibilidade
+                  WHERE vis_usu_id IN (' . implode(', ', $m) . ')
+                    AND vis_status = :ativo
+                  ORDER BY vis_id',
+            $usuarioIds,
+            [':ativo' => STATUS_ATIVO],
+        );
+
+        $mapas = [];
+
+        foreach ($linhas as $linha) {
+            $chave = Visibilidade::chave(
+                (string) $linha['vis_entidade'],
+                $linha['vis_entidade_id'] === null ? null : (int) $linha['vis_entidade_id'],
+                $linha['vis_campo'] === null ? null : (string) $linha['vis_campo'],
+            );
+
+            $mapas[(int) $linha['vis_usu_id']][$chave] = (string) $linha['vis_nivel'];
+        }
+
+        return $mapas;
+    }
+
+    /**
      * @return string|null nível gravado, ou null se o titular nunca decidiu sobre este alvo
      */
     public function nivel(int $usuarioId, string $entidade, ?int $entidadeId, ?string $campo): ?string

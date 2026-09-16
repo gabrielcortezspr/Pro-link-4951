@@ -64,6 +64,43 @@ final class VisibilidadeService
     }
 
     /**
+     * Várias visões de uma vez, para o feed (D52).
+     *
+     * Mesma regra da `visao()`, montada em duas consultas para o lote inteiro em vez de duas por
+     * titular: `mapaDeUsuarios()` traz as escolhas e `perfisAbertos()` os dois portões globais.
+     * Delega a decisão à própria `Visao`, e não a uma cópia da regra aqui, pelo mesmo motivo que
+     * `perfilAberto()` delega ao caminho em lote: dois lugares decidindo quem vê o quê é como
+     * eles passam a discordar.
+     *
+     * @param  list<int> $donoIds
+     * @return array<int, Visao>
+     */
+    public function visoes(array $donoIds, ?int $espectadorId): array
+    {
+        $donoIds = array_values(array_unique(array_map('intval', $donoIds)));
+
+        if ($donoIds === []) {
+            return [];
+        }
+
+        $mapas   = $this->visibilidades->mapaDeUsuarios($donoIds);
+        $abertos = $this->perfisAbertos($donoIds);
+
+        $visoes = [];
+
+        foreach ($donoIds as $donoId) {
+            $visoes[$donoId] = new Visao(
+                $mapas[$donoId] ?? [],
+                $espectadorId !== null && $espectadorId === $donoId,
+                $espectadorId !== null,
+                $abertos[$donoId] ?? false,
+            );
+        }
+
+        return $visoes;
+    }
+
+    /**
      * Os portões globais. Chamado uma vez por visão, nunca por campo.
      *
      * Delega ao caminho em lote em vez de repetir a regra. A duplicação seria tentadora — um

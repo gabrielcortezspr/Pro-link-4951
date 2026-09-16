@@ -1,0 +1,287 @@
+{% extends 'layout/base.html.twig' %}
+{% import 'layout/_ui.html.twig' as ui %}
+
+{#
+    Busca ativa de profissionais (RF04; Anexo I item 3, capacidade do perfil Público).
+
+    **Não é o feed.** O feed parte de uma demanda, monta um pool pontuado, sorteia pela semente da
+    sessão e explica cada correspondência por dimensão. Aqui quem parte é a pessoa, com uma palavra
+    digitada, e o resultado é um filtro: quem casa aparece, quem não casa não. Não há score, não há
+    limiar, não há semente e não há dimensão. A ordem é alfabética, e isso não é ranking (item
+    10.1) justamente porque não existe "mais relevante": o termo decide quem entra, e dentro de
+    quem entrou ninguém está na frente de ninguém. A tela diz isso, curto e visível.
+
+    **É a única tela aberta a quem não tem conta**, e isso é exigência do edital. O anônimo não vê
+    menos tela, vê menos dado: `Visibilidade::alcanceDe()` entrega a ele só o que cada titular
+    marcou como público. Por isso `resumo`, `tipo_contrato` e `disponibilidade` chegam nulos com
+    dois significados diferentes ("não preencheu" e "não abriu para você") que a tela não tem como
+    distinguir. A saída é não afirmar nenhum dos dois: o bloco do que foi declarado simplesmente
+    não aparece. "Não informado" aqui seria escrever na tela algo falso sobre a pessoa.
+
+    Tudo é GET e nada depende de JavaScript: é a porta de entrada pública, e é a tela que mais
+    precisa ser robusta.
+#}
+
+{% block titulo %}{{ titulo }} · Pro-Link{% endblock %}
+
+{#  Lista larga, desktop primeiro: a grade de pessoas ocupa a tela em colunas em vez de empilhar
+    cartões de 1600px de linha. #}
+{% block classe_main %}pl-wrap densa{% endblock %}
+
+{% block conteudo %}
+{% set termo = busca.termo %}
+{% set tem_filtro = termo is not empty or busca.em_construcao %}
+{% set url_base = app_url ~ '/profissionais' %}
+
+<div class="pl-head">
+    <div class="tit">
+        <h1>{{ titulo }}</h1>
+        <p class="sub">
+            {% if busca.total > 0 %}
+                <span>
+                    <span class="n">{{ busca.total }}</span>
+                    {{ busca.total == 1 ? 'profissional' : 'profissionais' }}
+                    {%- if termo is not empty %} para “{{ termo|slice(0, 60) }}{{ termo|length > 60 ? '…' }}”{% endif %}
+                </span>
+                <span class="pl-sep" aria-hidden="true"></span>
+            {% endif %}
+            {#  Item 10.2, e a regra 3 da D53: a qualificação do que está sendo mostrado não pode
+                depender de clique. Atrás do "i" fica só o detalhe de onde a busca procura. #}
+            <span>Ordem alfabética, sem ranking: o termo decide quem aparece, e ninguém aparece na frente de ninguém</span>
+            {{ ui.info('Onde esta busca procura',
+                'O termo é procurado no nome, na modalidade do registro no CREA, no grupo da Tabela de Obras e Serviços em que a pessoa tem ART registrada, no título e na descrição das experiências declaradas e no resumo do perfil. Encontrar é tudo: não existe nota de relevância, nem ordenação por quantidade de acervo.') }}
+        </p>
+    </div>
+
+    {% if not usuario() %}
+        <div class="pl-head-acoes">
+            {#  Convite, não muro: a busca inteira funciona sem conta. O que muda é o alcance do
+                que cada titular abriu, e dizer isso é mais honesto do que prometer "conteúdo
+                exclusivo". #}
+            <p class="pl-convite">
+                Quem tem conta vê também o que os profissionais abriram para usuários
+                identificados, como resumo, regime de contratação e onde aceitam atuar.
+                <a href="{{ app_url }}/login">Entrar</a>
+                <span class="pl-sep" aria-hidden="true"></span>
+                <a href="{{ app_url }}/cadastro">Criar conta</a>
+            </p>
+        </div>
+    {% endif %}
+</div>
+
+{#  Formulário GET puro: sem JavaScript o campo, a opção e o botão continuam sendo uma busca. #}
+<form class="pl-toolbar mb-4" method="get" action="{{ url_base }}" role="search">
+    <div class="pl-busca-topo">
+        <div class="cx">
+            <label class="form-label" for="q">Nome, especialidade ou experiência</label>
+            <input class="form-control" type="search" id="q" name="q" maxlength="80"
+                   value="{{ termo }}" placeholder="Ex.: Construção Civil, Eletrotécnica, estruturas, Ana"
+                   autocomplete="off">
+        </div>
+        <button type="submit" class="pl-btn">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.2-4.2"/></svg>
+            Buscar
+        </button>
+        {% if tem_filtro %}
+            <a class="pl-btn ghost" href="{{ url_base }}">Limpar</a>
+        {% endif %}
+    </div>
+
+    <div class="pl-busca-op">
+        {#  O único filtro da plataforma que esconde alguém por atributo do perfil, e quem ele
+            esconde é justamente quem está começando. Nasce desligado, e o rótulo descreve o
+            recorte sem julgar: a marca dá contexto, não mede qualidade (D48). #}
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="1" id="em_construcao"
+                   name="em_construcao"{{ busca.em_construcao ? ' checked' : '' }}>
+            <label class="form-check-label" for="em_construcao">Incluir quem está começando</label>
+        </div>
+        <p class="nota">Perfil em construção: registro regular no CREA, acervo ainda em formação.</p>
+    </div>
+</form>
+
+{% if busca.truncado %}
+    <p class="pl-corte">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.2v.2"/></svg>
+        <span>
+            <b>Há mais profissionais{% if termo is not empty %} para “{{ termo|slice(0, 40) }}{{ termo|length > 40 ? '…' }}”{% endif %} do que cabe em uma lista.</b>
+            Estes são os {{ busca.total }} primeiros em ordem alfabética, e o resto não foi
+            descartado: um termo mais específico, como o nome do grupo da Tabela de Obras e
+            Serviços, mostra quem ficou de fora.
+        </span>
+    </p>
+{% endif %}
+
+{% if busca.resultados is empty %}
+    <div class="pl-card pl-vazio">
+        {% if termo is empty %}
+            <p class="t">Nenhum profissional com perfil aberto no momento</p>
+            <p class="s">
+                Só aparece aqui quem tem registro regular no CREA e mantém a exibição do perfil
+                autorizada. A escolha é do titular e é conferida toda vez que a lista é lida.
+            </p>
+            {% if not busca.em_construcao %}
+                <div class="a">
+                    <a class="pl-btn" href="{{ url_base }}?em_construcao=1">Incluir quem está começando</a>
+                </div>
+            {% endif %}
+        {% else %}
+            <p class="t">Nada encontrado para “{{ termo|slice(0, 60) }}{{ termo|length > 60 ? '…' }}”</p>
+            <p class="s">
+                {% if not busca.em_construcao %}
+                    Quem está começando ficou de fora desta busca: o acervo ainda curto no CREA não
+                    torna o perfil menos capaz, só mais recente.
+                {% else %}
+                    Buscar pelo grupo da Tabela de Obras e Serviços costuma encontrar mais que pelo
+                    nome: é lá que o acervo de ART registra o que cada pessoa já executou.
+                {% endif %}
+            </p>
+            <div class="a">
+                {% if not busca.em_construcao %}
+                    <a class="pl-btn" href="{{ url_base }}?q={{ termo|url_encode }}&amp;em_construcao=1">Incluir quem está começando</a>
+                {% endif %}
+                <a class="pl-btn{{ busca.em_construcao ? '' : ' ghost' }}" href="{{ url_base }}{{ busca.em_construcao ? '?em_construcao=1' : '' }}">Ver todos os profissionais</a>
+            </div>
+        {% endif %}
+    </div>
+{% else %}
+    <div class="pl-grade pessoas">
+        {% for r in busca.resultados %}
+            {#  O grupo que casa com o termo vai para a frente dos três visíveis: sem isso, alguém
+                com nove áreas mostraria três alfabéticas e nenhuma delas explicaria por que
+                apareceu. Quando o termo casou pelo nome, pela modalidade ou pela experiência,
+                nenhum grupo casa e a ordem alfabética vale. #}
+            {#  O subgrupo entra na frente do grupo quando é ele que casa, e é o caso comum: a
+                busca procura nos dois níveis, mas "Sistemas de Energia Elétrica" é o que tem a
+                palavra que a pessoa digitou, enquanto o grupo dela diz só "Eletrotécnica". Sem
+                isto o cartão mostrava o resultado certo sem nada que o explicasse. #}
+            {% set grupos = [] %}
+            {% if termo is not empty %}
+                {% for g in r.subgrupos|filter(g => termo|lower in g|lower) %}
+                    {% set grupos = grupos|merge([g]) %}
+                {% endfor %}
+                {% for g in r.grupos|filter(g => termo|lower in g|lower and g not in grupos) %}
+                    {% set grupos = grupos|merge([g]) %}
+                {% endfor %}
+            {% endif %}
+            {% for g in r.grupos|filter(g => g not in grupos) %}
+                {% set grupos = grupos|merge([g]) %}
+            {% endfor %}
+
+            {% set declarou = r.resumo or r.tipo_contrato or r.disponibilidade %}
+
+            <article class="pl-card">
+                <div class="pl-prof">
+                    <div class="id">
+                        <span class="pl-av sm" aria-hidden="true">{{ ui.iniciais(r.nome) }}</span>
+                        <div class="nm">
+                            <a class="tt" href="{{ app_url }}/perfil/{{ r.usuario_id }}">{{ r.nome }}</a>
+                            <p class="reg">
+                                {% if r.registro_crea %}
+                                    <svg class="pl-mark" role="img" aria-label="Registro validado na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+                                    <span>Registro no CREA <span class="pl-mono">{{ r.registro_crea }}</span></span>
+                                {% endif %}
+                                {% if r.rnp %}
+                                    {% if r.registro_crea %}<span class="pl-sep" aria-hidden="true"></span>{% endif %}
+                                    <span>RNP <span class="pl-mono">{{ r.rnp }}</span></span>
+                                {% endif %}
+                                {#  O portão de exibição já exige registro regular no CREA, então
+                                    as duas colunas nulas juntas não deveriam chegar aqui. Se
+                                    chegarem, a linha diz o que houve em vez de sumir. #}
+                                {% if not r.registro_crea and not r.rnp %}
+                                    <svg class="pl-mark nao" role="img" aria-label="Registro não informado"><use href="#pl-sym-seal-x"/></svg>
+                                    <span>Registro no CREA não informado</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        {% if r.em_construcao %}
+                            <span class="pl-pill neutral" title="Acervo em formação. A marca dá contexto, não mede qualidade.">
+                                <span class="pd" aria-hidden="true"></span>Em construção
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    {#  O fato verificado da pessoa: quantos documentos registrados no CREA
+                        sustentam o que vem abaixo. O selo cola no número que ele qualifica. #}
+                    <p class="ac">
+                        {% if r.arts > 0 %}
+                            <svg class="pl-mark" role="img" aria-label="Verificado na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+                            <span>{{ r.arts }} {{ r.arts == 1 ? 'ART registrada' : 'ARTs registradas' }}</span>
+                            {% if r.cats > 0 %}
+                                <span class="sec">
+                                    <span class="pl-sep" aria-hidden="true"></span>
+                                    {{ r.cats }} {{ r.cats == 1 ? 'CAT emitida' : 'CATs emitidas' }}
+                                </span>
+                            {% endif %}
+                        {% else %}
+                            <svg class="pl-mark nao" role="img" aria-label="Sem documento registrado"><use href="#pl-sym-seal-x"/></svg>
+                            <span class="sec">Sem ART no acervo importado</span>
+                        {% endif %}
+                    </p>
+
+                    {#  Modalidade primeiro, e separada das áreas do acervo: é o que o conselho
+                        registra como habilitação, enquanto o grupo da tabela é onde a pessoa de
+                        fato tem ART. A busca casa nas duas, e sem esta linha quem procurava
+                        "elétrica" recebia gente cuja área diz "Eletrotécnica" e nenhum cartão
+                        mostrava por quê. #}
+                    {% if r.modalidades is not empty %}
+                        <ul class="pl-chips">
+                            {% for m in r.modalidades|slice(0, 2) %}
+                                <li><span class="pl-tag mod" title="Modalidade do registro no CREA: {{ m }}">{{ m }}</span></li>
+                            {% endfor %}
+                            {% if r.modalidades|length > 2 %}
+                                <li><span class="mais">e mais {{ r.modalidades|length - 2 }} {{ r.modalidades|length - 2 == 1 ? 'modalidade' : 'modalidades' }}</span></li>
+                            {% endif %}
+                        </ul>
+                    {% endif %}
+
+                    {% if grupos is not empty %}
+                        <ul class="pl-chips">
+                            {% for g in grupos|slice(0, 3) %}
+                                <li><span class="pl-tag" title="{{ g }}">{{ g }}</span></li>
+                            {% endfor %}
+                            {% if grupos|length > 3 %}
+                                <li><span class="mais">e mais {{ grupos|length - 3 }} {{ grupos|length - 3 == 1 ? 'área' : 'áreas' }}</span></li>
+                            {% endif %}
+                        </ul>
+                    {% endif %}
+
+                    {#  Nada aqui quando o titular não abriu: ausência por escolha de privacidade
+                        não vira "Não informado", que afirmaria outra coisa. #}
+                    {% if declarou %}
+                        <div class="dec">
+                            <p class="rot">
+                                <svg class="pl-mark nao" role="img" aria-label="Não verificado"><use href="#pl-sym-seal-x"/></svg>
+                                Informado pelo titular
+                            </p>
+                            {% if r.resumo %}<p class="rs">{{ r.resumo }}</p>{% endif %}
+                            {% if r.tipo_contrato or r.disponibilidade %}
+                                <p class="pf">
+                                    {% if r.tipo_contrato %}
+                                        <span class="k">Aceita</span>
+                                        <span title="{{ r.tipo_contrato }}">{{ r.tipo_contrato|rotulo_contrato }}</span>
+                                    {% endif %}
+                                    {% if r.tipo_contrato and r.disponibilidade %}
+                                        <span class="pl-sep" aria-hidden="true"></span>
+                                    {% endif %}
+                                    {% if r.disponibilidade %}
+                                        <span class="k">Atua em</span>
+                                        <span title="{{ r.disponibilidade }}">{{ r.disponibilidade|rotulo_abrangencia }}</span>
+                                    {% endif %}
+                                </p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    <div class="pe">
+                        <a class="pl-btn sm" href="{{ app_url }}/perfil/{{ r.usuario_id }}">
+                            Ver perfil
+                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="M13 6l6 6-6 6"/></svg>
+                        </a>
+                    </div>
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+{% endif %}
+{% endblock %}

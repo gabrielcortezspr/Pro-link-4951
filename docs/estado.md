@@ -5,49 +5,48 @@ Máximo de ~30 linhas: se passar disso, algo aqui deveria estar num commit ou nu
 
 ## Última sessão
 
-15/09/2026, tarde. Gabriel: revisão de código do repositório inteiro, e os consertos que ela achou.
+15–16/09/2026 — Gabriel, com Claude Code. Branch `e4/feed-demandante`, seis commits, **não
+integrada na `main`**.
 
 ## Onde parou
 
-Branch `claude/main-branches-status-9k0bun`, dois commits, **não integrada na `main`**.
-O motor rodava com quatro das seis dimensões do item 3.2 — contrato e abrangência não tinham
-caminho de escrita, e a abrangência comparava UF com texto livre (D45). Corrigidos, com formulário
-no perfil. Mais: documento cifrado lido num ponto só, portão de privacidade do pool em lote (era
-N+1), CSP conferida por máquina (D50), `|raw` fora do macro de caixa.
-Verificado: 188 testes · 24 telas · 25 conferências estáticas, 0 violações.
+**E4 concluída.** O motor deixou de ser inalcançável: feed do demandante, busca ativa e auditoria
+de sessões existem e são navegáveis. A base foi povoada pelo fluxo real (14 candidatos, ~28
+chamadas da API) e enriquecida com visibilidade variada e dados autodeclarados.
+
+Verificado: 188 testes · 46 conferências de padrão com **0 violações** · 29 telas · E2 138 ·
+E4 32 · E6 19. A E5 (manifestação, mensagens, e-mail) não começou.
 
 ## Próximo passo
 
-**Subir o Docker e rodar os quatro itens de "Lembrar"** — é curto e destrava o resto. Depois, **o
-feed do demandante**, camada visível da E4 e cenário 3: mockup aprovado em
-`docs/mockups/prolink-feed-imersivo-v3.html`, tela nova passa pelo `designer-ui`, e
-`CompatibilizacaoService::executar()` segue sem nenhum chamador HTTP.
+**Integrar `e4/feed-demandante` na `main`** e então começar a E5 por
+`src/Service/ManifestacaoService.php`, a operação atômica 3: grava `pro_manifestacoes` com
+`man_snapshot` e hash, muda a demanda para `COM_INTERESSADOS` e enfileira notificação. O ponto de
+entrada do profissional já existe — `/demandas/abertas` — e a D51 fixou o sentido do fluxo.
 
 ## Decisões pendentes
 
-- **Servir Bootstrap e as fontes localmente** e fechar a CSP em `'self'` — ver Consequência da D50.
-- `prf_em_construcao` é derivado guardado em coluna e já causou um defeito: derivar na leitura
-  (como a D01) ou ponto único de escrita?
+- **Servir Bootstrap e as fontes localmente** e fechar a CSP em `'self'` (Consequência da D50).
+  No Demo Day presencial, sem internet, a apresentação é feita sem CSS.
+- `prf_em_construcao` é derivado guardado em coluna: derivar na leitura (como a D01) ou ponto
+  único de escrita?
 - MER (`_arq/mer/`) e a declaração de uso de IA (12.3) seguem **sem dono**, ambos obrigatórios na
-  entrega. A `decisoes.md` chegou a 50 entradas: a matéria-prima da 12.3 está lá.
+  entrega. A `decisoes.md` chegou a 56 entradas: a matéria-prima da 12.3 está lá.
 
 ## Lembrar
 
-**Esta sessão mudou configuração que não teve como exercitar. Com o Docker de pé, nesta ordem:**
-
-1. Abrir uma tela e **olhar o console do navegador**. A CSP nova é o que mais pode quebrar, e
-   bloqueio dela não dá erro visível — se o Bootstrap não carregar, a tela aparece sem estilo.
-2. `curl -s localhost:8080/saude`. Entrou `try_files $uri =404` no `location ~ \.php$` do nginx;
-   é o padrão canônico, mas se estiver errado **toda** rota dá 404.
-3. `verificar-padrao.php` com banco: a parte de HTML renderizado não roda desde a mudança, e as
-   quatro telas novas acabaram de entrar em `amostras.php` — é a estreia delas ali.
-4. `verificar-e4.php` e `verificar-e6.php`, que não rodaram. O E4 exercita o motor consertado.
-
-- **Antes da demonstração: recarregar o banco e rodar `semear-candidatos.php`.** Agora há um motivo
-  a mais, na Consequência da D45: demanda antiga perde o tipo de contrato ao ser editada.
-- **Escreva as demandas do roteiro olhando o índice**, nunca antes: os vínculos ART para TOS são
-  aleatórios, e demanda escolhida por tema não encontra ninguém.
-- `verificar-e1.php` acusa uma falha quando a API está acessível: o script gera CNPJ sintético e a
-  D26 rebaixa para Terceiro PJ. Acoplamento do teste, não regressão.
-- Nenhum e-mail sai sozinho: `despachar()` existe e nada o chama. Gatilho é item da E5.
-- Contas locais: `camila@prolink.local` (admin) e as 17 semeadas, todas com `ProLinkDemo2026!`.
+- **A senha do admin não é a das contas semeadas.** `camila@prolink.local` tem senha própria, de
+  desenvolvimento, que não entra em arquivo versionado. Um agente perdeu duas tentativas de login
+  por assumir o contrário.
+- **`verificar-e4.php` grava duas sessões novas a cada execução.** Das ~45 sessões em
+  `mat_sessoes`, mais de 30 são lixo de verificação e aparecem na primeira página de
+  `/admin/sessoes`. Limpar antes do pitch, ou fazer o script reutilizar uma demanda fixa.
+- **Antes da demonstração**: recarregar o banco e rodar, nesta ordem, `semear-candidatos.php`,
+  `abrir-visibilidade-demo.php` e `preencher-declarados-demo.php`. Sem os dois últimos o feed
+  mostra perfis vazios e quatro das seis dimensões saem "Não medida".
+- **Escreva as demandas do roteiro olhando o índice**, nunca antes — mordeu de novo nesta sessão.
+- `verificar-api.php` consome chamadas registradas: nunca rodar em laço sobre `verificar-*.php`.
+- Pendências de front anotadas e não feitas: vitrine sem filtro por UF ou atividade, navegação sem
+  estado `.active`, e hover de cartão que existe na busca e não em `demanda/abertas`.
+- `dem_titulo` é renderizado cru em cinco telas: demanda cujo título contenha `TOS_x` vazaria o
+  código. Uma linha de `|replace` em cada resolve.

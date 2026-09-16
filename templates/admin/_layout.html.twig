@@ -23,6 +23,12 @@
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 4h12l-2.5 3L18 10H6"/></svg></span>
                 Denúncias
             </a>
+            {# Sessões do motor: a lista fica na navegação, e não num atalho dentro de uma tela,
+               porque é por ela que a visão geral e a trilha de auditoria alcançam a reprodução. #}
+            <a href="{{ app_url }}/admin/sessoes"{% if ativo|default('') == 'sessoes' %} class="active"{% endif %}>
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h4l10 10h4"/><path d="M17 21l4-4-4-4"/><path d="M3 17h4l3-3"/><path d="M14 10l3-3h4"/><path d="M17 3l4 4"/></svg></span>
+                Sessões do motor
+            </a>
             <a href="{{ app_url }}/admin/auditoria"{% if ativo|default('') == 'auditoria' %} class="active"{% endif %}>
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
                 Auditoria

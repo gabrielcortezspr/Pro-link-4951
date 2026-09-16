@@ -235,12 +235,19 @@ requisitos, vê no painel, encerra.
 > a escrita, e o formulário no perfil. O portão de privacidade do pool, que era N+1, passou a
 > resolver em lote.
 >
-> **O que falta, para quem pegar:** o pool sai de `CompatibilizacaoService::executar()` já
-> embaralhado e com `criterios` por candidato (score por dimensão, quais dimensões saíram da média
-> e as ARTs que sustentam cada código). O mockup do feed está em
-> `docs/mockups/prolink-feed-imersivo-v3.html`, aprovado. Tela nova passa pelo agente
-> `designer-ui` antes de virar código (`CLAUDE.md`). **O serviço continua sem chamador HTTP:**
-> `verificar-e4.php` é o único caminho que o executa, e é isso que o feed resolve.
+> **Concluída em 16/09**, de `c901ead` a `3dcc455`. As três telas entraram: feed do demandante
+> (`/demandas/{id}/compativeis`), busca ativa (`/profissionais`) e auditoria de sessões
+> (`/admin/sessoes`). O motor deixou de ser inalcançável — `verificar-e4.php` não é mais o único
+> caminho que o executa. Decisões D51 a D56.
+>
+> No caminho: GET relê a sessão gravada e POST recalcula, porque `executar()` sorteia semente nova
+> a cada chamada e usá-lo no GET reembaralharia a lista sob quem está lendo; a ART fechada passou a
+> contar para o match sem ser citada pelo número (D52); a busca e o perfil abriram ao anônimo
+> (D54); e a auditoria mostra o pool como foi gravado, não como ficaria hoje (D55).
+>
+> Dado de demonstração povoado pelo fluxo real: `semear-candidatos.php` (14 candidatos, ~28
+> chamadas da API), `abrir-visibilidade-demo.php` (visibilidade variada e determinística) e
+> `preencher-declarados-demo.php` (as quatro dimensões autodeclaradas que saíam "Não medida").
 
 **Cobre:** RF04 (compatibilização, pesquisa, filtros); edital 3.2, 10.1, 10.2, 12.2, 12.3;
 proposta cenário 03, diferenciais 1 e 3. **Destrava o cenário 3 — o centro da avaliação.**

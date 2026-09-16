@@ -1,4 +1,5 @@
 {% extends 'admin/_layout.html.twig' %}
+{% import 'layout/_ui.html.twig' as ui %}
 
 {% block titulo %}Auditoria · Pro-Link{% endblock %}
 {% block titulo_painel %}Auditoria{% endblock %}
@@ -12,6 +13,10 @@
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8.5 11V7.5a3.5 3.5 0 017 0V11"/></svg>
         Somente leitura
     </span>
+    {#  A garantia de imutabilidade era um parágrafo embaixo da tabela, longe do selo que a
+        anuncia. Aqui ela fica presa ao selo, e quem precisa da frase exata a tem em um clique. #}
+    {{ ui.info('Por que somente leitura',
+        'A trilha aceita apenas inserção. Nenhum perfil, incluindo a Administração, edita ou apaga registro: a restrição é do banco, por trigger, e não da aplicação. O número de cada evento é sequencial, e é por ele que se vê que nada foi removido.', 'fim') }}
 {% endblock %}
 
 {# ---------------------------------------------------------------------------------------------
@@ -333,13 +338,9 @@
             </table>
         </div>
 
+        {# O rodapé existe pela paginação. Com uma página só ele seria uma faixa vazia. #}
+        {% if p_total > 1 %}
         <div class="pl-log-rodape">
-            <p class="pl-nota">
-                A trilha aceita apenas inserção. Nenhum perfil, incluindo a Administração, edita ou
-                apaga registro: a restrição é do banco, por trigger, e não da aplicação.
-            </p>
-
-            {% if p_total > 1 %}
                 <nav class="pl-pag" aria-label="Páginas da trilha">
                     {% if p_atual > 1 %}
                         <a class="pl-btn sm" href="{{ base }}{{ q_atual }}&amp;pagina={{ p_atual - 1 }}">
@@ -367,8 +368,8 @@
                         </span>
                     {% endif %}
                 </nav>
-            {% endif %}
         </div>
+        {% endif %}
 
     </section>
 

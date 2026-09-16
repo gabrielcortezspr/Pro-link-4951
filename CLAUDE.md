@@ -99,6 +99,12 @@ e não escrever o deslocamento à mão.
   cadastro passa, o vínculo estoura na chave duplicada, e sobra conta órfã segurando aquele CPF
   para sempre (D15), depois de já ter gasto a chamada da API. Mesma coisa em `emp_registro_crea`.
 - **O aceite de termos são dois campos**, `aceite_uso` e `aceite_privacidade`, não um só.
+- **`git pull` não atualiza o nginx do contêiner.** `docker-compose.yml` faz bind mount de um
+  **arquivo**, `docker/nginx/default.conf`, e bind mount de arquivo prende o inode. O `git pull`
+  substitui o arquivo em vez de editá-lo, o inode muda, e o contêiner segue lendo o conteúdo
+  antigo — `docker compose up -d` não recria nada, porque a spec não mudou. Depois de pull que
+  toque esse arquivo: `docker compose up -d --force-recreate nginx`. Some sem avisar: CSP que não
+  entrou não dá erro de tela, só linha no console.
 - **`PROLINK_API_TOKEN` é obrigatório mesmo sem chamar a API**: `/cadastro` constrói o
   `TransporteCurl`, que lança se o token faltar. E `docker compose restart` não relê o `.env`: use
   `docker compose up -d`, porque o Compose injeta as variáveis ao **criar** o contêiner.

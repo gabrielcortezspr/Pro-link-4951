@@ -167,8 +167,13 @@ h1, h2, h3, h4, h5, h6,
 /* ---------- 7. Botões (pl-): laranja = única ação preenchida; azul escuro = secundário contornado ---------- */
 .pl-cta { display: inline-flex; align-items: center; gap: 7px; border: 0; border-radius: var(--pl-r);
     background: linear-gradient(135deg, var(--pl-accent-2), var(--pl-accent)); color: #fff;
-    font-family: var(--pl-body); font-weight: 600; font-size: 14px; padding: 11px 18px; cursor: pointer;
+    font-family: var(--pl-body); font-weight: 600; font-size: 14px; cursor: pointer;
+    height: 40px; padding: 0 18px; justify-content: center;
     text-decoration: none; box-shadow: 0 8px 20px rgba(242,107,33,.3); white-space: nowrap; }
+/* Altura declarada, e não derivada do padding: a ação preenchida quase sempre aparece ao lado de
+   um .pl-btn, e 41px contra 38px era o degrau visível de toda barra de ação. */
+.pl-cta.lg { height: 46px; padding: 0 22px; font-size: 13.5px; border-radius: 14px; }
+.pl-cta[disabled] { opacity: .45; box-shadow: none; cursor: default; }
 /* text-decoration explícito: o Bootstrap sublinha todo <a>, e estes botões e abas são links. */
 .pl-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 38px;
     padding: 0 14px; border-radius: var(--pl-r); border: 1px solid var(--pl-data); background: transparent;
@@ -395,3 +400,767 @@ textarea.form-control { min-height: 0; }
 .pl-pag .pos { font-size: 12.5px; color: var(--pl-muted); font-variant-numeric: tabular-nums;
     white-space: nowrap; }
 .pl-pag .pos b { color: var(--pl-ink); font-weight: 600; }
+
+/* ---------- 13. Feed de compatíveis: um candidato por vez (E4, RF04) ---------- */
+/* A unidade de leitura é UM candidato, não uma linha de lista: quem é, o quanto o acervo dele
+   adere a ESTA demanda, e a evidência documental que sustenta isso. Por isso o palco tem um
+   card só, do tamanho da atenção que a decisão merece — e por isso não existe ordenação,
+   posição nem nota agregada em lugar nenhum daqui (item 10.1).
+
+   Sem JavaScript o palco vira uma pilha: todo card fica visível, a evidência abre, e o trilho
+   de navegação some. O JS só estreita a pilha para um card por vez. */
+
+.pl-feed { background: var(--pl-app); display: flex; flex-direction: column; padding: 0; }
+.pl-feed .alert { margin: 16px 24px 0; }
+
+/* Contexto em UMA linha: de qual demanda é este pool e de quais atividades ele saiu. Card de
+   cabeçalho aqui roubaria do card do candidato a única coisa que a tela tem para dizer. */
+.pl-ctxline { display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap;
+    padding: 16px 24px 0; font-size: 12.5px; color: var(--pl-muted); flex: none; }
+.pl-ctxline .rot { font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--pl-faint); }
+.pl-ctxline .dm { color: var(--pl-ink); font-weight: 600; font-size: 13.5px;
+    text-decoration: none; }
+.pl-ctxline .dm:hover { color: var(--pl-blue); text-decoration: none; }
+.pl-ctxline .sep { width: 3px; height: 3px; border-radius: 50%; background: var(--pl-faint);
+    flex: none; }
+.pl-ctxline .pl-tos { font-size: 11.5px; padding: 3px 9px; }
+.pl-ctxline form { margin: 0 0 0 auto; }
+.pl-ctxline .n { color: var(--pl-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.pl-stage { flex: 1; position: relative; display: grid; place-items: start center;
+    padding: 28px 24px 36px; }
+/* Luz no centro do palco: separa o card do fundo sem caixa dentro de caixa. Não é gradiente
+   decorativo solto — é o que dá foco ao único objeto da tela. */
+.pl-stage::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(118% 62% at 50% 34%, #FFFFFF 0%, rgba(255,255,255,.8) 36%, rgba(251,250,246,0) 68%); }
+.pl-track { position: relative; z-index: 1; width: min(680px, 100%); display: flex;
+    flex-direction: column; align-items: center; gap: 20px; }
+
+.pl-focus { position: relative; width: 100%; background: var(--pl-card);
+    border: 1px solid var(--pl-border); border-radius: 22px; padding: 34px 38px 32px;
+    box-shadow: 0 2px 3px rgba(11,42,74,.04), 0 28px 60px rgba(11,42,74,.10); }
+/* Altura mínima no modo player: sem ela o palco pula de tamanho a cada troca de candidato,
+   porque o número de dimensões medidas varia de um para o outro. */
+.pl-feed.is-js .pl-track { gap: 0; }
+.pl-feed.is-js .pl-focus { min-height: 520px; display: flex; flex-direction: column; }
+
+.pl-topo { display: flex; align-items: flex-start; gap: 16px; }
+.pl-av { width: 62px; height: 62px; border-radius: 18px; display: grid; place-items: center;
+    color: #fff; font-family: var(--pl-display); font-weight: 700; font-size: 21px; flex: none;
+    background: linear-gradient(135deg, var(--pl-navy-2), var(--pl-blue));
+    box-shadow: 0 10px 22px rgba(19,49,90,.22); }
+.pl-ident { min-width: 0; }
+.pl-name { font-family: var(--pl-display); font-weight: 600; font-size: 30px; line-height: 1.12;
+    letter-spacing: -.02em; margin: 0; display: flex; align-items: center; gap: 10px;
+    flex-wrap: wrap; overflow-wrap: anywhere; }
+.pl-name .pl-seal { width: 20px; height: 20px; }
+.pl-meta { font-size: 13px; color: var(--pl-muted); margin: 6px 0 0;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pl-meta .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+    font-variant-numeric: tabular-nums; }
+.pl-acervo { font-size: 13px; color: var(--pl-ink); margin: 10px 0 0; display: flex;
+    align-items: center; gap: 7px; }
+/* Perfil em construção: o profissional de início de carreira continua no pool, e a sinalização
+   diz o que é sem sugerir que ele vale menos. Pílula neutra, nunca aviso nem perigo (D48). */
+.pl-inicio { font-size: 12.5px; color: var(--pl-muted); margin: 10px 0 0; }
+
+.pl-adher { margin-top: 26px; }
+.pl-grp { display: flex; align-items: center; gap: 7px; font-size: 10.5px; font-weight: 600;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--pl-muted);
+    margin: 0 0 12px; }
+.pl-adher .pl-grp ~ .pl-grp { margin-top: 22px; }
+.pl-adher .pl-dim { grid-template-columns: 152px minmax(0, 1fr) 44px; gap: 14px;
+    font-size: 13px; margin-bottom: 12px; position: relative; border-radius: 8px; }
+.pl-adher .pl-dim:last-child { margin-bottom: 0; }
+.pl-adher .pl-bar { height: 8px; border-radius: 6px; }
+.pl-adher .pl-bar span { border-radius: 6px; }
+.pl-adher .pl-dim .pct { color: var(--pl-ink); }
+/* Dimensão não medida não é barra zerada: barra vazia leria como "zero", e zero é uma medida.
+   O que aconteceu foi a dimensão sair da média (item 12.3). */
+.pl-dim .na { font-size: 12px; color: var(--pl-muted); }
+.pl-dim .na::before { content: ""; display: inline-block; width: 22px; height: 2px;
+    border-radius: 2px; background: var(--pl-border); vertical-align: middle; margin-right: 8px; }
+
+/* Explicação por dimensão: some até o ponteiro ou o teclado pedirem. Onde não há ponteiro
+   (toque), ela não vira tooltip inalcançável: assenta embaixo da barra como texto normal. */
+.pl-tip { position: absolute; left: 166px; right: 0; bottom: calc(100% + 8px); z-index: 8;
+    background: var(--pl-card); border: 1px solid var(--pl-border); border-radius: 12px;
+    padding: 10px 12px; font-size: 12px; line-height: 1.5; color: var(--pl-muted);
+    box-shadow: 0 14px 30px rgba(11,42,74,.14);
+    opacity: 0; visibility: hidden; transform: translateY(4px); pointer-events: none;
+    transition: opacity .16s ease, transform .16s ease, visibility .16s; }
+.pl-tip b { display: block; color: var(--pl-ink); font-weight: 600; margin-bottom: 3px; }
+.pl-dim:hover .pl-tip, .pl-dim:focus-visible .pl-tip { opacity: 1; visibility: visible;
+    transform: none; }
+.pl-dim:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 3px; }
+
+.pl-toggle { margin-top: 22px; align-self: flex-start; display: inline-flex; align-items: center;
+    gap: 7px; background: none; border: 0; padding: 2px 0; cursor: pointer;
+    font-family: var(--pl-body); font-size: 12.5px; font-weight: 600; color: var(--pl-muted); }
+.pl-toggle:hover { color: var(--pl-data); }
+.pl-toggle:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 3px;
+    border-radius: 6px; }
+.pl-toggle .ch { width: 14px; height: 14px; transition: transform .22s ease; }
+.pl-toggle[aria-expanded="true"] .ch { transform: rotate(180deg); }
+.pl-more { margin-top: 14px; }
+.pl-more .pl-table { font-size: 12.5px; }
+.pl-more .pl-table thead th { padding: 0 10px 8px; font-size: 10.5px; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--pl-faint); }
+.pl-more .pl-table tbody td { padding: 10px; }
+.pl-more .pl-table th.num, .pl-more .pl-table td.num { text-align: right;
+    font-variant-numeric: tabular-nums; }
+.pl-more .doc { display: block; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px; color: var(--pl-ink); }
+.pl-more .doc .pl-mark { margin-left: 4px; }
+.pl-more .doc + .doc { margin-top: 3px; }
+.pl-more .sem { display: block; margin-top: 3px; font-size: 11.5px; color: var(--pl-muted); }
+.pl-more .rel { display: block; margin-top: 3px; font-size: 11.5px; color: var(--pl-muted); }
+.pl-fine { font-size: 11.5px; color: var(--pl-muted); line-height: 1.55; margin: 12px 0 0;
+    display: flex; align-items: flex-start; gap: 7px; }
+.pl-fine svg { width: 13px; height: 13px; flex: none; margin-top: 3px; color: var(--pl-faint); }
+
+.pl-acoes { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--pl-border-2);
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pl-feed.is-js .pl-acoes { margin-top: auto; }
+.pl-btn.lg { height: 46px; padding: 0 20px; font-size: 13.5px; border-radius: 14px; }
+
+/* O próximo do pool: silhueta sob o card, sem conteúdo competindo com quem está em foco.
+   Não é "o segundo colocado" — é só o próximo da ordem sorteada. */
+.pl-peek { position: relative; margin-top: -14px; width: 88%; background: var(--pl-card);
+    border: 1px solid var(--pl-border); border-top: 0; border-radius: 0 0 20px 20px;
+    padding: 24px 30px 12px; display: flex; align-items: center; gap: 11px; cursor: pointer;
+    text-align: left; font-family: var(--pl-body); box-shadow: 0 18px 30px rgba(11,42,74,.06);
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 38%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 38%, transparent 100%); }
+.pl-peek:hover .pn { color: var(--pl-data); }
+.pl-peek:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; }
+.pl-peek .pav { width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center;
+    color: #fff; font-family: var(--pl-display); font-weight: 600; font-size: 11px; flex: none;
+    background: linear-gradient(135deg, var(--pl-navy-2), var(--pl-blue));
+    filter: saturate(.35) opacity(.7); }
+.pl-peek .pn { font-family: var(--pl-display); font-weight: 600; font-size: 14px;
+    color: var(--pl-muted); letter-spacing: -.01em; }
+
+/* Trilho: duas setas e um indicador contínuo de 2px. Sem número de posição, porque posição
+   numa lista sorteada não significa nada e leria como colocação (item 10.1). */
+.pl-rail { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); z-index: 3;
+    display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.pl-arrow { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--pl-border);
+    background: var(--pl-card); color: var(--pl-muted); cursor: pointer; display: grid;
+    place-items: center; box-shadow: 0 6px 16px rgba(11,42,74,.08); }
+.pl-arrow:hover { color: var(--pl-data); }
+.pl-arrow:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; }
+.pl-arrow[disabled] { opacity: .35; cursor: default; }
+.pl-arrow svg { width: 18px; height: 18px; }
+.pl-progress { position: relative; width: 2px; height: 120px; border-radius: 2px;
+    background: var(--pl-border); overflow: hidden; }
+.pl-thumb { position: absolute; left: 0; top: 0; width: 2px; border-radius: 2px;
+    background: var(--pl-data); opacity: .55; transition: transform .3s ease, height .25s ease; }
+.pl-hint { position: absolute; left: 26px; bottom: 16px; z-index: 3; font-size: 11.5px;
+    color: var(--pl-muted); display: flex; align-items: center; gap: 7px; }
+.pl-hint svg { width: 13px; height: 13px; }
+
+/* Fim do pool e pool vazio: o mesmo quadro, porque nos dois casos a pergunta é "e agora?". */
+.pl-end { text-align: left; }
+.pl-feed.is-js .pl-focus.is-end { justify-content: center; }
+.pl-end .et { font-family: var(--pl-display); font-weight: 600; font-size: 22px;
+    letter-spacing: -.02em; line-height: 1.25; margin: 0; }
+.pl-end .es { font-size: 13.5px; color: var(--pl-muted); margin: 10px 0 0; max-width: 54ch; }
+.pl-end .ea { margin-top: 24px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+/* Procedência da sessão: o que permite refazer esta lista exatamente igual. Terciário na tela,
+   central na auditoria (item 12.3). */
+.pl-proveniencia { padding: 0 24px 22px; font-size: 11.5px; color: var(--pl-muted);
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pl-proveniencia .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-numeric: tabular-nums; }
+.pl-proveniencia .sep { width: 3px; height: 3px; border-radius: 50%; background: var(--pl-faint);
+    flex: none; }
+
+/* Selo: a cor vem do token e o símbolo é o mesmo de toda a interface (seção 4). */
+.pl-seal, .pl-mark { color: var(--pl-seal); }
+.pl-mark.nao { color: var(--pl-faint); }
+
+@media (hover: none) {
+    .pl-tip { position: static; opacity: 1; visibility: visible; transform: none;
+        box-shadow: none; border: 0; border-left: 2px solid var(--pl-border); border-radius: 0;
+        padding: 2px 0 2px 10px; margin: 6px 0 0; grid-column: 1 / -1; }
+}
+
+@media (max-width: 900px) {
+    .pl-ctxline { padding: 14px 16px 0; }
+    .pl-ctxline form { margin-left: 0; }
+    .pl-stage { padding: 18px 16px 30px; }
+    .pl-focus { padding: 24px 20px 22px; border-radius: 18px; }
+    .pl-feed.is-js .pl-focus { min-height: 0; }
+    .pl-name { font-size: 24px; }
+    .pl-av { width: 50px; height: 50px; border-radius: 15px; font-size: 18px; }
+    .pl-adher .pl-dim { grid-template-columns: 104px minmax(0, 1fr) 40px; gap: 10px; }
+    .pl-tip { left: 0; }
+    .pl-rail { position: static; transform: none; flex-direction: row; justify-content: center;
+        margin-top: 18px; }
+    .pl-progress { width: 120px; height: 2px; }
+    .pl-thumb { display: none; }
+    .pl-hint { display: none; }
+    .pl-peek { width: 94%; }
+    .pl-proveniencia { padding: 0 16px 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pl-toggle .ch, .pl-thumb, .pl-bar span, .pl-tip { transition-duration: .01ms; }
+}
+
+/* Sem JavaScript o palco é uma pilha: a evidência fica aberta (o botão que a fecharia não teria
+   como funcionar) e o trilho de navegação nunca aparece, porque ele já nasce com [hidden]. */
+.pl-feed:not(.is-js) .pl-more { display: block; }
+.pl-feed:not(.is-js) .pl-toggle { display: none; }
+
+/* `hidden` precisa ganhar de qualquer display declarado acima, e vários destes elementos são
+   flex por padrão: sem isto o card escondido pelo JS continuaria na tela. */
+.pl-feed [hidden] { display: none !important; }
+
+/* Entrada do card em foco. Curta de propósito: é confirmação de que algo trocou, não espetáculo. */
+.pl-feed.is-js .pl-focus.is-entrando { animation: pl-entra .3s ease both; }
+.pl-feed.is-js .pl-focus.is-entrando.de-cima { animation-name: pl-entra-cima; }
+@keyframes pl-entra      { from { opacity: 0; transform: translateY(12px); } }
+@keyframes pl-entra-cima { from { opacity: 0; transform: translateY(-12px); } }
+@media (prefers-reduced-motion: reduce) {
+    .pl-feed.is-js .pl-focus.is-entrando { animation: none; }
+}
+
+/* ---------- 14. Largura da página: a medida vem do conteúdo, não do container do Bootstrap ----------
+   O `.container` do Bootstrap trava em 1140px (1320px no XXL). Num monitor de 1920 isso deixava a
+   aplicação inteira numa faixa central com vazio dos dois lados, que é a silhueta de app de
+   celular esticado. Aqui a largura é decidida por tipo de conteúdo, e o padrão de desenho passa a
+   ser o desktop: tabela densa e lista respiram, formulário mantém medida de leitura. O teto existe
+   para que a linha de texto não fique ilegível em monitor ultralargo, não para centralizar coluna
+   estreita. */
+.pl-wrap { width: 100%; max-width: var(--pl-medida, 1240px); margin-inline: auto;
+    padding: 26px clamp(16px, 2.4vw, 40px) 44px; }
+.pl-wrap.densa    { --pl-medida: 1640px; }   /* tabela, fila, grade de cartões */
+.pl-wrap.registro { --pl-medida: 1360px; }   /* um registro, conteúdo + painel de ação */
+.pl-wrap.leitura  { --pl-medida: 980px;  }   /* formulário e texto corrido */
+
+/* Cabeçalho de tela: assunto à esquerda, ação de página à direita, contexto numa linha só. Era
+   sempre <h1> + parágrafo longo, o que dava ao texto explicativo o mesmo peso do título. */
+.pl-head { display: flex; align-items: flex-start; gap: 14px 24px; flex-wrap: wrap;
+    margin-bottom: 22px; }
+.pl-head > .tit { min-width: 0; }
+.pl-head h1 { font-family: var(--pl-display); font-weight: 600; font-size: 26px;
+    letter-spacing: -.02em; line-height: 1.2; margin: 0; overflow-wrap: anywhere; }
+.pl-head .sub { margin: 7px 0 0; font-size: 13px; color: var(--pl-muted);
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pl-head .sub .n { color: var(--pl-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.pl-head-acoes { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* Ponto separador reaproveitado fora do feed: mesmo desenho, um lugar só. */
+.pl-sep { width: 3px; height: 3px; border-radius: 50%; background: var(--pl-faint); flex: none;
+    display: inline-block; }
+
+/* Título de seção com o "i" ao lado, e título de card na mesma linha da ação da seção. Heading e
+   <details> não podem ser irmãos dentro de <h2> (details não é conteúdo de frase), então a linha
+   é um contêiner e o heading fica dentro dela. */
+.pl-linha-titulo { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin: 0 0 12px; }
+.pl-linha-titulo > h2, .pl-linha-titulo > h3, .pl-linha-titulo > p { margin: 0; }
+.pl-secao { font-family: var(--pl-display); font-weight: 600; font-size: 16px;
+    letter-spacing: -.01em; }
+.pl-linha-titulo .cnt { font-size: 12.5px; color: var(--pl-muted);
+    font-variant-numeric: tabular-nums; }
+.pl-linha-titulo .dir { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+/* Conteúdo e painel de ação. O 7/5 do Bootstrap repetido em três telas dava, a 1600px, uma coluna
+   de leitura larga demais e um painel largo demais; aqui o painel tem largura de painel e o
+   conteúdo fica com o resto. */
+.pl-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 372px);
+    gap: 22px; align-items: start; }
+.pl-cols.igual { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+@media (max-width: 1080px) { .pl-cols, .pl-cols.igual { grid-template-columns: minmax(0, 1fr); } }
+.pl-stack { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+/* Grade de cartões: a vitrine ocupa a largura em colunas em vez de empilhar cartões de 1600px de
+   linha, que seria pior de ler do que a coluna estreita de antes. */
+.pl-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px;
+    align-items: start; }
+
+/* Formulário dentro de card: o card é o objeto da tela, e a medida de leitura continua valendo
+   para o campo de texto longo. */
+.pl-medida { max-width: 46rem; }
+.pl-card > .pl-linha-titulo:first-child { margin-top: 0; }
+.pl-card .mb-3:last-child { margin-bottom: 0 !important; }
+
+/* Estado vazio de tela inteira: não é parágrafo cinza solto no topo esquerdo. */
+.pl-vazio { text-align: center; padding: 46px 24px; }
+.pl-vazio .t { font-family: var(--pl-display); font-weight: 600; font-size: 17px;
+    color: var(--pl-ink); margin: 0 0 6px; }
+.pl-vazio .s { font-size: 13.5px; color: var(--pl-muted); margin: 0 auto; max-width: 52ch; }
+.pl-vazio .a { margin-top: 18px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+
+/* Lista de chips (atividades da TOS, modalidades): em linha e quebrando, não marcador de lista. */
+.pl-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.pl-chips > li { display: flex; }
+
+/* O painel já era a página inteira; faltava o teto para monitor ultralargo e ar nas laterais. */
+.pl-content { padding: 22px clamp(18px, 1.8vw, 30px) 34px; max-width: 1760px; }
+
+/* A linha de consentimento ficava nos 16px do Bootstrap enquanto o rótulo de campo caiu para
+   12,5px: dois pesos para a mesma função. O rótulo da caixa é o conteúdo que se lê, então fica
+   em tinta cheia e um degrau acima do rótulo de campo, não em cinza. */
+.form-check-label { font-size: 13.5px; line-height: 1.5; color: var(--pl-ink); }
+.form-check-input { margin-top: .2em; }
+.form-check-input:checked { background-color: var(--pl-data); border-color: var(--pl-data); }
+.form-check-input:focus { border-color: var(--pl-blue); box-shadow: 0 0 0 3px rgba(46,107,230,.18); }
+
+/* ---------- 15. Informação sob demanda: o "i" ao lado do que ele explica ----------
+   A interface explicava a si mesma em parágrafos de até 361 caracteres, que ajudam na primeira
+   visita e estorvam em todas as outras. Aqui a explicação continua na tela e continua sendo lida
+   por leitor de tela, só que quando alguém pede.
+
+   É <details> nativo de propósito: funciona sem JavaScript, o conteúdo está sempre no DOM (não é
+   title=""), o gatilho já é um botão para o teclado, e não há hover envolvido, então em aparelho
+   sem ponteiro o comportamento é o mesmo. O JS de apoio só fecha o que ficou aberto. */
+.pl-info { position: relative; display: inline-block; vertical-align: middle; }
+.pl-info > summary { list-style: none; display: inline-grid; place-items: center;
+    width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--pl-border);
+    background: var(--pl-card); color: var(--pl-faint); cursor: pointer; }
+.pl-info > summary::-webkit-details-marker { display: none; }
+.pl-info > summary:hover { color: var(--pl-data); border-color: var(--pl-data); }
+.pl-info > summary:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; }
+.pl-info[open] > summary { background: var(--pl-data); border-color: var(--pl-data); color: #fff; }
+.pl-info > summary svg { width: 11px; height: 11px; }
+.pl-info-caixa { position: absolute; z-index: 30; top: calc(100% + 8px); left: 50%;
+    transform: translateX(-50%); width: min(330px, calc(100vw - 32px));
+    background: var(--pl-card); border: 1px solid var(--pl-border); border-radius: 12px;
+    padding: 12px 14px; box-shadow: 0 18px 38px rgba(11,42,74,.16);
+    font-family: var(--pl-body); font-size: 12.5px; font-weight: 400; line-height: 1.55;
+    color: var(--pl-muted); text-align: left; white-space: normal; }
+.pl-info-caixa b { display: block; color: var(--pl-ink); font-weight: 600; font-size: 12.5px;
+    letter-spacing: 0; margin-bottom: 4px; }
+.pl-info-caixa p { margin: 0; }
+.pl-info-caixa p + p { margin-top: 8px; }
+/* Quando o "i" está no fim da linha (topbar, canto do card), a caixa alinha pela direita para não
+   sair da janela. */
+.pl-info.fim .pl-info-caixa { left: auto; right: 0; transform: none; }
+@media (max-width: 560px) { .pl-info-caixa { left: auto; right: 0; transform: none; } }
+.pl-wrap.rodape { padding-block: 16px; }
+.navbar > .pl-barra { max-width: 1640px; margin-inline: auto;
+    padding-inline: clamp(16px, 2.4vw, 40px); }
+
+/* ---------- 16. Demanda: cartão da vitrine e linha do painel ----------
+   A unidade de leitura da vitrine é UMA demanda: primário o que precisa ser feito (o título),
+   secundário onde e sob qual regime, terciário o escopo em três linhas. O cartão de antes
+   empilhava os três no mesmo peso e ocupava a largura inteira da tela por demanda. */
+.pl-grade > .pl-card { padding: 16px 18px; display: flex; }
+.pl-dem { display: flex; flex-direction: column; gap: 9px; flex: 1; min-width: 0; }
+.pl-dem .tp { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.pl-dem .tt { font-family: var(--pl-display); font-weight: 600; font-size: 15.5px;
+    line-height: 1.3; letter-spacing: -.01em; color: var(--pl-ink); text-decoration: none;
+    overflow-wrap: anywhere; }
+.pl-dem .tt:hover { color: var(--pl-blue); text-decoration: none; }
+.pl-dem .meta { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 7px;
+    font-size: 12px; color: var(--pl-muted); }
+/* Escopo é o terciário: três linhas e corta. Sem isso uma demanda de escopo longo definia
+   sozinha a altura de toda a fileira da grade. */
+.pl-dem .esc { margin: 0; font-size: 13px; line-height: 1.55; color: var(--pl-muted);
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.pl-dem .pe { margin-top: auto; padding-top: 11px; border-top: 1px solid var(--pl-border-2);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+/* Linha do painel do demandante. A tabela é a mesma .pl-table; o que muda é o ritmo interno da
+   linha: título em tinta cheia, local em cinza menor, contagem em número tabular. */
+.pl-table .lin-tt { font-family: var(--pl-display); font-weight: 600; font-size: 14px;
+    color: var(--pl-ink); text-decoration: none; letter-spacing: -.01em; }
+.pl-table .lin-tt:hover { color: var(--pl-blue); text-decoration: none; }
+.pl-table .lin-sub { display: block; margin-top: 2px; font-size: 12px; color: var(--pl-muted); }
+.pl-table td.num, .pl-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.pl-table tbody tr:hover td { background: var(--pl-border-2); }
+.pl-table .zero { color: var(--pl-faint); }
+/* Dado de largura fixa fora de tabela (data, número de ART, RNP, semente). A regra existia três
+   vezes, sempre acoplada a um componente. */
+.pl-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;
+    font-variant-numeric: tabular-nums; color: var(--pl-muted); }
+
+/* Rodapé de formulário: ação que compromete e saída, na mesma linha de base e com a mesma altura.
+   O "Cancelar" era um .btn-link do Bootstrap, mais baixo que o botão ao lado. */
+.pl-acoes-form { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--pl-border-2); }
+.pl-acoes-form .btn { min-height: 40px; }
+.pl-acoes-form .pl-btn, .pl-vazio .a .pl-btn { height: 40px; }
+
+/* ---------- 17. Detalhe da demanda: escopo, atividades e busca na tabela ---------- */
+/* Texto escrito por outra pessoa: quebra de linha preservada e medida de leitura, senão o escopo
+   vira uma linha de 1200px. */
+.pl-texto { margin: 0; font-size: 14px; line-height: 1.65; white-space: pre-line;
+    max-width: 70ch; overflow-wrap: anywhere; }
+
+/* Uma atividade por linha: o código é a identidade (chip), a descrição é o que se lê, o peso é
+   terciário e a ação fica presa à direita. Antes era .list-group do Bootstrap com o código cru
+   dentro de <code>, o que punha `TOS_1.1.2.3` com underline na cara de quem lê. */
+.pl-tos-lista { list-style: none; margin: 0; padding: 0; }
+.pl-tos-lista > li { display: flex; align-items: center; justify-content: space-between;
+    gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--pl-border-2); }
+.pl-tos-lista > li:first-child { padding-top: 0; }
+.pl-tos-lista > li:last-child { padding-bottom: 0; border-bottom: 0; }
+.pl-tos-lista .esq { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    min-width: 0; flex: 1; }
+.pl-tos-lista .ds { font-size: 13px; line-height: 1.45; color: var(--pl-ink); min-width: 0; }
+.pl-tos-lista .peso { font-size: 10.5px; font-weight: 600; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--pl-data); white-space: nowrap; }
+.pl-tos-lista .peso.sec { color: var(--pl-faint); }
+.pl-tos-lista .acoes { display: flex; align-items: center; gap: 6px; flex: none; }
+.pl-tos-lista .acoes form { margin: 0; }
+
+.pl-btn.mini { height: 28px; font-size: 11.5px; padding: 0 10px; border-radius: 8px; }
+/* Ação destrutiva de linha: vermelha só no texto, sem contorno, para não competir com a ação
+   normal ao lado nem virar um campo de botões vermelhos numa lista de dez atividades. */
+.pl-btn.risco { border-color: transparent; color: #b23434; }
+.pl-btn.risco:hover { background: var(--pl-danger-bg); color: #b23434; }
+
+.pl-busca { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.pl-busca .cx { flex: 1; min-width: 220px; }
+.pl-busca .form-label { margin-bottom: 6px; }
+.pl-busca .pl-btn { height: 44px; padding: 0 20px; }
+
+/* ---------- 18. Acervo verificado: a ART como unidade de leitura ---------- */
+/* Primário o número da ART com o selo colado nele, secundário o objeto, terciário os campos do
+   registro e as atividades. Eram cards do Bootstrap empilhados, um por ART, com tarja verde de
+   texto no lugar do selo e o código da tabela cru dentro de <code>. */
+.pl-art { padding: 16px 0; border-bottom: 1px solid var(--pl-border-2); }
+.pl-art:first-of-type { padding-top: 0; }
+.pl-art:last-of-type { padding-bottom: 0; border-bottom: 0; }
+.pl-art .tp { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pl-art .nr { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600;
+    font-size: 14px; letter-spacing: 0; color: var(--pl-ink); margin: 0;
+    display: inline-flex; align-items: center; gap: 7px; }
+.pl-art .qd { margin-left: auto; font-size: 11.5px; color: var(--pl-faint);
+    font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pl-art .ob { margin: 7px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--pl-ink);
+    max-width: 78ch; }
+.pl-art .pl-chips { margin-top: 11px; }
+
+/* Rótulo e valor em linhas curtas dentro de um card: a versão de 128px da coluna de rótulo é
+   larga demais quando o card tem 420px. */
+.pl-dl.mini { grid-template-columns: 104px minmax(0, 1fr); gap: 5px 14px; margin-top: 11px;
+    font-size: 12.5px; }
+.pl-dl.mini dd { color: var(--pl-ink); }
+
+/* Formulário que edita o que o card acima mostra: separado por uma linha, não por uma borda
+   inteira. O `border rounded p-3` do Bootstrap criava card dentro de card. */
+.pl-form-embutido { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--pl-border-2); }
+.pl-form-embutido legend { float: none; width: auto; }
+
+/* As 27 UFs: grade que se adapta à largura do card em vez de 3/6/9 colunas fixas do Bootstrap. */
+.pl-ufs { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 2px 8px; }
+
+/* Rótulo de dado vindo da API sem código associado (modalidade). Mesma caixa do chip de TOS,
+   sem a parte do código. */
+.pl-tag { display: inline-flex; align-items: center; background: var(--pl-blue-100);
+    color: #215ac2; border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 600; }
+
+/* Quadro técnico: nome, função e situação do vínculo, uma pessoa por linha. Era <ul> com <br>
+   entre as três informações, o que dava o mesmo peso às três. */
+.pl-quadro { list-style: none; margin: 0; padding: 0; }
+.pl-quadro > li { padding: 11px 0; border-bottom: 1px solid var(--pl-border-2); }
+.pl-quadro > li:first-child { padding-top: 0; }
+.pl-quadro > li:last-child { padding-bottom: 0; border-bottom: 0; }
+.pl-quadro .id { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.pl-quadro .nm { font-size: 13.5px; font-weight: 600; color: var(--pl-ink); }
+.pl-quadro .fn { font-size: 12.5px; color: var(--pl-muted); margin: 2px 0 6px; }
+
+/* Sessão aberta: origem e validade primeiro, identificação do navegador como terciário. O
+   user-agent inteiro em tamanho de corpo dominava a linha. */
+.pl-sessoes { list-style: none; margin: 0; padding: 0; }
+.pl-sessoes > li { padding: 11px 0; border-bottom: 1px solid var(--pl-border-2); }
+.pl-sessoes > li:first-child { padding-top: 0; }
+.pl-sessoes > li:last-child { padding-bottom: 0; border-bottom: 0; }
+.pl-sessoes .id { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.pl-sessoes .ip { color: var(--pl-ink); font-weight: 600; }
+.pl-sessoes .qd { font-size: 12px; color: var(--pl-muted); }
+.pl-sessoes .ua { margin: 3px 0 0; font-size: 11.5px; color: var(--pl-faint); line-height: 1.45;
+    overflow-wrap: anywhere; }
+
+/* Zona de ação irreversível: o quadro avisa antes do texto, sem virar alerta vermelho de erro. */
+.pl-card.pl-perigo { border-color: var(--pl-danger-bg); }
+.pl-card.pl-perigo .pl-secao { color: #b23434; }
+
+/* Legenda de grupo dentro de formulário longo: divide sem virar um título concorrente do <h1>. */
+.pl-legenda { float: none; width: auto; font-size: 10.5px; font-weight: 600; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--pl-faint); padding-bottom: 8px; margin-bottom: 16px;
+    border-bottom: 1px solid var(--pl-border-2); }
+/* Com a garantia de imutabilidade presa ao selo da topbar, o rodapé da trilha guarda só a
+   paginação: ela vai para a direita, alinhada com a última coluna. */
+.pl-log-rodape { justify-content: flex-end; }
+/* O "i" dentro da topbar clara do painel, ao lado do selo de somente leitura. */
+.pl-topbar .pl-info > summary { background: transparent; }
+
+/* ---------- 19. Telas curtas: entrada, erro e abertura ---------- */
+.pl-auth { max-width: 420px; margin-inline: auto; }
+.pl-auth .pl-card { padding: 24px; }
+.pl-auth-links { margin: 14px 0 0; display: flex; align-items: center; justify-content: center;
+    gap: 10px; font-size: 13px; }
+.pl-erro-cod { font-family: var(--pl-display); font-weight: 700; font-size: 44px;
+    letter-spacing: -.03em; color: var(--pl-faint); margin: 0 0 4px; line-height: 1; }
+
+.pl-abertura { padding: 40px 0 16px; max-width: 60ch; }
+.pl-abertura h1 { font-family: var(--pl-display); font-weight: 600; font-size: 38px;
+    line-height: 1.12; letter-spacing: -.025em; margin: 0; }
+.pl-abertura .ld { font-size: 16px; line-height: 1.6; color: var(--pl-muted); margin: 16px 0 0; }
+.pl-abertura .ac { margin-top: 26px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pl-abertura .ac .pl-cta { height: 46px; padding: 0 22px; font-size: 14px; border-radius: 14px; }
+.pl-auth h1 { font-size: 20px; }
+/* Botão único de formulário curto ocupa a largura do cartão: a caixa de 90px encostada na
+   esquerda de um cartão de 420px era o desalinhamento visível destas telas. */
+.pl-auth form button[type="submit"].btn { width: 100%; }
+
+/* Alvo da denúncia: o registro sobre o qual a ação vai recair, destacado do formulário que o
+   descreve. Era um card dentro do formulário com tamanho de fonte escrito no HTML. */
+.pl-alvo { background: var(--pl-app); border: 1px solid var(--pl-border-2); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 18px; }
+.pl-alvo .rot { margin: 0; font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--pl-faint); }
+.pl-alvo .vl { margin: 3px 0 0; font-size: 14px; font-weight: 600; color: var(--pl-ink); }
+
+/* Texto legal: medida de leitura e ritmo de parágrafo, não um bloco de 980px corrido. */
+.pl-legal { font-size: 14px; line-height: 1.7; color: var(--pl-ink); max-width: 72ch; }
+
+/* ---------- 20. Busca ativa de profissionais: a pessoa como unidade de leitura ----------
+   Esta tela não é o feed. Lá o motor parte de uma demanda e devolve um pool pontuado e sorteado;
+   aqui quem parte é a pessoa, com uma palavra digitada, e o resultado é um filtro. Não há score,
+   limiar, semente nem dimensão, e por isso a ordem pode ser alfabética sem virar ranking
+   (item 10.1): o termo decide quem aparece, e dentro de quem apareceu ninguém está na frente.
+
+   A unidade de leitura é UMA pessoa. Primário quem ela é; secundário onde o acervo registrado no
+   CREA tem evidência, que é o que o termo encontra e o que responde "esta pessoa faz o que eu
+   preciso"; terciário o que ela mesma declarou.
+
+   É também a única tela aberta a quem não tem conta, e é a que mais precisa funcionar sem
+   JavaScript: tudo aqui é um formulário GET. */
+
+/* Cartão de pessoa é mais largo que cartão de demanda: o nome do grupo da Tabela de Obras e
+   Serviços chega a 50 caracteres, e a 330px sobrava uma palavra por chip. */
+.pl-grade.pessoas { grid-template-columns: repeat(auto-fill, minmax(376px, 1fr)); }
+/* O cartão inteiro é uma pessoa clicável, e até aqui nada respondia ao ponteiro a não ser o
+   nome. Borda e sombra em vez de fundo: fundo colorido num cartão branco dentro de uma grade de
+   quinze faria a fileira inteira piscar. */
+.pl-grade.pessoas > .pl-card { transition: border-color .15s ease, box-shadow .15s ease; }
+.pl-grade.pessoas > .pl-card:hover { border-color: var(--pl-blue-2);
+    box-shadow: 0 10px 26px rgba(11,42,74,.10); }
+@media (prefers-reduced-motion: reduce) {
+    .pl-grade.pessoas > .pl-card { transition: none; }
+}
+
+.pl-prof { display: flex; flex-direction: column; gap: 12px; flex: 1; min-width: 0; }
+.pl-prof .id { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.pl-prof .nm { min-width: 0; flex: 1; }
+/* A mesma marca de pessoa do feed, na escala de lista. */
+.pl-av.sm { width: 42px; height: 42px; border-radius: 13px; font-size: 14px;
+    box-shadow: 0 6px 14px rgba(19,49,90,.18); }
+.pl-prof .tt { font-family: var(--pl-display); font-weight: 600; font-size: 15.5px;
+    line-height: 1.3; letter-spacing: -.01em; color: var(--pl-ink); text-decoration: none;
+    overflow-wrap: anywhere; }
+.pl-prof .tt:hover { color: var(--pl-blue); text-decoration: none; }
+.pl-prof .tt:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 3px;
+    border-radius: 6px; }
+.pl-prof .reg { margin: 3px 0 0; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 7px;
+    font-size: 12px; color: var(--pl-muted); }
+.pl-prof .reg .pl-mono { font-size: 11.5px; }
+/* O selo acompanha texto de 12px aqui, não de 14px: no tamanho cheio ele pesava mais que o
+   registro que qualifica. */
+.pl-prof .reg .pl-mark { width: 14px; height: 14px; vertical-align: -2px; }
+
+/* Acervo verificado: o selo cola no número que ele qualifica, nunca vira tarja nem coluna. */
+.pl-prof .ac { margin: 0; display: flex; align-items: center; gap: 7px; font-size: 13px;
+    color: var(--pl-ink); }
+.pl-prof .ac .sec { color: var(--pl-muted); }
+
+/* Áreas com acervo: chip com teto de largura e o nome inteiro no title. Sem o teto, um grupo de
+   50 caracteres definia sozinho a largura da coluna da grade. */
+.pl-prof .pl-chips { gap: 5px; }
+/* min-width: 0 no item: sem ele o item de flex nunca encolhe abaixo do próprio texto, e o chip
+   vazaria a largura do cartão em vez de cortar com reticências. */
+.pl-prof .pl-chips > li { min-width: 0; max-width: 100%; }
+.pl-prof .pl-tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    display: block; font-size: 11.5px; padding: 3px 9px; }
+.pl-prof .mais { display: inline-flex; align-items: center; font-size: 11.5px;
+    color: var(--pl-muted); }
+
+/* Informado pelo titular. Separado do acervo por um filete, nunca misturado com ele: é a mesma
+   distinção entre verificado e declarado que o resto da interface faz com o selo.
+
+   O bloco inteiro some quando nada foi aberto para quem está olhando. Campo nulo aqui não quer
+   dizer "não preencheu", quer dizer "não abriu para você", e escrever "Não informado" seria
+   afirmar na tela algo falso sobre a pessoa. */
+.pl-prof .dec { padding-top: 11px; border-top: 1px solid var(--pl-border-2); }
+.pl-prof .dec .rot { margin: 0 0 6px; display: flex; align-items: center; gap: 6px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--pl-faint); }
+.pl-prof .dec .rot .pl-mark { width: 13px; height: 13px; }
+/* Texto escrito pela própria pessoa: duas linhas e corta, senão um resumo longo define a altura
+   de toda a fileira da grade. */
+.pl-prof .dec .rs { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--pl-muted);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pl-prof .dec .pf { margin: 6px 0 0; display: flex; align-items: center; flex-wrap: wrap;
+    gap: 4px 7px; font-size: 12px; color: var(--pl-ink); }
+.pl-prof .dec .pf .k { color: var(--pl-muted); }
+.pl-prof .dec .rs + .pf { margin-top: 8px; }
+
+.pl-prof .pe { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--pl-border-2);
+    display: flex; align-items: center; gap: 10px; }
+
+/* Barra de busca: campo, ação e a opção que muda o recorte. Duas linhas porque a opção tem texto
+   de apoio, e apoio embaixo de caixa quebra o alinhamento pela linha de base da primeira. */
+.pl-busca-topo { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.pl-busca-topo .cx { flex: 1; min-width: 260px; }
+.pl-busca-topo .form-label { margin-bottom: 6px; }
+.pl-busca-topo .pl-btn { height: 44px; padding: 0 20px; }
+.pl-busca-op { display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap;
+    margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--pl-border-2); }
+.pl-busca-op .form-check { margin: 0; padding: 0; display: flex; align-items: center; gap: 8px;
+    min-height: 0; }
+.pl-busca-op .form-check-input { margin: 0; float: none; flex: none; }
+.pl-busca-op .form-check-label { font-size: 13px; font-weight: 600; }
+.pl-busca-op .nota { margin: 0; font-size: 12px; color: var(--pl-muted); }
+
+/* Lista cortada pelo teto. Cortar em silêncio é o jeito de alguém concluir que a plataforma não
+   tem ninguém naquela busca, então o aviso tem peso de aviso e vem antes da grade. */
+.pl-corte { display: flex; align-items: flex-start; gap: 9px; margin: 0 0 16px;
+    padding: 11px 14px; border-radius: var(--pl-r); background: var(--pl-warn-bg);
+    color: #a9720a; font-size: 12.5px; line-height: 1.55; }
+.pl-corte svg { width: 15px; height: 15px; flex: none; margin-top: 2px; }
+.pl-corte b { font-weight: 600; }
+
+/* O convite a quem não tem conta. Não é muro nem banner: a busca inteira funciona sem conta, e o
+   que muda é o alcance do que cada titular abriu. Uma linha honesta, no canto onde o número de
+   resultados é lido. */
+.pl-convite { margin: 0; max-width: 48ch; padding-left: 12px;
+    border-left: 2px solid var(--pl-border); font-size: 12.5px; line-height: 1.55;
+    color: var(--pl-muted); }
+.pl-convite a { font-weight: 600; }
+.pl-convite .pl-sep { margin: 0 5px; vertical-align: middle; }
+
+@media (max-width: 720px) {
+    .pl-busca-topo .pl-btn { flex: 1; }
+    .pl-convite { max-width: none; }
+}
+
+/* ---------- 21. Auditoria de sessões do motor: a lista e a reprodução ----------
+   Duas telas do painel. Na lista, a unidade de leitura é UMA execução do motor: quando ela
+   rodou, sobre qual demanda, quem a disparou e com que procedência. Na de detalhe, a unidade é
+   a própria sessão como experimento: a mesma semente, o mesmo sorteio, o mesmo resultado.
+
+   Nenhuma das duas usa --pl-seal: o verde água afirma "documento conferido na API do CREA", e a
+   reprodução de um sorteio não é verificação de documento. O "confere" é status, e status tem
+   componente próprio (.pl-pill.ok). */
+
+/* Lista: mesma mecânica de log da trilha de auditoria (cabeçalho de dia, hover de linha, hora
+   monoespaçada), com as colunas desta tela. Reaproveita .pl-log de propósito, porque as duas
+   respondem à mesma pergunta em formatos diferentes: o que aconteceu, e quando. */
+.pl-sess col.c-quem  { width: 208px; }
+.pl-sess col.c-pool  { width: 74px; }
+.pl-sess col.c-proc  { width: 270px; }
+.pl-sess col.c-abrir { width: 132px; }
+.pl-sess .as { display: block; font-family: var(--pl-display); font-weight: 600; font-size: 13.5px;
+    letter-spacing: -.01em; color: var(--pl-ink); text-decoration: none;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-sess a.as:hover { color: var(--pl-blue); text-decoration: none; }
+.pl-sess a.as:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px;
+    border-radius: 6px; }
+.pl-sess .sub { display: block; margin-top: 2px; font-size: 11px; color: var(--pl-faint);
+    font-variant-numeric: tabular-nums; }
+.pl-sess td.qt { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px;
+    font-weight: 600; color: var(--pl-ink); }
+.pl-sess td.qt.zero { font-weight: 500; color: var(--pl-faint); }
+.pl-sess td.abrir { text-align: right; }
+
+/* Detalhe. O quadro da reprodução é o assunto da tela, e por isso é o primeiro card e o único
+   com título de seção: o resto da página o sustenta. */
+.pl-repro .pl-det-topo { padding-bottom: 14px; }
+.pl-repro .meta { margin: 6px 0 0; display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+    font-size: 12.5px; color: var(--pl-muted); }
+.pl-repro .meta .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px; font-variant-numeric: tabular-nums; }
+.pl-repro .vd { font-family: var(--pl-display); font-weight: 600; font-size: 17px;
+    letter-spacing: -.01em; line-height: 1.3; margin: 16px 0 0; }
+.pl-repro .como { margin: 8px 0 0; max-width: 92ch; }
+.pl-repro .conta { margin: 14px 0 0; font-size: 12.5px; color: var(--pl-muted); }
+.pl-repro .conta b { color: var(--pl-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* As duas ordens, uma sobre a outra. Rótulo e células no mesmo grid, e a rolagem horizontal é do
+   grid inteiro: se cada fileira rolasse por conta própria, o alinhamento entre a gravada e a
+   refeita (que é a prova) se perderia no primeiro arrasto. O rótulo gruda na esquerda para não
+   sumir junto. */
+.pl-ordem { margin-top: 18px; display: grid; grid-template-columns: max-content max-content;
+    gap: 8px 18px; align-items: center; overflow-x: auto; padding-bottom: 6px; }
+.pl-ordem .rot { position: sticky; left: 0; z-index: 1; margin: 0; background: var(--pl-card);
+    padding-right: 10px; font-size: 11.5px; font-weight: 600; color: var(--pl-muted);
+    white-space: nowrap; }
+.pl-ordem .rot .qd { display: block; margin-top: 2px; font-size: 10.5px; font-weight: 500;
+    color: var(--pl-faint); font-variant-numeric: tabular-nums; }
+.pl-ordem .cels { display: flex; align-items: center; gap: 6px; list-style: none; margin: 0;
+    padding: 0; }
+
+/* Uma célula por candidato, todas iguais: mesmo tamanho, mesma cor, mesma tipografia do começo
+   ao fim da fileira. Nada aqui distingue a primeira posição, porque ela não significa nada
+   (item 10.1) — a fileira é uma sequência sorteada, não uma classificação. */
+.pl-cel { width: 52px; height: 44px; border-radius: 10px; border: 1px solid var(--pl-border);
+    background: var(--pl-app); flex: none; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 2px; }
+.pl-cel .in { font-family: var(--pl-display); font-weight: 600; font-size: 12px; line-height: 1;
+    color: var(--pl-muted); }
+/* O número do registro desempata iniciais iguais, e é o mesmo identificador da tabela do
+   conjunto logo abaixo: dá para conferir uma contra a outra sem depender do ponteiro. */
+.pl-cel .id { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9.5px;
+    line-height: 1; color: var(--pl-faint); font-variant-numeric: tabular-nums; }
+/* Candidato excluído do cadastro depois da sessão: a posição continua ocupada e a célula diz
+   que o nome não existe mais, em vez de abrir um buraco na prova. */
+.pl-cel.fora { border-style: dashed; }
+.pl-cel.fora .id { font-size: 11.5px; color: var(--pl-faint); }
+/* Divergência entre as duas ordens. Não acontece hoje, e é justamente por isso que precisa estar
+   desenhada: se um dia acontecer, é defeito grave e tem de saltar da tela. */
+.pl-cel.dif { border-color: var(--pl-danger); background: var(--pl-danger-bg); }
+.pl-cel.dif .in, .pl-cel.dif .id { color: #b23434; }
+
+/* Conjunto avaliado: uma linha por candidato, na ordem gravada, com as seis dimensões lado a
+   lado. É a tabela mais larga do painel, e a coluna de nome é a única elástica. */
+.pl-pool { min-width: 1080px; }
+.pl-pool col.c-ord { width: 62px; }
+.pl-pool col.c-dim { width: 92px; }
+.pl-pool thead th.num { white-space: normal; line-height: 1.3; }
+/* O identificador do registro é texto de apoio, não dado monoespaçado de largura fixa: em mono,
+   herdado da trilha, "Profissional nº 78" lia como número de máquina ao lado do nome. */
+.pl-pool .orig { font-family: var(--pl-body); font-variant-numeric: tabular-nums; }
+.pl-pool td.ord { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px;
+    color: var(--pl-faint); font-variant-numeric: tabular-nums; }
+.pl-pool td.num { text-align: right; font-size: 12.5px; color: var(--pl-ink);
+    font-variant-numeric: tabular-nums; }
+.pl-pool td.num .nulo { display: inline-block; width: 12px; height: 1px;
+    background: var(--pl-border); vertical-align: middle; }
+
+/* Painel de parâmetros. A barra mede peso na composição, que é dado, e dado é azul escuro (D34);
+   a coluna de rótulo é mais larga que a do .pl-dim padrão porque "Competência técnica" não cabe
+   em 120px ao lado de uma barra. */
+.pl-param .pl-dim { grid-template-columns: minmax(0, 1fr) 84px 44px; gap: 10px; font-size: 12.5px; }
+.pl-param .pl-dim .dlab { color: var(--pl-ink); overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; }
+.pl-param .pl-bar { height: 8px; border-radius: 6px; }
+.pl-param .pl-bar span { border-radius: 6px; }
+.pl-param .sem { display: block; font-size: 12.5px; color: var(--pl-muted); }
+/* A semente inteira, que é a âncora da reprodução: aqui ela não é encurtada, porque este é o
+   lugar de onde alguém a copia para conferir. Encurtada, com a íntegra no title, ela aparece na
+   lista e no cabeçalho, que é onde ela é referência e não conteúdo. */
+.pl-param .semente { margin: 4px 0 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px; color: var(--pl-ink); word-break: break-all; line-height: 1.5; }
+.pl-param .lim { font-family: var(--pl-display); font-weight: 700; font-size: 22px;
+    letter-spacing: -.02em; color: var(--pl-ink); font-variant-numeric: tabular-nums; }
+.pl-param .grupo + .grupo { margin-top: 18px; padding-top: 16px;
+    border-top: 1px solid var(--pl-border-2); }
+.pl-param .rot { margin: 0 0 4px; font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--pl-faint); }
+
+@media (max-width: 900px) {
+    .pl-ordem { grid-template-columns: minmax(0, 1fr); }
+    .pl-ordem .rot { position: static; }
+}
+/* Rodapé de recorte da lista de sessões: nota, não paginação, então ela ocupa a linha inteira em
+   vez de ir para a direita como o rodapé da trilha. */
+.pl-sess-rodape { padding: 14px 18px; border-top: 1px solid var(--pl-border); }
+.pl-sess-rodape .pl-nota { max-width: 88ch; }

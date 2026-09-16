@@ -1,57 +1,97 @@
 {% extends 'layout/base.html.twig' %}
-{% import 'layout/_form.html.twig' as form %}
+{% import 'layout/_ui.html.twig' as ui %}
 
 {% block titulo %}Minhas demandas · Pro-Link{% endblock %}
 
+{#  Tabela: o painel do demandante é uma lista de registros comparáveis entre si, e comparar pede
+    colunas alinhadas. Densa porque a tabela ganha com a largura. #}
+{% block classe_main %}pl-wrap densa{% endblock %}
+
 {% block conteudo %}
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-    <h1 class="h3 mb-0">Minhas demandas</h1>
-    <a class="btn btn-primary" href="{{ app_url }}/demandas/nova">Nova demanda</a>
+{% set publicadas = demandas|filter(d => d.dem_dt_publicacao is not null)|length %}
+
+<div class="pl-head">
+    <div class="tit">
+        <h1>Minhas demandas</h1>
+        {% if demandas is not empty %}
+            <p class="sub">
+                <span><span class="n">{{ demandas|length }}</span>
+                    {{ demandas|length == 1 ? 'demanda' : 'demandas' }}</span>
+                <span class="pl-sep" aria-hidden="true"></span>
+                <span><span class="n">{{ publicadas }}</span>
+                    {{ publicadas == 1 ? 'publicada' : 'publicadas' }}</span>
+            </p>
+        {% endif %}
+    </div>
+    <div class="pl-head-acoes">
+        <a class="pl-cta" href="{{ app_url }}/demandas/nova">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Nova demanda
+        </a>
+    </div>
 </div>
 
 {% if demandas is empty %}
-    <p class="text-body-secondary">
-        Nenhuma demanda ainda. Comece publicando o que você precisa que seja feito. A plataforma
-        procura quem já comprovou fazer aquilo, pela Tabela de Obras e Serviços.
-    </p>
+    <div class="pl-card pl-vazio">
+        <p class="t">Você ainda não publicou nenhuma demanda</p>
+        <p class="s">
+            Publique o que precisa ser feito e escolha as atividades da Tabela de Obras e Serviços:
+            é por elas que a plataforma encontra quem já comprovou fazer aquilo.
+        </p>
+        <div class="a">
+            <a class="pl-cta" href="{{ app_url }}/demandas/nova">Criar a primeira demanda</a>
+        </div>
+    </div>
 {% else %}
-    <div class="table-responsive">
-        <table class="pl-table align-middle">
-            <caption class="visually-hidden">Demandas publicadas por você, com situação e número de interessados</caption>
-            <thead>
-                <tr>
-                    <th scope="col">Demanda</th>
-                    <th scope="col">Situação</th>
-                    <th scope="col">Interessados</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for d in demandas %}
+    <div class="pl-card">
+        <div class="table-responsive">
+            <table class="pl-table">
+                <caption class="visually-hidden">Demandas publicadas por você, com situação e número de interessados</caption>
+                <thead>
                     <tr>
-                        <td>
-                            <a href="{{ app_url }}/demandas/{{ d.dem_id }}">{{ d.dem_titulo }}</a>
-                            {% if d.dem_local_municipio %}
-                                <br><span class="small text-body-secondary">
-                                    {{ d.dem_local_municipio }}{% if d.dem_local_uf %}/{{ d.dem_local_uf }}{% endif %}
-                                </span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if d.dem_dt_publicacao is null %}
-                                <span class="badge text-bg-secondary">Rascunho</span>
-                            {% elseif d.dem_situacao == 'ENCERRADA' %}
-                                <span class="badge text-bg-dark">Encerrada</span>
-                            {% elseif d.dem_situacao == 'COM_INTERESSADOS' %}
-                                <span class="badge text-bg-success">Com interessados</span>
-                            {% else %}
-                                <span class="badge text-bg-primary">Aberta</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ d.interessados }}</td>
+                        <th scope="col">Demanda</th>
+                        <th scope="col">Regime</th>
+                        <th scope="col">Situação</th>
+                        <th scope="col" class="num">Interessados</th>
+                        <th scope="col">Publicada</th>
+                        <th scope="col"><span class="visually-hidden">Ação</span></th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for d in demandas %}
+                        <tr>
+                            <td>
+                                <a class="lin-tt" href="{{ app_url }}/demandas/{{ d.dem_id }}">{{ d.dem_titulo }}</a>
+                                <span class="lin-sub">
+                                    {% if d.dem_local_municipio %}
+                                        {{ d.dem_local_municipio }}{% if d.dem_local_uf %}/{{ d.dem_local_uf }}{% endif %}
+                                    {% else %}
+                                        Local não informado
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td{% if d.dem_tipo_contrato %} title="{{ d.dem_tipo_contrato }}"{% endif %}>
+                                {{ d.dem_tipo_contrato|rotulo_contrato ?: 'A combinar' }}
+                            </td>
+                            <td>{{ ui.situacao(d.dem_situacao, d.dem_dt_publicacao is not null) }}</td>
+                            {#  Zero é um dado, e não um vazio: fica escrito, em cinza claro, para
+                                a coluna continuar comparável de cima a baixo. #}
+                            <td class="num{{ d.interessados > 0 ? '' : ' zero' }}">{{ d.interessados }}</td>
+                            <td>
+                                {% if d.dem_dt_publicacao %}
+                                    <span class="pl-mono">{{ d.dem_dt_publicacao|date('d/m/Y') }}</span>
+                                {% else %}
+                                    <span class="lin-sub">Não publicada</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <a class="pl-btn sm" href="{{ app_url }}/demandas/{{ d.dem_id }}">Abrir</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 {% endif %}
 {% endblock %}

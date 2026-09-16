@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ProLink\Controller;
 
 use ProLink\Repository\AuditoriaRepository;
+use ProLink\Repository\CompatibilizacaoRepository;
+use ProLink\Service\CompatibilizacaoService;
 use ProLink\Service\DenunciaService;
 use ProLink\Service\ValidacaoException;
 use ProLink\Support\Auditoria;
@@ -24,7 +26,48 @@ final class AdminController
     public function __construct(
         private readonly DenunciaService $denuncias = new DenunciaService(),
         private readonly AuditoriaRepository $auditoria = new AuditoriaRepository(),
+        private readonly CompatibilizacaoRepository $sessoes = new CompatibilizacaoRepository(),
+        private readonly CompatibilizacaoService $motor = new CompatibilizacaoService(),
     ) {
+    }
+
+    /**
+     * As sessões do motor, mais recentes primeiro (RF04 e item 12.3).
+     *
+     * Cada linha é uma execução da operação atômica 2, com a semente que a ordenou. É por aqui
+     * que a supervisão humana que o 12.3 exige deixa de ser uma frase na documentação.
+     */
+    public function sessoes(): string
+    {
+        return View::render('admin/sessoes.html.twig', [
+            // 'ativo' é estado de navegação da sidebar, não dado: sem ele o item do menu não
+            // acende e as duas telas de sessão ficam sem lugar no painel.
+            'ativo'   => 'sessoes',
+            'titulo'  => 'Sessões do motor',
+            'sessoes' => $this->sessoes->recentes(),
+        ]);
+    }
+
+    /**
+     * Uma sessão refeita a partir da semente gravada.
+     *
+     * O serviço recalcula o sorteio e compara com a ordem que ficou no banco; a tela mostra o
+     * resultado dessa comparação. Não é a aplicação afirmando que é reproduzível, é a
+     * reprodução acontecendo na frente de quem audita.
+     */
+    public function sessao(string $id): string
+    {
+        $reproducao = $this->motor->reproduzir((int) $id);
+
+        if ($reproducao === null) {
+            return View::erro(404, 'Sessão de compatibilização não encontrada.');
+        }
+
+        return View::render('admin/sessao.html.twig', [
+            'ativo'      => 'sessoes',
+            'titulo'     => 'Sessão ' . (int) $id,
+            'reproducao' => $reproducao,
+        ]);
     }
 
     public function index(): string

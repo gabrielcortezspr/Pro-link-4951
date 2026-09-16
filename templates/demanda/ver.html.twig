@@ -1,187 +1,258 @@
 {% extends 'layout/base.html.twig' %}
 {% import 'layout/_form.html.twig' as form %}
+{% import 'layout/_ui.html.twig' as ui %}
 
 {% block titulo %}{{ demanda.dem_titulo }} · Pro-Link{% endblock %}
 
+{#  Um registro: conteúdo à esquerda, painel de ação à direita. O 7/5 do Bootstrap dava, num
+    monitor de 1600, uma coluna de leitura larga demais e um painel largo demais. #}
+{% block classe_main %}pl-wrap registro{% endblock %}
+
 {% block conteudo %}
 {% set d = demanda %}
+{% set editavel = eh_dono and d.dem_situacao != 'ENCERRADA' %}
+{% set alvos = {'A': 'Profissionais e empresas', 'P': 'Somente profissionais', 'E': 'Somente empresas'} %}
 {#  `ufs_possiveis` é lista simples e a macro `selecao` espera mapa chave => rótulo. A chave aqui
     é a própria sigla, que é string: `merge` só renumera chave inteira, então a armadilha do
     <select> de ART (ver perfil/index) não se aplica. #}
 {% set ufs_mapa = ufs_possiveis|reduce((mapa, uf) => mapa|merge({(uf): uf}), {}) %}
 
-<h1 class="h3 mb-1">{{ d.dem_titulo }}</h1>
-<p class="text-body-secondary">
-    {% if d.dem_local_municipio %}{{ d.dem_local_municipio }}{% if d.dem_local_uf %}/{{ d.dem_local_uf }}{% endif %} · {% endif %}
-    {#  O gravado é a chave da lista fechada (OBRA_CERTA): o rótulo é obrigação da tela, e o
-        valor cru fica no title para quem audita. #}
-    <span{% if d.dem_tipo_contrato %} title="{{ d.dem_tipo_contrato }}"{% endif %}>{{ d.dem_tipo_contrato|rotulo_contrato ?: 'Contrato a combinar' }}</span> ·
-    {% if d.dem_dt_publicacao is null %}
-        <span class="badge text-bg-secondary">Rascunho, só você vê</span>
-    {% elseif d.dem_situacao == 'ENCERRADA' %}
-        <span class="badge text-bg-dark">Encerrada</span>
-    {% elseif d.dem_situacao == 'COM_INTERESSADOS' %}
-        <span class="badge text-bg-success">Com interessados</span>
-    {% else %}
-        <span class="badge text-bg-primary">Aberta</span>
-    {% endif %}
-</p>
-
-<div class="row g-4 mt-1">
-    <div class="col-lg-7">
-        <h2 class="h5">Escopo</h2>
-        <p style="white-space: pre-line">{{ d.dem_escopo }}</p>
-
-        <h2 class="h5 mt-4">Atividades da Tabela de Obras e Serviços</h2>
-        <p class="text-body-secondary small">
-            É por estes códigos que a plataforma encontra quem já comprovou fazer este tipo de
-            serviço: a ART registrada no CREA aponta para os mesmos códigos.
-        </p>
-
-        {% if d.tos is empty %}
-            <div class="alert alert-warning" role="alert">
-                Nenhum código escolhido. Sem pelo menos um, a demanda não pode ser publicada:
-                não haveria por onde procurar quem a atende.
-            </div>
-        {% else %}
-            <ul class="list-group mb-3">
-                {% for t in d.tos %}
-                    <li class="list-group-item d-flex flex-wrap justify-content-between align-items-start gap-2">
-                        <div>
-                            <code>{{ t.codigo }}</code>
-                            {% if t.peso >= 1 %}
-                                <span class="badge text-bg-primary">Principal</span>
-                            {% else %}
-                                <span class="badge text-bg-secondary">Secundária</span>
-                            {% endif %}
-                            <br><span class="small">{{ t.descricao }}</span>
-                        </div>
-                        {% if eh_dono and d.dem_situacao != 'ENCERRADA' %}
-                            <div class="d-flex gap-1">
-                                <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/tos">
-                                    {{ form.csrf() }}
-                                    <input type="hidden" name="codigo" value="{{ t.codigo }}">
-                                    <input type="hidden" name="acao" value="{{ t.peso >= 1 ? 'secundaria' : 'principal' }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                        {{ t.peso >= 1 ? 'Tornar secundária' : 'Tornar principal' }}
-                                    </button>
-                                </form>
-                                <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/tos">
-                                    {{ form.csrf() }}
-                                    <input type="hidden" name="codigo" value="{{ t.codigo }}">
-                                    <input type="hidden" name="acao" value="remover">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
-                                </form>
-                            </div>
-                        {% endif %}
-                    </li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-
-        {% if eh_dono and d.dem_situacao != 'ENCERRADA' %}
-            {# Busca por GET: o resultado precisa sobreviver a um recarregamento e ser
-               compartilhável, e a demanda já está salva — não há o que perder no caminho. #}
-            <form method="get" action="{{ app_url }}/demandas/{{ d.dem_id }}" class="row g-2 align-items-end mb-3">
-                <div class="col-sm-9">
-                    <label for="campo-q" class="form-label">Procurar atividade</label>
-                    <input type="search" name="q" id="campo-q" class="form-control"
-                           value="{{ busca }}" minlength="3"
-                           placeholder="edificação, ponte, elétrica…">
-                    <div class="form-text">
-                        Termo isolado funciona melhor que frase: os textos da tabela começam com
-                        preposição. Acento e maiúscula não fazem diferença.
-                    </div>
-                </div>
-                <div class="col-sm-3">
-                    <button type="submit" class="btn btn-outline-primary w-100">Procurar</button>
-                </div>
-            </form>
-
-            {% if busca is not empty %}
-                {% if resultados is empty %}
-                    <p class="text-body-secondary">Nada encontrado para “{{ busca }}”.</p>
-                {% else %}
-                    <ul class="list-group">
-                        {% for r in resultados %}
-                            <li class="list-group-item d-flex flex-wrap justify-content-between align-items-start gap-2">
-                                <div>
-                                    <code>{{ r.tos_codigo }}</code>
-                                    <br><span class="small">{{ r.descricao }}</span>
-                                </div>
-                                <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/tos">
-                                    {{ form.csrf() }}
-                                    <input type="hidden" name="codigo" value="{{ r.tos_codigo }}">
-                                    <input type="hidden" name="acao" value="adicionar">
-                                    <button type="submit" class="btn btn-sm btn-primary">Adicionar</button>
-                                </form>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
+<div class="pl-head">
+    <div class="tit">
+        <h1>{{ d.dem_titulo }}</h1>
+        <p class="sub">
+            {{ ui.situacao(d.dem_situacao, d.dem_dt_publicacao is not null) }}
+            {% if d.dem_local_municipio %}
+                <span class="pl-sep" aria-hidden="true"></span>
+                <span>{{ d.dem_local_municipio }}{% if d.dem_local_uf %}/{{ d.dem_local_uf }}{% endif %}</span>
             {% endif %}
+            <span class="pl-sep" aria-hidden="true"></span>
+            {#  O gravado é a chave da lista fechada (OBRA_CERTA): o rótulo é obrigação da tela, e o
+                valor cru fica no title para quem audita. #}
+            <span{% if d.dem_tipo_contrato %} title="{{ d.dem_tipo_contrato }}"{% endif %}>{{ d.dem_tipo_contrato|rotulo_contrato ?: 'Contrato a combinar' }}</span>
+            <span class="pl-sep" aria-hidden="true"></span>
+            <span><span class="n">{{ d.tos|length }}</span>
+                {{ d.tos|length == 1 ? 'atividade da tabela' : 'atividades da tabela' }}</span>
+        </p>
+    </div>
+
+    {% if eh_dono and d.dem_dt_publicacao is not null and d.tos is not empty %}
+        <div class="pl-head-acoes">
+            <a class="pl-btn" href="{{ app_url }}/demandas/{{ d.dem_id }}/compativeis">
+                Ver perfis compatíveis
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="M13 6l6 6-6 6"/></svg>
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<div class="pl-cols">
+    <div class="pl-stack">
+
+        <section class="pl-card">
+            <div class="pl-linha-titulo"><h2 class="pl-secao">Escopo</h2></div>
+            <p class="pl-texto">{{ d.dem_escopo }}</p>
+        </section>
+
+        <section class="pl-card">
+            <div class="pl-linha-titulo">
+                <h2 class="pl-secao">Atividades da Tabela de Obras e Serviços</h2>
+                {{ ui.info('Para que servem estas atividades',
+                    'A Tabela de Obras e Serviços é o vocabulário do CREA para o que foi executado. A ART registrada por um profissional aponta para os mesmos códigos, e é esse encontro, e não o texto da demanda, que liga a necessidade a quem já comprovou fazer o serviço.') }}
+                <span class="cnt">{{ d.tos|length }}</span>
+            </div>
+
+            {% if d.tos is empty %}
+                <p class="pl-nota mb-0">
+                    Nenhuma atividade escolhida. Sem pelo menos uma, a demanda não pode ser
+                    publicada: não haveria por onde procurar quem a atende.
+                </p>
+            {% else %}
+                <ul class="pl-tos-lista">
+                    {% for t in d.tos %}
+                        <li>
+                            <div class="esq">
+                                {{ ui.tos(t.codigo, t.descricao, true) }}
+                                <span class="ds">{{ t.descricao }}</span>
+                                {#  Peso não é situação: é o quanto a atividade pesa no cruzamento.
+                                    Rótulo discreto, e não pílula, para não disputar vocabulário
+                                    com o estado da demanda no cabeçalho. #}
+                                <span class="peso{{ t.peso >= 1 ? '' : ' sec' }}">{{ t.peso >= 1 ? 'Principal' : 'Secundária' }}</span>
+                            </div>
+                            {% if editavel %}
+                                <div class="acoes">
+                                    <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/tos">
+                                        {{ form.csrf() }}
+                                        <input type="hidden" name="codigo" value="{{ t.codigo }}">
+                                        <input type="hidden" name="acao" value="{{ t.peso >= 1 ? 'secundaria' : 'principal' }}">
+                                        <button type="submit" class="pl-btn mini">
+                                            {{ t.peso >= 1 ? 'Tornar secundária' : 'Tornar principal' }}
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/tos">
+                                        {{ form.csrf() }}
+                                        <input type="hidden" name="codigo" value="{{ t.codigo }}">
+                                        <input type="hidden" name="acao" value="remover">
+                                        <button type="submit" class="pl-btn mini risco">Remover</button>
+                                    </form>
+                                </div>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+
+        {% if editavel %}
+            <section class="pl-card">
+                <div class="pl-linha-titulo">
+                    <h2 class="pl-secao">Acrescentar atividade</h2>
+                    {{ ui.info('Como procurar na tabela',
+                        'Termo isolado funciona melhor que frase: os textos da tabela começam com preposição. Acento e maiúscula não fazem diferença.') }}
+                </div>
+
+                {# Busca por GET: o resultado precisa sobreviver a um recarregamento e ser
+                   compartilhável, e a demanda já está salva, não há o que perder no caminho. #}
+                <form method="get" action="{{ app_url }}/demandas/{{ d.dem_id }}" class="pl-busca">
+                    <div class="cx">
+                        <label for="campo-q" class="form-label">Procurar atividade</label>
+                        <input type="search" name="q" id="campo-q" class="form-control"
+                               value="{{ busca }}" minlength="3"
+                               placeholder="edificação, ponte, elétrica…">
+                    </div>
+                    <button type="submit" class="pl-btn">Procurar</button>
+                </form>
+
+                {% if busca is not empty %}
+                    {% if resultados is empty %}
+                        <p class="pl-nota mt-3 mb-0">Nada encontrado para “{{ busca }}”.</p>
+                    {% else %}
+                        <ul class="pl-tos-lista mt-2">
+                            {% for r in resultados %}
+                                <li>
+                                    <div class="esq">
+                                        {{ ui.tos(r.tos_codigo, r.descricao, true) }}
+                                        <span class="ds">{{ r.descricao }}</span>
+                                    </div>
+                                    <div class="acoes">
+                                        <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/tos">
+                                            {{ form.csrf() }}
+                                            <input type="hidden" name="codigo" value="{{ r.tos_codigo }}">
+                                            <input type="hidden" name="acao" value="adicionar">
+                                            <button type="submit" class="pl-btn mini">Acrescentar</button>
+                                        </form>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% endif %}
+            </section>
         {% endif %}
     </div>
 
-    {% if eh_dono %}
-        <div class="col-lg-5">
-            <h2 class="h5">Situação</h2>
+    <div class="pl-stack">
+        {% if eh_dono %}
+            <section class="pl-card">
+                <div class="pl-linha-titulo"><h2 class="pl-secao">Situação</h2></div>
 
-            {% if d.dem_dt_publicacao is null %}
-                <p class="text-body-secondary small">
-                    Enquanto for rascunho, ninguém além de você enxerga esta demanda.
-                </p>
-                <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/publicar" class="mb-3">
-                    {{ form.csrf() }}
-                    <button type="submit" class="btn btn-primary"
-                            {% if d.tos is empty %}disabled aria-describedby="sem-tos"{% endif %}>
-                        Publicar demanda
-                    </button>
-                    {% if d.tos is empty %}
-                        <div id="sem-tos" class="form-text">Escolha ao menos um código para publicar.</div>
-                    {% endif %}
-                </form>
-            {% elseif d.dem_situacao != 'ENCERRADA' %}
-                <p class="text-body-secondary small">
-                    Publicada em {{ d.dem_dt_publicacao }}.
-                </p>
-                <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/encerrar" class="mb-3"
-                      onsubmit="return confirm('Encerrar esta demanda? Ela sai da vitrine e continua no seu painel.');">
-                    {{ form.csrf() }}
-                    <button type="submit" class="btn btn-outline-dark">Encerrar demanda</button>
-                </form>
-            {% else %}
-                <p class="text-body-secondary small">
-                    Encerrada em {{ d.dem_dt_encerramento }}. O histórico permanece.
-                </p>
-            {% endif %}
+                {% if d.dem_dt_publicacao is null %}
+                    <p class="pl-nota">Enquanto for rascunho, ninguém além de você enxerga esta demanda.</p>
+                    <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/publicar">
+                        {{ form.csrf() }}
+                        <button type="submit" class="pl-cta"
+                                {% if d.tos is empty %}disabled aria-describedby="sem-tos"{% endif %}>
+                            Publicar demanda
+                        </button>
+                        {% if d.tos is empty %}
+                            <p id="sem-tos" class="pl-nota mt-2 mb-0">
+                                Escolha ao menos uma atividade da tabela para publicar.
+                            </p>
+                        {% endif %}
+                    </form>
+                {% elseif d.dem_situacao != 'ENCERRADA' %}
+                    <p class="pl-nota">Publicada em {{ d.dem_dt_publicacao|date('d/m/Y') }}.</p>
+                    <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/encerrar"
+                          data-confirmar="Encerrar esta demanda? Ela sai da vitrine e continua no seu painel.">
+                        {{ form.csrf() }}
+                        <button type="submit" class="pl-btn">Encerrar demanda</button>
+                    </form>
+                {% else %}
+                    <p class="pl-nota mb-0">
+                        Encerrada em {{ d.dem_dt_encerramento|date('d/m/Y') }}. O histórico permanece.
+                    </p>
+                {% endif %}
+            </section>
 
-            {% if d.dem_situacao != 'ENCERRADA' %}
-                <h2 class="h5 mt-4">Editar</h2>
-                <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}">
-                    {{ form.csrf() }}
-                    {{ form.campo('titulo', 'Título', 'text', d.dem_titulo, erros.titulo|default(null), {required: true}) }}
-                    {{ form.area('escopo', 'Escopo', d.dem_escopo, erros.escopo|default(null), {required: true, rows: 5}) }}
-                    <div class="row">
-                        <div class="col-8">
-                            {{ form.campo('local_municipio', 'Município', 'text', d.dem_local_municipio, null) }}
-                        </div>
-                        <div class="col-4">
-                            {{ form.selecao('local_uf', 'UF', ufs_mapa, d.dem_local_uf,
-                                erros.local_uf|default(null), {}, 'Não informada') }}
-                        </div>
+            {#  O feed de compatíveis só faz sentido depois de publicada e com atividade
+                escolhida: sem código da tabela não há por onde procurar, e o controller
+                devolveria a pessoa para cá com um aviso. #}
+            {% if d.dem_dt_publicacao is not null and d.tos is not empty %}
+                <section class="pl-card">
+                    <div class="pl-linha-titulo">
+                        <h2 class="pl-secao">Quem já comprovou fazer isto</h2>
+                        {{ ui.info('Como a lista é montada',
+                            'A plataforma cruza as atividades escolhidas ao lado com o acervo de ART e CAT registrado no CREA, e mede a aderência por dimensão. A ordem é sorteada a cada sessão, com semente registrada.', 'fim') }}
                     </div>
-                    {{ form.selecao('tipo_contrato', 'Tipo de contrato', contratos_possiveis,
-                        d.dem_tipo_contrato, erros.tipo_contrato|default(null), {}, 'A combinar') }}
-                    {{ form.selecao('alvo', 'Quem pode atender', {
-                        'A': 'Profissionais e empresas',
-                        'P': 'Somente profissionais',
-                        'E': 'Somente empresas'
-                    }, d.dem_alvo, erros.alvo|default(null), {required: true}, false) }}
-                    {{ form.botao('Salvar alterações', 'outline-primary') }}
-                </form>
+                    <p class="pl-nota">
+                        A correspondência é apenas indicativa: não há ranking nem nota, e a decisão
+                        continua sendo sua.
+                    </p>
+                    <a class="pl-btn" href="{{ app_url }}/demandas/{{ d.dem_id }}/compativeis">
+                        Ver perfis compatíveis
+                    </a>
+                </section>
             {% endif %}
-        </div>
-    {% endif %}
+
+            {% if editavel %}
+                <section class="pl-card">
+                    <div class="pl-linha-titulo"><h2 class="pl-secao">Editar demanda</h2></div>
+                    <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}">
+                        {{ form.csrf() }}
+                        {{ form.campo('titulo', 'Título', 'text', d.dem_titulo, erros.titulo|default(null), {required: true}) }}
+                        {{ form.area('escopo', 'Escopo', d.dem_escopo, erros.escopo|default(null), {required: true, rows: 5}) }}
+                        <div class="row">
+                            <div class="col-8">
+                                {{ form.campo('local_municipio', 'Município', 'text', d.dem_local_municipio, null) }}
+                            </div>
+                            <div class="col-4">
+                                {{ form.selecao('local_uf', 'UF', ufs_mapa, d.dem_local_uf,
+                                    erros.local_uf|default(null), {}, 'Não informada') }}
+                            </div>
+                        </div>
+                        {{ form.selecao('tipo_contrato', 'Tipo de contrato', contratos_possiveis,
+                            d.dem_tipo_contrato, erros.tipo_contrato|default(null), {}, 'A combinar') }}
+                        {{ form.selecao('alvo', 'Quem pode atender', alvos, d.dem_alvo,
+                            erros.alvo|default(null), {required: true}, false) }}
+                        <div class="pl-acoes-form">
+                            {{ form.botao('Salvar alterações') }}
+                        </div>
+                    </form>
+                </section>
+            {% endif %}
+        {% else %}
+            {#  Quem não é o dono lê a demanda: o painel da direita resume o que decide se vale
+                manifestar interesse, sem oferecer ação que esta conta não tem. #}
+            <section class="pl-card">
+                <div class="pl-linha-titulo"><h2 class="pl-secao">Sobre esta demanda</h2></div>
+                <dl class="pl-dl mt-0">
+                    <dt>Local</dt>
+                    <dd>
+                        {% if d.dem_local_municipio %}
+                            {{ d.dem_local_municipio }}{% if d.dem_local_uf %}/{{ d.dem_local_uf }}{% endif %}
+                        {% else %}
+                            Não informado
+                        {% endif %}
+                    </dd>
+                    <dt>Regime</dt>
+                    <dd{% if d.dem_tipo_contrato %} title="{{ d.dem_tipo_contrato }}"{% endif %}>{{ d.dem_tipo_contrato|rotulo_contrato ?: 'A combinar' }}</dd>
+                    <dt>Quem pode atender</dt>
+                    <dd>{{ alvos[d.dem_alvo]|default('Profissionais e empresas') }}</dd>
+                    <dt>Publicada em</dt>
+                    <dd class="mono">{{ d.dem_dt_publicacao ? d.dem_dt_publicacao|date('d/m/Y') : 'Não informado' }}</dd>
+                </dl>
+            </section>
+        {% endif %}
+    </div>
 </div>
 {% endblock %}

@@ -48,6 +48,10 @@ final class View
         $twig->addFilter(new TwigFilter('rotulo_entidade', [Rotulos::class, 'entidade']));
         $twig->addFilter(new TwigFilter('rotulo_campo', [Rotulos::class, 'campo']));
 
+        // As seis dimensões do motor chegam ao feed pela chave do cálculo ('competencia'),
+        // inclusive dentro da lista de dimensões que saíram da média.
+        $twig->addFilter(new TwigFilter('rotulo_dimensao', [Rotulos::class, 'dimensao']));
+
         // As duas preferências declaradas ficam gravadas como chave (`OBRA_CERTA`, `AM,RR`).
         // Mesma regra dos três acima: a tela mostra o rótulo, o cru fica em title="".
         $twig->addFilter(new TwigFilter('rotulo_contrato', [Rotulos::class, 'contrato']));

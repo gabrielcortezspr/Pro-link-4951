@@ -16,10 +16,16 @@ declare(strict_types=1);
  */
 
 use ProLink\Repository\AuditoriaRepository;
+use ProLink\Repository\CompatibilizacaoRepository;
 use ProLink\Repository\DemandaRepository;
+use ProLink\Repository\TermoRepository;
+use ProLink\Service\BuscaService;
+use ProLink\Service\CompatibilizacaoService;
 use ProLink\Service\DemandaService;
 use ProLink\Service\DenunciaService;
+use ProLink\Service\PerfilEmpresaService;
 use ProLink\Service\PerfilService;
+use ProLink\Service\PrivacidadeService;
 use ProLink\Support\Database;
 use ProLink\Support\Preferencias;
 
@@ -105,6 +111,61 @@ return (static function (): array {
         ];
     }
 
+    // O painel do demandante e o perfil da empresa: as duas telas mostram dado de lista fechada
+    // (regime de contratação) e código da Tabela de Obras e Serviços, que é justamente o que só
+    // aparece no HTML final. Ficaram fora daqui até a passagem de largura de 15/09, e enquanto
+    // ficaram, o código da Tabela de Obras e Serviços saiu cru no acervo da empresa sem que nada
+    // reclamasse.
+    $donoDeDemanda = $pdo
+        ->query('SELECT dem_usu_id FROM pro_demandas WHERE dem_status = \'A\' ORDER BY dem_id LIMIT 1')
+        ->fetchColumn();
+
+    if ($donoDeDemanda !== false) {
+        $telas['demanda/index.html.twig'] = [
+            'titulo'   => 'Minhas demandas',
+            'demandas' => (new DemandaRepository())->doUsuario((int) $donoDeDemanda),
+        ];
+    }
+
+    $usuarioEmpresa = $pdo
+        ->query('SELECT emp_usu_id FROM pro_empresas ORDER BY emp_id LIMIT 1')
+        ->fetchColumn();
+
+    $perfilEmpresa = $usuarioEmpresa === false
+        ? null
+        : (new PerfilEmpresaService())->montar((int) $usuarioEmpresa, (int) $usuarioEmpresa);
+
+    if ($perfilEmpresa !== null) {
+        $telas['perfil/empresa.html.twig'] = [
+            'titulo'  => 'Perfil da empresa',
+            'perfil'  => $perfilEmpresa,
+            'erros'   => [],
+            'aviso'   => null,
+            'valores' => [],
+            'niveis_possiveis' => $niveisPossiveis,
+        ] + $vocabulario;
+    }
+
+    // Privacidade e cadastro: as duas telas de LGPD. A primeira imprime perfil de acesso e
+    // finalidade de consentimento, que são constantes; a segunda, a versão do termo vigente.
+    $qualquerUsuario = $pdo
+        ->query('SELECT usu_id FROM sis_usuarios WHERE usu_status = \'A\' ORDER BY usu_id LIMIT 1')
+        ->fetchColumn();
+
+    if ($qualquerUsuario !== false) {
+        $telas['privacidade/index.html.twig'] = [
+            'painel'      => (new PrivacidadeService())->painel((int) $qualquerUsuario),
+            'finalidades' => PrivacidadeService::FINALIDADES_REVOGAVEIS,
+        ];
+    }
+
+    $telas['auth/cadastro.html.twig'] = [
+        'valores' => [],
+        'erros'   => [],
+        'aviso'   => null,
+        'termos'  => (new TermoRepository())->vigentes(),
+    ];
+
     $telas['demanda/nova.html.twig'] = [
         'titulo'  => 'Nova demanda',
         'valores' => [],
@@ -114,6 +175,14 @@ return (static function (): array {
     $telas['demanda/abertas.html.twig'] = [
         'titulo'   => 'Demandas abertas',
         'demandas' => (new DemandaRepository())->abertas(),
+    ];
+
+    // A busca ativa, do ponto de vista de quem não tem conta: é o alcance mais restrito e o mais
+    // exposto, já que esta é a única tela aberta ao perfil Público. Espectador nulo é o anônimo,
+    // e é dele que o HTML final precisa ser conferido.
+    $telas['busca/profissionais.html.twig'] = [
+        'titulo' => 'Buscar profissionais',
+        'busca'  => (new BuscaService())->profissionais('', false, null),
     ];
 
     $umaDemanda = $primeiraDemandaId === false
@@ -129,6 +198,68 @@ return (static function (): array {
             'resultados' => [],
             'erros'      => [],
         ] + $vocabulario;
+    }
+
+    // O feed de compatíveis: a sessão gravada é a fonte, não um cálculo novo. `paraDemanda()`
+    // relê a última sessão da demanda e só executa o motor quando não existe nenhuma — por isso
+    // a demanda escolhida aqui é a que já tem sessão com pool, e a verificação não fica gravando
+    // uma linha em `mat_sessoes` a cada rodada.
+    $comSessao = $pdo->query(
+        'SELECT s.mts_dem_id
+           FROM mat_sessoes s
+           JOIN mat_sessao_pool p ON p.msp_mts_id = s.mts_id
+           JOIN pro_demandas d    ON d.dem_id     = s.mts_dem_id
+          WHERE d.dem_status = \'A\'
+       GROUP BY s.mts_id
+       ORDER BY COUNT(p.msp_id) DESC, s.mts_id DESC
+          LIMIT 1'
+    )->fetchColumn();
+
+    if ($comSessao !== false) {
+        $demandaDoFeed = (new DemandaService())->comTos((int) $comSessao);
+
+        if ($demandaDoFeed !== null) {
+            $telas['demanda/compativeis.html.twig'] = [
+                'titulo'  => 'Compatíveis',
+                'demanda' => $demandaDoFeed,
+                'sessao'  => (new CompatibilizacaoService())->paraDemanda(
+                    (int) $comSessao,
+                    (int) $demandaDoFeed['dem_usu_id'],
+                ),
+            ];
+        }
+    }
+
+    // As duas telas de auditoria de sessão. A escolhida para o detalhe é a de MAIOR pool: é ela
+    // que exercita a fileira de comparação inteira, a tabela de dimensões com valor e com
+    // dimensão não medida, e o candidato sem nome. Uma sessão de pool vazio renderiza metade da
+    // tela, e passaria na verificação sem ter conferido nada.
+    $sessoes = (new CompatibilizacaoRepository())->recentes();
+
+    $telas['admin/sessoes.html.twig'] = [
+        'ativo'   => 'sessoes',
+        'titulo'  => 'Sessões do motor',
+        'sessoes' => $sessoes,
+    ];
+
+    $maior = null;
+
+    foreach ($sessoes as $sessao) {
+        if ($maior === null || (int) $sessao['mts_total_pool'] > (int) $maior['mts_total_pool']) {
+            $maior = $sessao;
+        }
+    }
+
+    if ($maior !== null) {
+        $reproducao = (new CompatibilizacaoService())->reproduzir((int) $maior['mts_id']);
+
+        if ($reproducao !== null) {
+            $telas['admin/sessao.html.twig'] = [
+                'ativo'      => 'sessoes',
+                'titulo'     => 'Sessão ' . (int) $maior['mts_id'],
+                'reproducao' => $reproducao,
+            ];
+        }
     }
 
     // A tela de detalhe só existe com registro; num banco recém-carregado não há denúncia.

@@ -1,0 +1,344 @@
+{% extends 'admin/_layout.html.twig' %}
+{% import 'layout/_ui.html.twig' as ui %}
+{% import _self as seq %}
+
+{#
+    Uma sessão do motor, refeita a partir da semente gravada (item 12.3: supervisão humana e
+    critérios explicáveis; item 10.1: sem ranking).
+
+    Esta tela não AFIRMA que a sessão é reproduzível. Ela mostra a reprodução: o serviço recalcula
+    o sorteio agora, com a semente que está no banco, e a tela põe a ordem gravada e a ordem
+    recalculada uma sobre a outra, célula a célula. A prova é a igualdade das duas fileiras, não a
+    frase ao lado delas.
+
+    A unidade de leitura é a sessão inteira como experimento. Primário: as duas ordens e o
+    veredito. Secundário: os parâmetros com que ela rodou, que são o que torna o resultado
+    determinado. Terciário: o conjunto avaliado, candidato por candidato, com as dimensões.
+
+    Três coisas que não podem sair daqui:
+
+    **O score composto não aparece.** `reproduzir()` não o devolve, de propósito. Exibido, ele
+    serviria para ordenar pessoas, que é o que o item 10.1 veda. As dimensões individuais são o
+    critério explicável que o Anexo VI pede, e bastam para auditar.
+
+    **A posição não é colocação.** A sequência precisa ser exibida para provar a igualdade entre
+    gravada e refeita. Por isso nenhuma célula da fileira se distingue das outras: mesmo tamanho,
+    mesma cor, mesma tipografia do começo ao fim.
+
+    **O verde água não entra.** `--pl-seal` afirma "documento conferido na API do CREA". Sorteio
+    reproduzido não é documento verificado: o "confere" aqui é status, e usa a pílula de status.
+#}
+
+{% block titulo %}Sessão {{ reproducao.sessao.mts_id }} · Pro-Link{% endblock %}
+{% block titulo_painel %}Sessão nº {{ reproducao.sessao.mts_id }}{% endblock %}
+
+{% block topbar_acoes %}
+    <span class="pl-somente-leitura">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8.5 11V7.5a3.5 3.5 0 017 0V11"/></svg>
+        Somente leitura
+    </span>
+    {{ ui.info('Como o sorteio é refeito',
+        'A ordem do pool é a ordem crescente do hash SHA-256 da semente da sessão com a chave de cada candidato. Não entra score, data nem qualquer atributo da pessoa, então o mesmo par semente/conjunto devolve sempre a mesma sequência, em qualquer máquina. É esse cálculo que a página acabou de refazer.', 'fim') }}
+{% endblock %}
+
+{% block painel %}
+
+    {% set s        = reproducao.sessao %}
+    {% set gravada  = reproducao.ordem_gravada %}
+    {% set refeita  = reproducao.ordem_refeita %}
+    {% set total    = gravada|length %}
+    {% set iguais   = refeita|filter((chave, i) => gravada[i]|default(null) == chave)|length %}
+    {% set nomes    = reproducao.candidatos|reduce((m, c) => m|merge({(c.chave): c.nome}), {}) %}
+    {% set dimensoes = ['competencia', 'area', 'localizacao', 'experiencia', 'contrato', 'disponibilidade'] %}
+
+    <p class="mb-3">
+        <a class="pl-link-voltar" href="{{ app_url }}/admin/sessoes">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+            Voltar para as sessões
+        </a>
+    </p>
+
+    {# ------------------------------------------------------------------ o quadro da reprodução #}
+    <section class="pl-card pl-repro">
+
+        <div class="pl-det-topo">
+            <div>
+                <p class="rot">Demanda compatibilizada</p>
+                {# Mesma normalização de código da lista: título é texto livre, e código da
+                   Tabela de Obras e Serviços dentro dele sai no formato da interface. #}
+                <p class="alvo" title="{{ s.dem_titulo }}">{{ s.dem_titulo|replace({'TOS_': 'TOS '}) }}</p>
+                <p class="meta">
+                    <span>Demanda nº {{ s.mts_dem_id }}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>Executada por {{ s.usu_nome|default('conta não localizada') }}</span>
+                    <span aria-hidden="true">·</span>
+                    <span class="mono">{{ s.mts_dt_registro|date('d/m/Y H:i') }}</span>
+                    {% if s.mts_ip %}
+                        <span aria-hidden="true">·</span>
+                        <span>origem <span class="mono">{{ s.mts_ip }}</span></span>
+                    {% endif %}
+                </p>
+            </div>
+
+            {# Vocabulário e cor fixos por estado. Pool vazio não é "confere": não há sequência
+               para comparar, e anunciar prova onde não houve comparação seria o oposto de
+               auditar. #}
+            {% if total == 0 %}
+                <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Sem pool</span>
+            {% elseif reproducao.reproduz %}
+                <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Reprodução confere</span>
+            {% else %}
+                <span class="pl-pill danger"><span class="pd" aria-hidden="true"></span>Reprodução diverge</span>
+            {% endif %}
+        </div>
+
+        {% if total == 0 %}
+
+            <p class="vd">Nenhum candidato atingiu o limiar desta sessão</p>
+            <p class="pl-nota como">
+                A execução ficou registrada com a semente, o limiar e os pesos abaixo, e o conjunto
+                avaliado saiu vazio. Não há sequência para refazer, então esta sessão não produz
+                prova de reprodução: ela prova que o motor rodou e não encontrou ninguém acima do
+                limiar.
+            </p>
+
+        {% else %}
+
+            <p class="vd">
+                {% if reproducao.reproduz %}
+                    A ordem recalculada agora é idêntica à ordem gravada no banco
+                {% else %}
+                    A ordem recalculada agora difere da ordem gravada no banco
+                {% endif %}
+            </p>
+
+            <p class="pl-nota como">
+                O sorteio foi refeito nesta página, com a semente desta sessão e o mesmo cálculo que
+                o motor usou. A posição vem do sorteio, e de nada mais: o score decide apenas quem
+                passa do limiar e entra no conjunto, nunca em que lugar aparece.
+                {% if not reproducao.reproduz %}
+                    A divergência abaixo é defeito: ou a semente gravada mudou, ou o sorteio deixou
+                    de ser determinado.
+                {% endif %}
+            </p>
+
+            <div class="pl-ordem">
+                <p class="rot" id="ordem-gravada">
+                    Gravada no banco
+                    <span class="qd">{{ s.mts_dt_registro|date('d/m/Y H:i') }}</span>
+                </p>
+                <ol class="cels" aria-labelledby="ordem-gravada">
+                    {% for chave in gravada %}
+                        {{ seq.celula(chave, nomes[chave]|default(null), false) }}
+                    {% endfor %}
+                </ol>
+
+                <p class="rot" id="ordem-refeita">
+                    Recalculada agora
+                    <span class="qd">{{ 'now'|date('d/m/Y H:i') }}</span>
+                </p>
+                <ol class="cels" aria-labelledby="ordem-refeita">
+                    {% for chave in refeita %}
+                        {{ seq.celula(chave, nomes[chave]|default(null), gravada[loop.index0]|default(null) != chave) }}
+                    {% endfor %}
+                </ol>
+            </div>
+
+            <p class="conta">
+                {# A contagem é a afirmação exata da tela, e sai da comparação chave a chave, não
+                   da leitura das fileiras: a fileira ilustra, este número prova. #}
+                {% if reproducao.reproduz %}
+                    <b>{{ iguais }} de {{ total }}</b>
+                    {{ total == 1 ? 'posição confere' : 'posições conferem' }}, item a item.
+                {% else %}
+                    <b>{{ total - iguais }} de {{ total }}</b>
+                    {{ total - iguais == 1 ? 'posição não confere' : 'posições não conferem' }},
+                    e {{ total - iguais == 1 ? 'está marcada' : 'estão marcadas' }} na fileira
+                    recalculada.
+                {% endif %}
+                {% if total == 1 %}
+                    Com um único candidato no conjunto, a sequência tem um elemento só: a igualdade
+                    é verdadeira, e prova menos do que uma sessão com pool maior.
+                {% endif %}
+            </p>
+
+        {% endif %}
+    </section>
+
+    <div class="pl-cols">
+
+        {# ------------------------------------------------------------- o conjunto avaliado #}
+        <section class="pl-card pl-log-card">
+
+            <div class="pl-log-topo">
+                <div>
+                    <h2 class="pl-card-titulo">Conjunto avaliado</h2>
+                    <p class="pl-log-resumo">
+                        <span><b>{{ reproducao.candidatos|length }}</b>
+                            {{ reproducao.candidatos|length == 1 ? 'candidato' : 'candidatos' }} acima do limiar</span>
+                        <span aria-hidden="true">·</span>
+                        <span>na ordem sorteada, que não é classificação</span>
+                    </p>
+                </div>
+                {{ ui.info('Por que as dimensões e não uma nota',
+                    'O motor mede seis dimensões em separado e compõe uma nota para decidir quem passa do limiar. A nota não é exibida em tela nenhuma, nem para a Administração: exibida, ela serviria para ordenar pessoas. O que fica registrado e auditável são as seis medidas, uma a uma, e o limiar que separou quem entrou de quem ficou de fora.', 'fim') }}
+            </div>
+
+            <div class="table-responsive">
+                <table class="pl-table pl-log pl-pool">
+                    <caption class="visually-hidden">
+                        Candidatos do conjunto avaliado, na ordem sorteada pela semente da sessão,
+                        com as seis dimensões medidas para cada um.
+                    </caption>
+                    <colgroup>
+                        <col class="c-ord"><col>
+                        {% for d in dimensoes %}<col class="c-dim">{% endfor %}
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th scope="col">Ordem</th>
+                            <th scope="col">Candidato</th>
+                            {% for d in dimensoes %}
+                                <th scope="col" class="num">{{ d|rotulo_dimensao }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for c in reproducao.candidatos %}
+                        <tr class="lin">
+                            {# O número é a referência para conferir com a fileira acima, não
+                               colocação: por isso é terciário, em cinza e monoespaçado. #}
+                            <td class="ord">{{ loop.index }}</td>
+                            <td>
+                                {% if c.nome %}
+                                    <span class="autor" title="{{ c.nome }}">{{ c.nome }}</span>
+                                {% else %}
+                                    {# Conta excluída depois da sessão. A linha fica e diz o que é:
+                                       conjunto com buraco silencioso é auditoria incompleta. #}
+                                    <span class="autor anon">Conta excluída depois desta sessão</span>
+                                {% endif %}
+                                <span class="orig">{{ c.tipo == 'E' ? 'Empresa' : 'Profissional' }} nº {{ c.chave|split(':')|last }}</span>
+                            </td>
+                            {% for d in dimensoes %}
+                                {% set v = c.dimensoes[d]|default(null) %}
+                                <td class="num">
+                                    {% if v is null %}
+                                        {# Dimensão sem dado dos dois lados não é zero: ela saiu da
+                                           média (item 12.3). Zero seria uma medida que ninguém fez. #}
+                                        <span class="nulo" aria-hidden="true"></span>
+                                        <span class="visually-hidden">não medida nesta sessão</span>
+                                    {% else %}
+                                        {{ (v * 100)|round }}%
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% else %}
+                        <tr class="vazio">
+                            <td colspan="{{ dimensoes|length + 2 }}">
+                                <p class="t">O conjunto ficou vazio</p>
+                                <p class="s">
+                                    Ninguém alcançou o limiar desta sessão. Acontece quando as
+                                    atividades da demanda são mais específicas do que o acervo
+                                    registrado no CREA cobre.
+                                </p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {# A nota explica a leitura das linhas. Sem linha nenhuma ela vira faixa de texto
+               embaixo de um estado vazio, explicando o que não está na tela. #}
+            {% if reproducao.candidatos is not empty %}
+            <div class="pl-sess-rodape">
+                <p class="pl-nota mb-0">
+                    O traço na coluna de uma dimensão significa que ela não pôde ser medida e ficou
+                    fora da média daquele candidato, em vez de valer zero. A relação de candidatos é
+                    a do instante do cálculo e não é filtrada pela preferência de exibição de hoje:
+                    alterá-la faria o registro mentir sobre o passado.
+                </p>
+            </div>
+            {% endif %}
+        </section>
+
+        {# --------------------------------------------------------- parâmetros desta execução #}
+        <aside class="pl-card pl-param">
+            <div class="pl-linha-titulo">
+                <h2 class="pl-secao">Parâmetros desta execução</h2>
+                {{ ui.info('Por que os pesos ficam na sessão',
+                    'Os pesos e o limiar são configuráveis pela Administração. Se a sessão guardasse só a referência ao parâmetro, uma recalibração de hoje mudaria a explicação de uma execução de ontem. Por isso cada sessão grava os números com que rodou, e é por eles que ela se explica.') }}
+            </div>
+
+            <div class="grupo">
+                <p class="rot">Limiar de entrada</p>
+                <p class="mb-0"><span class="lim">{{ (s.mts_limiar * 100)|round }}%</span></p>
+                <span class="sem">Quem ficou abaixo disto não entrou no conjunto.</span>
+            </div>
+
+            <div class="grupo">
+                <p class="rot">Semente do sorteio</p>
+                <p class="semente">{{ s.mts_semente }}</p>
+                <span class="sem">
+                    32 caracteres sorteados no início da execução. É ela, e só ela, que decide a
+                    ordem em que o conjunto aparece.
+                </span>
+            </div>
+
+            <div class="grupo">
+                <p class="rot">Pesos vigentes na execução</p>
+                {% for d in dimensoes %}
+                    {% set peso = reproducao.pesos[d]|default(null) %}
+                    <div class="pl-dim">
+                        <span class="dlab" title="{{ d|rotulo_dimensao }}">{{ d|rotulo_dimensao }}</span>
+                        {% if peso is null %}
+                            <span class="na">Não gravado</span>
+                            <span></span>
+                        {% else %}
+                            <span class="pl-bar"><span style="width: {{ (peso * 100)|round }}%"></span></span>
+                            <span class="pct">{{ (peso * 100)|round }}%</span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <span class="sem">
+                    Peso de cada dimensão na composição que decidiu a entrada no conjunto, como
+                    estava no momento da execução.
+                </span>
+            </div>
+        </aside>
+
+    </div>
+
+{% endblock %}
+
+{#
+    Uma posição da sequência. Todas as células são iguais entre si de propósito: o que se lê aqui
+    é "quem está em cada lugar", e qualquer distinção visual de posição leria como colocação.
+
+    Duas linhas dentro da célula, e não só as iniciais: nome de empresa da base é de uma palavra
+    ("RIO", "BASE") e vira uma letra só, então duas pessoas diferentes poderiam ocupar células
+    visualmente idênticas. Numa fileira cuja função é PROVAR que duas ordens coincidem, célula
+    ambígua é prova fraca. O número do registro embaixo desfaz o empate e é o mesmo identificador
+    que a tabela do conjunto usa, logo as duas se conferem uma contra a outra.
+
+    Sem nome (conta excluída depois da sessão) sobra o número, com contorno tracejado: a posição
+    continua identificada e a célula diz que a identidade não existe mais.
+#}
+{% macro celula(chave, nome, divergente) %}
+    {%- import 'layout/_ui.html.twig' as ui -%}
+    {%- set numero = chave|split(':')|last -%}
+    {%- set tipo = chave|split(':')|first == 'E' ? 'Empresa' : 'Profissional' -%}
+    {%- if nome -%}
+        <li class="pl-cel{{ divergente ? ' dif' : '' }}" title="{{ nome }} · {{ tipo }} nº {{ numero }}">
+            <span class="in" aria-hidden="true">{{ ui.iniciais(nome) }}</span>
+            <span class="id" aria-hidden="true">{{ numero }}</span>
+            <span class="visually-hidden">{{ nome }}, {{ tipo }} nº {{ numero }}{{ divergente ? ', em posição diferente da gravada' : '' }}</span>
+        </li>
+    {%- else -%}
+        <li class="pl-cel fora{{ divergente ? ' dif' : '' }}" title="Conta excluída depois desta sessão · {{ tipo }} nº {{ numero }}">
+            <span class="id" aria-hidden="true">{{ numero }}</span>
+            <span class="visually-hidden">{{ tipo }} nº {{ numero }}, conta excluída depois desta sessão</span>
+        </li>
+    {%- endif -%}
+{% endmacro %}

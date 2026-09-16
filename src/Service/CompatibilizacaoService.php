@@ -14,6 +14,7 @@ use ProLink\Support\Compatibilidade;
 use ProLink\Support\Database;
 use ProLink\Support\Modalidade;
 use ProLink\Support\Tos;
+use ProLink\Support\Visibilidade;
 
 /**
  * O motor de compatibilização: a **operação atômica 2** da proposta.
@@ -174,6 +175,266 @@ final class CompatibilizacaoService
             'avaliados' => $avaliados,
             'pool'      => $pool,
         ];
+    }
+
+    /**
+     * O pool de uma demanda pronto para a tela, vindo da sessão gravada ou de uma execução nova.
+     *
+     * **Por que não chamar `executar()` a cada abertura do feed.** Ele grava sempre e gera semente
+     * nova a cada chamada: usá-lo no GET reembaralharia a lista sob os pés de quem está lendo, e
+     * encheria `mat_sessoes` com uma sessão por pageview, poluindo a auditoria que o item 12.3
+     * exige. Então a navegação relê a última sessão, e só uma ação explícita do demandante
+     * (`$novaSessao`) manda calcular de novo.
+     *
+     * **O portão de privacidade é reaplicado na leitura, e isso não é redundância.** O pool
+     * gravado é o do instante do cálculo; quem revogou `EXIBICAO_PERFIL` depois continua lá.
+     * Reexibir sem reconferir mostraria perfil que a pessoa já fechou — o oposto do que a D05 e o
+     * controle de visibilidade prometem.
+     *
+     * **O score não vem junto.** O cálculo já filtrou quem entra; deixar a nota agregada no que
+     * chega ao template seria dar ao Twig a chance de imprimir um ranking (item 10.1). As
+     * dimensões individuais vêm, porque são o "critério explicável" do Anexo VI.
+     *
+     * @return array{
+     *     sessao_id: int, semente: string, dt_registro: ?string, limiar: float,
+     *     pesos: array<string, float>, total_gravado: int, candidatos: list<array<string, mixed>>
+     * }
+     * @throws ValidacaoException demanda inexistente ou sem código TOS
+     */
+    public function paraDemanda(
+        int $demandaId,
+        int $usuarioId,
+        ?string $ip = null,
+        bool $novaSessao = false,
+    ): array {
+        $ultima = $novaSessao ? null : ($this->sessoes->daDemanda($demandaId, 1)[0] ?? null);
+
+        if ($ultima === null) {
+            $execucao = $this->executar($demandaId, $usuarioId, $ip);
+            $sessaoId = $execucao['sessao_id'];
+            $cabecalho = [
+                'semente'     => $execucao['semente'],
+                'dt_registro' => null,
+                'limiar'      => $execucao['limiar'],
+                'pesos'       => $execucao['pesos'],
+            ];
+        } else {
+            $sessaoId  = (int) $ultima['mts_id'];
+            $cabecalho = [
+                'semente'     => (string) $ultima['mts_semente'],
+                'dt_registro' => $ultima['mts_dt_registro'],
+                'limiar'      => (float) $ultima['mts_limiar'],
+                'pesos'       => $this->configuracao()[1],
+            ];
+        }
+
+        $linhas = $this->sessoes->pool($sessaoId);
+
+        return $cabecalho + [
+            'sessao_id'     => $sessaoId,
+            'total_gravado' => count($linhas),
+            'candidatos'    => $this->comporCandidatos($linhas, $usuarioId),
+        ];
+    }
+
+    /**
+     * Refaz uma sessão passada a partir da semente gravada, para o painel do administrador.
+     *
+     * É o que a proposta chama de auditoria de sessões e o item 12.3 exige como supervisão
+     * humana: *"qualquer sessão passada é reproduzível pelo admin"*. A prova não é uma afirmação
+     * no texto da tela — é recalcular o sorteio aqui, com a semente que ficou no banco, e comparar
+     * com a ordem que foi gravada. Se `reproduz` vier falso, ou a semente mudou, ou o
+     * embaralhamento deixou de ser determinístico, e as duas coisas são defeito grave.
+     *
+     * **A ordem gravada não é filtrada por visibilidade, e aqui isso é o certo.** O feed relê e
+     * esconde quem fechou o perfil depois (D52), porque é superfície viva. Este não é: é o
+     * registro do que o motor fez naquele instante, e alterá-lo conforme a preferência de hoje
+     * faria a trilha mentir sobre o passado. O administrador vê nome e chave — a mesma identidade
+     * que `sis_auditoria` já mostra de quem agiu —, e nada além disso: para abrir o perfil de
+     * alguém ele passa pela `Visao` como qualquer espectador, porque a D06 e a D22 recusaram
+     * passe livre de administrador.
+     *
+     * @return array{
+     *     sessao: array<string, mixed>, pesos: array<string, float>,
+     *     reproduz: bool, ordem_gravada: list<string>, ordem_refeita: list<string>,
+     *     candidatos: list<array<string, mixed>>
+     * }|null null quando a sessão não existe
+     */
+    public function reproduzir(int $sessaoId): ?array
+    {
+        $sessao = $this->sessoes->porId($sessaoId);
+
+        if ($sessao === null) {
+            return null;
+        }
+
+        $linhas = $this->sessoes->pool($sessaoId);
+
+        $ordemGravada = array_map(
+            static fn (array $l): string => $l['msp_candidato_tipo'] . ':' . $l['msp_candidato_id'],
+            $linhas,
+        );
+
+        // O mesmo `embaralhar()` que o motor usou, com a mesma semente. Se a ordem bater, a
+        // sessão é reproduzível — e é essa igualdade, não a nossa palavra, que a banca confere.
+        $ordemRefeita = array_column(
+            Compatibilidade::embaralhar(
+                array_map(static fn (string $c): array => ['chave' => $c], $ordemGravada),
+                (string) $sessao['mts_semente'],
+            ),
+            'chave',
+        );
+
+        $pesos = json_decode((string) $sessao['mts_pesos'], true);
+
+        $perfis = $this->candidatos->porChaves($ordemGravada);
+
+        $candidatos = [];
+
+        foreach ($linhas as $i => $linha) {
+            $chave     = $ordemGravada[$i];
+            $candidato = $perfis[$chave] ?? null;
+            $criterios = json_decode((string) $linha['msp_criterios'], true);
+
+            $candidatos[] = [
+                'chave'     => $chave,
+                'tipo'      => (string) $linha['msp_candidato_tipo'],
+                // Candidato excluído depois da sessão não volta de `porChaves()`. A linha fica,
+                // dizendo que fica: pool com buraco silencioso seria auditoria incompleta.
+                'nome'      => $candidato['nome'] ?? null,
+                'dimensoes' => is_array($criterios) ? ($criterios['dimensoes'] ?? []) : [],
+                'ausentes'  => is_array($criterios) ? ($criterios['ausentes'] ?? []) : [],
+            ];
+        }
+
+        return [
+            'sessao'        => $sessao,
+            'pesos'         => is_array($pesos) ? $pesos : [],
+            'reproduz'      => $ordemGravada === $ordemRefeita,
+            'ordem_gravada' => $ordemGravada,
+            'ordem_refeita' => $ordemRefeita,
+            'candidatos'    => $candidatos,
+        ];
+    }
+
+    /**
+     * Costura as linhas gravadas do pool com o perfil atual de cada candidato.
+     *
+     * `mat_sessao_pool` guarda tipo, id e critérios — não o nome, e nem deveria: nome é dado
+     * vivo, e congelá-lo aqui faria a auditoria divergir do cadastro. O snapshot de perfil é
+     * outra coisa, e pertence à manifestação (E5).
+     *
+     * @param  list<array<string, mixed>> $linhas
+     * @return list<array<string, mixed>>
+     */
+    private function comporCandidatos(array $linhas, int $espectadorId): array
+    {
+        if ($linhas === []) {
+            return [];
+        }
+
+        $chaves = array_map(
+            static fn (array $l): string => $l['msp_candidato_tipo'] . ':' . $l['msp_candidato_id'],
+            $linhas,
+        );
+
+        $perfis  = $this->candidatos->porChaves($chaves);
+        $abertos = $this->visibilidade->perfisAbertos(array_column($perfis, 'usuario_id'));
+
+        $saida = [];
+
+        foreach ($linhas as $linha) {
+            $chave     = $linha['msp_candidato_tipo'] . ':' . $linha['msp_candidato_id'];
+            $candidato = $perfis[$chave] ?? null;
+
+            // Sumiu do cadastro, ou fechou o perfil depois do cálculo: não reaparece.
+            if ($candidato === null || ($abertos[$candidato['usuario_id']] ?? false) !== true) {
+                continue;
+            }
+
+            $criterios = json_decode((string) $linha['msp_criterios'], true);
+            $criterios = is_array($criterios) ? $criterios : [];
+
+            $evidencias = $this->evidenciasVisiveis($criterios['evidencias'] ?? [], $espectadorId);
+
+            $saida[] = [
+                'chave'         => $chave,
+                'tipo'          => $candidato['tipo'],
+                'id'            => $candidato['id'],
+                'usuario_id'    => $candidato['usuario_id'],
+                'nome'          => $candidato['nome'],
+                'rnp'           => $candidato['rnp'] ?? null,
+                'registro_crea' => $candidato['registro_crea'] ?? null,
+                'resumo'        => $candidato['resumo'] ?? null,
+                'em_construcao' => (bool) ($candidato['em_construcao'] ?? false),
+                'dimensoes'     => $criterios['dimensoes'] ?? [],
+                'evidencias'    => $evidencias,
+                'ausentes'      => $criterios['ausentes'] ?? [],
+            ];
+        }
+
+        return $saida;
+    }
+
+    /**
+     * Tira das evidências os números de ART que o titular não abriu (D52).
+     *
+     * **A ART fechada continua contando para o score, e não pode ser citada pelo número.** São
+     * duas finalidades distintas: `EXIBICAO_PERFIL` — "autorizo exibir meu perfil para
+     * demandantes e na busca" — é o que autoriza ser encontrado, e é o portão que a D22 chama de
+     * global; a visibilidade por ART governa o que a vitrine mostra. Fundir as duas faria o
+     * controle de exibição virar controle de elegibilidade, punindo com menos correspondências
+     * quem usou a privacidade que a plataforma oferece.
+     *
+     * A evidência **não é descartada** quando fica sem ART aberta: ela guarda o código da TOS e
+     * a CAT, que explicam a correspondência sem identificar documento. `arts_fechadas` diz à tela
+     * quantas ficaram de fora, para ela ser honesta sobre o que existe e não está aberto em vez
+     * de parecer que não há evidência nenhuma.
+     *
+     * @param  mixed $evidencias como saiu do JSON gravado
+     * @return list<array<string, mixed>>
+     */
+    private function evidenciasVisiveis(mixed $evidencias, int $espectadorId): array
+    {
+        if (!is_array($evidencias) || $evidencias === []) {
+            return [];
+        }
+
+        $numeros = [];
+
+        foreach ($evidencias as $evidencia) {
+            foreach ((array) ($evidencia['arts'] ?? []) as $numero) {
+                $numeros[] = (string) $numero;
+            }
+        }
+
+        $donos  = $this->evidencias->donosPorNumero($numeros);
+        $visoes = $this->visibilidade->visoes(array_column($donos, 'usuario_id'), $espectadorId);
+
+        $saida = [];
+
+        foreach ($evidencias as $evidencia) {
+            $abertas  = [];
+            $fechadas = 0;
+
+            foreach ((array) ($evidencia['arts'] ?? []) as $numero) {
+                $dono = $donos[(string) $numero] ?? null;
+                $visao = $dono === null ? null : ($visoes[$dono['usuario_id']] ?? null);
+
+                // ART que não se resolve a um dono ativo não é exibida: falhar fechado é a regra
+                // da D22, e aqui o caso acontece quando o profissional foi excluído depois da
+                // sessão ter sido gravada.
+                if ($visao !== null && $visao->podeVer(Visibilidade::ART, $dono['id'])) {
+                    $abertas[] = (string) $numero;
+                } else {
+                    $fechadas++;
+                }
+            }
+
+            $saida[] = ['arts' => $abertas, 'arts_fechadas' => $fechadas] + (array) $evidencia;
+        }
+
+        return $saida;
     }
 
     /**

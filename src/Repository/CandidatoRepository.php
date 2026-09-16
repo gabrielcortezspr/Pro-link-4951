@@ -144,7 +144,13 @@ final class CandidatoRepository extends Repositorio
                 'tipo'               => 'E',
                 'id'                 => (int) $linha['emp_id'],
                 'usuario_id'         => (int) $linha['emp_usu_id'],
-                'nome'               => (string) ($linha['emp_nome_fantasia'] ?: $linha['emp_razao_social']),
+                // Razão social, não nome fantasia. A API devolve fantasia truncada na primeira
+                // palavra na massa do desafio ("RIO NEGRO ENGENHARIA CIVIL S.A." vira "RIO"), e
+                // num card de compatível ou numa linha de auditoria isso não identifica empresa
+                // nenhuma — o oposto do que a D23 exige da identidade. A razão social é também o
+                // nome sob o qual o registro no CREA existe, que é o que esta plataforma afirma.
+                // O dado da API continua guardado e intocado; muda só qual campo a tela lê.
+                'nome'               => (string) ($linha['emp_razao_social'] ?: $linha['emp_nome_fantasia']),
                 'registro_crea'      => (string) $linha['emp_registro_crea'],
                 // A API não devolve situação de empresa: não existe equivalente ao prf_status_api.
                 // O portão da empresa é a existência da linha, conferida em VisibilidadeService.

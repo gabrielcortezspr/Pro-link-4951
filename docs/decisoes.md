@@ -29,6 +29,9 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E4 — motor de compatibilização | D44 |
 | Front — padrão visual no pipeline | D42 |
 | Revisão de código (15/09) | D45, D46, D47, D48, D49, D50 |
+| E4 — feed do demandante | D51, D52 |
+| Front — largura e divulgação progressiva | D53 |
+| E4 — busca ativa e auditoria de sessões | D54, D55, D56 |
 
 ---
 
@@ -1500,3 +1503,271 @@ não por mérito: continua sendo a escolha certa e está anotada como pendência
 acessíveis para aparecer com estilo. No Demo Day presencial, sem internet ou com rede filtrada, a
 apresentação é feita sem CSS. A verificação automática protege contra a política divergir do
 layout, mas não contra a rede: essa é a pendência acima.
+
+---
+
+## D51 · O feed é passivo: quem manifesta interesse é o candidato, não o demandante
+
+`15/09/2026` · E4 · commit a seguir · `templates/demanda/compativeis.html.twig`,
+`docs/mockups/prolink-feed-imersivo-v3.html`
+
+**Contexto.** O mockup aprovado do feed traz, no card de cada compatível, um botão "Manifestar
+interesse" com a legenda "enviado por e-mail à outra parte" — ou seja, o **demandante convidando o
+candidato**. Ao construir a tela, a leitura das fontes mostrou que esse sentido não é o
+especificado em lugar nenhum, e que a própria proposta se contradiz:
+
+- Edital, Anexo I item 7, cenário 4: *"Profissional manifesta interesse e a empresa visualiza o
+  perfil."*
+- Proposta, RF05: *"Profissional manifesta interesse em demanda; o sistema captura snapshot do
+  perfil no momento da manifestação; empresa recebe notificação."*
+- Proposta, jornada do usuário (p. 4), fase 04, coluna Empresa: *"Navega o feed, confere o Selo ART
+  verificado e **manifesta interesse**."* — o sentido inverso, e marcado como fluxo crítico.
+- Edital e proposta, tabela de perfis: Empresa e Terceiros podem "registrar interesse". Sem dizer
+  se é convite ativo ou leitura da manifestação recebida.
+
+O banco segue o RF05: `pro_manifestacoes` tem `man_usu_id` ("quem manifestou") e
+`uq_man_dem_usu UNIQUE (man_dem_id, man_usu_id)`, e **não tem `man_candidato_id`**. Não há onde
+guardar "para quem o convite foi enviado".
+
+**Decisão.** O feed é passivo. O card tem uma ação só, "Ver perfil completo", que leva a
+`/perfil/{id}`. O botão de manifestar sai do mockup na portagem para código. Quem manifesta é o
+profissional, a partir de `/demandas/abertas`, e isso é a E5.
+
+O argumento que decidiu não foi o de esforço, foi o do item 10.1. A plataforma não pode fazer
+ranking nem recomendação institucional, e a correspondência é apenas indicativa. Uma empresa
+abordando ativamente candidatos extraídos de um pool pontuado se parece muito mais com
+recrutamento ordenado do que um índice onde quem procura trabalho se candidata — mesmo com a
+ordem sorteada e o score escondido. O feed passivo é a postura que a proposta já vendia:
+*"Empresas **recebem** compatíveis em feed passivo."*
+
+**Alternativa recusada.** Implementar o convite, acrescentando `man_candidato_id` e trocando o
+índice único por `(man_dem_id, man_usu_id, man_candidato_id)`. Recusado por três razões, em ordem:
+nenhum dos seis cenários de demonstração o exercita; é mudança de modelo de dados a dois dias da
+entrega; e enfraquece a defesa do 10.1 acima, que vale 15 pontos no critério de ética.
+
+Também foi recusado deixar o botão na tela desabilitado com "em breve": elemento morto numa tela
+que a banca vai olhar de perto custa mais do que a intenção que ele comunicaria.
+
+**Consequência.** O mockup `prolink-feed-imersivo-v3.html` diverge da tela implementada neste
+ponto, e continua no repositório como estava — é artefato de design, com data. A capacidade
+"registrar interesse" da tabela de perfis fica atendida pelo lado da leitura: o demandante vê e
+responde as manifestações recebidas (E5). Se a banca pedir o convite ativo, o caminho está
+descrito na alternativa recusada e é uma migração mais um formulário.
+
+---
+
+## D52 · ART fechada conta para o match e não é citada pelo número
+
+`15/09/2026` · E4 · commit a seguir · `src/Service/CompatibilizacaoService.php`,
+`src/Repository/EvidenciaRepository.php`
+
+**Contexto.** O card do feed explica a compatibilidade citando a evidência que a sustenta:
+"compatível porque a ART AM…001 cobre TOS_x e está na CAT 999001/2026". Essa é a promessa central
+da proposta — evidência documental no lugar de autodeclaração — e o "critério explicável" que o
+Anexo VI cobra.
+
+Só que o índice de evidência (a view `crea_evidencias`, D01) **não consulta `pro_visibilidade`**.
+Ele deriva de `crea_arts`, `crea_art_atividades` e `crea_quadro_tecnico`, que são cache da
+resposta da API. Então o card citaria, pelo número, uma ART que o profissional fechou.
+
+Pela régua do próprio projeto isso é vazamento: a E2 tem conferência específica de que "o número
+da ART fechada não vaza dentro da experiência aberta". A visibilidade granular por ART é exigência
+da RF03 e do item 11.3, e o feed é exatamente o lugar onde ela tem consequência.
+
+A pergunta tem duas metades, e elas se decidem em sentidos opostos.
+
+**Decisão.** **A ART fechada continua contando para o score, e não pode ser citada pelo número.**
+
+Conta para o score porque o mecanismo de "não me procure" é revogar `EXIBICAO_PERFIL`, que é um
+dos dois portões globais da D22, e não fechar ARTs uma a uma. A D23 já havia fixado esse desenho
+do outro lado: *"quem não quer ser encontrado fecha o perfil inteiro."* Se fechar uma ART tirasse
+pontos, a privacidade viraria custo de posicionamento, e a plataforma estaria empurrando o
+profissional a abrir tudo para não ser penalizado — o oposto do que a RF01 promete. A proposta já
+tem o mesmo ethos no perfil em construção: sinaliza "sem excluí-los do pool".
+
+Não é citada pelo número porque a D22 manda o desenho falhar fechado e aplicar o filtro na
+montagem, não na renderização. Quando a evidência que sustenta a correspondência está fechada, o
+card diz que existe evidência não aberta, em vez de exibir o documento.
+
+**Alternativa recusada.** Tirar a ART fechada do cálculo, que foi a primeira leitura de "privado é
+só meu" e é intuitiva. Recusada porque confunde duas finalidades distintas: o consentimento
+`EXIBICAO_PERFIL` — cujo texto na tela é "autorizo exibir meu perfil para demandantes e na busca
+da plataforma" — é o que autoriza ser encontrado; a visibilidade por ART governa o que a **vitrine
+do perfil** mostra. Fundir as duas faria o controle de exibição operar como controle de
+elegibilidade, sem que nada na interface avise a pessoa disso.
+
+Também foi recusado exibir tudo, sob o argumento de que entrar no pool já é consentimento
+suficiente. É defensável, mas exigiria defender por escrito na entrega por que um controle
+granular anunciado não vale no único lugar em que o dado é efetivamente consumido.
+
+**Consequência.** O efeito colateral é bom para a demonstração: o feed passa a **exibir** o
+controle granular funcionando, em vez de só o descrever. O custo é que um candidato com todo o
+acervo fechado aparece no pool com a correspondência explicada só por dimensão, sem documento —
+estado legítimo, que a tela precisa dizer com clareza em vez de parecer defeito.
+
+Fica uma assimetria a vigiar: o score reflete acervo que o demandante não pode conferir. É
+mencionável na declaração de limitações do item 12.3, e é o preço de não penalizar a privacidade.
+
+## D53 · A largura é decidida por tipo de conteúdo, e a explicação vira revelação sob demanda
+
+`16/09/2026` · front · passagem de sistema sobre as telas existentes · desenho em [`design.md`](design.md)
+
+**Contexto.** Duas queixas do dono do produto sobre a mesma tela de sempre. A primeira: *"tá tudo
+muito engessado, até tentando ser um pouco mobile"*. A causa era literal: o `base.html.twig` punha
+**toda** tela dentro de `<main class="container py-4">`, e o `.container` do Bootstrap trava em
+1140px (1320px no XXL). Num monitor de 1920 a aplicação inteira era uma faixa central com vazio
+dos dois lados, e a trilha de auditoria de seis colunas disputava 1140px enquanto sobrava tela. O
+uso de grid era raso: três telas repetiam `col-lg-7` + `col-lg-5` e o resto era coluna única.
+
+A segunda: *"o nosso front tenta muito explicar a aplicação"*. Eram 18 parágrafos explicativos na
+interface, o maior com 361 caracteres, todos permanentes. Eles ajudam na primeira visita e
+estorvam em todas as outras.
+
+A tensão real estava na segunda queixa: parte dessa prosa existe por exigência do edital (12.3 e
+Anexo VI pedem critérios explicáveis; o item 10.2 pede a declaração de não-ranking), e esconder o
+que a banca pontua seria autossabotagem.
+
+**Decisão.** Três regras.
+
+**1. Largura por tipo de conteúdo.** `.pl-wrap` com três medidas: `densa` (1640px, tabela e
+grade), `registro` (1360px, conteúdo mais painel de ação) e `leitura` (980px, formulário e texto
+corrido). O padrão de desenho passa a ser o desktop; o teto existe para a linha de texto não ficar
+ilegível em monitor ultralargo, não para centralizar coluna estreita. O par `col-lg-7/5` vira
+`.pl-cols`, que dá ao painel largura de painel (máximo 372px) e ao conteúdo o resto.
+
+**2. O "i" é apresentação legítima do critério, não esconderijo.** Divulgação progressiva é boa
+prática de interface: o texto continua na tela, continua sendo lido por leitor de tela, e aparece
+quando alguém pede. Explicação de funcionamento (como o pool é montado, o que é a Tabela de Obras
+e Serviços, quanto cada dimensão pesa, por que a trilha é somente leitura) vai para o "i".
+
+**3. O que decide continua visível.** Só duas classes de texto não podem depender de clique: a
+declaração de não-ranking **na tela onde o motor apresenta resultado**, porque atrás de um clique
+alguém leria a lista inteira sem saber o que ela é; e a consequência de ação irreversível **no
+momento da ação**, que é consentimento informado e não dica de uso. As duas foram reescritas mais
+curtas, e a segunda aparece de novo na confirmação do clique.
+
+**Alternativa recusada.** Usar o Popover do Bootstrap, que já vem no bundle carregado. Recusado
+por três motivos somados: ele exige inicialização por JavaScript (sem script, o "i" vira um botão
+morto e a explicação some), o texto mora em `data-bs-content`, que é conteúdo em atributo — a
+mesma objeção que o projeto já faz a `title=""` —, e ele não resolve nada que o `<details>` nativo
+não resolva. O `<details>` já é botão para o teclado, já é anunciado, não depende de hover (logo
+funciona igual em tela de toque) e mantém o texto no DOM. O JavaScript que acompanha é opcional e
+só fecha painel aberto.
+
+Também foi recusado esticar tudo para 100% da janela, que é a leitura preguiçosa de "ocupar a
+tela": um formulário de cadastro com 1900px de linha é pior do que o container de antes.
+
+**Consequência.** O `.pl-tos` saiu do feed para `layout/_ui.html.twig` e passou a valer nas quatro
+telas que ainda mostravam `TOS_1.1.2.3` cru dentro de `<code>`; o sprite do selo de verificação
+subiu para o `base.html.twig`, e com ele o acervo do perfil trocou a tarja verde de texto pelo
+selo colado no número da ART, como o design system já mandava. A conferência renderizada ganhou
+quatro telas em `scripts/amostras.php`, e a primeira delas já devolveu um defeito que a parte
+estática não pegava: a tela de privacidade imprimia o perfil de acesso cru (`ADMIN`), porque o
+verificador só procura constante com underline.
+
+O custo é que existe agora um segundo vocabulário de largura ao lado do grid do Bootstrap, e tela
+nova precisa escolher `classe_main` conscientemente. O padrão sem escolha (`pl-wrap`, 1240px) é
+intencionalmente o meio-termo: erra por pouco em qualquer direção.
+
+---
+
+## D54 · A busca e o perfil abrem sem conta, e o que muda é o alcance, não o acesso
+
+`16/09/2026` · E4 · commit a seguir · `public/index.php`, `src/Service/BuscaService.php`
+
+**Contexto.** O Anexo I, item 3, dá ao perfil **Público** duas capacidades: "pesquisar
+profissionais (especialidade, experiência, nome)" e "ver perfil". Até esta sessão nenhuma rota da
+aplicação atendia quem não tinha sessão, e a busca ativa nem existia. `Visibilidade::alcanceDe()`
+já estava escrita para isso desde a E2 — devolve `PUBLICO` para anônimo e `AUTENTICADO` para quem
+entrou —, mas nada exercia esse caminho, então o nível `PUBLICO` da visibilidade granular era um
+estado sem efeito prático: ninguém sem conta chegava a lugar nenhum para vê-lo.
+
+**Decisão.** `/profissionais` e `/perfil/{id}` são `PERFIL_PUBLICO`. O anônimo não vê menos tela,
+vê menos dado: o serviço filtra campo a campo pela mesma `Visao` que monta o perfil do titular.
+Medido num perfil de postura reservada: anônimo enxerga 0 campos e 0 ARTs, autenticado enxerga 4
+campos e 2 ARTs, sem nenhuma diferença de rota ou de layout.
+
+**Alternativa recusada.** Exigir login nas duas. O argumento a favor é bom e não é formalidade: o
+item 10.4 proíbe coleta automatizada, e busca aberta a anônimo é um endpoint de extração. Foi
+recusada porque contraria uma linha literal do edital e porque esvaziaria o nível `PUBLICO` da
+visibilidade — a plataforma ofereceria ao titular uma escolha ("qualquer pessoa") que nenhuma tela
+honraria. O risco do 10.4 foi endereçado onde ele mora, no volume: `BuscaRepository::LIMITE` corta
+em 60 e o serviço **avisa** que cortou, porque lista truncada em silêncio faz alguém concluir que
+não há ninguém.
+
+Também foi recusado o meio-termo "busca anônima, perfil só logado": separaria duas capacidades que
+o edital lista na mesma linha, e deixaria o anônimo com uma lista de nomes que ele não pode abrir.
+
+**Consequência.** O portão global continua sendo o mesmo `perfisAbertos()` do motor, de propósito:
+candidato que não entra no feed não pode ser encontrado por outro caminho. E a identidade continua
+não-ocultável (D23) — quem está aberto aparece com nome e registro mesmo tendo fechado o resto;
+quem não quer ser encontrado revoga a exibição, que fecha o perfil inteiro.
+
+Um defeito nasceu e morreu dentro desta decisão: `PerfilController::publico()` fazia
+`(int) Sessao::usuarioId()`, e para anônimo isso vira `0`, que não é `null`. Como a `Visao` decide
+`autenticado` por `!== null`, o anônimo teria recebido o alcance de quem tem conta. Vale como
+aviso: ao abrir rota ao público, o espectador nulo precisa sobreviver até a camada que o
+interpreta.
+
+---
+
+## D55 · A auditoria de sessão mostra o pool como foi gravado, e não como ele ficaria hoje
+
+`16/09/2026` · E4 · commit a seguir · `src/Service/CompatibilizacaoService.php` (`reproduzir()`)
+
+**Contexto.** O feed relê a sessão gravada e reaplica o portão de privacidade a cada leitura
+(D52): quem revogou `EXIBICAO_PERFIL` depois do cálculo some da lista, porque o feed é superfície
+viva. A tela `/admin/sessoes/{id}` lê exatamente a mesma sessão, e a pergunta era se deveria fazer
+o mesmo.
+
+**Decisão.** Não. A auditoria mostra o pool como ficou registrado, incluindo quem fechou o perfil
+depois e quem excluiu a conta (esse aparece como linha sem nome, dizendo que a conta não existe
+mais). A tela existe para provar **o que o motor fez naquele instante**, e ajustar o registro à
+preferência de hoje faria a trilha mentir sobre o passado — um pool com buraco silencioso é
+auditoria incompleta, e uma auditoria que não pode ser confrontada não serve ao item 12.3.
+
+O que o administrador vê é nome e chave do candidato, que é a mesma identidade que `sis_auditoria`
+já mostra de quem agiu. Nada além disso: para abrir o perfil de alguém ele passa pela `Visao` como
+qualquer espectador, porque a D06 e a D22 recusaram passe livre de administrador, e esta decisão
+não o reintroduz pela porta lateral.
+
+**Alternativa recusada.** Filtrar igual ao feed, por coerência entre as duas telas que leem a mesma
+tabela. Recusada porque a coerência aqui seria só aparente: as duas telas respondem a perguntas
+diferentes. O feed responde "quem posso ver agora"; a auditoria responde "o que aconteceu". Aplicar
+a resposta da primeira à segunda destruiria a única prova de que o sorteio foi o que dizemos que
+foi.
+
+**Consequência.** Existe um dado no painel administrativo que o demandante já não enxerga. É
+defensável porque é registro de execução, não vitrine, e porque o administrador tem o próprio
+acesso registrado em `sis_auditoria`. Vale declarar isso na seção de limitações do 12.3, em vez de
+esperar a pergunta.
+
+A tela também se recusa a anunciar "reprodução confere" quando o pool está vazio: comparar duas
+listas vazias não prova nada, e chamar isso de prova seria o oposto de auditar.
+
+---
+
+## D56 · O nome da empresa na tela é a razão social, não o nome fantasia
+
+`16/09/2026` · E4 · commit a seguir · `src/Repository/CandidatoRepository.php`
+
+**Contexto.** `CandidatoRepository` compunha o nome do candidato empresa como
+`emp_nome_fantasia ?: emp_razao_social`, que é a ordem natural em qualquer cadastro comercial. Na
+massa do desafio a API devolve o nome fantasia truncado na primeira palavra: "RIO NEGRO ENGENHARIA
+CIVIL S.A." vira "RIO", "BASE SÓLIDA CONSTRUÇÕES LTDA" vira "BASE". O defeito só ficou visível
+quando o feed passou a mostrar o nome em 30px com avatar de iniciais, e a empresa apareceu como uma
+palavra solta com uma letra no círculo.
+
+**Decisão.** A tela lê `emp_razao_social` primeiro. O dado da API continua guardado e intocado —
+muda apenas qual campo a interface prefere. Razão social é, além disso, o nome sob o qual o
+registro no CREA existe, e registro é o que esta plataforma afirma sobre a empresa.
+
+**Alternativa recusada.** Corrigir o nome fantasia no cache, deduzindo-o da razão social. Recusada
+sem hesitação: o item 8.4 veda base própria que simule os dados da API, e as tabelas `crea_*`
+guardam resposta real, datada e com hash — nunca dado escrito à mão. Escolher qual campo exibir é
+decisão de interface; reescrever o campo seria adulteração.
+
+**Consequência.** Empresa cujo nome fantasia seja legítimo e mais reconhecível que a razão social
+passa a aparecer pela razão social. Na massa do desafio isso nunca acontece, e se a plataforma
+sair do protótipo o certo é preferir a fantasia quando ela não for um fragmento — o que exige uma
+heurística que não vale inventar agora.
