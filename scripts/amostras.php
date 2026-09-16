@@ -16,6 +16,7 @@ declare(strict_types=1);
  */
 
 use ProLink\Repository\AuditoriaRepository;
+use ProLink\Repository\CompatibilizacaoRepository;
 use ProLink\Repository\DemandaRepository;
 use ProLink\Repository\TermoRepository;
 use ProLink\Service\BuscaService;
@@ -225,6 +226,38 @@ return (static function (): array {
                     (int) $comSessao,
                     (int) $demandaDoFeed['dem_usu_id'],
                 ),
+            ];
+        }
+    }
+
+    // As duas telas de auditoria de sessão. A escolhida para o detalhe é a de MAIOR pool: é ela
+    // que exercita a fileira de comparação inteira, a tabela de dimensões com valor e com
+    // dimensão não medida, e o candidato sem nome. Uma sessão de pool vazio renderiza metade da
+    // tela, e passaria na verificação sem ter conferido nada.
+    $sessoes = (new CompatibilizacaoRepository())->recentes();
+
+    $telas['admin/sessoes.html.twig'] = [
+        'ativo'   => 'sessoes',
+        'titulo'  => 'Sessões do motor',
+        'sessoes' => $sessoes,
+    ];
+
+    $maior = null;
+
+    foreach ($sessoes as $sessao) {
+        if ($maior === null || (int) $sessao['mts_total_pool'] > (int) $maior['mts_total_pool']) {
+            $maior = $sessao;
+        }
+    }
+
+    if ($maior !== null) {
+        $reproducao = (new CompatibilizacaoService())->reproduzir((int) $maior['mts_id']);
+
+        if ($reproducao !== null) {
+            $telas['admin/sessao.html.twig'] = [
+                'ativo'      => 'sessoes',
+                'titulo'     => 'Sessão ' . (int) $maior['mts_id'],
+                'reproducao' => $reproducao,
             ];
         }
     }

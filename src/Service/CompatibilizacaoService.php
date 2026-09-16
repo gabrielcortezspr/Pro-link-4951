@@ -238,6 +238,86 @@ final class CompatibilizacaoService
     }
 
     /**
+     * Refaz uma sessão passada a partir da semente gravada, para o painel do administrador.
+     *
+     * É o que a proposta chama de auditoria de sessões e o item 12.3 exige como supervisão
+     * humana: *"qualquer sessão passada é reproduzível pelo admin"*. A prova não é uma afirmação
+     * no texto da tela — é recalcular o sorteio aqui, com a semente que ficou no banco, e comparar
+     * com a ordem que foi gravada. Se `reproduz` vier falso, ou a semente mudou, ou o
+     * embaralhamento deixou de ser determinístico, e as duas coisas são defeito grave.
+     *
+     * **A ordem gravada não é filtrada por visibilidade, e aqui isso é o certo.** O feed relê e
+     * esconde quem fechou o perfil depois (D52), porque é superfície viva. Este não é: é o
+     * registro do que o motor fez naquele instante, e alterá-lo conforme a preferência de hoje
+     * faria a trilha mentir sobre o passado. O administrador vê nome e chave — a mesma identidade
+     * que `sis_auditoria` já mostra de quem agiu —, e nada além disso: para abrir o perfil de
+     * alguém ele passa pela `Visao` como qualquer espectador, porque a D06 e a D22 recusaram
+     * passe livre de administrador.
+     *
+     * @return array{
+     *     sessao: array<string, mixed>, pesos: array<string, float>,
+     *     reproduz: bool, ordem_gravada: list<string>, ordem_refeita: list<string>,
+     *     candidatos: list<array<string, mixed>>
+     * }|null null quando a sessão não existe
+     */
+    public function reproduzir(int $sessaoId): ?array
+    {
+        $sessao = $this->sessoes->porId($sessaoId);
+
+        if ($sessao === null) {
+            return null;
+        }
+
+        $linhas = $this->sessoes->pool($sessaoId);
+
+        $ordemGravada = array_map(
+            static fn (array $l): string => $l['msp_candidato_tipo'] . ':' . $l['msp_candidato_id'],
+            $linhas,
+        );
+
+        // O mesmo `embaralhar()` que o motor usou, com a mesma semente. Se a ordem bater, a
+        // sessão é reproduzível — e é essa igualdade, não a nossa palavra, que a banca confere.
+        $ordemRefeita = array_column(
+            Compatibilidade::embaralhar(
+                array_map(static fn (string $c): array => ['chave' => $c], $ordemGravada),
+                (string) $sessao['mts_semente'],
+            ),
+            'chave',
+        );
+
+        $pesos = json_decode((string) $sessao['mts_pesos'], true);
+
+        $perfis = $this->candidatos->porChaves($ordemGravada);
+
+        $candidatos = [];
+
+        foreach ($linhas as $i => $linha) {
+            $chave     = $ordemGravada[$i];
+            $candidato = $perfis[$chave] ?? null;
+            $criterios = json_decode((string) $linha['msp_criterios'], true);
+
+            $candidatos[] = [
+                'chave'     => $chave,
+                'tipo'      => (string) $linha['msp_candidato_tipo'],
+                // Candidato excluído depois da sessão não volta de `porChaves()`. A linha fica,
+                // dizendo que fica: pool com buraco silencioso seria auditoria incompleta.
+                'nome'      => $candidato['nome'] ?? null,
+                'dimensoes' => is_array($criterios) ? ($criterios['dimensoes'] ?? []) : [],
+                'ausentes'  => is_array($criterios) ? ($criterios['ausentes'] ?? []) : [],
+            ];
+        }
+
+        return [
+            'sessao'        => $sessao,
+            'pesos'         => is_array($pesos) ? $pesos : [],
+            'reproduz'      => $ordemGravada === $ordemRefeita,
+            'ordem_gravada' => $ordemGravada,
+            'ordem_refeita' => $ordemRefeita,
+            'candidatos'    => $candidatos,
+        ];
+    }
+
+    /**
      * Costura as linhas gravadas do pool com o perfil atual de cada candidato.
      *
      * `mat_sessao_pool` guarda tipo, id e critérios — não o nome, e nem deveria: nome é dado

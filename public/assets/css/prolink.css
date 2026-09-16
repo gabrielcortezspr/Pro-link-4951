@@ -1041,3 +1041,126 @@ textarea.form-control { min-height: 0; }
     .pl-busca-topo .pl-btn { flex: 1; }
     .pl-convite { max-width: none; }
 }
+
+/* ---------- 21. Auditoria de sessões do motor: a lista e a reprodução ----------
+   Duas telas do painel. Na lista, a unidade de leitura é UMA execução do motor: quando ela
+   rodou, sobre qual demanda, quem a disparou e com que procedência. Na de detalhe, a unidade é
+   a própria sessão como experimento: a mesma semente, o mesmo sorteio, o mesmo resultado.
+
+   Nenhuma das duas usa --pl-seal: o verde água afirma "documento conferido na API do CREA", e a
+   reprodução de um sorteio não é verificação de documento. O "confere" é status, e status tem
+   componente próprio (.pl-pill.ok). */
+
+/* Lista: mesma mecânica de log da trilha de auditoria (cabeçalho de dia, hover de linha, hora
+   monoespaçada), com as colunas desta tela. Reaproveita .pl-log de propósito, porque as duas
+   respondem à mesma pergunta em formatos diferentes: o que aconteceu, e quando. */
+.pl-sess col.c-quem  { width: 208px; }
+.pl-sess col.c-pool  { width: 74px; }
+.pl-sess col.c-proc  { width: 270px; }
+.pl-sess col.c-abrir { width: 132px; }
+.pl-sess .as { display: block; font-family: var(--pl-display); font-weight: 600; font-size: 13.5px;
+    letter-spacing: -.01em; color: var(--pl-ink); text-decoration: none;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-sess a.as:hover { color: var(--pl-blue); text-decoration: none; }
+.pl-sess a.as:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px;
+    border-radius: 6px; }
+.pl-sess .sub { display: block; margin-top: 2px; font-size: 11px; color: var(--pl-faint);
+    font-variant-numeric: tabular-nums; }
+.pl-sess td.qt { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px;
+    font-weight: 600; color: var(--pl-ink); }
+.pl-sess td.qt.zero { font-weight: 500; color: var(--pl-faint); }
+.pl-sess td.abrir { text-align: right; }
+
+/* Detalhe. O quadro da reprodução é o assunto da tela, e por isso é o primeiro card e o único
+   com título de seção: o resto da página o sustenta. */
+.pl-repro .pl-det-topo { padding-bottom: 14px; }
+.pl-repro .meta { margin: 6px 0 0; display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+    font-size: 12.5px; color: var(--pl-muted); }
+.pl-repro .meta .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px; font-variant-numeric: tabular-nums; }
+.pl-repro .vd { font-family: var(--pl-display); font-weight: 600; font-size: 17px;
+    letter-spacing: -.01em; line-height: 1.3; margin: 16px 0 0; }
+.pl-repro .como { margin: 8px 0 0; max-width: 92ch; }
+.pl-repro .conta { margin: 14px 0 0; font-size: 12.5px; color: var(--pl-muted); }
+.pl-repro .conta b { color: var(--pl-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* As duas ordens, uma sobre a outra. Rótulo e células no mesmo grid, e a rolagem horizontal é do
+   grid inteiro: se cada fileira rolasse por conta própria, o alinhamento entre a gravada e a
+   refeita (que é a prova) se perderia no primeiro arrasto. O rótulo gruda na esquerda para não
+   sumir junto. */
+.pl-ordem { margin-top: 18px; display: grid; grid-template-columns: max-content max-content;
+    gap: 8px 18px; align-items: center; overflow-x: auto; padding-bottom: 6px; }
+.pl-ordem .rot { position: sticky; left: 0; z-index: 1; margin: 0; background: var(--pl-card);
+    padding-right: 10px; font-size: 11.5px; font-weight: 600; color: var(--pl-muted);
+    white-space: nowrap; }
+.pl-ordem .rot .qd { display: block; margin-top: 2px; font-size: 10.5px; font-weight: 500;
+    color: var(--pl-faint); font-variant-numeric: tabular-nums; }
+.pl-ordem .cels { display: flex; align-items: center; gap: 6px; list-style: none; margin: 0;
+    padding: 0; }
+
+/* Uma célula por candidato, todas iguais: mesmo tamanho, mesma cor, mesma tipografia do começo
+   ao fim da fileira. Nada aqui distingue a primeira posição, porque ela não significa nada
+   (item 10.1) — a fileira é uma sequência sorteada, não uma classificação. */
+.pl-cel { width: 52px; height: 44px; border-radius: 10px; border: 1px solid var(--pl-border);
+    background: var(--pl-app); flex: none; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 2px; }
+.pl-cel .in { font-family: var(--pl-display); font-weight: 600; font-size: 12px; line-height: 1;
+    color: var(--pl-muted); }
+/* O número do registro desempata iniciais iguais, e é o mesmo identificador da tabela do
+   conjunto logo abaixo: dá para conferir uma contra a outra sem depender do ponteiro. */
+.pl-cel .id { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9.5px;
+    line-height: 1; color: var(--pl-faint); font-variant-numeric: tabular-nums; }
+/* Candidato excluído do cadastro depois da sessão: a posição continua ocupada e a célula diz
+   que o nome não existe mais, em vez de abrir um buraco na prova. */
+.pl-cel.fora { border-style: dashed; }
+.pl-cel.fora .id { font-size: 11.5px; color: var(--pl-faint); }
+/* Divergência entre as duas ordens. Não acontece hoje, e é justamente por isso que precisa estar
+   desenhada: se um dia acontecer, é defeito grave e tem de saltar da tela. */
+.pl-cel.dif { border-color: var(--pl-danger); background: var(--pl-danger-bg); }
+.pl-cel.dif .in, .pl-cel.dif .id { color: #b23434; }
+
+/* Conjunto avaliado: uma linha por candidato, na ordem gravada, com as seis dimensões lado a
+   lado. É a tabela mais larga do painel, e a coluna de nome é a única elástica. */
+.pl-pool { min-width: 1080px; }
+.pl-pool col.c-ord { width: 62px; }
+.pl-pool col.c-dim { width: 92px; }
+.pl-pool thead th.num { white-space: normal; line-height: 1.3; }
+/* O identificador do registro é texto de apoio, não dado monoespaçado de largura fixa: em mono,
+   herdado da trilha, "Profissional nº 78" lia como número de máquina ao lado do nome. */
+.pl-pool .orig { font-family: var(--pl-body); font-variant-numeric: tabular-nums; }
+.pl-pool td.ord { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px;
+    color: var(--pl-faint); font-variant-numeric: tabular-nums; }
+.pl-pool td.num { text-align: right; font-size: 12.5px; color: var(--pl-ink);
+    font-variant-numeric: tabular-nums; }
+.pl-pool td.num .nulo { display: inline-block; width: 12px; height: 1px;
+    background: var(--pl-border); vertical-align: middle; }
+
+/* Painel de parâmetros. A barra mede peso na composição, que é dado, e dado é azul escuro (D34);
+   a coluna de rótulo é mais larga que a do .pl-dim padrão porque "Competência técnica" não cabe
+   em 120px ao lado de uma barra. */
+.pl-param .pl-dim { grid-template-columns: minmax(0, 1fr) 84px 44px; gap: 10px; font-size: 12.5px; }
+.pl-param .pl-dim .dlab { color: var(--pl-ink); overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; }
+.pl-param .pl-bar { height: 8px; border-radius: 6px; }
+.pl-param .pl-bar span { border-radius: 6px; }
+.pl-param .sem { display: block; font-size: 12.5px; color: var(--pl-muted); }
+/* A semente inteira, que é a âncora da reprodução: aqui ela não é encurtada, porque este é o
+   lugar de onde alguém a copia para conferir. Encurtada, com a íntegra no title, ela aparece na
+   lista e no cabeçalho, que é onde ela é referência e não conteúdo. */
+.pl-param .semente { margin: 4px 0 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px; color: var(--pl-ink); word-break: break-all; line-height: 1.5; }
+.pl-param .lim { font-family: var(--pl-display); font-weight: 700; font-size: 22px;
+    letter-spacing: -.02em; color: var(--pl-ink); font-variant-numeric: tabular-nums; }
+.pl-param .grupo + .grupo { margin-top: 18px; padding-top: 16px;
+    border-top: 1px solid var(--pl-border-2); }
+.pl-param .rot { margin: 0 0 4px; font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--pl-faint); }
+
+@media (max-width: 900px) {
+    .pl-ordem { grid-template-columns: minmax(0, 1fr); }
+    .pl-ordem .rot { position: static; }
+}
+/* Rodapé de recorte da lista de sessões: nota, não paginação, então ela ocupa a linha inteira em
+   vez de ir para a direita como o rodapé da trilha. */
+.pl-sess-rodape { padding: 14px 18px; border-top: 1px solid var(--pl-border); }
+.pl-sess-rodape .pl-nota { max-width: 88ch; }

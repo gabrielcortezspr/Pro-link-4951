@@ -120,6 +120,34 @@ final class CompatibilizacaoRepository extends Repositorio
     }
 
     /**
+     * As sessões mais recentes da plataforma inteira, para o painel do administrador.
+     *
+     * Ordena por `mts_id DESC`, que é cronológico e não tem nada a ver com o pool: aqui o que se
+     * lista são execuções do motor, não candidatos. Ordenar sessão por data é registro; o que o
+     * item 10.1 proíbe é ordenar **pessoas** por mérito.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function recentes(int $limite = 50): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT s.mts_id, s.mts_dt_registro, s.mts_semente, s.mts_limiar, s.mts_total_pool,
+                    s.mts_dem_id, d.dem_titulo, u.usu_nome
+               FROM mat_sessoes s
+               JOIN pro_demandas d ON d.dem_id = s.mts_dem_id
+               LEFT JOIN sis_usuarios u ON u.usu_id = s.mts_usu_id
+              WHERE s.mts_status = :ativo
+              ORDER BY s.mts_id DESC
+              LIMIT :limite'
+        );
+        $stmt->bindValue(':ativo', STATUS_ATIVO);
+        $stmt->bindValue(':limite', max(1, min($limite, 200)), \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll();
+    }
+
+    /**
      * Sessões de uma demanda, mais recentes primeiro. Alimenta o painel do administrador.
      *
      * @return list<array<string, mixed>>

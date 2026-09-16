@@ -117,6 +117,10 @@ $router->post('/denuncias',     DenunciaController::class, 'registrar',  PERFIS_
 $router->get('/admin',                AdminController::class, 'index', PERFIL_ADMIN);
 $router->get('/admin/denuncias',      AdminController::class, 'denuncias', PERFIL_ADMIN);
 $router->get('/admin/auditoria',      AdminController::class, 'auditoria', PERFIL_ADMIN);
+$router->get('/admin/sessoes',        AdminController::class, 'sessoes', PERFIL_ADMIN);
+// Depois da rota sem parâmetro, pelo mesmo motivo das denúncias: o Router percorre na ordem de
+// registro e {id} casaria 'sessoes' antes.
+$router->get('/admin/sessoes/{id}',   AdminController::class, 'sessao', PERFIL_ADMIN);
 // Depois da rota sem parâmetro: o Router percorre na ordem de registro, e {id} casaria antes.
 $router->get('/admin/denuncias/{id}',  AdminController::class, 'denuncia', PERFIL_ADMIN);
 $router->post('/admin/denuncias/{id}', AdminController::class, 'tratar',   PERFIL_ADMIN);
