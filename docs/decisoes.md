@@ -31,6 +31,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | Revisão de código (15/09) | D45, D46, D47, D48, D49, D50 |
 | E4 — feed do demandante | D51, D52 |
 | Front — largura e divulgação progressiva | D53 |
+| E4 — busca ativa e auditoria de sessões | D54, D55, D56 |
 
 ---
 
@@ -1667,3 +1668,106 @@ verificador só procura constante com underline.
 O custo é que existe agora um segundo vocabulário de largura ao lado do grid do Bootstrap, e tela
 nova precisa escolher `classe_main` conscientemente. O padrão sem escolha (`pl-wrap`, 1240px) é
 intencionalmente o meio-termo: erra por pouco em qualquer direção.
+
+---
+
+## D54 · A busca e o perfil abrem sem conta, e o que muda é o alcance, não o acesso
+
+`16/09/2026` · E4 · commit a seguir · `public/index.php`, `src/Service/BuscaService.php`
+
+**Contexto.** O Anexo I, item 3, dá ao perfil **Público** duas capacidades: "pesquisar
+profissionais (especialidade, experiência, nome)" e "ver perfil". Até esta sessão nenhuma rota da
+aplicação atendia quem não tinha sessão, e a busca ativa nem existia. `Visibilidade::alcanceDe()`
+já estava escrita para isso desde a E2 — devolve `PUBLICO` para anônimo e `AUTENTICADO` para quem
+entrou —, mas nada exercia esse caminho, então o nível `PUBLICO` da visibilidade granular era um
+estado sem efeito prático: ninguém sem conta chegava a lugar nenhum para vê-lo.
+
+**Decisão.** `/profissionais` e `/perfil/{id}` são `PERFIL_PUBLICO`. O anônimo não vê menos tela,
+vê menos dado: o serviço filtra campo a campo pela mesma `Visao` que monta o perfil do titular.
+Medido num perfil de postura reservada: anônimo enxerga 0 campos e 0 ARTs, autenticado enxerga 4
+campos e 2 ARTs, sem nenhuma diferença de rota ou de layout.
+
+**Alternativa recusada.** Exigir login nas duas. O argumento a favor é bom e não é formalidade: o
+item 10.4 proíbe coleta automatizada, e busca aberta a anônimo é um endpoint de extração. Foi
+recusada porque contraria uma linha literal do edital e porque esvaziaria o nível `PUBLICO` da
+visibilidade — a plataforma ofereceria ao titular uma escolha ("qualquer pessoa") que nenhuma tela
+honraria. O risco do 10.4 foi endereçado onde ele mora, no volume: `BuscaRepository::LIMITE` corta
+em 60 e o serviço **avisa** que cortou, porque lista truncada em silêncio faz alguém concluir que
+não há ninguém.
+
+Também foi recusado o meio-termo "busca anônima, perfil só logado": separaria duas capacidades que
+o edital lista na mesma linha, e deixaria o anônimo com uma lista de nomes que ele não pode abrir.
+
+**Consequência.** O portão global continua sendo o mesmo `perfisAbertos()` do motor, de propósito:
+candidato que não entra no feed não pode ser encontrado por outro caminho. E a identidade continua
+não-ocultável (D23) — quem está aberto aparece com nome e registro mesmo tendo fechado o resto;
+quem não quer ser encontrado revoga a exibição, que fecha o perfil inteiro.
+
+Um defeito nasceu e morreu dentro desta decisão: `PerfilController::publico()` fazia
+`(int) Sessao::usuarioId()`, e para anônimo isso vira `0`, que não é `null`. Como a `Visao` decide
+`autenticado` por `!== null`, o anônimo teria recebido o alcance de quem tem conta. Vale como
+aviso: ao abrir rota ao público, o espectador nulo precisa sobreviver até a camada que o
+interpreta.
+
+---
+
+## D55 · A auditoria de sessão mostra o pool como foi gravado, e não como ele ficaria hoje
+
+`16/09/2026` · E4 · commit a seguir · `src/Service/CompatibilizacaoService.php` (`reproduzir()`)
+
+**Contexto.** O feed relê a sessão gravada e reaplica o portão de privacidade a cada leitura
+(D52): quem revogou `EXIBICAO_PERFIL` depois do cálculo some da lista, porque o feed é superfície
+viva. A tela `/admin/sessoes/{id}` lê exatamente a mesma sessão, e a pergunta era se deveria fazer
+o mesmo.
+
+**Decisão.** Não. A auditoria mostra o pool como ficou registrado, incluindo quem fechou o perfil
+depois e quem excluiu a conta (esse aparece como linha sem nome, dizendo que a conta não existe
+mais). A tela existe para provar **o que o motor fez naquele instante**, e ajustar o registro à
+preferência de hoje faria a trilha mentir sobre o passado — um pool com buraco silencioso é
+auditoria incompleta, e uma auditoria que não pode ser confrontada não serve ao item 12.3.
+
+O que o administrador vê é nome e chave do candidato, que é a mesma identidade que `sis_auditoria`
+já mostra de quem agiu. Nada além disso: para abrir o perfil de alguém ele passa pela `Visao` como
+qualquer espectador, porque a D06 e a D22 recusaram passe livre de administrador, e esta decisão
+não o reintroduz pela porta lateral.
+
+**Alternativa recusada.** Filtrar igual ao feed, por coerência entre as duas telas que leem a mesma
+tabela. Recusada porque a coerência aqui seria só aparente: as duas telas respondem a perguntas
+diferentes. O feed responde "quem posso ver agora"; a auditoria responde "o que aconteceu". Aplicar
+a resposta da primeira à segunda destruiria a única prova de que o sorteio foi o que dizemos que
+foi.
+
+**Consequência.** Existe um dado no painel administrativo que o demandante já não enxerga. É
+defensável porque é registro de execução, não vitrine, e porque o administrador tem o próprio
+acesso registrado em `sis_auditoria`. Vale declarar isso na seção de limitações do 12.3, em vez de
+esperar a pergunta.
+
+A tela também se recusa a anunciar "reprodução confere" quando o pool está vazio: comparar duas
+listas vazias não prova nada, e chamar isso de prova seria o oposto de auditar.
+
+---
+
+## D56 · O nome da empresa na tela é a razão social, não o nome fantasia
+
+`16/09/2026` · E4 · commit a seguir · `src/Repository/CandidatoRepository.php`
+
+**Contexto.** `CandidatoRepository` compunha o nome do candidato empresa como
+`emp_nome_fantasia ?: emp_razao_social`, que é a ordem natural em qualquer cadastro comercial. Na
+massa do desafio a API devolve o nome fantasia truncado na primeira palavra: "RIO NEGRO ENGENHARIA
+CIVIL S.A." vira "RIO", "BASE SÓLIDA CONSTRUÇÕES LTDA" vira "BASE". O defeito só ficou visível
+quando o feed passou a mostrar o nome em 30px com avatar de iniciais, e a empresa apareceu como uma
+palavra solta com uma letra no círculo.
+
+**Decisão.** A tela lê `emp_razao_social` primeiro. O dado da API continua guardado e intocado —
+muda apenas qual campo a interface prefere. Razão social é, além disso, o nome sob o qual o
+registro no CREA existe, e registro é o que esta plataforma afirma sobre a empresa.
+
+**Alternativa recusada.** Corrigir o nome fantasia no cache, deduzindo-o da razão social. Recusada
+sem hesitação: o item 8.4 veda base própria que simule os dados da API, e as tabelas `crea_*`
+guardam resposta real, datada e com hash — nunca dado escrito à mão. Escolher qual campo exibir é
+decisão de interface; reescrever o campo seria adulteração.
+
+**Consequência.** Empresa cujo nome fantasia seja legítimo e mais reconhecível que a razão social
+passa a aparecer pela razão social. Na massa do desafio isso nunca acontece, e se a plataforma
+sair do protótipo o certo é preferir a fantasia quando ela não for um fragmento — o que exige uma
+heurística que não vale inventar agora.
