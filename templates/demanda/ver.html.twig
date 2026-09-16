@@ -156,6 +156,20 @@
                 </p>
             {% endif %}
 
+            {#  O feed de compatíveis só faz sentido depois de publicada e com atividade
+                escolhida: sem código da tabela não há por onde procurar, e o controller
+                devolveria a pessoa para cá com um aviso. #}
+            {% if d.dem_dt_publicacao is not null and d.tos is not empty %}
+                <h2 class="h5 mt-4">Quem já comprovou fazer isto</h2>
+                <p class="text-body-secondary small">
+                    A plataforma cruza as atividades escolhidas ao lado com o acervo de ART e CAT
+                    registrado no CREA. A lista sai em ordem sorteada a cada sessão, sem ranking e
+                    sem nota: a decisão continua sendo sua.
+                </p>
+                <a class="btn btn-outline-secondary mb-3"
+                   href="{{ app_url }}/demandas/{{ d.dem_id }}/compativeis">Ver perfis compatíveis</a>
+            {% endif %}
+
             {% if d.dem_situacao != 'ENCERRADA' %}
                 <h2 class="h5 mt-4">Editar</h2>
                 <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}">

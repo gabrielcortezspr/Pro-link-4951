@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 use ProLink\Repository\AuditoriaRepository;
 use ProLink\Repository\DemandaRepository;
+use ProLink\Service\CompatibilizacaoService;
 use ProLink\Service\DemandaService;
 use ProLink\Service\DenunciaService;
 use ProLink\Service\PerfilService;
@@ -129,6 +130,36 @@ return (static function (): array {
             'resultados' => [],
             'erros'      => [],
         ] + $vocabulario;
+    }
+
+    // O feed de compatíveis: a sessão gravada é a fonte, não um cálculo novo. `paraDemanda()`
+    // relê a última sessão da demanda e só executa o motor quando não existe nenhuma — por isso
+    // a demanda escolhida aqui é a que já tem sessão com pool, e a verificação não fica gravando
+    // uma linha em `mat_sessoes` a cada rodada.
+    $comSessao = $pdo->query(
+        'SELECT s.mts_dem_id
+           FROM mat_sessoes s
+           JOIN mat_sessao_pool p ON p.msp_mts_id = s.mts_id
+           JOIN pro_demandas d    ON d.dem_id     = s.mts_dem_id
+          WHERE d.dem_status = \'A\'
+       GROUP BY s.mts_id
+       ORDER BY COUNT(p.msp_id) DESC, s.mts_id DESC
+          LIMIT 1'
+    )->fetchColumn();
+
+    if ($comSessao !== false) {
+        $demandaDoFeed = (new DemandaService())->comTos((int) $comSessao);
+
+        if ($demandaDoFeed !== null) {
+            $telas['demanda/compativeis.html.twig'] = [
+                'titulo'  => 'Compatíveis',
+                'demanda' => $demandaDoFeed,
+                'sessao'  => (new CompatibilizacaoService())->paraDemanda(
+                    (int) $comSessao,
+                    (int) $demandaDoFeed['dem_usu_id'],
+                ),
+            ];
+        }
     }
 
     // A tela de detalhe só existe com registro; num banco recém-carregado não há denúncia.

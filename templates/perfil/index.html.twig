@@ -1,7 +1,7 @@
 {% extends 'layout/base.html.twig' %}
 {% import 'layout/_form.html.twig' as form %}
 
-{% block titulo %}Meu perfil · Pro-Link{% endblock %}
+{% block titulo %}{{ titulo }} · Pro-Link{% endblock %}
 
 {% block conteudo %}
 {% set p = perfil %}
@@ -19,7 +19,7 @@
     <div class="alert alert-danger" role="alert">{{ aviso }}</div>
 {% endif %}
 
-{% if p.validacao_pendente %}
+{% if p.eh_dono and p.validacao_pendente %}
     <div class="alert alert-warning d-flex flex-wrap gap-3 align-items-center" role="alert">
         <div class="flex-grow-1">
             <strong>Seu registro no CREA ainda não foi validado.</strong>
@@ -44,7 +44,7 @@
     </div>
 {% endif %}
 
-{% if not p.perfil_aberto %}
+{% if p.eh_dono and not p.perfil_aberto %}
     <div class="alert alert-secondary" role="alert">
         <strong>Seu perfil está fechado.</strong>
         Ninguém além de você o enxerga, mesmo o que estiver marcado como público. Isso acontece
@@ -57,8 +57,12 @@
 {% if p.em_construcao %}
     <p class="mb-3">
         <span class="badge text-bg-info">Perfil em construção</span>
-        <span class="text-body-secondary">Seu acervo está começando. Você continua aparecendo nas
-        recomendações. A marca só dá contexto a quem te encontrar.</span>
+        <span class="text-body-secondary">
+            {%- if p.eh_dono %} Seu acervo está começando. Você continua aparecendo nas
+            recomendações. A marca só dá contexto a quem te encontrar.
+            {%- else %} Acervo em formação. A marca dá contexto, não mede qualidade.
+            {%- endif %}
+        </span>
     </p>
 {% endif %}
 
@@ -334,6 +338,10 @@
     </div>
 
     <div class="col-lg-5">
+        {#  Painel de controle do titular. A guarda não é decoração: sem ela, quem abre
+            /perfil/{id} de outra pessoa vê um formulário que, ao ser enviado, mudaria a
+            visibilidade da PRÓPRIA conta de quem clicou — o POST age sobre a sessão. #}
+        {% if p.eh_dono %}
         <h2 class="h5">Quem vê o quê</h2>
         <p class="text-body-secondary">
             Nada fica visível sem você escolher. O padrão de tudo é <strong>Só eu</strong>.
@@ -375,6 +383,7 @@
 
             {{ form.botao('Salvar visibilidade') }}
         </form>
+        {% endif %}
 
         <h2 class="h5 mt-4">Modalidades</h2>
         {% if p.modalidades is empty %}

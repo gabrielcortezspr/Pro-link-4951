@@ -1,0 +1,393 @@
+{% extends 'layout/base.html.twig' %}
+{% import 'layout/_form.html.twig' as form %}
+{% import _self as ui %}
+
+{#
+    Feed de compatíveis de uma demanda (RF04, cenário 3 do Anexo I).
+
+    A unidade de leitura é UM candidato. Primário: quem é, e o quanto o acervo dele adere a esta
+    demanda, dimensão por dimensão. Secundário: a evidência documental que sustenta cada
+    dimensão, atrás de uma revelação. Terciário: a procedência da sessão, que é o que permite
+    refazer esta mesma lista depois.
+
+    Três coisas que não podem sair daqui sem quebrar exigência do edital:
+
+    **Não há posição, numeração nem nota agregada** (item 10.1). A ordem que chega do serviço é a
+    ordem exibida, e ela é sorteada pela semente da sessão. O indicador do trilho é contínuo e
+    sem número justamente para não virar colocação.
+
+    **O que não foi medido é declarado** (item 12.3). Dimensão nula não vira barra zerada: ela
+    saiu da média, e zero é outra coisa.
+
+    **Verificado e declarado não se confundem** (D33, D48). As três primeiras dimensões saem de
+    documento registrado no CREA e levam o selo verde água; as três últimas saem do que a pessoa
+    escreveu no perfil e levam a marca cinza de não verificado.
+
+    O palco é melhoria progressiva: sem JavaScript todos os cards ficam visíveis empilhados e a
+    evidência abre. O JS só estreita a pilha para um card por vez.
+#}
+
+{% macro tos(codigo, descricao, compacto = false) %}
+    {#  Corta na última palavra inteira: a descrição da tabela é uma concatenação de grupo,
+        subgrupo e obra, e cortar no caractere 46 deixava "de edificação p…" na tela. #}
+    {%- set curta = descricao is empty ? '' :
+        (descricao|length > 46 ? descricao|slice(0, 46)|split(' ')|slice(0, -1)|join(' ') ~ '…' : descricao) -%}
+    <span class="pl-tos" title="{{ codigo }}{% if descricao is not empty %} · {{ descricao }}{% endif %}">
+        {%- if curta and not compacto %}{{ curta }} {% endif -%}
+        <span class="code">{{ codigo|replace({'TOS_': 'TOS '}) }}</span>
+    </span>
+{% endmacro %}
+
+{% macro iniciais(nome) %}
+    {%- set lista = nome|trim|split(' ')|filter(p => p is not empty) -%}
+    {{- (lista|first|slice(0, 1) ~ (lista|length > 1 ? lista|last|slice(0, 1) : ''))|upper -}}
+{% endmacro %}
+
+{% block titulo %}Compatíveis · {{ demanda.dem_titulo }} · Pro-Link{% endblock %}
+
+{% block classe_main %}pl-feed{% endblock %}
+
+{% block conteudo %}
+{% set atividades = demanda.tos|default([]) %}
+{% set descricoes = atividades|reduce((m, t) => m|merge({(t.codigo): t.descricao|default('')}), {}) %}
+{% set pool = sessao.candidatos %}
+{% set ocultos = sessao.total_gravado - pool|length %}
+
+{# Texto de cada dimensão: o que ela compara, e de onde sai o dado. É o "critério explicável"
+   do Anexo VI, e por isso mora na tela, não num documento que ninguém abre na hora. #}
+{% set explicacoes = {
+    'competencia':     'O quanto o acervo de ART e CAT registrado no CREA cobre as atividades da Tabela de Obras e Serviços que esta demanda pede. Mais de uma ART na mesma atividade reforça o valor, e CAT emitida reforça de novo.',
+    'area':            'A modalidade do registro no CREA contra a modalidade que as atividades desta demanda exigem. Empresa não tem modalidade própria: quem a tem é o profissional do quadro técnico, então a dimensão sai da média dela.',
+    'localizacao':     'Onde as ARTs do acervo foram registradas, contra o município e a UF da obra desta demanda.',
+    'experiencia':     'Quantas experiências a pessoa lançou no próprio perfil e quantas delas têm ART vinculada. Não é comparada com o escopo desta demanda: cruzar relato livre com código da tabela exigiria classificar texto.',
+    'contrato':        'O regime de contratação que esta demanda propõe contra o que a pessoa declarou aceitar no perfil.',
+    'disponibilidade': 'A abrangência de atuação declarada no perfil contra a UF da obra desta demanda.'
+} %}
+
+<div class="visually-hidden">
+    {#  Selo de verificação (verde água, chanfrado) e marca de não verificado (círculo cinza).
+        A cor vem de currentColor, definida em .pl-seal / .pl-mark: nenhum token é reescrito aqui. #}
+    <svg width="0" height="0" aria-hidden="true" focusable="false">
+        <symbol id="pl-sym-seal" viewBox="0 0 40 40">
+            <polygon points="39,20 34.5,23.9 36.5,29.5 30.6,30.6 29.5,36.5 23.9,34.5 20,39 16.1,34.5 10.5,36.5 9.4,30.6 3.6,29.5 5.5,23.9 1,20 5.5,16.1 3.6,10.5 9.4,9.4 10.5,3.6 16.1,5.5 20,1 23.9,5.5 29.5,3.6 30.6,9.4 36.5,10.5 34.5,16.1" fill="currentColor"/>
+            <path d="M13.5 20.5l4 4l9 -10" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </symbol>
+        <symbol id="pl-sym-seal-x" viewBox="0 0 40 40">
+            <circle cx="20" cy="20" r="18.5" fill="currentColor"/>
+            <path d="M14.5 14.5l11 11M25.5 14.5l-11 11" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </symbol>
+    </svg>
+</div>
+
+<h1 class="visually-hidden">Compatíveis com a demanda {{ demanda.dem_titulo }}</h1>
+
+<div class="pl-ctxline">
+    <span class="rot">Compatíveis com</span>
+    <a class="dm" href="{{ app_url }}/demandas/{{ demanda.dem_id }}">{{ demanda.dem_titulo }}</a>
+    {% for t in atividades|slice(0, 3) %}{{ ui.tos(t.codigo, t.descricao|default('')) }}{% endfor %}
+    {% if atividades|length > 3 %}
+        {% set restantes = atividades|length - 3 %}
+        <a href="{{ app_url }}/demandas/{{ demanda.dem_id }}">e mais {{ restantes }} {{ restantes == 1 ? 'atividade' : 'atividades' }}</a>
+    {% endif %}
+    <span class="sep" aria-hidden="true"></span>
+    <span><span class="n">{{ pool|length }}</span> no pool</span>
+    <span class="sep" aria-hidden="true"></span>
+    <span>ordem sorteada nesta sessão</span>
+
+    <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/compativeis">
+        {{ form.csrf() }}
+        <button type="submit" class="pl-btn sm">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 10-2.3 5.7"/><path d="M20 5v6h-6"/></svg>
+            Atualizar e sortear de novo
+        </button>
+    </form>
+</div>
+
+<section class="pl-stage" data-feed aria-label="Perfis compatíveis com esta demanda">
+    <div class="pl-track" data-track>
+
+        {% for c in pool %}
+            {% set idc = 'c' ~ loop.index0 %}
+            <article class="pl-focus" data-cartao data-nome="{{ c.nome }}" data-iniciais="{{ ui.iniciais(c.nome)|trim }}">
+
+                <div class="pl-topo">
+                    <span class="pl-av" aria-hidden="true">{{ ui.iniciais(c.nome) }}</span>
+                    <div class="pl-ident">
+                        <h2 class="pl-name">{{ c.nome }}</h2>
+                        <p class="pl-meta">
+                            <span>{{ c.tipo == 'E' ? 'Empresa' : 'Profissional' }}</span>
+                            {% if c.registro_crea %}
+                                <span aria-hidden="true">·</span>
+                                <span>Registro no CREA <span class="mono">{{ c.registro_crea }}</span></span>
+                            {% endif %}
+                            {% if c.rnp %}
+                                <span aria-hidden="true">·</span>
+                                <span>RNP <span class="mono">{{ c.rnp }}</span></span>
+                            {% endif %}
+                            {% if not c.registro_crea and not c.rnp %}
+                                <span aria-hidden="true">·</span>
+                                <span>Registro não informado</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                {#  O selo verde água só acompanha afirmação sustentada por documento: numa
+                    frase que diz que não há cobertura, ele afirmaria o contrário do texto. #}
+                <p class="pl-acervo">
+                    {% if c.evidencias is empty %}
+                        <svg class="pl-mark nao" role="img" aria-label="Sem documento nesta demanda"><use href="#pl-sym-seal-x"/></svg>
+                        Nenhuma atividade desta demanda coberta pelo acervo registrado
+                    {% else %}
+                        <svg class="pl-mark" role="img" aria-label="Verificado na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+                        {{ c.evidencias|length }} de {{ atividades|length }}
+                        {{ atividades|length == 1 ? 'atividade desta demanda coberta' : 'atividades desta demanda cobertas' }}
+                        por acervo registrado no CREA
+                    {% endif %}
+                </p>
+
+                {% if c.em_construcao %}
+                    <p class="pl-inicio">
+                        <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Perfil em construção</span>
+                        Início de carreira: o acervo registrado ainda é curto. Continua no pool, com as
+                        dimensões que já dá para medir.
+                    </p>
+                {% endif %}
+
+                <div class="pl-adher">
+                    <p class="pl-grp">
+                        <svg class="pl-mark" role="img" aria-label="Verificado"><use href="#pl-sym-seal"/></svg>
+                        Comprovado por documento no CREA
+                    </p>
+                    {% for k in ['competencia', 'area', 'localizacao'] %}
+                        {{ ui.dimensao(k, c.dimensoes[k]|default(null), sessao.pesos[k]|default(null), explicacoes[k], idc) }}
+                    {% endfor %}
+
+                    <p class="pl-grp">
+                        <svg class="pl-mark nao" role="img" aria-label="Não verificado"><use href="#pl-sym-seal-x"/></svg>
+                        Informado pelo próprio perfil
+                    </p>
+                    {% for k in ['experiencia', 'contrato', 'disponibilidade'] %}
+                        {{ ui.dimensao(k, c.dimensoes[k]|default(null), sessao.pesos[k]|default(null), explicacoes[k], idc) }}
+                    {% endfor %}
+                </div>
+
+                <button type="button" class="pl-toggle" aria-expanded="false" aria-controls="ev-{{ idc }}">
+                    Por que este perfil é compatível
+                    <svg class="ch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+
+                <div class="pl-more" id="ev-{{ idc }}" hidden>
+                    {% if c.evidencias is empty %}
+                        <p class="pl-nota">
+                            Nenhuma ART do acervo registrado toca as atividades desta demanda. Este perfil
+                            está no pool pelas outras dimensões medidas acima.
+                        </p>
+                    {% else %}
+                        <div class="table-responsive">
+                            <table class="pl-table">
+                                <caption class="visually-hidden">
+                                    Atividades desta demanda cobertas pelo acervo de {{ c.nome }}, com o documento que as sustenta
+                                </caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Atividade pedida</th>
+                                        <th scope="col">Coberta por</th>
+                                        <th scope="col">Documento registrado</th>
+                                        <th scope="col" class="num">Aderência</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for e in c.evidencias %}
+                                        <tr>
+                                            {#  Só o código nas células: a descrição inteira já está
+                                                na linha de contexto e no title, e repetida em quatro
+                                                células ela empurraria a tabela para fora do card. #}
+                                            <td>{{ ui.tos(e.codigo_demanda, descricoes[e.codigo_demanda]|default(''), true) }}</td>
+                                            <td>
+                                                {% if e.codigo_acervo == e.codigo_demanda %}
+                                                    <span class="rel">A mesma atividade, no acervo registrado</span>
+                                                {% else %}
+                                                    {{ ui.tos(e.codigo_acervo, descricoes[e.codigo_acervo]|default(''), true) }}
+                                                    <span class="rel">Atividade vizinha na tabela</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% for numero in e.arts|slice(0, 3) %}
+                                                    <span class="doc">ART {{ numero }}<svg class="pl-mark" role="img" aria-label="Verificada na API do CREA-AM"><use href="#pl-sym-seal"/></svg></span>
+                                                {% endfor %}
+                                                {% if e.arts|length > 3 %}
+                                                    <span class="sem">e mais {{ e.arts|length - 3 }} {{ e.arts|length - 3 == 1 ? 'ART' : 'ARTs' }} nesta atividade</span>
+                                                {% endif %}
+                                                {#  Documento que o titular não abriu. Ele contou para a compatibilidade e não é
+                                                    identificado aqui: são finalidades distintas, e a escolha de exibição é dele.
+                                                    Omitir a linha faria a célula parecer "sem evidência", que é outra coisa. #}
+                                                {% if e.arts_fechadas|default(0) > 0 %}
+                                                    <span class="sem" title="A visibilidade de cada ART é escolhida pelo titular. O documento fechado continua sustentando a compatibilidade e não é identificado.">
+                                                        {{ e.arts_fechadas }} {{ e.arts_fechadas == 1 ? 'ART registrada, não aberta' : 'ARTs registradas, não abertas' }} pelo titular
+                                                    </span>
+                                                {% endif %}
+                                                {% if e.cat %}
+                                                    <span class="doc">CAT {{ e.cat }}<svg class="pl-mark" role="img" aria-label="Verificada na API do CREA-AM"><use href="#pl-sym-seal"/></svg></span>
+                                                {% else %}
+                                                    <span class="sem">Sem CAT nesta atividade</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="num">{{ (e.contribuicao * 100)|round }}%</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+
+                    {% if c.ausentes is not empty %}
+                        <p class="pl-fine">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5" stroke-linecap="round"/></svg>
+                            <span>
+                                Fora da média desta sessão:
+                                {% for a in c.ausentes %}{{ a|rotulo_dimensao }}{{ not loop.last ? ', ' : '' }}{% endfor %}.
+                                Dimensão sem dado dos dois lados fica de fora em vez de valer zero, que seria
+                                uma medida que ninguém fez.
+                            </span>
+                        </p>
+                    {% endif %}
+
+                    {% if c.resumo %}
+                        <p class="pl-fine">
+                            <svg class="pl-mark nao" role="img" aria-label="Não verificado"><use href="#pl-sym-seal-x"/></svg>
+                            <span>
+                                <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Autodeclarado</span>
+                                {{ c.resumo }}
+                            </span>
+                        </p>
+                    {% endif %}
+                </div>
+
+                <div class="pl-acoes">
+                    <a class="pl-btn lg" href="{{ app_url }}/perfil/{{ c.usuario_id }}">
+                        Ver perfil completo
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="M13 6l6 6-6 6"/></svg>
+                    </a>
+                </div>
+            </article>
+        {% endfor %}
+
+        {# Fim do pool, e pool vazio: o mesmo quadro, porque a pergunta dos dois é "e agora?". #}
+        <article class="pl-focus is-end" {{ pool is empty ? '' : 'data-cartao' }}>
+            <div class="pl-end">
+                {% if pool is empty and ocultos > 0 %}
+                    <p class="et">Nenhum perfil do pool está visível agora</p>
+                    <p class="es">
+                        {{ ocultos == 1 ? 'Um perfil atendia' : ocultos ~ ' perfis atendiam' }} a esta demanda no
+                        cálculo desta sessão, e {{ ocultos == 1 ? 'deixou' : 'deixaram' }} de ser
+                        {{ ocultos == 1 ? 'exibido' : 'exibidos' }} por escolha do próprio titular. A plataforma
+                        confere essa escolha toda vez que a lista é lida, e não guarda cópia do perfil para
+                        contornar isso.
+                    </p>
+                {% elseif pool is empty %}
+                    <p class="et">Ninguém atingiu o limiar desta demanda</p>
+                    <p class="es">
+                        O pool sai do cruzamento entre as atividades da Tabela de Obras e Serviços que você
+                        escolheu e o acervo de ART e CAT registrado no CREA. Código mais específico do que a
+                        obra precisa deixa de fora quem faria o serviço: rever as atividades da demanda
+                        costuma ser o caminho.
+                    </p>
+                {% else %}
+                    <p class="et">
+                        Você viu {{ pool|length == 1 ? 'o único perfil compatível' : 'os ' ~ pool|length ~ ' perfis compatíveis' }}
+                        desta demanda
+                    </p>
+                    <p class="es">
+                        A lista é remontada e sorteada de novo a cada atualização, com semente registrada.
+                        Perfil novo entra quando o acervo registrado no CREA passa a cobrir as atividades
+                        desta demanda.
+                    </p>
+                {% endif %}
+
+                <div class="ea">
+                    {% if pool is empty %}
+                        <a class="pl-btn lg" href="{{ app_url }}/demandas/{{ demanda.dem_id }}">Rever as atividades da demanda</a>
+                    {% else %}
+                        <button type="button" class="pl-btn lg" data-reiniciar hidden>Rever do início</button>
+                        <a href="{{ app_url }}/demandas/{{ demanda.dem_id }}">Voltar à demanda</a>
+                    {% endif %}
+                    <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/compativeis">
+                        {{ form.csrf() }}
+                        <button type="submit" class="pl-btn ghost lg">Atualizar e sortear de novo</button>
+                    </form>
+                </div>
+            </div>
+        </article>
+
+        <button type="button" class="pl-peek" data-proximo hidden>
+            <span class="pav" aria-hidden="true"></span>
+            <span class="pn" aria-hidden="true"></span>
+            <span class="visually-hidden">Ir para o próximo perfil do pool</span>
+        </button>
+    </div>
+
+    <div class="pl-rail" hidden>
+        <button type="button" class="pl-arrow" data-anterior aria-label="Perfil anterior">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 15l-6-6-6 6"/></svg>
+        </button>
+        <div class="pl-progress" aria-hidden="true"><span class="pl-thumb" data-indicador></span></div>
+        <button type="button" class="pl-arrow" data-proxima aria-label="Próximo perfil">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+    </div>
+
+    <p class="pl-hint" hidden>
+        {#  A roda também percorre, mas só quando não há mais nada para rolar na página: a dica
+            promete o gesto que vale sempre. #}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9l4-4 4 4"/><path d="M8 15l4 4 4-4"/></svg>
+        Setas do teclado percorrem o pool
+    </p>
+
+    <p class="visually-hidden" role="status" aria-live="polite" data-anuncio></p>
+</section>
+
+<p class="pl-proveniencia">
+    <span>
+        Sessão de compatibilização{% if sessao.dt_registro %} registrada em {{ sessao.dt_registro|date('d/m/Y H:i') }}{% endif %}
+    </span>
+    <span class="sep" aria-hidden="true"></span>
+    <span>semente <span class="mono" title="{{ sessao.semente }}">{{ sessao.semente|slice(0, 8) }}…</span></span>
+    <span class="sep" aria-hidden="true"></span>
+    <span>limiar {{ (sessao.limiar * 100)|round }}%</span>
+    <span class="sep" aria-hidden="true"></span>
+    <span>ordem sorteada pela semente, sem ranking e sem nota agregada</span>
+    {% if pool is not empty and ocultos > 0 %}
+        <span class="sep" aria-hidden="true"></span>
+        <span>{{ ocultos == 1 ? '1 perfil saiu' : ocultos ~ ' perfis saíram' }} da lista por escolha do titular</span>
+    {% endif %}
+    <span class="sep" aria-hidden="true"></span>
+    <span>o feed é passivo: quem manifesta interesse é o profissional, a partir das demandas abertas</span>
+</p>
+{% endblock %}
+
+{#
+    Uma dimensão: rótulo, barra e valor, com a explicação atrás de hover ou foco. Valor nulo não
+    vira barra zerada — a dimensão saiu da média, e dizer isso é exigência do item 12.3.
+#}
+{% macro dimensao(chave, valor, peso, explicacao, prefixo) %}
+    {% set alvo = 'tip-' ~ prefixo ~ '-' ~ chave %}
+    <div class="pl-dim" tabindex="0" aria-describedby="{{ alvo }}">
+        <span class="dlab">{{ chave|rotulo_dimensao }}</span>
+        {% if valor is null %}
+            <span class="na">Não medida nesta sessão</span>
+            <span></span>
+        {% else %}
+            <span class="pl-bar"><span style="width: {{ (valor * 100)|round }}%"></span></span>
+            <span class="pct">{{ (valor * 100)|round }}%</span>
+        {% endif %}
+        <span class="pl-tip" id="{{ alvo }}" role="tooltip">
+            <b>{{ chave|rotulo_dimensao }}{% if peso is not null %} · peso {{ (peso * 100)|round }}% na composição{% endif %}</b>
+            {{ explicacao }}
+        </span>
+    </div>
+{% endmacro %}
+
+{% block scripts %}
+<script src="{{ url_assets }}/js/feed-compativeis.js?v={{ assets_v }}" defer></script>
+{% endblock %}

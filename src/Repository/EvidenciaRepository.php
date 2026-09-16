@@ -110,4 +110,64 @@ final class EvidenciaRepository extends Repositorio
 
         return (int) $stmt->fetchColumn();
     }
+
+    /**
+     * Dono e id de cada ART, a partir do número — para o portão de visibilidade do feed (D52).
+     *
+     * A view `crea_evidencias` expõe `evi_art_numero` e não o id, e é pelo id que
+     * `pro_visibilidade` guarda a escolha do titular. Resolver aqui, e não acrescentar a coluna à
+     * view, mantém o filtro funcionando também para sessões **já gravadas**: o `msp_criterios`
+     * delas guarda números, e sessão antiga é registro de auditoria que não se reescreve.
+     *
+     * O dono é sempre o profissional, mesmo quando o candidato do pool é a empresa que herdou o
+     * acervo pelo quadro técnico: quem decide se a ART aparece é quem a assinou.
+     *
+     * @param  list<string> $numeros
+     * @return array<string, array{id: int, usuario_id: int}> número => dono
+     */
+    public function donosPorNumero(array $numeros): array
+    {
+        $numeros = array_values(array_unique(array_filter(array_map('strval', $numeros))));
+
+        if ($numeros === []) {
+            return [];
+        }
+
+        // Marcadores próprios: o helper do Repositorio liga como inteiro, e número de ART é
+        // string com letras ("AM2026...").
+        $marcadores = [];
+        $params     = [];
+
+        foreach ($numeros as $i => $numero) {
+            $marcadores[]     = ":n{$i}";
+            $params[":n{$i}"] = $numero;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT a.art_id, a.art_numero, p.prf_usu_id
+               FROM crea_arts a
+               JOIN pro_profissionais p
+                 ON p.prf_rnp = a.art_pro_rnp AND p.prf_status = :ativo
+              WHERE a.art_numero IN (' . implode(', ', $marcadores) . ')'
+        );
+
+        $stmt->bindValue(':ativo', STATUS_ATIVO);
+
+        foreach ($params as $nome => $valor) {
+            $stmt->bindValue($nome, $valor);
+        }
+
+        $stmt->execute();
+
+        $saida = [];
+
+        foreach ($stmt->fetchAll() as $linha) {
+            $saida[(string) $linha['art_numero']] = [
+                'id'         => (int) $linha['art_id'],
+                'usuario_id' => (int) $linha['prf_usu_id'],
+            ];
+        }
+
+        return $saida;
+    }
 }

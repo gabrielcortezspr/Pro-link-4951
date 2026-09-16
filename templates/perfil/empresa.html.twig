@@ -1,7 +1,7 @@
 {% extends 'layout/base.html.twig' %}
 {% import 'layout/_form.html.twig' as form %}
 
-{% block titulo %}Meu perfil · Pro-Link{% endblock %}
+{% block titulo %}{{ titulo }} · Pro-Link{% endblock %}
 
 {% block conteudo %}
 {% set p = perfil %}
@@ -16,7 +16,7 @@
     {% endif %}
 </p>
 
-{% if p.validacao_pendente %}
+{% if p.eh_dono and p.validacao_pendente %}
     <div class="alert alert-warning d-flex flex-wrap gap-3 align-items-center" role="alert">
         <div class="flex-grow-1">
             <strong>O registro da empresa no CREA ainda não foi validado.</strong>
@@ -41,7 +41,7 @@
     </div>
 {% endif %}
 
-{% if not p.perfil_aberto %}
+{% if p.eh_dono and not p.perfil_aberto %}
     <div class="alert alert-secondary" role="alert">
         <strong>O perfil da empresa está fechado.</strong>
         Ninguém além de você o enxerga, mesmo o que estiver marcado como público. Isso acontece
@@ -118,6 +118,9 @@
     </div>
 
     <div class="col-lg-5">
+        {#  Painel de controle do titular. Sem a guarda, quem abre /perfil/{id} de outra empresa
+            veria um formulário que mudaria a visibilidade da própria conta ao ser enviado. #}
+        {% if p.eh_dono %}
         <h2 class="h5">Quem vê o quê</h2>
         <p class="text-body-secondary">
             Nada fica visível sem você escolher. O padrão de tudo é <strong>Só eu</strong>.
@@ -148,6 +151,7 @@
 
             {{ form.botao('Salvar visibilidade') }}
         </form>
+        {% endif %}
 
         <h2 class="h5 mt-4">Quadro técnico</h2>
         {% if p.quadro is empty %}

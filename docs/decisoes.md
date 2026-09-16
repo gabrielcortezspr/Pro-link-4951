@@ -29,6 +29,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E4 — motor de compatibilização | D44 |
 | Front — padrão visual no pipeline | D42 |
 | Revisão de código (15/09) | D45, D46, D47, D48, D49, D50 |
+| E4 — feed do demandante | D51, D52 |
 
 ---
 
@@ -1500,3 +1501,107 @@ não por mérito: continua sendo a escolha certa e está anotada como pendência
 acessíveis para aparecer com estilo. No Demo Day presencial, sem internet ou com rede filtrada, a
 apresentação é feita sem CSS. A verificação automática protege contra a política divergir do
 layout, mas não contra a rede: essa é a pendência acima.
+
+---
+
+## D51 · O feed é passivo: quem manifesta interesse é o candidato, não o demandante
+
+`15/09/2026` · E4 · commit a seguir · `templates/demanda/compativeis.html.twig`,
+`docs/mockups/prolink-feed-imersivo-v3.html`
+
+**Contexto.** O mockup aprovado do feed traz, no card de cada compatível, um botão "Manifestar
+interesse" com a legenda "enviado por e-mail à outra parte" — ou seja, o **demandante convidando o
+candidato**. Ao construir a tela, a leitura das fontes mostrou que esse sentido não é o
+especificado em lugar nenhum, e que a própria proposta se contradiz:
+
+- Edital, Anexo I item 7, cenário 4: *"Profissional manifesta interesse e a empresa visualiza o
+  perfil."*
+- Proposta, RF05: *"Profissional manifesta interesse em demanda; o sistema captura snapshot do
+  perfil no momento da manifestação; empresa recebe notificação."*
+- Proposta, jornada do usuário (p. 4), fase 04, coluna Empresa: *"Navega o feed, confere o Selo ART
+  verificado e **manifesta interesse**."* — o sentido inverso, e marcado como fluxo crítico.
+- Edital e proposta, tabela de perfis: Empresa e Terceiros podem "registrar interesse". Sem dizer
+  se é convite ativo ou leitura da manifestação recebida.
+
+O banco segue o RF05: `pro_manifestacoes` tem `man_usu_id` ("quem manifestou") e
+`uq_man_dem_usu UNIQUE (man_dem_id, man_usu_id)`, e **não tem `man_candidato_id`**. Não há onde
+guardar "para quem o convite foi enviado".
+
+**Decisão.** O feed é passivo. O card tem uma ação só, "Ver perfil completo", que leva a
+`/perfil/{id}`. O botão de manifestar sai do mockup na portagem para código. Quem manifesta é o
+profissional, a partir de `/demandas/abertas`, e isso é a E5.
+
+O argumento que decidiu não foi o de esforço, foi o do item 10.1. A plataforma não pode fazer
+ranking nem recomendação institucional, e a correspondência é apenas indicativa. Uma empresa
+abordando ativamente candidatos extraídos de um pool pontuado se parece muito mais com
+recrutamento ordenado do que um índice onde quem procura trabalho se candidata — mesmo com a
+ordem sorteada e o score escondido. O feed passivo é a postura que a proposta já vendia:
+*"Empresas **recebem** compatíveis em feed passivo."*
+
+**Alternativa recusada.** Implementar o convite, acrescentando `man_candidato_id` e trocando o
+índice único por `(man_dem_id, man_usu_id, man_candidato_id)`. Recusado por três razões, em ordem:
+nenhum dos seis cenários de demonstração o exercita; é mudança de modelo de dados a dois dias da
+entrega; e enfraquece a defesa do 10.1 acima, que vale 15 pontos no critério de ética.
+
+Também foi recusado deixar o botão na tela desabilitado com "em breve": elemento morto numa tela
+que a banca vai olhar de perto custa mais do que a intenção que ele comunicaria.
+
+**Consequência.** O mockup `prolink-feed-imersivo-v3.html` diverge da tela implementada neste
+ponto, e continua no repositório como estava — é artefato de design, com data. A capacidade
+"registrar interesse" da tabela de perfis fica atendida pelo lado da leitura: o demandante vê e
+responde as manifestações recebidas (E5). Se a banca pedir o convite ativo, o caminho está
+descrito na alternativa recusada e é uma migração mais um formulário.
+
+---
+
+## D52 · ART fechada conta para o match e não é citada pelo número
+
+`15/09/2026` · E4 · commit a seguir · `src/Service/CompatibilizacaoService.php`,
+`src/Repository/EvidenciaRepository.php`
+
+**Contexto.** O card do feed explica a compatibilidade citando a evidência que a sustenta:
+"compatível porque a ART AM…001 cobre TOS_x e está na CAT 999001/2026". Essa é a promessa central
+da proposta — evidência documental no lugar de autodeclaração — e o "critério explicável" que o
+Anexo VI cobra.
+
+Só que o índice de evidência (a view `crea_evidencias`, D01) **não consulta `pro_visibilidade`**.
+Ele deriva de `crea_arts`, `crea_art_atividades` e `crea_quadro_tecnico`, que são cache da
+resposta da API. Então o card citaria, pelo número, uma ART que o profissional fechou.
+
+Pela régua do próprio projeto isso é vazamento: a E2 tem conferência específica de que "o número
+da ART fechada não vaza dentro da experiência aberta". A visibilidade granular por ART é exigência
+da RF03 e do item 11.3, e o feed é exatamente o lugar onde ela tem consequência.
+
+A pergunta tem duas metades, e elas se decidem em sentidos opostos.
+
+**Decisão.** **A ART fechada continua contando para o score, e não pode ser citada pelo número.**
+
+Conta para o score porque o mecanismo de "não me procure" é revogar `EXIBICAO_PERFIL`, que é um
+dos dois portões globais da D22, e não fechar ARTs uma a uma. A D23 já havia fixado esse desenho
+do outro lado: *"quem não quer ser encontrado fecha o perfil inteiro."* Se fechar uma ART tirasse
+pontos, a privacidade viraria custo de posicionamento, e a plataforma estaria empurrando o
+profissional a abrir tudo para não ser penalizado — o oposto do que a RF01 promete. A proposta já
+tem o mesmo ethos no perfil em construção: sinaliza "sem excluí-los do pool".
+
+Não é citada pelo número porque a D22 manda o desenho falhar fechado e aplicar o filtro na
+montagem, não na renderização. Quando a evidência que sustenta a correspondência está fechada, o
+card diz que existe evidência não aberta, em vez de exibir o documento.
+
+**Alternativa recusada.** Tirar a ART fechada do cálculo, que foi a primeira leitura de "privado é
+só meu" e é intuitiva. Recusada porque confunde duas finalidades distintas: o consentimento
+`EXIBICAO_PERFIL` — cujo texto na tela é "autorizo exibir meu perfil para demandantes e na busca
+da plataforma" — é o que autoriza ser encontrado; a visibilidade por ART governa o que a **vitrine
+do perfil** mostra. Fundir as duas faria o controle de exibição operar como controle de
+elegibilidade, sem que nada na interface avise a pessoa disso.
+
+Também foi recusado exibir tudo, sob o argumento de que entrar no pool já é consentimento
+suficiente. É defensável, mas exigiria defender por escrito na entrega por que um controle
+granular anunciado não vale no único lugar em que o dado é efetivamente consumido.
+
+**Consequência.** O efeito colateral é bom para a demonstração: o feed passa a **exibir** o
+controle granular funcionando, em vez de só o descrever. O custo é que um candidato com todo o
+acervo fechado aparece no pool com a correspondência explicada só por dimensão, sem documento —
+estado legítimo, que a tela precisa dizer com clareza em vez de parecer defeito.
+
+Fica uma assimetria a vigiar: o score reflete acervo que o demandante não pode conferir. É
+mencionável na declaração de limitações do item 12.3, e é o preço de não penalizar a privacidade.

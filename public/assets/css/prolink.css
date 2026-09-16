@@ -395,3 +395,231 @@ textarea.form-control { min-height: 0; }
 .pl-pag .pos { font-size: 12.5px; color: var(--pl-muted); font-variant-numeric: tabular-nums;
     white-space: nowrap; }
 .pl-pag .pos b { color: var(--pl-ink); font-weight: 600; }
+
+/* ---------- 13. Feed de compatíveis: um candidato por vez (E4, RF04) ---------- */
+/* A unidade de leitura é UM candidato, não uma linha de lista: quem é, o quanto o acervo dele
+   adere a ESTA demanda, e a evidência documental que sustenta isso. Por isso o palco tem um
+   card só, do tamanho da atenção que a decisão merece — e por isso não existe ordenação,
+   posição nem nota agregada em lugar nenhum daqui (item 10.1).
+
+   Sem JavaScript o palco vira uma pilha: todo card fica visível, a evidência abre, e o trilho
+   de navegação some. O JS só estreita a pilha para um card por vez. */
+
+.pl-feed { background: var(--pl-app); display: flex; flex-direction: column; padding: 0; }
+.pl-feed .alert { margin: 16px 24px 0; }
+
+/* Contexto em UMA linha: de qual demanda é este pool e de quais atividades ele saiu. Card de
+   cabeçalho aqui roubaria do card do candidato a única coisa que a tela tem para dizer. */
+.pl-ctxline { display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap;
+    padding: 16px 24px 0; font-size: 12.5px; color: var(--pl-muted); flex: none; }
+.pl-ctxline .rot { font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--pl-faint); }
+.pl-ctxline .dm { color: var(--pl-ink); font-weight: 600; font-size: 13.5px;
+    text-decoration: none; }
+.pl-ctxline .dm:hover { color: var(--pl-blue); text-decoration: none; }
+.pl-ctxline .sep { width: 3px; height: 3px; border-radius: 50%; background: var(--pl-faint);
+    flex: none; }
+.pl-ctxline .pl-tos { font-size: 11.5px; padding: 3px 9px; }
+.pl-ctxline form { margin: 0 0 0 auto; }
+.pl-ctxline .n { color: var(--pl-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.pl-stage { flex: 1; position: relative; display: grid; place-items: start center;
+    padding: 28px 24px 36px; }
+/* Luz no centro do palco: separa o card do fundo sem caixa dentro de caixa. Não é gradiente
+   decorativo solto — é o que dá foco ao único objeto da tela. */
+.pl-stage::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(118% 62% at 50% 34%, #FFFFFF 0%, rgba(255,255,255,.8) 36%, rgba(251,250,246,0) 68%); }
+.pl-track { position: relative; z-index: 1; width: min(680px, 100%); display: flex;
+    flex-direction: column; align-items: center; gap: 20px; }
+
+.pl-focus { position: relative; width: 100%; background: var(--pl-card);
+    border: 1px solid var(--pl-border); border-radius: 22px; padding: 34px 38px 32px;
+    box-shadow: 0 2px 3px rgba(11,42,74,.04), 0 28px 60px rgba(11,42,74,.10); }
+/* Altura mínima no modo player: sem ela o palco pula de tamanho a cada troca de candidato,
+   porque o número de dimensões medidas varia de um para o outro. */
+.pl-feed.is-js .pl-track { gap: 0; }
+.pl-feed.is-js .pl-focus { min-height: 520px; display: flex; flex-direction: column; }
+
+.pl-topo { display: flex; align-items: flex-start; gap: 16px; }
+.pl-av { width: 62px; height: 62px; border-radius: 18px; display: grid; place-items: center;
+    color: #fff; font-family: var(--pl-display); font-weight: 700; font-size: 21px; flex: none;
+    background: linear-gradient(135deg, var(--pl-navy-2), var(--pl-blue));
+    box-shadow: 0 10px 22px rgba(19,49,90,.22); }
+.pl-ident { min-width: 0; }
+.pl-name { font-family: var(--pl-display); font-weight: 600; font-size: 30px; line-height: 1.12;
+    letter-spacing: -.02em; margin: 0; display: flex; align-items: center; gap: 10px;
+    flex-wrap: wrap; overflow-wrap: anywhere; }
+.pl-name .pl-seal { width: 20px; height: 20px; }
+.pl-meta { font-size: 13px; color: var(--pl-muted); margin: 6px 0 0;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pl-meta .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+    font-variant-numeric: tabular-nums; }
+.pl-acervo { font-size: 13px; color: var(--pl-ink); margin: 10px 0 0; display: flex;
+    align-items: center; gap: 7px; }
+/* Perfil em construção: o profissional de início de carreira continua no pool, e a sinalização
+   diz o que é sem sugerir que ele vale menos. Pílula neutra, nunca aviso nem perigo (D48). */
+.pl-inicio { font-size: 12.5px; color: var(--pl-muted); margin: 10px 0 0; }
+
+.pl-adher { margin-top: 26px; }
+.pl-grp { display: flex; align-items: center; gap: 7px; font-size: 10.5px; font-weight: 600;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--pl-muted);
+    margin: 0 0 12px; }
+.pl-adher .pl-grp ~ .pl-grp { margin-top: 22px; }
+.pl-adher .pl-dim { grid-template-columns: 152px minmax(0, 1fr) 44px; gap: 14px;
+    font-size: 13px; margin-bottom: 12px; position: relative; border-radius: 8px; }
+.pl-adher .pl-dim:last-child { margin-bottom: 0; }
+.pl-adher .pl-bar { height: 8px; border-radius: 6px; }
+.pl-adher .pl-bar span { border-radius: 6px; }
+.pl-adher .pl-dim .pct { color: var(--pl-ink); }
+/* Dimensão não medida não é barra zerada: barra vazia leria como "zero", e zero é uma medida.
+   O que aconteceu foi a dimensão sair da média (item 12.3). */
+.pl-dim .na { font-size: 12px; color: var(--pl-muted); }
+.pl-dim .na::before { content: ""; display: inline-block; width: 22px; height: 2px;
+    border-radius: 2px; background: var(--pl-border); vertical-align: middle; margin-right: 8px; }
+
+/* Explicação por dimensão: some até o ponteiro ou o teclado pedirem. Onde não há ponteiro
+   (toque), ela não vira tooltip inalcançável: assenta embaixo da barra como texto normal. */
+.pl-tip { position: absolute; left: 166px; right: 0; bottom: calc(100% + 8px); z-index: 8;
+    background: var(--pl-card); border: 1px solid var(--pl-border); border-radius: 12px;
+    padding: 10px 12px; font-size: 12px; line-height: 1.5; color: var(--pl-muted);
+    box-shadow: 0 14px 30px rgba(11,42,74,.14);
+    opacity: 0; visibility: hidden; transform: translateY(4px); pointer-events: none;
+    transition: opacity .16s ease, transform .16s ease, visibility .16s; }
+.pl-tip b { display: block; color: var(--pl-ink); font-weight: 600; margin-bottom: 3px; }
+.pl-dim:hover .pl-tip, .pl-dim:focus-visible .pl-tip { opacity: 1; visibility: visible;
+    transform: none; }
+.pl-dim:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 3px; }
+
+.pl-toggle { margin-top: 22px; align-self: flex-start; display: inline-flex; align-items: center;
+    gap: 7px; background: none; border: 0; padding: 2px 0; cursor: pointer;
+    font-family: var(--pl-body); font-size: 12.5px; font-weight: 600; color: var(--pl-muted); }
+.pl-toggle:hover { color: var(--pl-data); }
+.pl-toggle:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 3px;
+    border-radius: 6px; }
+.pl-toggle .ch { width: 14px; height: 14px; transition: transform .22s ease; }
+.pl-toggle[aria-expanded="true"] .ch { transform: rotate(180deg); }
+.pl-more { margin-top: 14px; }
+.pl-more .pl-table { font-size: 12.5px; }
+.pl-more .pl-table thead th { padding: 0 10px 8px; font-size: 10.5px; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--pl-faint); }
+.pl-more .pl-table tbody td { padding: 10px; }
+.pl-more .pl-table th.num, .pl-more .pl-table td.num { text-align: right;
+    font-variant-numeric: tabular-nums; }
+.pl-more .doc { display: block; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px; color: var(--pl-ink); }
+.pl-more .doc .pl-mark { margin-left: 4px; }
+.pl-more .doc + .doc { margin-top: 3px; }
+.pl-more .sem { display: block; margin-top: 3px; font-size: 11.5px; color: var(--pl-muted); }
+.pl-more .rel { display: block; margin-top: 3px; font-size: 11.5px; color: var(--pl-muted); }
+.pl-fine { font-size: 11.5px; color: var(--pl-muted); line-height: 1.55; margin: 12px 0 0;
+    display: flex; align-items: flex-start; gap: 7px; }
+.pl-fine svg { width: 13px; height: 13px; flex: none; margin-top: 3px; color: var(--pl-faint); }
+
+.pl-acoes { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--pl-border-2);
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pl-feed.is-js .pl-acoes { margin-top: auto; }
+.pl-btn.lg { height: 46px; padding: 0 20px; font-size: 13.5px; border-radius: 14px; }
+
+/* O próximo do pool: silhueta sob o card, sem conteúdo competindo com quem está em foco.
+   Não é "o segundo colocado" — é só o próximo da ordem sorteada. */
+.pl-peek { position: relative; margin-top: -14px; width: 88%; background: var(--pl-card);
+    border: 1px solid var(--pl-border); border-top: 0; border-radius: 0 0 20px 20px;
+    padding: 24px 30px 12px; display: flex; align-items: center; gap: 11px; cursor: pointer;
+    text-align: left; font-family: var(--pl-body); box-shadow: 0 18px 30px rgba(11,42,74,.06);
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 38%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 38%, transparent 100%); }
+.pl-peek:hover .pn { color: var(--pl-data); }
+.pl-peek:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; }
+.pl-peek .pav { width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center;
+    color: #fff; font-family: var(--pl-display); font-weight: 600; font-size: 11px; flex: none;
+    background: linear-gradient(135deg, var(--pl-navy-2), var(--pl-blue));
+    filter: saturate(.35) opacity(.7); }
+.pl-peek .pn { font-family: var(--pl-display); font-weight: 600; font-size: 14px;
+    color: var(--pl-muted); letter-spacing: -.01em; }
+
+/* Trilho: duas setas e um indicador contínuo de 2px. Sem número de posição, porque posição
+   numa lista sorteada não significa nada e leria como colocação (item 10.1). */
+.pl-rail { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); z-index: 3;
+    display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.pl-arrow { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--pl-border);
+    background: var(--pl-card); color: var(--pl-muted); cursor: pointer; display: grid;
+    place-items: center; box-shadow: 0 6px 16px rgba(11,42,74,.08); }
+.pl-arrow:hover { color: var(--pl-data); }
+.pl-arrow:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; }
+.pl-arrow[disabled] { opacity: .35; cursor: default; }
+.pl-arrow svg { width: 18px; height: 18px; }
+.pl-progress { position: relative; width: 2px; height: 120px; border-radius: 2px;
+    background: var(--pl-border); overflow: hidden; }
+.pl-thumb { position: absolute; left: 0; top: 0; width: 2px; border-radius: 2px;
+    background: var(--pl-data); opacity: .55; transition: transform .3s ease, height .25s ease; }
+.pl-hint { position: absolute; left: 26px; bottom: 16px; z-index: 3; font-size: 11.5px;
+    color: var(--pl-muted); display: flex; align-items: center; gap: 7px; }
+.pl-hint svg { width: 13px; height: 13px; }
+
+/* Fim do pool e pool vazio: o mesmo quadro, porque nos dois casos a pergunta é "e agora?". */
+.pl-end { text-align: left; }
+.pl-feed.is-js .pl-focus.is-end { justify-content: center; }
+.pl-end .et { font-family: var(--pl-display); font-weight: 600; font-size: 22px;
+    letter-spacing: -.02em; line-height: 1.25; margin: 0; }
+.pl-end .es { font-size: 13.5px; color: var(--pl-muted); margin: 10px 0 0; max-width: 54ch; }
+.pl-end .ea { margin-top: 24px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+/* Procedência da sessão: o que permite refazer esta lista exatamente igual. Terciário na tela,
+   central na auditoria (item 12.3). */
+.pl-proveniencia { padding: 0 24px 22px; font-size: 11.5px; color: var(--pl-muted);
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pl-proveniencia .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-numeric: tabular-nums; }
+.pl-proveniencia .sep { width: 3px; height: 3px; border-radius: 50%; background: var(--pl-faint);
+    flex: none; }
+
+/* Selo: a cor vem do token e o símbolo é o mesmo de toda a interface (seção 4). */
+.pl-seal, .pl-mark { color: var(--pl-seal); }
+.pl-mark.nao { color: var(--pl-faint); }
+
+@media (hover: none) {
+    .pl-tip { position: static; opacity: 1; visibility: visible; transform: none;
+        box-shadow: none; border: 0; border-left: 2px solid var(--pl-border); border-radius: 0;
+        padding: 2px 0 2px 10px; margin: 6px 0 0; grid-column: 1 / -1; }
+}
+
+@media (max-width: 900px) {
+    .pl-ctxline { padding: 14px 16px 0; }
+    .pl-ctxline form { margin-left: 0; }
+    .pl-stage { padding: 18px 16px 30px; }
+    .pl-focus { padding: 24px 20px 22px; border-radius: 18px; }
+    .pl-feed.is-js .pl-focus { min-height: 0; }
+    .pl-name { font-size: 24px; }
+    .pl-av { width: 50px; height: 50px; border-radius: 15px; font-size: 18px; }
+    .pl-adher .pl-dim { grid-template-columns: 104px minmax(0, 1fr) 40px; gap: 10px; }
+    .pl-tip { left: 0; }
+    .pl-rail { position: static; transform: none; flex-direction: row; justify-content: center;
+        margin-top: 18px; }
+    .pl-progress { width: 120px; height: 2px; }
+    .pl-thumb { display: none; }
+    .pl-hint { display: none; }
+    .pl-peek { width: 94%; }
+    .pl-proveniencia { padding: 0 16px 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pl-toggle .ch, .pl-thumb, .pl-bar span, .pl-tip { transition-duration: .01ms; }
+}
+
+/* Sem JavaScript o palco é uma pilha: a evidência fica aberta (o botão que a fecharia não teria
+   como funcionar) e o trilho de navegação nunca aparece, porque ele já nasce com [hidden]. */
+.pl-feed:not(.is-js) .pl-more { display: block; }
+.pl-feed:not(.is-js) .pl-toggle { display: none; }
+
+/* `hidden` precisa ganhar de qualquer display declarado acima, e vários destes elementos são
+   flex por padrão: sem isto o card escondido pelo JS continuaria na tela. */
+.pl-feed [hidden] { display: none !important; }
+
+/* Entrada do card em foco. Curta de propósito: é confirmação de que algo trocou, não espetáculo. */
+.pl-feed.is-js .pl-focus.is-entrando { animation: pl-entra .3s ease both; }
+.pl-feed.is-js .pl-focus.is-entrando.de-cima { animation-name: pl-entra-cima; }
+@keyframes pl-entra      { from { opacity: 0; transform: translateY(12px); } }
+@keyframes pl-entra-cima { from { opacity: 0; transform: translateY(-12px); } }
+@media (prefers-reduced-motion: reduce) {
+    .pl-feed.is-js .pl-focus.is-entrando { animation: none; }
+}

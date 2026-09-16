@@ -16,6 +16,7 @@ require_once dirname(__DIR__) . '/_config.php';
 
 use ProLink\Controller\AdminController;
 use ProLink\Controller\AuthController;
+use ProLink\Controller\CompativelController;
 use ProLink\Controller\DemandaController;
 use ProLink\Controller\DenunciaController;
 use ProLink\Controller\HomeController;
@@ -72,6 +73,11 @@ $router->post('/perfil/experiencias',                 PerfilController::class, '
 $router->post('/perfil/experiencias/{id}',            PerfilController::class, 'editarExperiencia', PERFIL_PROFISSIONAL);
 $router->post('/perfil/experiencias/{id}/excluir',    PerfilController::class, 'excluirExperiencia', PERFIL_PROFISSIONAL);
 
+// Perfil de outra pessoa. Depois das rotas literais acima, porque {id} casaria 'visibilidade'
+// antes delas. PerfilService::montar() já recebe o espectador e filtra pela Visao: quem não é o
+// dono vê só o que o dono abriu.
+$router->get('/perfil/{id}', PerfilController::class, 'publico', PERFIS_AUTENTICADOS);
+
 $router->get('/privacidade',                  PrivacidadeController::class, 'index', PERFIS_AUTENTICADOS);
 $router->post('/privacidade/consentimento',   PrivacidadeController::class, 'definirConsentimento', PERFIS_AUTENTICADOS);
 $router->get('/privacidade/exportar',         PrivacidadeController::class, 'exportar', PERFIS_AUTENTICADOS);
@@ -89,6 +95,11 @@ $router->post('/demandas/{id}',          DemandaController::class, 'editar', PER
 $router->post('/demandas/{id}/tos',      DemandaController::class, 'alterarTos', PERFIS_DEMANDANTES);
 $router->post('/demandas/{id}/publicar', DemandaController::class, 'publicar', PERFIS_DEMANDANTES);
 $router->post('/demandas/{id}/encerrar', DemandaController::class, 'encerrar', PERFIS_DEMANDANTES);
+
+// O feed é do dono da demanda, logo dos perfis que publicam. GET relê a última sessão gravada;
+// POST manda calcular outra — ver CompativelController.
+$router->get('/demandas/{id}/compativeis',  CompativelController::class, 'index',     PERFIS_DEMANDANTES);
+$router->post('/demandas/{id}/compativeis', CompativelController::class, 'atualizar', PERFIS_DEMANDANTES);
 
 // ---------------------------------------------------------------- denúncias (RF06)
 // Qualquer conta autenticada denuncia, inclusive Terceiro. Anônimo recebe 401.
