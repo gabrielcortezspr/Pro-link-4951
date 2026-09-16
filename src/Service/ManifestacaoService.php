@@ -128,9 +128,24 @@ final class ManifestacaoService
             );
         }
 
+        // A demanda escolhe a quem se dirige (Anexo I, item 3), e o motor já respeita isso no
+        // portão do pool. Sem esta conferência, a vitrine viraria o caminho para contornar a
+        // restrição: o candidato de tipo excluído nunca apareceria como compatível e ainda assim
+        // conseguiria manifestar. Mesmo vocabulário de DemandaService::ALVOS.
+        $tipo = $this->tipoDe($candidatoId);
+        $alvo = (string) ($demanda['dem_alvo'] ?? 'A');
+
+        if ($alvo !== 'A' && $alvo !== $tipo) {
+            throw new ValidacaoException(
+                $alvo === 'E'
+                    ? 'Esta demanda está dirigida a empresas registradas no CREA.'
+                    : 'Esta demanda está dirigida a profissionais registrados no CREA.'
+            );
+        }
+
         $this->exigirDentroDoLimite($candidatoId);
 
-        $ehEmpresa = $this->usuarios->perfisAtivos([$candidatoId])[$candidatoId] === PERFIL_EMPRESA;
+        $ehEmpresa = $tipo === 'E';
         $perfil    = $this->montarSnapshot($candidatoId, (int) $demanda['dem_usu_id']);
 
         if ($perfil === null) {
@@ -235,11 +250,24 @@ final class ManifestacaoService
      */
     private function montarSnapshot(int $candidatoId, int $demandanteId): ?array
     {
-        $ehEmpresa = ($this->usuarios->perfisAtivos([$candidatoId])[$candidatoId] ?? null)
-            === PERFIL_EMPRESA;
-
-        return $ehEmpresa
+        return $this->tipoDe($candidatoId) === 'E'
             ? $this->perfisEmpresa->montar($candidatoId, $demandanteId)
             : $this->perfis->montar($candidatoId, $demandanteId);
+    }
+
+    /**
+     * 'E' para empresa, 'P' para o resto — o mesmo vocabulário de `crea_evidencias` e de
+     * `man_candidato_tipo`, para a comparação com `dem_alvo` ser direta.
+     *
+     * Conta inexistente, excluída ou bloqueada não volta de `perfisAtivos()` e cai em 'P'. Não é
+     * descuido: quem não volta daí já foi recusado pelo portão de exibição antes de chegar aqui,
+     * e escolher o caminho do profissional apenas evita um erro de chave onde a decisão real já
+     * foi tomada.
+     */
+    private function tipoDe(int $usuarioId): string
+    {
+        return ($this->usuarios->perfisAtivos([$usuarioId])[$usuarioId] ?? null) === PERFIL_EMPRESA
+            ? 'E'
+            : 'P';
     }
 }
