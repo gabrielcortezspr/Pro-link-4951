@@ -1,134 +1,158 @@
 {% extends 'layout/base.html.twig' %}
 {% import 'layout/_form.html.twig' as form %}
+{% import 'layout/_ui.html.twig' as ui %}
 
 {% block titulo %}Privacidade e meus dados · Pro-Link{% endblock %}
 
+{% block classe_main %}pl-wrap registro{% endblock %}
+
 {% block conteudo %}
-<h1 class="h3 mb-1">Privacidade e meus dados</h1>
-<p class="text-body-secondary">
-    O que a plataforma guarda sobre você, e o que você pode mudar a qualquer momento.
-</p>
+{% set perfis = {
+    'PROFISSIONAL': 'Profissional', 'EMPRESA': 'Empresa',
+    'TERCEIRO': 'Terceiro', 'ADMIN': 'Administração'
+} %}
 
-<section class="mb-5" aria-labelledby="h-conta">
-    <h2 class="h5" id="h-conta">Minha conta</h2>
-    <dl class="row mb-0">
-        <dt class="col-sm-3">Nome</dt><dd class="col-sm-9">{{ painel.usuario.nome }}</dd>
-        <dt class="col-sm-3">E-mail</dt><dd class="col-sm-9">{{ painel.usuario.email }}</dd>
-        <dt class="col-sm-3">Perfil</dt><dd class="col-sm-9">{{ painel.usuario.perfil }}</dd>
-        <dt class="col-sm-3">CPF / CNPJ</dt>
-        <dd class="col-sm-9">
-            {{ painel.usuario.documento }}
-            <span class="form-text d-block">
-                Guardado cifrado. Aparece mascarado em toda a plataforma; o valor completo sai
-                apenas na sua exportação de dados.
-            </span>
-        </dd>
-        <dt class="col-sm-3">Telefone</dt><dd class="col-sm-9">{{ painel.usuario.telefone ?: 'Não informado' }}</dd>
-        <dt class="col-sm-3">Conta criada em</dt><dd class="col-sm-9">{{ painel.usuario.desde }}</dd>
-    </dl>
-</section>
-
-<section class="mb-5" aria-labelledby="h-consentimentos">
-    <h2 class="h5" id="h-consentimentos">Consentimentos</h2>
-    <p class="text-body-secondary">
-        Cada finalidade é independente. Revogar tem efeito imediato.
-    </p>
-
-    <div class="table-responsive">
-        <table class="pl-table align-middle">
-            <caption class="visually-hidden">Finalidades de uso dos seus dados e situação de cada uma</caption>
-            <thead>
-                <tr>
-                    <th scope="col">Finalidade</th>
-                    <th scope="col">Situação</th>
-                    <th scope="col"><span class="visually-hidden">Ação</span></th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for chave, descricao in finalidades %}
-                {% set estado = painel.consentimentos[chave] %}
-                <tr>
-                    <th scope="row" class="fw-normal">{{ descricao }}</th>
-                    <td>
-                        {% if estado.concedido %}
-                            <span class="badge text-bg-success">Concedido</span>
-                            {% if estado.concessao %}<span class="form-text d-block">em {{ estado.concessao }}</span>{% endif %}
-                        {% else %}
-                            <span class="badge text-bg-secondary">Não concedido</span>
-                            {% if estado.revogacao %}<span class="form-text d-block">revogado em {{ estado.revogacao }}</span>{% endif %}
-                        {% endif %}
-                    </td>
-                    <td class="text-end">
-                        <form method="post" action="{{ app_url }}/privacidade/consentimento" class="d-inline">
-                            {{ form.csrf() }}
-                            <input type="hidden" name="finalidade" value="{{ chave }}">
-                            <input type="hidden" name="acao" value="{{ estado.concedido ? 'revogar' : 'conceder' }}">
-                            <button type="submit" class="btn btn-sm {{ estado.concedido ? 'btn-outline-danger' : 'btn-outline-primary' }}">
-                                {{ estado.concedido ? 'Revogar' : 'Conceder' }}
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+<div class="pl-head">
+    <div class="tit">
+        <h1>Privacidade e meus dados</h1>
+        <p class="sub">O que a plataforma guarda sobre você, e o que você pode mudar a qualquer momento.</p>
     </div>
-</section>
+</div>
 
-<section class="mb-5" aria-labelledby="h-sessoes">
-    <h2 class="h5" id="h-sessoes">Sessões abertas</h2>
-    {% if painel.sessoes is empty %}
-        <p class="text-body-secondary mb-0">Nenhuma sessão ativa registrada.</p>
-    {% else %}
-        <ul class="list-unstyled mb-0">
-        {% for sessao in painel.sessoes %}
-            <li class="mb-2">
-                <code>{{ sessao.ses_ip ?: 'origem desconhecida' }}</code>
-                aberta em {{ sessao.ses_dt_registro }}, expira em {{ sessao.ses_dt_expiracao }}
-                <span class="form-text d-block">{{ sessao.ses_user_agent ?: 'navegador não informado' }}</span>
-            </li>
-        {% endfor %}
-        </ul>
-    {% endif %}
-</section>
+<div class="pl-cols">
+    <div class="pl-stack">
 
-<section class="mb-5" aria-labelledby="h-portabilidade">
-    <h2 class="h5" id="h-portabilidade">Levar meus dados</h2>
-    <p class="text-body-secondary">
-        Baixa um arquivo JSON com sua conta, seus consentimentos, suas sessões e o histórico das
-        suas ações na plataforma.
-    </p>
-    <a class="btn btn-outline-secondary" href="{{ app_url }}/privacidade/exportar">Baixar meus dados (JSON)</a>
-</section>
+        <section class="pl-card" aria-labelledby="h-consentimentos">
+            <div class="pl-linha-titulo">
+                <h2 class="pl-secao" id="h-consentimentos">Consentimentos</h2>
+                {{ ui.info('Como cada finalidade funciona',
+                    'Cada finalidade é independente das outras e pode ser concedida ou revogada quando você quiser. A revogação tem efeito imediato: a plataforma reconfere a escolha em toda leitura, e não guarda cópia do que ficou fora.') }}
+            </div>
 
-{% if painel.usuario.perfil != 'ADMIN' %}
-<section class="mb-3" aria-labelledby="h-excluir">
-    <h2 class="h5 text-danger" id="h-excluir">Excluir minha conta</h2>
-    <p class="text-body-secondary">
-        Sua conta sai de toda consulta da plataforma, seu perfil deixa de aparecer em buscas e em
-        compatibilizações, e todas as suas sessões são encerradas na hora. O registro de que você
-        pediu a exclusão permanece na trilha de auditoria, e é o que comprova que o pedido foi
-        atendido. Esta ação não pode ser desfeita por você.
-    </p>
+            <div class="table-responsive">
+                <table class="pl-table">
+                    <caption class="visually-hidden">Finalidades de uso dos seus dados e situação de cada uma</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Finalidade</th>
+                            <th scope="col">Situação</th>
+                            <th scope="col"><span class="visually-hidden">Ação</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for chave, descricao in finalidades %}
+                        {% set estado = painel.consentimentos[chave] %}
+                        <tr>
+                            <th scope="row" class="fw-normal">{{ descricao }}</th>
+                            <td>
+                                {% if estado.concedido %}
+                                    <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Concedido</span>
+                                    {% if estado.concessao %}<span class="lin-sub">em {{ estado.concessao|date('d/m/Y') }}</span>{% endif %}
+                                {% else %}
+                                    <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Não concedido</span>
+                                    {% if estado.revogacao %}<span class="lin-sub">revogado em {{ estado.revogacao|date('d/m/Y') }}</span>{% endif %}
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <form method="post" action="{{ app_url }}/privacidade/consentimento" class="d-inline">
+                                    {{ form.csrf() }}
+                                    <input type="hidden" name="finalidade" value="{{ chave }}">
+                                    <input type="hidden" name="acao" value="{{ estado.concedido ? 'revogar' : 'conceder' }}">
+                                    <button type="submit" class="pl-btn sm{{ estado.concedido ? ' risco' : '' }}">
+                                        {{ estado.concedido ? 'Revogar' : 'Conceder' }}
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
-    <form method="post" action="{{ app_url }}/privacidade/excluir" class="row g-2 align-items-end">
-        {{ form.csrf() }}
-        <div class="col-auto">
-            {{ form.campo('confirmacao', 'Digite EXCLUIR para confirmar', 'text', '', null,
-                {autocomplete: 'off', required: true}) }}
-        </div>
-        <div class="col-auto mb-3">
-            <button type="submit" class="btn btn-danger">Excluir minha conta</button>
-        </div>
-    </form>
-</section>
-{% else %}
-<section class="mb-3" aria-labelledby="h-excluir">
-    <h2 class="h5" id="h-excluir">Excluir minha conta</h2>
-    <p class="text-body-secondary mb-0">
-        Contas de administração não são excluídas nesta tela. A remoção é feita por outro
-        administrador, para que a plataforma não fique sem moderação nem trilha de auditoria.
-    </p>
-</section>
-{% endif %}
+        <section class="pl-card" aria-labelledby="h-sessoes">
+            <div class="pl-linha-titulo">
+                <h2 class="pl-secao" id="h-sessoes">Sessões abertas</h2>
+                {% if painel.sessoes is not empty %}<span class="cnt">{{ painel.sessoes|length }}</span>{% endif %}
+            </div>
+
+            {% if painel.sessoes is empty %}
+                <p class="pl-nota mb-0">Nenhuma sessão ativa registrada.</p>
+            {% else %}
+                <ul class="pl-sessoes">
+                    {% for sessao in painel.sessoes %}
+                        <li>
+                            <div class="id">
+                                <span class="pl-mono ip">{{ sessao.ses_ip ?: 'Origem desconhecida' }}</span>
+                                <span class="qd">aberta em {{ sessao.ses_dt_registro|date('d/m/Y H:i') }}, expira em {{ sessao.ses_dt_expiracao|date('d/m/Y H:i') }}</span>
+                            </div>
+                            <p class="ua">{{ sessao.ses_user_agent ?: 'Navegador não informado' }}</p>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+    </div>
+
+    <div class="pl-stack">
+
+        <section class="pl-card" aria-labelledby="h-conta">
+            <div class="pl-linha-titulo"><h2 class="pl-secao" id="h-conta">Minha conta</h2></div>
+            <dl class="pl-dl mini mt-0">
+                <dt>Nome</dt><dd>{{ painel.usuario.nome }}</dd>
+                <dt>E-mail</dt><dd>{{ painel.usuario.email }}</dd>
+                <dt>Perfil</dt>
+                <dd title="{{ painel.usuario.perfil }}">{{ perfis[painel.usuario.perfil]|default('Conta') }}</dd>
+                <dt>CPF ou CNPJ</dt>
+                <dd>
+                    <span class="pl-mono">{{ painel.usuario.documento }}</span>
+                    <span class="lin-sub">Guardado cifrado. O valor completo sai apenas na sua exportação.</span>
+                </dd>
+                <dt>Telefone</dt><dd>{{ painel.usuario.telefone ?: 'Não informado' }}</dd>
+                <dt>Conta criada em</dt><dd class="mono">{{ painel.usuario.desde|date('d/m/Y') }}</dd>
+            </dl>
+        </section>
+
+        <section class="pl-card" aria-labelledby="h-portabilidade">
+            <div class="pl-linha-titulo"><h2 class="pl-secao" id="h-portabilidade">Levar meus dados</h2></div>
+            <p class="pl-nota">
+                Um arquivo JSON com sua conta, seus consentimentos, suas sessões e o histórico das
+                suas ações.
+            </p>
+            <a class="pl-btn" href="{{ app_url }}/privacidade/exportar">Baixar meus dados (JSON)</a>
+        </section>
+
+        {% if painel.usuario.perfil != 'ADMIN' %}
+            <section class="pl-card pl-perigo" aria-labelledby="h-excluir">
+                <div class="pl-linha-titulo"><h2 class="pl-secao" id="h-excluir">Excluir minha conta</h2></div>
+                {#  Consequência de ação irreversível fica visível, curta, diante de quem vai
+                    clicar: isso é consentimento informado, não dica de uso. A versão completa
+                    aparece de novo na confirmação, no momento do clique. #}
+                <p class="pl-nota">
+                    Sua conta sai de toda consulta da plataforma, seu perfil deixa de aparecer em
+                    buscas e compatibilizações, e todas as suas sessões são encerradas na hora.
+                    O pedido fica registrado na trilha de auditoria, que é o que comprova o
+                    atendimento. Esta ação não pode ser desfeita por você.
+                </p>
+
+                <form method="post" action="{{ app_url }}/privacidade/excluir"
+                      data-confirmar="Excluir sua conta agora? Seu perfil sai de todas as buscas e compatibilizações, suas sessões são encerradas, e você não consegue desfazer.">
+                    {{ form.csrf() }}
+                    {{ form.campo('confirmacao', 'Digite EXCLUIR para confirmar', 'text', '', null,
+                        {autocomplete: 'off', required: true}) }}
+                    <button type="submit" class="btn btn-danger">Excluir minha conta</button>
+                </form>
+            </section>
+        {% else %}
+            <section class="pl-card" aria-labelledby="h-excluir">
+                <div class="pl-linha-titulo"><h2 class="pl-secao" id="h-excluir">Excluir minha conta</h2></div>
+                <p class="pl-nota mb-0">
+                    Contas de administração não são excluídas nesta tela. A remoção é feita por
+                    outro administrador, para que a plataforma não fique sem moderação nem trilha
+                    de auditoria.
+                </p>
+            </section>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

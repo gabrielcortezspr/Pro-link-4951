@@ -86,6 +86,33 @@ Nada de rótulo "ART verificada" em tarja; nada de amarelo. Em tabela, o selo co
 - **Campo obrigatório** — asterisco vermelho no rótulo + estado de erro (borda vermelha + texto),
   nunca "(obrigatório)" no rótulo.
 
+## Largura: a medida vem do conteúdo (D53)
+
+O `.container` do Bootstrap **não** é a moldura da aplicação. Cada tela declara `classe_main` com
+uma das três medidas de `.pl-wrap` (seção 14 do `prolink.css`):
+
+- **`pl-wrap densa`** (1640px) — tabela, fila, grade de cartões. Auditoria, denúncias, minhas
+  demandas, demandas abertas.
+- **`pl-wrap registro`** (1360px) — um registro com painel de ação ao lado, via `.pl-cols`
+  (conteúdo fluido + painel de até 372px). Detalhe da demanda, perfil, privacidade.
+- **`pl-wrap leitura`** (980px) — formulário e texto corrido, sempre dentro de um `.pl-card`, para
+  a moldura ao redor ler como composição e não como coluna esquecida.
+
+O padrão sem escolha é `pl-wrap` (1240px). O painel administrativo continua sendo a página inteira
+(`.pl-app`), com teto de 1760px no conteúdo. Desktop é o ponto de partida do desenho; a
+responsividade continua valendo e é exigência do Anexo VI.
+
+## Explicar sob demanda: o "i" (D53)
+
+Interface não se explica em parágrafo permanente. `{{ ui.info('Título', 'Texto') }}`
+(`layout/_ui.html.twig`) põe um `<details>` de 18px ao lado do que ele explica, e a explicação
+abre com clique ou teclado. Vale para: como a plataforma funciona, o que é a TOS, como o pool é
+montado, quanto pesa cada dimensão.
+
+**Não vale para dois casos**, que ficam visíveis e curtos: a declaração de não-ranking na tela onde
+o motor apresenta resultado (item 10.2), e a consequência de ação irreversível no momento da ação
+(a exclusão de conta), que é consentimento informado.
+
 ## Convenções de texto
 
 Sem emoji na UI (ícone SVG monocromático). Sem travessão (—) na cópia visível. Largura total, nada

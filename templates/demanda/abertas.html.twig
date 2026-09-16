@@ -1,34 +1,66 @@
 {% extends 'layout/base.html.twig' %}
+{% import 'layout/_ui.html.twig' as ui %}
 
 {% block titulo %}Demandas abertas · Pro-Link{% endblock %}
 
+{#  Vitrine: muitos itens curtos e independentes. Em grade, a tela de 1600px mostra quatro
+    demandas por fileira; empilhadas em coluna única, cada uma ocupava uma faixa inteira para
+    dizer três linhas. #}
+{% block classe_main %}pl-wrap densa{% endblock %}
+
 {% block conteudo %}
-<h1 class="h3 mb-1">Demandas abertas</h1>
-<p class="text-body-secondary">
-    Demandas publicadas por empresas e contratantes. A correspondência entre perfil e demanda é
-    apenas indicativa: não há ranking nem recomendação institucional.
-</p>
+<div class="pl-head">
+    <div class="tit">
+        <h1>Demandas abertas</h1>
+        <p class="sub">
+            {% if demandas is not empty %}
+                <span><span class="n">{{ demandas|length }}</span>
+                    {{ demandas|length == 1 ? 'demanda publicada' : 'demandas publicadas' }}</span>
+                <span class="pl-sep" aria-hidden="true"></span>
+            {% endif %}
+            <span>Publicadas por empresas e contratantes</span>
+        </p>
+    </div>
+</div>
 
 {% if demandas is empty %}
-    <p class="text-body-secondary">Nenhuma demanda publicada no momento.</p>
+    <div class="pl-card pl-vazio">
+        <p class="t">Nenhuma demanda publicada no momento</p>
+        <p class="s">
+            Quando uma empresa ou contratante publicar, a demanda aparece aqui com o escopo e o
+            local do serviço.
+        </p>
+    </div>
 {% else %}
-    {% for d in demandas %}
-        <article class="card mb-3">
-            <div class="card-body">
-                <h2 class="h6 mb-1">
-                    <a href="{{ app_url }}/demandas/{{ d.dem_id }}">{{ d.dem_titulo }}</a>
-                </h2>
-                <p class="small text-body-secondary mb-2">
-                    {% if d.dem_local_municipio %}{{ d.dem_local_municipio }}{% if d.dem_local_uf %}/{{ d.dem_local_uf }}{% endif %} · {% endif %}
-                    {#  Mesmo motivo do detalhe da demanda: o gravado é a chave da lista fechada
-                        (OBRA_CERTA), e chave em caixa alta não chega na tela. O valor cru fica
-                        no title. #}
-                    <span{% if d.dem_tipo_contrato %} title="{{ d.dem_tipo_contrato }}"{% endif %}>{{ d.dem_tipo_contrato|rotulo_contrato ?: 'Contrato a combinar' }}</span>
-                    {% if d.dem_situacao == 'COM_INTERESSADOS' %} · <span class="badge text-bg-success">Com interessados</span>{% endif %}
-                </p>
-                <p class="mb-0">{{ d.dem_escopo|slice(0, 240) }}{% if d.dem_escopo|length > 240 %}…{% endif %}</p>
-            </div>
-        </article>
-    {% endfor %}
+    <div class="pl-grade">
+        {% for d in demandas %}
+            <article class="pl-card">
+                <div class="pl-dem">
+                    <div class="tp">
+                        <a class="tt" href="{{ app_url }}/demandas/{{ d.dem_id }}">{{ d.dem_titulo }}</a>
+                        {{ ui.situacao(d.dem_situacao, true) }}
+                    </div>
+
+                    <p class="meta">
+                        {% if d.dem_local_municipio %}
+                            <span>{{ d.dem_local_municipio }}{% if d.dem_local_uf %}/{{ d.dem_local_uf }}{% endif %}</span>
+                            <span class="pl-sep" aria-hidden="true"></span>
+                        {% endif %}
+                        {#  Mesmo motivo do detalhe da demanda: o gravado é a chave da lista fechada
+                            (OBRA_CERTA), e chave em caixa alta não chega na tela. O valor cru fica
+                            no title. #}
+                        <span{% if d.dem_tipo_contrato %} title="{{ d.dem_tipo_contrato }}"{% endif %}>{{ d.dem_tipo_contrato|rotulo_contrato ?: 'Contrato a combinar' }}</span>
+                    </p>
+
+                    <p class="esc">{{ d.dem_escopo|slice(0, 260) }}{% if d.dem_escopo|length > 260 %}…{% endif %}</p>
+
+                    <div class="pe">
+                        <span class="meta">Publicada em {{ d.dem_dt_publicacao|date('d/m/Y') }}</span>
+                        <a class="pl-btn sm" href="{{ app_url }}/demandas/{{ d.dem_id }}">Ver demanda</a>
+                    </div>
+                </div>
+            </article>
+        {% endfor %}
+    </div>
 {% endif %}
 {% endblock %}

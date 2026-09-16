@@ -1,0 +1,132 @@
+{#
+  Peças de interface reaproveitadas por mais de uma tela. Macro que nasce dentro de um template e
+  serve a outro vira cópia: o chip de TOS já era o caso (só o feed o usava, e quatro telas
+  continuavam mostrando `TOS_1.1.2.3` cru dentro de <code>).
+
+  Uso:
+    {% import 'layout/_ui.html.twig' as ui %}
+    {{ ui.tos(codigo, descricao) }}
+    {{ ui.info('Como o pool é montado', 'Texto de uma ou duas frases.') }}
+#}
+
+{#
+  Código da TOS legível: "Construção de edificação · TOS 1.1.1.1", sem underline e sem caixa de
+  código. O valor cru fica no title, para quem audita. `compacto` deixa só o código, para quando a
+  descrição já está na mesma linha ou na mesma tela.
+#}
+{% macro tos(codigo, descricao = '', compacto = false) %}
+    {#  Corta na última palavra inteira: a descrição da tabela é uma concatenação de grupo,
+        subgrupo e obra, e cortar no caractere 46 deixava "de edificação p…" na tela. #}
+    {%- set curta = descricao is empty ? '' :
+        (descricao|length > 46 ? descricao|slice(0, 46)|split(' ')|slice(0, -1)|join(' ') ~ '…' : descricao) -%}
+    <span class="pl-tos" title="{{ codigo }}{% if descricao is not empty %} · {{ descricao }}{% endif %}">
+        {%- if curta and not compacto %}{{ curta }} {% endif -%}
+        <span class="code">{{ codigo|replace({'TOS_': 'TOS '}) }}</span>
+    </span>
+{% endmacro %}
+
+{% macro iniciais(nome) %}
+    {%- set lista = nome|trim|split(' ')|filter(p => p is not empty) -%}
+    {{- (lista|first|slice(0, 1) ~ (lista|length > 1 ? lista|last|slice(0, 1) : ''))|upper -}}
+{% endmacro %}
+
+{#
+  O "i": explicação sob demanda, ao lado do que ela explica.
+
+  É <details> nativo, e não um componente novo nem um title="": funciona sem JavaScript, o texto
+  está sempre no DOM e é anunciado por leitor de tela quando aberto, o gatilho já é um botão para
+  o teclado (Enter e Espaço), e não depende de hover, então em tela de toque o comportamento é o
+  mesmo. `alinhar` vale 'fim' quando o ícone fica no canto direito e a caixa precisa alinhar pela
+  direita para não sair da janela.
+
+  Onde entra: explicação de como a plataforma funciona. O que a pessoa precisa ler para decidir
+  (a frase de não-ranking onde o motor apresenta resultado, e a consequência de ação irreversível)
+  continua visível na tela.
+#}
+{% macro info(titulo, texto, alinhar = '') %}
+    <details class="pl-info{% if alinhar == 'fim' %} fim{% endif %}">
+        {#  Texto real escondido em vez de aria-label: leitor de tela que ignora aria-label em
+            <summary> continua tendo o que anunciar, e o nome do botão diz o que ele abre. #}
+        <summary>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 11v6M12 7.4v.2"/></svg>
+            <span class="visually-hidden">O que é: {{ titulo }}</span>
+        </summary>
+        <div class="pl-info-caixa" role="note">
+            <b>{{ titulo }}</b>
+            <p>{{ texto }}</p>
+        </div>
+    </details>
+{% endmacro %}
+
+{#
+  Situação da demanda: vocabulário e cor fixos por estado (docs/design.md), num lugar só. As três
+  telas de demanda escreviam o mesmo if com `badge text-bg-*` do Bootstrap, e já divergiam entre
+  si: a mesma demanda encerrada aparecia preta no painel e cinza no detalhe.
+
+  Rascunho é a ausência de data de publicação, não uma situação gravada, por isso o segundo
+  argumento.
+#}
+{% macro situacao(situacao, publicada) %}
+    {%- if not publicada -%}
+        <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Rascunho</span>
+    {%- elseif situacao == 'ENCERRADA' -%}
+        <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Encerrada</span>
+    {%- elseif situacao == 'COM_INTERESSADOS' -%}
+        <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Com interessados</span>
+    {%- else -%}
+        <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Aberta</span>
+    {%- endif -%}
+{% endmacro %}
+
+{#
+  Uma ART do acervo verificado. O mesmo bloco serve ao perfil do profissional e ao acervo
+  operacional da empresa (lá com o autor do registro), e as duas telas escreviam o seu.
+
+  A verificação é o símbolo colado no número da ART, e não uma tarja verde de texto ao lado
+  (docs/design.md). Divergência continua sendo tarja, e vermelha: ali o fato é anômalo e precisa
+  de peso, porque significa que o conteúdo gravado não corresponde ao selo.
+
+  `autor` é null no perfil do profissional, e {nome, rnp} no acervo da empresa.
+#}
+{% macro art(a, autor = null) %}
+    {%- import _self as ui -%}
+    <article class="pl-art">
+        <div class="tp">
+            <h3 class="nr">
+                ART {{ a.numero }}
+                {% if a.selo_confere %}
+                    <svg class="pl-mark" role="img" aria-label="Conferida na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+                {% endif %}
+            </h3>
+            {% if not a.selo_confere %}
+                <span class="pl-pill danger" title="O conteúdo gravado não corresponde ao selo. Isto foi registrado na auditoria.">
+                    <span class="pd" aria-hidden="true"></span>Selo divergente
+                </span>
+            {% endif %}
+            <span class="qd">Consultada em {{ a.dt_consulta|date('d/m/Y') }}</span>
+        </div>
+
+        <p class="ob">{{ a.objeto }}</p>
+
+        <dl class="pl-dl mini">
+            {% if autor %}
+                <dt>Registrada por</dt>
+                <dd>{{ autor.nome ?: 'Profissional do quadro técnico' }}
+                    <span class="pl-mono">RNP {{ autor.rnp }}</span></dd>
+            {% endif %}
+            <dt>Contratante</dt><dd>{{ a.contratante ?: 'Não informado' }}</dd>
+            <dt>Local</dt><dd>{{ a.local ?: 'Não informado' }}</dd>
+            <dt>Situação</dt><dd>{{ a.situacao ?: 'Não informado' }}</dd>
+        </dl>
+
+        {% if a.atividades is empty %}
+            <p class="pl-nota mb-0">Sem atividades registradas nesta ART.</p>
+        {% else %}
+            <ul class="pl-chips">
+                {% for atividade in a.atividades %}
+                    <li>{{ ui.tos(atividade.tos_codigo, atividade.descricao|default('')) }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </article>
+{% endmacro %}

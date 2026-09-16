@@ -1,19 +1,37 @@
 {% extends 'layout/base.html.twig' %}
 {% import 'layout/_form.html.twig' as form %}
+{% import 'layout/_ui.html.twig' as ui %}
 
 {% block titulo %}{{ titulo }} · Pro-Link{% endblock %}
+
+{#  Um registro: o acervo e as declarações à esquerda, o controle do titular à direita. #}
+{% block classe_main %}pl-wrap registro{% endblock %}
 
 {% block conteudo %}
 {% set p = perfil %}
 
-<h1 class="h3 mb-1">{{ p.identidade.nome }}</h1>
-<p class="text-body-secondary">
-    {% if p.identidade.rnp %}
-        RNP {{ p.identidade.rnp }} · Registro CREA {{ p.identidade.registro_crea }}
-    {% else %}
-        Registro no CREA ainda não validado
-    {% endif %}
-</p>
+<div class="pl-head">
+    <div class="tit">
+        <h1>{{ p.identidade.nome }}</h1>
+        <p class="sub">
+            {% if p.identidade.rnp %}
+                <svg class="pl-mark" role="img" aria-label="Registro validado na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+                <span>RNP <span class="pl-mono">{{ p.identidade.rnp }}</span></span>
+                <span class="pl-sep" aria-hidden="true"></span>
+                <span>Registro no CREA <span class="pl-mono">{{ p.identidade.registro_crea }}</span></span>
+            {% else %}
+                <svg class="pl-mark nao" role="img" aria-label="Registro ainda não validado"><use href="#pl-sym-seal-x"/></svg>
+                <span>Registro no CREA ainda não validado</span>
+            {% endif %}
+            {% if p.em_construcao %}
+                <span class="pl-sep" aria-hidden="true"></span>
+                <span class="pl-pill neutral" title="{% if p.eh_dono %}Seu acervo está começando. Você continua aparecendo nas compatibilizações.{% else %}Acervo em formação. A marca dá contexto, não mede qualidade.{% endif %}">
+                    <span class="pd" aria-hidden="true"></span>Perfil em construção
+                </span>
+            {% endif %}
+        </p>
+    </div>
+</div>
 
 {% if aviso is defined and aviso %}
     <div class="alert alert-danger" role="alert">{{ aviso }}</div>
@@ -54,72 +72,23 @@
     </div>
 {% endif %}
 
-{% if p.em_construcao %}
-    <p class="mb-3">
-        <span class="badge text-bg-info">Perfil em construção</span>
-        <span class="text-body-secondary">
-            {%- if p.eh_dono %} Seu acervo está começando. Você continua aparecendo nas
-            recomendações. A marca só dá contexto a quem te encontrar.
-            {%- else %} Acervo em formação. A marca dá contexto, não mede qualidade.
-            {%- endif %}
-        </span>
-    </p>
-{% endif %}
+<div class="pl-cols">
+    <div class="pl-stack">
 
-<div class="row g-4 mt-1">
-    <div class="col-lg-7">
-        <h2 class="h5">Acervo técnico</h2>
+        <section class="pl-card">
+            <div class="pl-linha-titulo">
+                <h2 class="pl-secao">Acervo técnico</h2>
+                {% if p.arts is not empty %}
+                    <span class="cnt">{{ p.arts|length }} {{ p.arts|length == 1 ? 'ART importada da API oficial' : 'ARTs importadas da API oficial' }}</span>
+                {% endif %}
+            </div>
 
-        {% if p.arts is empty %}
-            <p class="text-body-secondary">Nenhuma ART no seu acervo ainda.</p>
-        {% else %}
-            <p class="text-body-secondary">
-                {{ p.arts|length }} ART(s) importada(s) da API oficial do CREA.
-            </p>
-
-            {% for art in p.arts %}
-                <article class="card mb-3">
-                    <div class="card-body">
-                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
-                            <div>
-                                <h3 class="h6 mb-1">{{ art.numero }}</h3>
-                                <p class="mb-1">{{ art.objeto }}</p>
-                            </div>
-                            {% if art.selo_confere %}
-                                <span class="badge text-bg-success" title="O conteúdo desta ART não mudou desde que foi importado da API oficial.">
-                                    Selo ART conferido
-                                </span>
-                            {% else %}
-                                <span class="badge text-bg-danger" title="O conteúdo gravado não corresponde ao selo. Isto foi registrado na auditoria.">
-                                    Selo divergente
-                                </span>
-                            {% endif %}
-                        </div>
-
-                        <dl class="row small mb-2">
-                            <dt class="col-sm-4">Contratante</dt>
-                            <dd class="col-sm-8">{{ art.contratante ?: 'Não informado' }}</dd>
-                            <dt class="col-sm-4">Local</dt>
-                            <dd class="col-sm-8">{{ art.local ?: 'Não informado' }}</dd>
-                            <dt class="col-sm-4">Situação</dt>
-                            <dd class="col-sm-8">{{ art.situacao ?: 'Não informado' }}</dd>
-                            <dt class="col-sm-4">Consultado em</dt>
-                            <dd class="col-sm-8">{{ art.dt_consulta }}</dd>
-                        </dl>
-
-                        <p class="small mb-1"><strong>Atividades (Tabela de Obras e Serviços)</strong></p>
-                        <ul class="small mb-0">
-                            {% for atividade in art.atividades %}
-                                <li><code>{{ atividade.tos_codigo }}</code>
-                                    {% if atividade.descricao %}· {{ atividade.descricao }}{% endif %}</li>
-                            {% else %}
-                                <li class="text-body-secondary">Sem atividades registradas.</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </article>
-            {% endfor %}
-        {% endif %}
+            {% if p.arts is empty %}
+                <p class="pl-nota mb-0">Nenhuma ART no seu acervo ainda.</p>
+            {% else %}
+                {% for art in p.arts %}{{ ui.art(art) }}{% endfor %}
+            {% endif %}
+        </section>
 
         {#  Preferências declaradas. Fica entre o acervo e a experiência de propósito: é o
             primeiro dos dois blocos de autodeclaração, porque é o estruturado (lista fechada,
@@ -133,266 +102,275 @@
             ? abrangencia_qualquer in valores.abrangencia
             : pref_abrangencia == abrangencia_qualquer %}
 
-        <h2 class="h5 mt-4">Preferências declaradas</h2>
-        <p class="text-body-secondary small">
-            Regime de contratação e abrangência geográfica são duas das seis dimensões que o motor
-            compara ao aproximar você de uma demanda. São <strong>autodeclaradas</strong>: a
-            plataforma não confere e não sela, e por isso cada uma pesa 0,10 na aderência, contra
-            0,40 da competência comprovada por ART. Campo em branco não conta contra você: a
-            dimensão sai da conta em vez de valer zero.
-        </p>
+        <section class="pl-card">
+            <div class="pl-linha-titulo">
+                <h2 class="pl-secao">Preferências declaradas</h2>
+                {{ ui.info('Quanto isto pesa na compatibilização',
+                    'Regime de contratação e abrangência geográfica são duas das seis dimensões que o motor compara ao aproximar você de uma demanda. Como são autodeclaradas, cada uma pesa 0,10 na aderência, contra 0,40 da competência comprovada por ART. Campo em branco não conta contra você: a dimensão sai da conta em vez de valer zero.') }}
+            </div>
 
-        {#  O que está gravado hoje, em duas linhas, separado do formulário que edita. O valor cru
-            (a chave da lista fechada) fica no title, para quem audita. #}
-        <div class="dado-declarado mb-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <p class="small mb-0">
-                <span class="text-body-secondary">Regime de contratação:</span>
-                <strong{% if pref_contrato %} title="{{ pref_contrato }}"{% endif %}>{{ pref_contrato|rotulo_contrato ?: 'Não informado' }}</strong><br>
-                <span class="text-body-secondary">Onde aceita trabalhar:</span>
-                <strong{% if pref_abrangencia %} title="{{ pref_abrangencia }}"{% endif %}>{{ pref_abrangencia|rotulo_abrangencia ?: 'Não informado' }}</strong>
-            </p>
-            <span class="pl-pill neutral" title="Informado pelo próprio profissional. A plataforma não verificou.">
-                <span class="pd"></span>Declarado
-            </span>
-        </div>
+            {#  O que está gravado hoje, em duas linhas, separado do formulário que edita. O valor
+                cru (a chave da lista fechada) fica no title, para quem audita. #}
+            <div class="dado-declarado d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <p class="small mb-0">
+                    <span class="text-body-secondary">Regime de contratação:</span>
+                    <strong{% if pref_contrato %} title="{{ pref_contrato }}"{% endif %}>{{ pref_contrato|rotulo_contrato ?: 'Não informado' }}</strong><br>
+                    <span class="text-body-secondary">Onde aceita trabalhar:</span>
+                    <strong{% if pref_abrangencia %} title="{{ pref_abrangencia }}"{% endif %}>{{ pref_abrangencia|rotulo_abrangencia ?: 'Não informado' }}</strong>
+                </p>
+                <span class="pl-pill neutral" title="Informado pelo próprio profissional. A plataforma não verificou.">
+                    <span class="pd" aria-hidden="true"></span>Declarado
+                </span>
+            </div>
 
-        {% if p.eh_dono %}
-            <form method="post" action="{{ app_url }}/perfil/preferencias" class="border rounded p-3">
-                {{ form.csrf() }}
-                <h3 class="h6">Editar preferências</h3>
+            {% if p.eh_dono %}
+                <form method="post" action="{{ app_url }}/perfil/preferencias" class="pl-form-embutido">
+                    {{ form.csrf() }}
 
-                {{ form.area('resumo', 'Resumo profissional (opcional)',
-                    valores.resumo|default(p.campos.RESUMO|default('')),
-                    erros.resumo|default(null), {rows: 5, maxlength: 2000},
-                    'Até 2000 caracteres. Você decide quem vê este texto, no bloco Quem vê o quê.') }}
+                    {{ form.area('resumo', 'Resumo profissional (opcional)',
+                        valores.resumo|default(p.campos.RESUMO|default('')),
+                        erros.resumo|default(null), {rows: 5, maxlength: 2000},
+                        'Até 2000 caracteres. Você decide quem vê este texto, no bloco Quem vê o quê.') }}
 
-                {{ form.selecao('tipo_contrato', 'Regime de contratação (opcional)',
-                    contratos_possiveis,
-                    valores.tipo_contrato|default(pref_contrato),
-                    erros.tipo_contrato|default(null), {}, 'Não informado') }}
+                    {{ form.selecao('tipo_contrato', 'Regime de contratação (opcional)',
+                        contratos_possiveis,
+                        valores.tipo_contrato|default(pref_contrato),
+                        erros.tipo_contrato|default(null), {}, 'Não informado') }}
 
-                {#  Abrangência: uma escolha de flexibilidade total mais 27 caixas. O grupo das
-                    UFs nasce desabilitado quando "Qualquer lugar do país" está gravado, então a
-                    anulação de uma coisa pela outra é visível sem depender de script; o script
-                    abaixo só mantém isso em dia no clique. #}
-                <fieldset class="mb-3">
-                    <legend class="form-label mb-2">Onde você aceita trabalhar (opcional)</legend>
+                    {#  Abrangência: uma escolha de flexibilidade total mais 27 caixas. O grupo das
+                        UFs nasce desabilitado quando "Qualquer lugar do país" está gravado, então a
+                        anulação de uma coisa pela outra é visível sem depender de script; o script
+                        abaixo só mantém isso em dia no clique. #}
+                    <fieldset class="mb-3">
+                        <legend class="form-label mb-2">Onde você aceita trabalhar (opcional)</legend>
 
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="abrangencia[]"
-                               value="{{ abrangencia_qualquer }}" id="campo-abrangencia-qualquer"
-                               aria-describedby="campo-abrangencia-ajuda"
-                               {% if pref_qualquer %}checked{% endif %}>
-                        <label class="form-check-label fw-semibold" for="campo-abrangencia-qualquer">
-                            Qualquer lugar do país
-                        </label>
-                    </div>
-                    <p class="form-text mt-1 mb-3" id="campo-abrangencia-ajuda">
-                        Marcar esta opção anula a lista de estados abaixo: o seu perfil passa a
-                        declarar que atende qualquer unidade da federação.
-                    </p>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="abrangencia[]"
+                                   value="{{ abrangencia_qualquer }}" id="campo-abrangencia-qualquer"
+                                   aria-describedby="campo-abrangencia-ajuda"
+                                   {% if pref_qualquer %}checked{% endif %}>
+                            <label class="form-check-label fw-semibold" for="campo-abrangencia-qualquer">
+                                Qualquer lugar do país
+                            </label>
+                        </div>
+                        <p class="form-text mt-1 mb-3" id="campo-abrangencia-ajuda">
+                            Marcar esta opção anula a lista de estados abaixo.
+                        </p>
 
-                    <fieldset id="abrangencia-ufs"{% if pref_qualquer %} disabled{% endif %}>
-                        {#  `form-text` e não `form-label`: o grupo das UFs é subordinado à escolha
-                            de cima, e rótulo com o mesmo peso dos dois lados apagaria isso. #}
-                        <legend class="form-text mt-0 mb-2">Ou marque os estados, um a um</legend>
-                        <div class="row row-cols-3 row-cols-sm-6 row-cols-md-9 g-1">
-                            {% for uf in ufs_possiveis %}
-                                <div class="col">
+                        <fieldset id="abrangencia-ufs"{% if pref_qualquer %} disabled{% endif %}>
+                            {#  `form-text` e não `form-label`: o grupo das UFs é subordinado à escolha
+                                de cima, e rótulo com o mesmo peso dos dois lados apagaria isso. #}
+                            <legend class="form-text mt-0 mb-2">Ou marque os estados, um a um</legend>
+                            <div class="pl-ufs">
+                                {% for uf in ufs_possiveis %}
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" name="abrangencia[]"
                                                value="{{ uf }}" id="campo-abrangencia-{{ uf }}"
                                                {% if uf in pref_marcadas %}checked{% endif %}>
                                         <label class="form-check-label" for="campo-abrangencia-{{ uf }}">{{ uf }}</label>
                                     </div>
-                                </div>
-                            {% endfor %}
-                        </div>
+                                {% endfor %}
+                            </div>
+                        </fieldset>
+
+                        {% if erros.abrangencia|default(null) %}
+                            <div class="invalid-feedback d-block">{{ erros.abrangencia }}</div>
+                        {% endif %}
                     </fieldset>
 
-                    {% if erros.abrangencia|default(null) %}
-                        <div class="invalid-feedback d-block">{{ erros.abrangencia }}</div>
-                    {% endif %}
-                </fieldset>
-
-                {{ form.botao('Salvar preferências') }}
-            </form>
-        {% endif %}
+                    <div class="pl-acoes-form">{{ form.botao('Salvar preferências') }}</div>
+                </form>
+            {% endif %}
+        </section>
 
         {#  Experiência autodeclarada. O bloco vem DEPOIS do acervo e com outra cor de propósito:
             o que a API confirma e o que a pessoa afirma não se misturam, e a ordem na página diz
             qual dos dois sustenta o outro. #}
-        <h2 class="h5 mt-4">Experiência declarada</h2>
-        <p class="text-body-secondary small">
-            O que você escreve aqui é <strong>autodeclarado</strong>: a plataforma não confere e
-            não sela. Vincular uma ART sua liga o relato a uma evidência, e mesmo assim os dois
-            continuam aparecendo separados.
-        </p>
+        <section class="pl-card">
+            <div class="pl-linha-titulo">
+                <h2 class="pl-secao">Experiência declarada</h2>
+                {{ ui.info('O que "declarado" quer dizer aqui',
+                    'A plataforma não confere e não sela o que você escreve neste bloco. Vincular uma ART sua liga o relato a uma evidência registrada no CREA, e mesmo assim os dois continuam aparecendo separados.') }}
+            </div>
 
-        {% if p.experiencias is empty %}
-            <p class="text-body-secondary">Nenhuma experiência declarada ainda.</p>
-        {% else %}
-            {% for exp in p.experiencias %}
-                <article class="dado-declarado mb-3">
-                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
-                        <div>
-                            <h3 class="h6 mb-1">{{ exp.titulo }}</h3>
-                            <p class="small mb-1 text-body-secondary">
-                                {# Sem travessão de intervalo: a preposição diz a mesma coisa e lê melhor
-                                   em voz alta, inclusive por leitor de tela. Uma ponta só vira frase
-                                   inteira em vez de "início não informado a 2023". #}
-                                {% if exp.dt_inicio and exp.dt_fim %}
-                                    {{ exp.dt_inicio }} a {{ exp.dt_fim }}
-                                {% elseif exp.dt_inicio %}
-                                    Desde {{ exp.dt_inicio }}
-                                {% elseif exp.dt_fim %}
-                                    Até {{ exp.dt_fim }}
-                                {% else %}
-                                    Período não informado
-                                {% endif %}
-                            </p>
+            {% if p.experiencias is empty %}
+                <p class="pl-nota">Nenhuma experiência declarada ainda.</p>
+            {% else %}
+                {% for exp in p.experiencias %}
+                    <article class="dado-declarado mb-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                            <div>
+                                <h3 class="h6 mb-1">{{ exp.titulo }}</h3>
+                                <p class="small mb-1 text-body-secondary">
+                                    {# Sem travessão de intervalo: a preposição diz a mesma coisa e lê melhor
+                                       em voz alta, inclusive por leitor de tela. Uma ponta só vira frase
+                                       inteira em vez de "início não informado a 2023". #}
+                                    {% if exp.dt_inicio and exp.dt_fim %}
+                                        {{ exp.dt_inicio }} a {{ exp.dt_fim }}
+                                    {% elseif exp.dt_inicio %}
+                                        Desde {{ exp.dt_inicio }}
+                                    {% elseif exp.dt_fim %}
+                                        Até {{ exp.dt_fim }}
+                                    {% else %}
+                                        Período não informado
+                                    {% endif %}
+                                </p>
+                            </div>
+                            {#  Amarelo não é o sinal de autodeclarado (D33): declarado é neutro, e o
+                                neutro do design system é o .pl-pill. Com o bloco de preferências
+                                logo acima usando a mesma marca, a tela passou a ter um vocabulário
+                                só para "a pessoa afirma". #}
+                            <span class="pl-pill neutral" title="Informado pelo próprio profissional. A plataforma não verificou.">
+                                <span class="pd" aria-hidden="true"></span>Declarado
+                            </span>
                         </div>
-                        {#  Amarelo não é o sinal de autodeclarado (D33): declarado é neutro, e o
-                            neutro do design system é o .pl-pill. Com o bloco de preferências
-                            logo acima usando a mesma marca, a tela passou a ter um vocabulário
-                            só para "a pessoa afirma". #}
-                        <span class="pl-pill neutral" title="Informado pelo próprio profissional. A plataforma não verificou.">
-                            <span class="pd"></span>Declarado
-                        </span>
+
+                        {% if exp.descricao %}<p class="mb-2">{{ exp.descricao }}</p>{% endif %}
+
+                        {% if exp.art_numero %}
+                            <p class="small mb-2">
+                                Ligada à <span class="pl-mono">ART {{ exp.art_numero }}</span>
+                                <svg class="pl-mark" role="img" aria-label="Conferida na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+                                do seu acervo verificado.
+                            </p>
+                        {% endif %}
+
+                        {% if p.eh_dono %}
+                            <form method="post" action="{{ app_url }}/perfil/experiencias/{{ exp.id }}/excluir"
+                                  data-confirmar="Remover esta experiência do seu perfil?">
+                                {{ form.csrf() }}
+                                <button type="submit" class="pl-btn mini risco">Remover</button>
+                            </form>
+                        {% endif %}
+                    </article>
+                {% endfor %}
+            {% endif %}
+
+            {% if p.eh_dono %}
+                <form method="post" action="{{ app_url }}/perfil/experiencias" class="pl-form-embutido">
+                    {{ form.csrf() }}
+                    <h3 class="pl-secao mb-3">Adicionar experiência</h3>
+
+                    {{ form.campo('titulo', 'O que você fez', 'text',
+                        valores.titulo|default(''), erros.titulo|default(null), {required: true},
+                        'Uma linha. Ex.: Responsável técnico pela reforma estrutural do galpão B.') }}
+
+                    {{ form.area('descricao', 'Detalhes (opcional)',
+                        valores.descricao|default(''), erros.descricao|default(null)) }}
+
+                    <div class="row">
+                        <div class="col-sm-6">
+                            {{ form.campo('dt_inicio', 'Início (opcional)', 'date',
+                                valores.dt_inicio|default(''), erros.dt_inicio|default(null)) }}
+                        </div>
+                        <div class="col-sm-6">
+                            {{ form.campo('dt_fim', 'Término (opcional)', 'date',
+                                valores.dt_fim|default(''), erros.dt_fim|default(null)) }}
+                        </div>
                     </div>
 
-                    {% if exp.descricao %}<p class="mb-2">{{ exp.descricao }}</p>{% endif %}
-
-                    {% if exp.art_numero %}
-                        <p class="small mb-2">
-                            Ligada à ART <code>{{ exp.art_numero }}</code>, que está no seu acervo
-                            verificado acima.
-                        </p>
-                    {% endif %}
-
-                    {% if p.eh_dono %}
-                        <form method="post" action="{{ app_url }}/perfil/experiencias/{{ exp.id }}/excluir"
-                              data-confirmar="Remover esta experiência do seu perfil?">
-                            {{ form.csrf() }}
-                            <button type="submit" class="btn btn-sm btn-outline-secondary">Remover</button>
-                        </form>
-                    {% endif %}
-                </article>
-            {% endfor %}
-        {% endif %}
-
-        {% if p.eh_dono %}
-            <form method="post" action="{{ app_url }}/perfil/experiencias" class="border rounded p-3 mt-3">
-                {{ form.csrf() }}
-                <h3 class="h6">Adicionar experiência</h3>
-
-                {{ form.campo('titulo', 'O que você fez', 'text',
-                    valores.titulo|default(''), erros.titulo|default(null), {required: true},
-                    'Uma linha. Ex.: Responsável técnico pela reforma estrutural do galpão B.') }}
-
-                {{ form.area('descricao', 'Detalhes (opcional)',
-                    valores.descricao|default(''), erros.descricao|default(null)) }}
-
-                <div class="row">
-                    <div class="col-sm-6">
-                        {{ form.campo('dt_inicio', 'Início (opcional)', 'date',
-                            valores.dt_inicio|default(''), erros.dt_inicio|default(null)) }}
+                    {#  Este <select> é escrito à mão, e não com a macro `selecao`.
+                        A macro recebe um mapa chave => rótulo, e montar esse mapa aqui exigiria
+                        `merge({(art.id): ...})` dentro do laço — que é `array_merge` em PHP, e
+                        array_merge RENUMERA chaves inteiras. O resultado é um <select> com value
+                        0, 1, 2, 3 no lugar dos art_id reais 1, 2, 3, 4: cada opção mandaria de volta
+                        o id da ART ANTERIOR, com o rótulo certo na tela. Erro silencioso e do pior
+                        tipo — o dado declarado apontaria para a evidência errada. #}
+                    {% set erro_art = erros.art_id|default(null) %}
+                    <div class="mb-3">
+                        <label for="campo-art_id" class="form-label">
+                            Vincular a uma ART do seu acervo (opcional)
+                        </label>
+                        <select name="art_id" id="campo-art_id"
+                                class="form-select{% if erro_art %} is-invalid{% endif %}"
+                                {% if erro_art %}aria-invalid="true" aria-describedby="campo-art_id-erro"{% endif %}>
+                            <option value="">Nenhuma, experiência sem ART</option>
+                            {% for art in p.arts %}
+                                <option value="{{ art.id }}"
+                                    {%- if valores.art_id|default('') == art.id %} selected{% endif %}>
+                                    {{ art.numero }} · {{ art.objeto }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        {% if erro_art %}
+                            <div id="campo-art_id-erro" class="invalid-feedback">{{ erro_art }}</div>
+                        {% endif %}
                     </div>
-                    <div class="col-sm-6">
-                        {{ form.campo('dt_fim', 'Término (opcional)', 'date',
-                            valores.dt_fim|default(''), erros.dt_fim|default(null)) }}
-                    </div>
-                </div>
 
-                {#  Este <select> é escrito à mão, e não com a macro `selecao`.
-                    A macro recebe um mapa chave => rótulo, e montar esse mapa aqui exigiria
-                    `merge({(art.id): ...})` dentro do laço — que é `array_merge` em PHP, e
-                    array_merge RENUMERA chaves inteiras. O resultado é um <select> com value
-                    0, 1, 2, 3 no lugar dos art_id reais 1, 2, 3, 4: cada opção mandaria de volta
-                    o id da ART ANTERIOR, com o rótulo certo na tela. Erro silencioso e do pior
-                    tipo — o dado declarado apontaria para a evidência errada. #}
-                {% set erro_art = erros.art_id|default(null) %}
-                <div class="mb-3">
-                    <label for="campo-art_id" class="form-label">
-                        Vincular a uma ART do seu acervo (opcional)
-                    </label>
-                    <select name="art_id" id="campo-art_id"
-                            class="form-select{% if erro_art %} is-invalid{% endif %}"
-                            {% if erro_art %}aria-invalid="true" aria-describedby="campo-art_id-erro"{% endif %}>
-                        <option value="">Nenhuma, experiência sem ART</option>
-                        {% for art in p.arts %}
-                            <option value="{{ art.id }}"
-                                {%- if valores.art_id|default('') == art.id %} selected{% endif %}>
-                                {{ art.numero }} · {{ art.objeto }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    {% if erro_art %}
-                        <div id="campo-art_id-erro" class="invalid-feedback">{{ erro_art }}</div>
-                    {% endif %}
-                </div>
-
-                {{ form.botao('Adicionar experiência') }}
-            </form>
-        {% endif %}
+                    <div class="pl-acoes-form">{{ form.botao('Adicionar experiência') }}</div>
+                </form>
+            {% endif %}
+        </section>
     </div>
 
-    <div class="col-lg-5">
+    <div class="pl-stack">
         {#  Painel de controle do titular. A guarda não é decoração: sem ela, quem abre
             /perfil/{id} de outra pessoa vê um formulário que, ao ser enviado, mudaria a
             visibilidade da PRÓPRIA conta de quem clicou — o POST age sobre a sessão. #}
         {% if p.eh_dono %}
-        <h2 class="h5">Quem vê o quê</h2>
-        <p class="text-body-secondary">
-            Nada fica visível sem você escolher. O padrão de tudo é <strong>Só eu</strong>.
-        </p>
+            <section class="pl-card">
+                <div class="pl-linha-titulo">
+                    <h2 class="pl-secao">Quem vê o quê</h2>
+                    {{ ui.info('Como a visibilidade funciona',
+                        'Cada item tem o seu próprio nível, e o padrão de todos é "Só eu". A escolha é conferida toda vez que alguém lê o seu perfil, inclusive na compatibilização: um documento fechado continua sustentando a aderência sem ser identificado.', 'fim') }}
+                </div>
+                <p class="pl-nota">Nada fica visível sem você escolher. O padrão de tudo é <strong>Só eu</strong>.</p>
 
-        <form method="post" action="{{ app_url }}/perfil/visibilidade">
-            {{ form.csrf() }}
+                <form method="post" action="{{ app_url }}/perfil/visibilidade">
+                    {{ form.csrf() }}
 
-            <fieldset class="mb-3">
-                <legend class="h6">Dados do perfil</legend>
-                {% for campo in p.campos_do_perfil %}
-                    {% set chave = 'PERFIL:-:' ~ campo %}
-                    {{ form.selecao('nivel[' ~ chave ~ ']', campo|replace({'_': ' '})|capitalize,
-                        niveis_possiveis, p.niveis[chave]|default('PRIVADO'), null, {}, false) }}
-                {% endfor %}
-            </fieldset>
+                    <fieldset class="mb-3">
+                        <legend class="form-label">Dados do perfil</legend>
+                        {% for campo in p.campos_do_perfil %}
+                            {% set chave = 'PERFIL:-:' ~ campo %}
+                            {{ form.selecao('nivel[' ~ chave ~ ']', campo|replace({'_': ' '})|capitalize,
+                                niveis_possiveis, p.niveis[chave]|default('PRIVADO'), null, {}, false) }}
+                        {% endfor %}
+                    </fieldset>
 
-            {% if p.arts is not empty %}
-                <fieldset class="mb-3">
-                    <legend class="h6">Cada ART, uma a uma</legend>
-                    {% for art in p.arts %}
-                        {% set chave = 'ART:' ~ art.id ~ ':-' %}
-                        {{ form.selecao('nivel[' ~ chave ~ ']', art.numero,
-                            niveis_possiveis, p.niveis[chave]|default('PRIVADO'), null, {}, false) }}
-                    {% endfor %}
-                </fieldset>
-            {% endif %}
+                    {% if p.arts is not empty %}
+                        <fieldset class="mb-3">
+                            <legend class="form-label">Cada ART, uma a uma</legend>
+                            {% for art in p.arts %}
+                                {% set chave = 'ART:' ~ art.id ~ ':-' %}
+                                {{ form.selecao('nivel[' ~ chave ~ ']', 'ART ' ~ art.numero,
+                                    niveis_possiveis, p.niveis[chave]|default('PRIVADO'), null, {}, false) }}
+                            {% endfor %}
+                        </fieldset>
+                    {% endif %}
 
-            {% if p.experiencias is not empty %}
-                <fieldset class="mb-3">
-                    <legend class="h6">Cada experiência declarada</legend>
-                    {% for exp in p.experiencias %}
-                        {% set chave = 'EXPERIENCIA:' ~ exp.id ~ ':-' %}
-                        {{ form.selecao('nivel[' ~ chave ~ ']', exp.titulo,
-                            niveis_possiveis, p.niveis[chave]|default('PRIVADO'), null, {}, false) }}
-                    {% endfor %}
-                </fieldset>
-            {% endif %}
+                    {% if p.experiencias is not empty %}
+                        <fieldset class="mb-3">
+                            <legend class="form-label">Cada experiência declarada</legend>
+                            {% for exp in p.experiencias %}
+                                {% set chave = 'EXPERIENCIA:' ~ exp.id ~ ':-' %}
+                                {{ form.selecao('nivel[' ~ chave ~ ']', exp.titulo,
+                                    niveis_possiveis, p.niveis[chave]|default('PRIVADO'), null, {}, false) }}
+                            {% endfor %}
+                        </fieldset>
+                    {% endif %}
 
-            {{ form.botao('Salvar visibilidade') }}
-        </form>
+                    <div class="pl-acoes-form">{{ form.botao('Salvar visibilidade') }}</div>
+                </form>
+            </section>
         {% endif %}
 
-        <h2 class="h5 mt-4">Modalidades</h2>
-        {% if p.modalidades is empty %}
-            <p class="text-body-secondary">Nenhuma modalidade vinda da API.</p>
-        {% else %}
-            <ul>
-                {% for modalidade in p.modalidades %}<li>{{ modalidade.mod_nome }}</li>{% endfor %}
-            </ul>
-        {% endif %}
+        <section class="pl-card">
+            <div class="pl-linha-titulo">
+                <h2 class="pl-secao">Modalidades</h2>
+                {{ ui.info('De onde vêm as modalidades',
+                    'A modalidade é o campo de atuação do registro no CREA, e vem da API oficial. O motor a compara com a modalidade que as atividades da demanda exigem.', 'fim') }}
+            </div>
+            {% if p.modalidades is empty %}
+                <p class="pl-nota mb-0">Nenhuma modalidade vinda da API.</p>
+            {% else %}
+                <ul class="pl-chips">
+                    {% for modalidade in p.modalidades %}
+                        <li><span class="pl-tag">{{ modalidade.mod_nome }}</span></li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
     </div>
 </div>
 {% endblock %}

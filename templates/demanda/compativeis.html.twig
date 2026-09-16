@@ -1,6 +1,7 @@
 {% extends 'layout/base.html.twig' %}
 {% import 'layout/_form.html.twig' as form %}
-{% import _self as ui %}
+{% import 'layout/_ui.html.twig' as ui %}
+{% import _self as feed %}
 
 {#
     Feed de compatíveis de uma demanda (RF04, cenário 3 do Anexo I).
@@ -27,21 +28,8 @@
     evidência abre. O JS só estreita a pilha para um card por vez.
 #}
 
-{% macro tos(codigo, descricao, compacto = false) %}
-    {#  Corta na última palavra inteira: a descrição da tabela é uma concatenação de grupo,
-        subgrupo e obra, e cortar no caractere 46 deixava "de edificação p…" na tela. #}
-    {%- set curta = descricao is empty ? '' :
-        (descricao|length > 46 ? descricao|slice(0, 46)|split(' ')|slice(0, -1)|join(' ') ~ '…' : descricao) -%}
-    <span class="pl-tos" title="{{ codigo }}{% if descricao is not empty %} · {{ descricao }}{% endif %}">
-        {%- if curta and not compacto %}{{ curta }} {% endif -%}
-        <span class="code">{{ codigo|replace({'TOS_': 'TOS '}) }}</span>
-    </span>
-{% endmacro %}
-
-{% macro iniciais(nome) %}
-    {%- set lista = nome|trim|split(' ')|filter(p => p is not empty) -%}
-    {{- (lista|first|slice(0, 1) ~ (lista|length > 1 ? lista|last|slice(0, 1) : ''))|upper -}}
-{% endmacro %}
+{#  O chip de TOS e as iniciais moram em layout/_ui.html.twig: eram macros daqui, e enquanto
+    fossem, o perfil e o detalhe da demanda continuavam mostrando `TOS_1.1.2.3` cru. #}
 
 {% block titulo %}Compatíveis · {{ demanda.dem_titulo }} · Pro-Link{% endblock %}
 
@@ -64,21 +52,6 @@
     'disponibilidade': 'A abrangência de atuação declarada no perfil contra a UF da obra desta demanda.'
 } %}
 
-<div class="visually-hidden">
-    {#  Selo de verificação (verde água, chanfrado) e marca de não verificado (círculo cinza).
-        A cor vem de currentColor, definida em .pl-seal / .pl-mark: nenhum token é reescrito aqui. #}
-    <svg width="0" height="0" aria-hidden="true" focusable="false">
-        <symbol id="pl-sym-seal" viewBox="0 0 40 40">
-            <polygon points="39,20 34.5,23.9 36.5,29.5 30.6,30.6 29.5,36.5 23.9,34.5 20,39 16.1,34.5 10.5,36.5 9.4,30.6 3.6,29.5 5.5,23.9 1,20 5.5,16.1 3.6,10.5 9.4,9.4 10.5,3.6 16.1,5.5 20,1 23.9,5.5 29.5,3.6 30.6,9.4 36.5,10.5 34.5,16.1" fill="currentColor"/>
-            <path d="M13.5 20.5l4 4l9 -10" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-        </symbol>
-        <symbol id="pl-sym-seal-x" viewBox="0 0 40 40">
-            <circle cx="20" cy="20" r="18.5" fill="currentColor"/>
-            <path d="M14.5 14.5l11 11M25.5 14.5l-11 11" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-        </symbol>
-    </svg>
-</div>
-
 <h1 class="visually-hidden">Compatíveis com a demanda {{ demanda.dem_titulo }}</h1>
 
 <div class="pl-ctxline">
@@ -92,7 +65,12 @@
     <span class="sep" aria-hidden="true"></span>
     <span><span class="n">{{ pool|length }}</span> no pool</span>
     <span class="sep" aria-hidden="true"></span>
-    <span>ordem sorteada nesta sessão</span>
+    {#  Item 10.2: a qualificação do que está sendo mostrado fica visível na tela onde o motor
+        apresenta resultado. Atrás de um clique, alguém leria a lista inteira sem saber o que
+        ela é. O detalhe de COMO a lista foi montada é que vai para o "i". #}
+    <span>correspondência indicativa, em ordem sorteada, sem ranking</span>
+    {{ ui.info('Como este pool foi montado',
+        'O pool sai do cruzamento entre as atividades da Tabela de Obras e Serviços escolhidas nesta demanda e o acervo de ART e CAT registrado no CREA. Cada dimensão é medida em separado e quem fica acima do limiar da sessão entra na lista; a ordem é sorteada pela semente, e não há nota agregada nem posição.') }}
 
     <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/compativeis">
         {{ form.csrf() }}
@@ -160,7 +138,7 @@
                         Comprovado por documento no CREA
                     </p>
                     {% for k in ['competencia', 'area', 'localizacao'] %}
-                        {{ ui.dimensao(k, c.dimensoes[k]|default(null), sessao.pesos[k]|default(null), explicacoes[k], idc) }}
+                        {{ feed.dimensao(k, c.dimensoes[k]|default(null), sessao.pesos[k]|default(null), explicacoes[k], idc) }}
                     {% endfor %}
 
                     <p class="pl-grp">
@@ -168,7 +146,7 @@
                         Informado pelo próprio perfil
                     </p>
                     {% for k in ['experiencia', 'contrato', 'disponibilidade'] %}
-                        {{ ui.dimensao(k, c.dimensoes[k]|default(null), sessao.pesos[k]|default(null), explicacoes[k], idc) }}
+                        {{ feed.dimensao(k, c.dimensoes[k]|default(null), sessao.pesos[k]|default(null), explicacoes[k], idc) }}
                     {% endfor %}
                 </div>
 
@@ -288,10 +266,8 @@
                 {% elseif pool is empty %}
                     <p class="et">Ninguém atingiu o limiar desta demanda</p>
                     <p class="es">
-                        O pool sai do cruzamento entre as atividades da Tabela de Obras e Serviços que você
-                        escolheu e o acervo de ART e CAT registrado no CREA. Código mais específico do que a
-                        obra precisa deixa de fora quem faria o serviço: rever as atividades da demanda
-                        costuma ser o caminho.
+                        Código mais específico do que a obra precisa deixa de fora quem faria o serviço.
+                        Rever as atividades da demanda costuma ser o caminho.
                     </p>
                 {% else %}
                     <p class="et">

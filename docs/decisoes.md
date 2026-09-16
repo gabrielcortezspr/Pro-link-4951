@@ -30,6 +30,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | Front — padrão visual no pipeline | D42 |
 | Revisão de código (15/09) | D45, D46, D47, D48, D49, D50 |
 | E4 — feed do demandante | D51, D52 |
+| Front — largura e divulgação progressiva | D53 |
 
 ---
 
@@ -1605,3 +1606,64 @@ estado legítimo, que a tela precisa dizer com clareza em vez de parecer defeito
 
 Fica uma assimetria a vigiar: o score reflete acervo que o demandante não pode conferir. É
 mencionável na declaração de limitações do item 12.3, e é o preço de não penalizar a privacidade.
+
+## D53 · A largura é decidida por tipo de conteúdo, e a explicação vira revelação sob demanda
+
+`16/09/2026` · front · passagem de sistema sobre as telas existentes · desenho em [`design.md`](design.md)
+
+**Contexto.** Duas queixas do dono do produto sobre a mesma tela de sempre. A primeira: *"tá tudo
+muito engessado, até tentando ser um pouco mobile"*. A causa era literal: o `base.html.twig` punha
+**toda** tela dentro de `<main class="container py-4">`, e o `.container` do Bootstrap trava em
+1140px (1320px no XXL). Num monitor de 1920 a aplicação inteira era uma faixa central com vazio
+dos dois lados, e a trilha de auditoria de seis colunas disputava 1140px enquanto sobrava tela. O
+uso de grid era raso: três telas repetiam `col-lg-7` + `col-lg-5` e o resto era coluna única.
+
+A segunda: *"o nosso front tenta muito explicar a aplicação"*. Eram 18 parágrafos explicativos na
+interface, o maior com 361 caracteres, todos permanentes. Eles ajudam na primeira visita e
+estorvam em todas as outras.
+
+A tensão real estava na segunda queixa: parte dessa prosa existe por exigência do edital (12.3 e
+Anexo VI pedem critérios explicáveis; o item 10.2 pede a declaração de não-ranking), e esconder o
+que a banca pontua seria autossabotagem.
+
+**Decisão.** Três regras.
+
+**1. Largura por tipo de conteúdo.** `.pl-wrap` com três medidas: `densa` (1640px, tabela e
+grade), `registro` (1360px, conteúdo mais painel de ação) e `leitura` (980px, formulário e texto
+corrido). O padrão de desenho passa a ser o desktop; o teto existe para a linha de texto não ficar
+ilegível em monitor ultralargo, não para centralizar coluna estreita. O par `col-lg-7/5` vira
+`.pl-cols`, que dá ao painel largura de painel (máximo 372px) e ao conteúdo o resto.
+
+**2. O "i" é apresentação legítima do critério, não esconderijo.** Divulgação progressiva é boa
+prática de interface: o texto continua na tela, continua sendo lido por leitor de tela, e aparece
+quando alguém pede. Explicação de funcionamento (como o pool é montado, o que é a Tabela de Obras
+e Serviços, quanto cada dimensão pesa, por que a trilha é somente leitura) vai para o "i".
+
+**3. O que decide continua visível.** Só duas classes de texto não podem depender de clique: a
+declaração de não-ranking **na tela onde o motor apresenta resultado**, porque atrás de um clique
+alguém leria a lista inteira sem saber o que ela é; e a consequência de ação irreversível **no
+momento da ação**, que é consentimento informado e não dica de uso. As duas foram reescritas mais
+curtas, e a segunda aparece de novo na confirmação do clique.
+
+**Alternativa recusada.** Usar o Popover do Bootstrap, que já vem no bundle carregado. Recusado
+por três motivos somados: ele exige inicialização por JavaScript (sem script, o "i" vira um botão
+morto e a explicação some), o texto mora em `data-bs-content`, que é conteúdo em atributo — a
+mesma objeção que o projeto já faz a `title=""` —, e ele não resolve nada que o `<details>` nativo
+não resolva. O `<details>` já é botão para o teclado, já é anunciado, não depende de hover (logo
+funciona igual em tela de toque) e mantém o texto no DOM. O JavaScript que acompanha é opcional e
+só fecha painel aberto.
+
+Também foi recusado esticar tudo para 100% da janela, que é a leitura preguiçosa de "ocupar a
+tela": um formulário de cadastro com 1900px de linha é pior do que o container de antes.
+
+**Consequência.** O `.pl-tos` saiu do feed para `layout/_ui.html.twig` e passou a valer nas quatro
+telas que ainda mostravam `TOS_1.1.2.3` cru dentro de `<code>`; o sprite do selo de verificação
+subiu para o `base.html.twig`, e com ele o acervo do perfil trocou a tarja verde de texto pelo
+selo colado no número da ART, como o design system já mandava. A conferência renderizada ganhou
+quatro telas em `scripts/amostras.php`, e a primeira delas já devolveu um defeito que a parte
+estática não pegava: a tela de privacidade imprimia o perfil de acesso cru (`ADMIN`), porque o
+verificador só procura constante com underline.
+
+O custo é que existe agora um segundo vocabulário de largura ao lado do grid do Bootstrap, e tela
+nova precisa escolher `classe_main` conscientemente. O padrão sem escolha (`pl-wrap`, 1240px) é
+intencionalmente o meio-termo: erra por pouco em qualquer direção.

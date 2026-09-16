@@ -17,10 +17,13 @@ declare(strict_types=1);
 
 use ProLink\Repository\AuditoriaRepository;
 use ProLink\Repository\DemandaRepository;
+use ProLink\Repository\TermoRepository;
 use ProLink\Service\CompatibilizacaoService;
 use ProLink\Service\DemandaService;
 use ProLink\Service\DenunciaService;
+use ProLink\Service\PerfilEmpresaService;
 use ProLink\Service\PerfilService;
+use ProLink\Service\PrivacidadeService;
 use ProLink\Support\Database;
 use ProLink\Support\Preferencias;
 
@@ -105,6 +108,61 @@ return (static function (): array {
             ),
         ];
     }
+
+    // O painel do demandante e o perfil da empresa: as duas telas mostram dado de lista fechada
+    // (regime de contratação) e código da Tabela de Obras e Serviços, que é justamente o que só
+    // aparece no HTML final. Ficaram fora daqui até a passagem de largura de 15/09, e enquanto
+    // ficaram, o código da Tabela de Obras e Serviços saiu cru no acervo da empresa sem que nada
+    // reclamasse.
+    $donoDeDemanda = $pdo
+        ->query('SELECT dem_usu_id FROM pro_demandas WHERE dem_status = \'A\' ORDER BY dem_id LIMIT 1')
+        ->fetchColumn();
+
+    if ($donoDeDemanda !== false) {
+        $telas['demanda/index.html.twig'] = [
+            'titulo'   => 'Minhas demandas',
+            'demandas' => (new DemandaRepository())->doUsuario((int) $donoDeDemanda),
+        ];
+    }
+
+    $usuarioEmpresa = $pdo
+        ->query('SELECT emp_usu_id FROM pro_empresas ORDER BY emp_id LIMIT 1')
+        ->fetchColumn();
+
+    $perfilEmpresa = $usuarioEmpresa === false
+        ? null
+        : (new PerfilEmpresaService())->montar((int) $usuarioEmpresa, (int) $usuarioEmpresa);
+
+    if ($perfilEmpresa !== null) {
+        $telas['perfil/empresa.html.twig'] = [
+            'titulo'  => 'Perfil da empresa',
+            'perfil'  => $perfilEmpresa,
+            'erros'   => [],
+            'aviso'   => null,
+            'valores' => [],
+            'niveis_possiveis' => $niveisPossiveis,
+        ] + $vocabulario;
+    }
+
+    // Privacidade e cadastro: as duas telas de LGPD. A primeira imprime perfil de acesso e
+    // finalidade de consentimento, que são constantes; a segunda, a versão do termo vigente.
+    $qualquerUsuario = $pdo
+        ->query('SELECT usu_id FROM sis_usuarios WHERE usu_status = \'A\' ORDER BY usu_id LIMIT 1')
+        ->fetchColumn();
+
+    if ($qualquerUsuario !== false) {
+        $telas['privacidade/index.html.twig'] = [
+            'painel'      => (new PrivacidadeService())->painel((int) $qualquerUsuario),
+            'finalidades' => PrivacidadeService::FINALIDADES_REVOGAVEIS,
+        ];
+    }
+
+    $telas['auth/cadastro.html.twig'] = [
+        'valores' => [],
+        'erros'   => [],
+        'aviso'   => null,
+        'termos'  => (new TermoRepository())->vigentes(),
+    ];
 
     $telas['demanda/nova.html.twig'] = [
         'titulo'  => 'Nova demanda',

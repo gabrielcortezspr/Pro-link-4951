@@ -14,10 +14,30 @@
 
 <a href="#conteudo" class="visually-hidden-focusable p-2">Pular para o conteúdo</a>
 
+{#  Símbolos de verificação, definidos uma vez por página. Estavam dentro do feed de compatíveis,
+    e por isso o acervo do perfil exibia o mesmo fato como tarja verde de texto, contrariando o
+    design system (docs/design.md: o selo cola no identificador, nunca vira coluna nem tarja).
+    A cor vem de currentColor, definida em .pl-seal / .pl-mark: nenhum token é reescrito aqui. #}
+<div class="visually-hidden">
+    <svg width="0" height="0" aria-hidden="true" focusable="false">
+        <symbol id="pl-sym-seal" viewBox="0 0 40 40">
+            <polygon points="39,20 34.5,23.9 36.5,29.5 30.6,30.6 29.5,36.5 23.9,34.5 20,39 16.1,34.5 10.5,36.5 9.4,30.6 3.6,29.5 5.5,23.9 1,20 5.5,16.1 3.6,10.5 9.4,9.4 10.5,3.6 16.1,5.5 20,1 23.9,5.5 29.5,3.6 30.6,9.4 36.5,10.5 34.5,16.1" fill="currentColor"/>
+            <path d="M13.5 20.5l4 4l9 -10" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </symbol>
+        <symbol id="pl-sym-seal-x" viewBox="0 0 40 40">
+            <circle cx="20" cy="20" r="18.5" fill="currentColor"/>
+            <path d="M14.5 14.5l11 11M25.5 14.5l-11 11" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </symbol>
+    </svg>
+</div>
+
 {% block cabecalho %}
 <header>
     <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom">
-        <div class="container">
+        {#  container-fluid, e não container: a barra acompanha a mesma moldura lateral do conteúdo
+            (seção 14 do prolink.css). O Bootstrap aplica o flex da navbar ao container-fluid do
+            mesmo jeito, então nada de comportamento muda. #}
+        <div class="container-fluid pl-barra">
             <a class="navbar-brand fw-semibold" href="{{ app_url }}">Pro-Link</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                     data-bs-target="#menu" aria-controls="menu" aria-expanded="false"
@@ -55,7 +75,11 @@
 </header>
 {% endblock %}
 
-<main id="conteudo" class="{% block classe_main %}container py-4{% endblock %} flex-grow-1">
+{#  A largura é decidida por tipo de conteúdo, não pelo `.container` do Bootstrap: ele trava em
+    1140px e deixava tabela densa espremida com vazio dos dois lados num monitor de 1920. Ver a
+    seção 14 do prolink.css. O padrão é a medida intermediária; tela densa pede `pl-wrap densa`,
+    formulário e texto corrido pedem `pl-wrap leitura`. #}
+<main id="conteudo" class="{% block classe_main %}pl-wrap{% endblock %} flex-grow-1">
     {% for f in flashes() %}
         <div class="alert alert-{{ f.tipo }} alert-dismissible" role="alert">
             {{ f.texto }}
@@ -66,8 +90,10 @@
 </main>
 
 {% block rodape %}
-<footer class="border-top py-3 mt-auto">
-    <div class="container small text-body-secondary">
+<footer class="border-top mt-auto">
+    {#  O rodapé acompanha a moldura lateral da página em vez do `.container`: com a tela ocupando
+        1640px, um rodapé de 1140px centralizado ficava desalinhado do conteúdo acima dele. #}
+    <div class="pl-wrap densa rodape small text-body-secondary">
         Pro-Link · Desafio CREA Pro-Link · II CENATEC 2026 · Equipe 49/51<br>
         Dados fictícios fornecidos pela organização. A correspondência entre perfil e demanda é
         apenas indicativa e não constitui ranking, certificação ou recomendação institucional.
@@ -80,6 +106,9 @@
     Fica aqui, e não em cada {% block scripts %}, porque esquecer o include devolveria
     exatamente o defeito que este arquivo conserta — a pergunta sumir sem avisar. #}
 <script src="{{ url_assets }}/js/confirmar-acao.js?v={{ assets_v }}" defer></script>
+{#  O "i" de informação é <details> nativo e funciona sem isto; o script só evita dois painéis
+    abertos ao mesmo tempo e acrescenta Esc e clique fora. #}
+<script src="{{ url_assets }}/js/info.js?v={{ assets_v }}" defer></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
