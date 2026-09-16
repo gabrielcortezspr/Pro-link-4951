@@ -65,8 +65,13 @@ final class PerfilController
      */
     public function publico(string $id): string
     {
-        $alvoId     = (int) $id;
-        $espectador = (int) Sessao::usuarioId();
+        $alvoId = (int) $id;
+
+        // Null quando ninguém entrou, e **não** zero: a Visao decide `autenticado` por
+        // `!== null`, então um 0 aqui daria ao anônimo o alcance de quem tem conta, entregando
+        // o que cada titular abriu só para autenticados. A rota é pública (Anexo I, item 3), e é
+        // exatamente por isso que a distinção precisa sobreviver até aqui.
+        $espectador = Sessao::usuarioId();
 
         // Conta inexistente, excluída ou bloqueada não volta de perfisAtivos, e a ausência fecha
         // o perfil — mesmo efeito da exclusão lógica (D05) e do bloqueio da E6.

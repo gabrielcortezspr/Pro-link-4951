@@ -18,6 +18,7 @@ declare(strict_types=1);
 use ProLink\Repository\AuditoriaRepository;
 use ProLink\Repository\DemandaRepository;
 use ProLink\Repository\TermoRepository;
+use ProLink\Service\BuscaService;
 use ProLink\Service\CompatibilizacaoService;
 use ProLink\Service\DemandaService;
 use ProLink\Service\DenunciaService;
@@ -173,6 +174,14 @@ return (static function (): array {
     $telas['demanda/abertas.html.twig'] = [
         'titulo'   => 'Demandas abertas',
         'demandas' => (new DemandaRepository())->abertas(),
+    ];
+
+    // A busca ativa, do ponto de vista de quem não tem conta: é o alcance mais restrito e o mais
+    // exposto, já que esta é a única tela aberta ao perfil Público. Espectador nulo é o anônimo,
+    // e é dele que o HTML final precisa ser conferido.
+    $telas['busca/profissionais.html.twig'] = [
+        'titulo' => 'Buscar profissionais',
+        'busca'  => (new BuscaService())->profissionais('', false, null),
     ];
 
     $umaDemanda = $primeiraDemandaId === false

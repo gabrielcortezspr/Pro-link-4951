@@ -47,6 +47,10 @@
             <div class="collapse navbar-collapse" id="menu">
                 <ul class="navbar-nav ms-auto">
                     {% block menu %}{% endblock %}
+                    {#  Fora do {% if u %}: buscar profissionais e ver perfil são capacidades do
+                        perfil Público (Anexo I, item 3), e até aqui a navegação assumia sessão.
+                        Quem não tem conta não deixa de ver a tela, vê menos dado dentro dela. #}
+                    <li class="nav-item"><a class="nav-link" href="{{ app_url }}/profissionais">Profissionais</a></li>
                     {% set u = usuario() %}
                     {% if u %}
                         <li class="nav-item"><a class="nav-link" href="{{ app_url }}/perfil">Meu perfil</a></li>

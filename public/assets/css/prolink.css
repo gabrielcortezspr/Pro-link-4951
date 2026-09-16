@@ -921,3 +921,123 @@ textarea.form-control { min-height: 0; }
 
 /* Texto legal: medida de leitura e ritmo de parágrafo, não um bloco de 980px corrido. */
 .pl-legal { font-size: 14px; line-height: 1.7; color: var(--pl-ink); max-width: 72ch; }
+
+/* ---------- 20. Busca ativa de profissionais: a pessoa como unidade de leitura ----------
+   Esta tela não é o feed. Lá o motor parte de uma demanda e devolve um pool pontuado e sorteado;
+   aqui quem parte é a pessoa, com uma palavra digitada, e o resultado é um filtro. Não há score,
+   limiar, semente nem dimensão, e por isso a ordem pode ser alfabética sem virar ranking
+   (item 10.1): o termo decide quem aparece, e dentro de quem apareceu ninguém está na frente.
+
+   A unidade de leitura é UMA pessoa. Primário quem ela é; secundário onde o acervo registrado no
+   CREA tem evidência, que é o que o termo encontra e o que responde "esta pessoa faz o que eu
+   preciso"; terciário o que ela mesma declarou.
+
+   É também a única tela aberta a quem não tem conta, e é a que mais precisa funcionar sem
+   JavaScript: tudo aqui é um formulário GET. */
+
+/* Cartão de pessoa é mais largo que cartão de demanda: o nome do grupo da Tabela de Obras e
+   Serviços chega a 50 caracteres, e a 330px sobrava uma palavra por chip. */
+.pl-grade.pessoas { grid-template-columns: repeat(auto-fill, minmax(376px, 1fr)); }
+/* O cartão inteiro é uma pessoa clicável, e até aqui nada respondia ao ponteiro a não ser o
+   nome. Borda e sombra em vez de fundo: fundo colorido num cartão branco dentro de uma grade de
+   quinze faria a fileira inteira piscar. */
+.pl-grade.pessoas > .pl-card { transition: border-color .15s ease, box-shadow .15s ease; }
+.pl-grade.pessoas > .pl-card:hover { border-color: var(--pl-blue-2);
+    box-shadow: 0 10px 26px rgba(11,42,74,.10); }
+@media (prefers-reduced-motion: reduce) {
+    .pl-grade.pessoas > .pl-card { transition: none; }
+}
+
+.pl-prof { display: flex; flex-direction: column; gap: 12px; flex: 1; min-width: 0; }
+.pl-prof .id { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.pl-prof .nm { min-width: 0; flex: 1; }
+/* A mesma marca de pessoa do feed, na escala de lista. */
+.pl-av.sm { width: 42px; height: 42px; border-radius: 13px; font-size: 14px;
+    box-shadow: 0 6px 14px rgba(19,49,90,.18); }
+.pl-prof .tt { font-family: var(--pl-display); font-weight: 600; font-size: 15.5px;
+    line-height: 1.3; letter-spacing: -.01em; color: var(--pl-ink); text-decoration: none;
+    overflow-wrap: anywhere; }
+.pl-prof .tt:hover { color: var(--pl-blue); text-decoration: none; }
+.pl-prof .tt:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 3px;
+    border-radius: 6px; }
+.pl-prof .reg { margin: 3px 0 0; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 7px;
+    font-size: 12px; color: var(--pl-muted); }
+.pl-prof .reg .pl-mono { font-size: 11.5px; }
+/* O selo acompanha texto de 12px aqui, não de 14px: no tamanho cheio ele pesava mais que o
+   registro que qualifica. */
+.pl-prof .reg .pl-mark { width: 14px; height: 14px; vertical-align: -2px; }
+
+/* Acervo verificado: o selo cola no número que ele qualifica, nunca vira tarja nem coluna. */
+.pl-prof .ac { margin: 0; display: flex; align-items: center; gap: 7px; font-size: 13px;
+    color: var(--pl-ink); }
+.pl-prof .ac .sec { color: var(--pl-muted); }
+
+/* Áreas com acervo: chip com teto de largura e o nome inteiro no title. Sem o teto, um grupo de
+   50 caracteres definia sozinho a largura da coluna da grade. */
+.pl-prof .pl-chips { gap: 5px; }
+/* min-width: 0 no item: sem ele o item de flex nunca encolhe abaixo do próprio texto, e o chip
+   vazaria a largura do cartão em vez de cortar com reticências. */
+.pl-prof .pl-chips > li { min-width: 0; max-width: 100%; }
+.pl-prof .pl-tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    display: block; font-size: 11.5px; padding: 3px 9px; }
+.pl-prof .mais { display: inline-flex; align-items: center; font-size: 11.5px;
+    color: var(--pl-muted); }
+
+/* Informado pelo titular. Separado do acervo por um filete, nunca misturado com ele: é a mesma
+   distinção entre verificado e declarado que o resto da interface faz com o selo.
+
+   O bloco inteiro some quando nada foi aberto para quem está olhando. Campo nulo aqui não quer
+   dizer "não preencheu", quer dizer "não abriu para você", e escrever "Não informado" seria
+   afirmar na tela algo falso sobre a pessoa. */
+.pl-prof .dec { padding-top: 11px; border-top: 1px solid var(--pl-border-2); }
+.pl-prof .dec .rot { margin: 0 0 6px; display: flex; align-items: center; gap: 6px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--pl-faint); }
+.pl-prof .dec .rot .pl-mark { width: 13px; height: 13px; }
+/* Texto escrito pela própria pessoa: duas linhas e corta, senão um resumo longo define a altura
+   de toda a fileira da grade. */
+.pl-prof .dec .rs { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--pl-muted);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pl-prof .dec .pf { margin: 6px 0 0; display: flex; align-items: center; flex-wrap: wrap;
+    gap: 4px 7px; font-size: 12px; color: var(--pl-ink); }
+.pl-prof .dec .pf .k { color: var(--pl-muted); }
+.pl-prof .dec .rs + .pf { margin-top: 8px; }
+
+.pl-prof .pe { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--pl-border-2);
+    display: flex; align-items: center; gap: 10px; }
+
+/* Barra de busca: campo, ação e a opção que muda o recorte. Duas linhas porque a opção tem texto
+   de apoio, e apoio embaixo de caixa quebra o alinhamento pela linha de base da primeira. */
+.pl-busca-topo { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.pl-busca-topo .cx { flex: 1; min-width: 260px; }
+.pl-busca-topo .form-label { margin-bottom: 6px; }
+.pl-busca-topo .pl-btn { height: 44px; padding: 0 20px; }
+.pl-busca-op { display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap;
+    margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--pl-border-2); }
+.pl-busca-op .form-check { margin: 0; padding: 0; display: flex; align-items: center; gap: 8px;
+    min-height: 0; }
+.pl-busca-op .form-check-input { margin: 0; float: none; flex: none; }
+.pl-busca-op .form-check-label { font-size: 13px; font-weight: 600; }
+.pl-busca-op .nota { margin: 0; font-size: 12px; color: var(--pl-muted); }
+
+/* Lista cortada pelo teto. Cortar em silêncio é o jeito de alguém concluir que a plataforma não
+   tem ninguém naquela busca, então o aviso tem peso de aviso e vem antes da grade. */
+.pl-corte { display: flex; align-items: flex-start; gap: 9px; margin: 0 0 16px;
+    padding: 11px 14px; border-radius: var(--pl-r); background: var(--pl-warn-bg);
+    color: #a9720a; font-size: 12.5px; line-height: 1.55; }
+.pl-corte svg { width: 15px; height: 15px; flex: none; margin-top: 2px; }
+.pl-corte b { font-weight: 600; }
+
+/* O convite a quem não tem conta. Não é muro nem banner: a busca inteira funciona sem conta, e o
+   que muda é o alcance do que cada titular abriu. Uma linha honesta, no canto onde o número de
+   resultados é lido. */
+.pl-convite { margin: 0; max-width: 48ch; padding-left: 12px;
+    border-left: 2px solid var(--pl-border); font-size: 12.5px; line-height: 1.55;
+    color: var(--pl-muted); }
+.pl-convite a { font-weight: 600; }
+.pl-convite .pl-sep { margin: 0 5px; vertical-align: middle; }
+
+@media (max-width: 720px) {
+    .pl-busca-topo .pl-btn { flex: 1; }
+    .pl-convite { max-width: none; }
+}
