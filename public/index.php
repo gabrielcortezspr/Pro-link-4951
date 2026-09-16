@@ -21,6 +21,7 @@ use ProLink\Controller\CompativelController;
 use ProLink\Controller\DemandaController;
 use ProLink\Controller\DenunciaController;
 use ProLink\Controller\HomeController;
+use ProLink\Controller\ManifestacaoController;
 use ProLink\Controller\PerfilController;
 use ProLink\Controller\PrivacidadeController;
 use ProLink\Controller\SaudeController;
@@ -108,6 +109,21 @@ $router->post('/demandas/{id}/encerrar', DemandaController::class, 'encerrar', P
 // POST manda calcular outra — ver CompativelController.
 $router->get('/demandas/{id}/compativeis',  CompativelController::class, 'index',     PERFIS_DEMANDANTES);
 $router->post('/demandas/{id}/compativeis', CompativelController::class, 'atualizar', PERFIS_DEMANDANTES);
+
+// ---------------------------------------------------------------- manifestação (RF05)
+// Quem manifesta é o candidato, e candidato sai de crea_evidencias, que deriva de ART: Terceiro
+// não tem acervo e não é candidato de ninguém. Ver D51 sobre o sentido do fluxo.
+$router->get('/demandas/{id}/manifestar',   ManifestacaoController::class, 'confirmar', PERFIS_COM_REGISTRO_CREA);
+$router->post('/demandas/{id}/manifestar',  ManifestacaoController::class, 'enviar',    PERFIS_COM_REGISTRO_CREA);
+
+// A lista de interessados é do dono da demanda; a manifestação em si é das duas partes, e quem
+// decide se a pessoa é parte é o serviço.
+$router->get('/demandas/{id}/interessados', ManifestacaoController::class, 'interessados', PERFIS_DEMANDANTES);
+
+// Sem parâmetro antes da com parâmetro: o Router percorre na ordem de registro.
+$router->get('/manifestacoes',                   ManifestacaoController::class, 'minhas',    PERFIS_COM_REGISTRO_CREA);
+$router->get('/manifestacoes/{id}',              ManifestacaoController::class, 'ver',       PERFIS_AUTENTICADOS);
+$router->post('/manifestacoes/{id}/mensagens',   ManifestacaoController::class, 'responder', PERFIS_AUTENTICADOS);
 
 // ---------------------------------------------------------------- denúncias (RF06)
 // Qualquer conta autenticada denuncia, inclusive Terceiro. Anônimo recebe 401.

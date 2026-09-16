@@ -61,6 +61,31 @@ final class ManifestacaoService
     }
 
     /**
+     * A demanda, se ela ainda aceita manifestação.
+     *
+     * A tela de confirmação precisa do título e do escopo antes de qualquer escrita, e precisa
+     * recusar cedo o que `manifestar()` recusaria no fim: rascunho, encerrada, excluída. Repetir
+     * as três condições aqui seria criar um segundo lugar definindo "aberta"; por isso as duas
+     * chamam esta.
+     *
+     * @throws ValidacaoException
+     */
+    public function demandaAberta(int $demandaId): array
+    {
+        $demanda = $this->demandas->porId($demandaId);
+
+        if ($demanda === null || $demanda['dem_status'] !== STATUS_ATIVO) {
+            throw new ValidacaoException('Demanda não encontrada.');
+        }
+
+        if ($demanda['dem_dt_publicacao'] === null || $demanda['dem_situacao'] === 'ENCERRADA') {
+            throw new ValidacaoException('Esta demanda não está aberta a manifestações.');
+        }
+
+        return $demanda;
+    }
+
+    /**
      * O que o demandante veria se a manifestação fosse enviada agora.
      *
      * Serve à tela, antes do envio. Devolve o perfil já filtrado e uma contagem do que sobrou,
@@ -98,17 +123,9 @@ final class ManifestacaoService
             ->tamanhoMaximo('mensagem', $mensagem, 1000, 'No máximo 1000 caracteres.')
             ->lancarSeInvalido();
 
-        $demanda = $this->demandas->porId($demandaId);
-
-        if ($demanda === null || $demanda['dem_status'] !== STATUS_ATIVO) {
-            throw new ValidacaoException('Demanda não encontrada.');
-        }
-
         // Rascunho não existe para o resto da plataforma, e demanda encerrada não recebe mais
-        // interessado. As duas recusas usam a mesma mensagem que a vitrine usaria.
-        if ($demanda['dem_dt_publicacao'] === null || $demanda['dem_situacao'] === 'ENCERRADA') {
-            throw new ValidacaoException('Esta demanda não está aberta a manifestações.');
-        }
+        // interessado. Um lugar só decide isso, e a tela de confirmação usa o mesmo.
+        $demanda = $this->demandaAberta($demandaId);
 
         if ((int) $demanda['dem_usu_id'] === $candidatoId) {
             throw new ValidacaoException('Você não pode manifestar interesse na própria demanda.');
