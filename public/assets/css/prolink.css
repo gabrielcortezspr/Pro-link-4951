@@ -1164,3 +1164,144 @@ textarea.form-control { min-height: 0; }
    vez de ir para a direita como o rodapé da trilha. */
 .pl-sess-rodape { padding: 14px 18px; border-top: 1px solid var(--pl-border); }
 .pl-sess-rodape .pl-nota { max-width: 88ch; }
+
+/* ---------- 22. Manifestação de interesse: a confirmação, as duas listas e o retrato ----------
+   Quatro telas do cenário 4 do Anexo I. A confirmação é a única da aplicação em que o assunto
+   não é um registro nem uma lista: é uma decisão de privacidade com contrapartida. O snapshot
+   congela o que o demandante PODIA ver, então quem tem o perfil fechado manifesta e envia só o
+   nome, e descobrir isso depois do envio seria a pior hora possível. Por isso o que vai junto é
+   desenhado como conteúdo, com o nome e o registro de verdade dentro do quadro, e não como uma
+   contagem em texto corrido.
+
+   Nada aqui usa --pl-seal fora do acervo: manifestação vista, respondida ou com hash conferido
+   não é documento verificado na API do CREA, é estado. Estado tem componente próprio
+   (.pl-pill). O selo continua colado ao número da ART, dentro do retrato. */
+
+/* O que o demandante vai receber. Fundo da área de conteúdo dentro do card branco: é uma
+   amostra do que sai daqui, não um segundo card. */
+.pl-envio { background: var(--pl-app); border: 1px solid var(--pl-border); border-radius: 12px;
+    padding: 15px 16px; }
+.pl-envio .qm { display: flex; align-items: center; gap: 12px; margin: 0; }
+.pl-envio .nm { font-family: var(--pl-display); font-weight: 600; font-size: 16px;
+    letter-spacing: -.01em; color: var(--pl-ink); overflow-wrap: anywhere; }
+.pl-envio .rg { display: flex; align-items: center; gap: 5px 8px; flex-wrap: wrap; margin: 3px 0 0;
+    font-size: 12px; color: var(--pl-muted); }
+.pl-envio .rg .pl-mark { width: 14px; height: 14px; vertical-align: -2px; }
+
+/* Uma linha por classe de conteúdo: o rótulo à esquerda, o que vai de fato à direita. Não é
+   contagem solta ("3 itens"), é a lista curta do que a outra pessoa vai ler. */
+.pl-envio .itens { list-style: none; margin: 13px 0 0; padding: 13px 0 0;
+    border-top: 1px solid var(--pl-border); }
+.pl-envio .itens > li { display: grid; grid-template-columns: 152px minmax(0, 1fr); gap: 4px 14px;
+    padding: 7px 0; font-size: 13px; }
+.pl-envio .itens > li:first-child { padding-top: 0; }
+.pl-envio .itens > li:last-child { padding-bottom: 0; }
+.pl-envio .k { color: var(--pl-muted); font-size: 12.5px; }
+.pl-envio .v { color: var(--pl-ink); min-width: 0; overflow-wrap: anywhere; }
+.pl-envio .v .qt { font-variant-numeric: tabular-nums; font-weight: 600; }
+/* Ausência aqui não é defeito nem descuido: é a escolha de visibilidade do titular, e o texto
+   diz isso sem cor de alerta. */
+.pl-envio .sem { color: var(--pl-faint); }
+.pl-envio .aviso { margin: 14px 0 0; padding-top: 13px; border-top: 1px solid var(--pl-border); }
+.pl-envio .aviso .t { margin: 0; font-size: 14px; font-weight: 600; color: var(--pl-ink);
+    line-height: 1.45; }
+.pl-envio .aviso .s { margin: 6px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--pl-muted);
+    max-width: 62ch; }
+.pl-envio .aviso .a { margin-top: 13px; display: flex; align-items: center; gap: 10px;
+    flex-wrap: wrap; }
+
+/* Consequência de ação irreversível, no momento da ação: visível e curta, nunca atrás do "i"
+   (D53, regra 3). Não é aviso de erro, então não tem cor de estado: tem tinta cheia. */
+.pl-consequencia { display: flex; align-items: flex-start; gap: 9px; margin: 18px 0 0;
+    font-size: 13px; line-height: 1.55; color: var(--pl-ink); max-width: 70ch; }
+.pl-consequencia svg { width: 15px; height: 15px; flex: none; margin-top: 2px;
+    color: var(--pl-muted); }
+
+/* Mensagem não lida. Não é status da manifestação (isso é .pl-pill), é uma pendência de quem
+   está lendo a lista, e por isso usa a caixa de dado (azul escuro sobre azul claro) em vez de
+   entrar no vocabulário de estado. */
+.pl-novas { display: inline-flex; align-items: center; gap: 6px; background: var(--pl-blue-100);
+    color: var(--pl-data); border-radius: 20px; padding: 3px 9px; font-size: 11.5px;
+    font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pl-novas .pd { width: 6px; height: 6px; border-radius: 50%; background: var(--pl-data); flex: none; }
+/* Número que leva a outra tela (a coluna de interessados do painel do demandante). Sem isto a
+   contagem era um número morto ao lado de uma lista que existe. */
+.pl-table a.lk { color: var(--pl-blue); font-weight: 600; text-decoration: none; }
+.pl-table a.lk:hover { text-decoration: underline; }
+.pl-table a.lk:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px;
+    border-radius: 6px; }
+/* Texto escrito pelo interessado, dentro da linha: duas linhas e corta. Coluna própria ficaria
+   vazia na maioria das linhas, e mensagem é justamente o que distingue um interessado do outro. */
+.pl-table .lin-msg { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; margin: 4px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--pl-muted);
+    max-width: 78ch; }
+/* O cartão da vitrine ganhou uma segunda ação (manifestar): sem quebra, a data e os dois botões
+   estouravam a largura do cartão em 330px. */
+.pl-dem .pe { flex-wrap: wrap; row-gap: 9px; }
+.pl-dem .pe .acoes { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+/* ---- O retrato congelado ---- */
+/* O perfil desta tela é um retrato datado, não o perfil de hoje. É diferencial da proposta
+   ("alterações posteriores não afetam o que a empresa já viu") e some se não for dito: os dois
+   são iguais na maioria das vezes, e ninguém notaria a diferença justamente quando ela importa. */
+.pl-retrato { display: flex; align-items: flex-start; gap: 9px; margin: 0 0 16px; padding: 11px 13px;
+    background: var(--pl-app); border: 1px solid var(--pl-border); border-radius: 10px;
+    font-size: 12.5px; line-height: 1.6; color: var(--pl-muted); }
+.pl-retrato svg { width: 15px; height: 15px; flex: none; margin-top: 3px; color: var(--pl-faint); }
+.pl-retrato b { color: var(--pl-ink); font-weight: 600; }
+.pl-retrato a { font-weight: 600; }
+
+.pl-snap-topo { display: flex; align-items: center; gap: 14px; padding-bottom: 15px;
+    border-bottom: 1px solid var(--pl-border-2); }
+.pl-snap-topo .id { min-width: 0; }
+.pl-snap-topo .nm { font-family: var(--pl-display); font-weight: 600; font-size: 19px;
+    letter-spacing: -.01em; line-height: 1.25; margin: 0; overflow-wrap: anywhere; }
+.pl-snap-topo .rg { margin: 4px 0 0; display: flex; align-items: center; gap: 5px 8px;
+    flex-wrap: wrap; font-size: 12.5px; color: var(--pl-muted); }
+.pl-snap-topo .rg .pl-mark { width: 14px; height: 14px; vertical-align: -2px; }
+.pl-snap .pl-grp { margin: 22px 0 11px; }
+.pl-snap .pl-grp:first-of-type { margin-top: 20px; }
+.pl-snap .vazio { margin: 0; font-size: 12.5px; color: var(--pl-faint); }
+
+/* Snapshot que não bate com o próprio hash. Raro por desenho, e desenhado por isso mesmo: se
+   acontecer, significa alteração no banco depois do envio, e a tela não pode exibir o conteúdo
+   como se fosse o original. Ela para de exibir, diz o que houve e aponta o caminho confiável,
+   que é o perfil vivo. */
+.pl-alarme { border: 1px solid var(--pl-danger); background: var(--pl-danger-bg);
+    border-radius: 12px; padding: 16px 18px; }
+.pl-alarme .t { display: flex; align-items: center; gap: 9px; margin: 0; font-family: var(--pl-display);
+    font-weight: 600; font-size: 15px; color: #b23434; }
+.pl-alarme .t svg { width: 17px; height: 17px; flex: none; }
+.pl-alarme .s { margin: 9px 0 0; font-size: 13px; line-height: 1.6; color: var(--pl-ink);
+    max-width: 68ch; }
+.pl-alarme .hs { margin: 11px 0 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px; color: var(--pl-muted); overflow-wrap: anywhere; }
+.pl-alarme .a { margin-top: 15px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+/* ---- A conversa ---- */
+/* Primeiro contato sobre uma demanda, não mensageiro: nada de balão alternando de lado nem de
+   avatar por linha. Cada mensagem é um bloco com trilho à esquerda, e a cor do trilho é o que
+   diz de quem é — azul escuro para a outra parte, cinza para as minhas. Consecutivas da mesma
+   pessoa lêem como um grupo sem precisar de cabeçalho repetido. */
+.pl-conversa { list-style: none; margin: 0; padding: 0; }
+.pl-conversa > li { border-left: 2px solid var(--pl-border); padding: 12px 0 12px 14px; }
+.pl-conversa > li + li { margin-top: 3px; }
+.pl-conversa > li:first-child { padding-top: 0; }
+.pl-conversa > li:last-child { padding-bottom: 0; }
+.pl-conversa > li.deles { border-left-color: var(--pl-data); }
+.pl-conversa .qm { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+    margin: 0 0 5px; }
+.pl-conversa .nm { font-size: 13px; font-weight: 600; color: var(--pl-ink); }
+.pl-conversa > li:not(.deles) .nm { color: var(--pl-muted); }
+.pl-conversa .papel { font-size: 10.5px; font-weight: 600; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--pl-faint); }
+.pl-conversa .qd { margin-left: auto; font-size: 11.5px; color: var(--pl-faint);
+    font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pl-conversa .tx { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--pl-ink);
+    white-space: pre-line; overflow-wrap: anywhere; max-width: 74ch; }
+.pl-conversa .rec { margin: 6px 0 0; font-size: 11.5px; color: var(--pl-faint); }
+
+/* Quando nada mais vai junto, o quadro muda de peso sem mudar de tom: contorno mais firme e
+   nenhuma cor de alerta. O que precisa saltar é o conteúdo do envio, não um aviso vermelho sobre
+   uma escolha legítima de privacidade. */
+.pl-envio.vazio { border-color: var(--pl-faint); }

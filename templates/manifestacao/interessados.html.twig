@@ -1,0 +1,124 @@
+{% extends 'layout/base.html.twig' %}
+{% import 'layout/_ui.html.twig' as ui %}
+
+{% block titulo %}Interessados · {{ demanda.dem_titulo }} · Pro-Link{% endblock %}
+
+{#  Lista de pessoas comparáveis entre si sobre uma mesma demanda. Tabela, e densa: a mensagem que
+    cada uma escreveu é o que distingue uma linha da outra, e ela precisa de largura para caber em
+    duas linhas sem virar um bloco de texto. #}
+{% block classe_main %}pl-wrap densa{% endblock %}
+
+{% block conteudo %}
+{% set nao_lidas = interessados|reduce((soma, i) => soma + i.nao_lidas, 0) %}
+
+<div class="pl-head">
+    <div class="tit">
+        <p class="mb-2">
+            <a class="pl-link-voltar" href="{{ app_url }}/demandas/{{ demanda.dem_id }}">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H6"/><path d="M11 6l-6 6 6 6"/></svg>
+                Voltar para a demanda
+            </a>
+        </p>
+        <h1>Interessados</h1>
+        <p class="sub">
+            <span>{{ demanda.dem_titulo }}</span>
+            <span class="pl-sep" aria-hidden="true"></span>
+            {{ ui.situacao(demanda.dem_situacao, demanda.dem_dt_publicacao is not null) }}
+            {% if interessados is not empty %}
+                <span class="pl-sep" aria-hidden="true"></span>
+                <span><span class="n">{{ interessados|length }}</span>
+                    {{ interessados|length == 1 ? 'manifestação recebida' : 'manifestações recebidas' }}</span>
+            {% endif %}
+            {% if nao_lidas > 0 %}
+                <span class="pl-sep" aria-hidden="true"></span>
+                <span><span class="n">{{ nao_lidas }}</span>
+                    {{ nao_lidas == 1 ? 'mensagem não lida' : 'mensagens não lidas' }}</span>
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+{% if interessados is empty %}
+    <div class="pl-card pl-vazio">
+        <p class="t">Ninguém manifestou interesse nesta demanda ainda</p>
+        <p class="s">
+            Quem manifestar aparece aqui com o perfil que tinha no momento do envio, e você poderá
+            responder por dentro da plataforma, sem trocar contato antes de querer.
+        </p>
+        {% if demanda.dem_dt_publicacao is not null %}
+            <div class="a">
+                <a class="pl-btn" href="{{ app_url }}/demandas/{{ demanda.dem_id }}/compativeis">
+                    Ver quem já comprovou fazer isto
+                </a>
+            </div>
+        {% endif %}
+    </div>
+{% else %}
+    <div class="pl-card">
+        <div class="pl-linha-titulo">
+            <h2 class="pl-secao">Quem manifestou interesse</h2>
+            <span class="cnt">{{ interessados|length }}</span>
+            {{ ui.info('O que você recebeu de cada um',
+                'Cada manifestação traz um retrato do perfil do candidato como ele estava no envio, com o que aquele titular tinha aberto para você. Abrir a manifestação marca a data em que você a viu, e essa data aparece para quem manifestou.', 'fim') }}
+        </div>
+
+        {#  Declaração visível, e não atrás do "i" (D53, regra 3): esta é uma lista de pessoas
+            reunidas por uma demanda, e sem a frase alguém leria a ordem como classificação. #}
+        <p class="pl-nota">
+            Em ordem de chegada. A plataforma não classifica, ordena por mérito nem recomenda
+            interessados: a decisão é sua.
+        </p>
+
+        <div class="table-responsive">
+            <table class="pl-table">
+                <caption class="visually-hidden">
+                    Interessados nesta demanda, na ordem em que manifestaram, com a mensagem enviada e a situação de cada uma
+                </caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Interessado</th>
+                        <th scope="col">Situação</th>
+                        <th scope="col">Conversa</th>
+                        <th scope="col">Recebida</th>
+                        <th scope="col"><span class="visually-hidden">Ação</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in interessados %}
+                        <tr>
+                            <td>
+                                <a class="lin-tt" href="{{ app_url }}/manifestacoes/{{ i.man_id }}">{{ i.nome }}</a>
+                                <span class="lin-sub">{{ ui.tipo_candidato(i.man_candidato_tipo) }} registrado no CREA</span>
+                                {#  A mensagem é o que distingue um interessado do outro, e por isso
+                                    mora na linha, presa ao nome, em vez de numa coluna que ficaria
+                                    vazia sempre que alguém não escrevesse nada. #}
+                                {% if i.man_mensagem %}
+                                    <p class="lin-msg">{{ i.man_mensagem }}</p>
+                                {% endif %}
+                            </td>
+                            <td>{{ ui.situacao_manifestacao(i.man_situacao) }}</td>
+                            <td>
+                                {% if i.nao_lidas > 0 %}
+                                    <span class="pl-novas">
+                                        <span class="pd" aria-hidden="true"></span>
+                                        {{ i.nao_lidas }} {{ i.nao_lidas == 1 ? 'mensagem nova' : 'mensagens novas' }}
+                                    </span>
+                                {% elseif i.mensagens > 0 %}
+                                    <span class="lin-sub">{{ i.mensagens }}
+                                        {{ i.mensagens == 1 ? 'mensagem trocada' : 'mensagens trocadas' }}</span>
+                                {% else %}
+                                    <span class="lin-sub">Sem resposta sua ainda</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="pl-mono">{{ i.man_dt_registro|date('d/m/Y') }}</span></td>
+                            <td class="text-end">
+                                <a class="pl-btn sm" href="{{ app_url }}/manifestacoes/{{ i.man_id }}">Ver perfil</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

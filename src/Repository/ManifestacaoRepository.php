@@ -54,17 +54,34 @@ final class ManifestacaoRepository extends Repositorio
         return (int) $this->pdo->lastInsertId();
     }
 
-    /** Já manifestou nesta demanda? Pergunta do serviço, para a mensagem; a garantia é do índice. */
-    public function jaManifestou(int $demandaId, int $usuarioId): bool
+    /**
+     * O id da manifestação deste par, ou null.
+     *
+     * Serve a duas coisas com a mesma consulta: ao serviço, que recusa a segunda manifestação com
+     * mensagem decente, e à tela, que precisa saber **antes** de desenhar o botão. Sem isso, quem
+     * já manifestou vê "Manifestar interesse", clica, preenche e só descobre no POST — que é o
+     * jeito mais fácil de a demonstração ao vivo tropeçar.
+     *
+     * A garantia continua sendo do índice `uq_man_dem_usu`: conferir-e-inserir sem unicidade no
+     * banco é corrida esperando acontecer.
+     */
+    public function idDoPar(int $demandaId, int $usuarioId): ?int
     {
         $stmt = $this->pdo->prepare(
-            'SELECT 1 FROM pro_manifestacoes
+            'SELECT man_id FROM pro_manifestacoes
               WHERE man_dem_id = :demanda AND man_usu_id = :usuario AND man_status = :ativo
               LIMIT 1'
         );
         $stmt->execute([':demanda' => $demandaId, ':usuario' => $usuarioId, ':ativo' => STATUS_ATIVO]);
 
-        return $stmt->fetchColumn() !== false;
+        $id = $stmt->fetchColumn();
+
+        return $id === false ? null : (int) $id;
+    }
+
+    public function jaManifestou(int $demandaId, int $usuarioId): bool
+    {
+        return $this->idDoPar($demandaId, $usuarioId) !== null;
     }
 
     /**
@@ -87,20 +104,27 @@ final class ManifestacaoRepository extends Repositorio
     /**
      * Os interessados de uma demanda, para o painel do demandante.
      *
-     * Traz o nome da conta, e **não** o snapshot: a lista mostra quem manifestou e quando, e o
-     * perfil congelado só é lido quando alguém abre um interessado. Carregar um JSON de perfil
-     * por linha para desenhar uma lista seria pagar o custo do detalhe em toda listagem.
+     * Traz o nome, e **não** o snapshot: a lista mostra quem manifestou e quando, e o perfil
+     * congelado só é lido quando alguém abre um interessado. Carregar um JSON de perfil por linha
+     * para desenhar uma lista seria pagar o custo do detalhe em toda listagem.
+     *
+     * O nome é o do registro no CREA, com o da conta como último recurso. A conta pode chamar-se
+     * qualquer coisa — na massa há uma que se chama "Verificação E2" e cujo profissional é ANA
+     * CLARA COSTA —, e a lista de interessados é onde o demandante decide quem abrir. Empresa vem
+     * pela razão social, não pela fantasia, pelo motivo da D56.
      *
      * @return list<array<string, mixed>>
      */
     public function daDemanda(int $demandaId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT ' . self::CAMPOS . ', u.usu_nome,
+            'SELECT ' . self::CAMPOS . ', u.usu_nome, COALESCE(pr.prf_nome_api, e.emp_razao_social, u.usu_nome) AS nome,
                     (SELECT COUNT(*) FROM pro_mensagens g
                       WHERE g.msg_man_id = m.man_id AND g.msg_status = :ativo_g) AS mensagens
                FROM pro_manifestacoes m
                JOIN sis_usuarios u ON u.usu_id = m.man_usu_id
+               LEFT JOIN pro_profissionais pr ON pr.prf_usu_id = m.man_usu_id
+               LEFT JOIN pro_empresas e           ON e.emp_usu_id  = m.man_usu_id
               WHERE m.man_dem_id = :demanda AND m.man_status = :ativo
               ORDER BY m.man_dt_registro'
         );
@@ -149,7 +173,7 @@ final class ManifestacaoRepository extends Repositorio
     public function doUsuario(int $usuarioId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT ' . self::CAMPOS . ', d.dem_titulo, d.dem_situacao
+            'SELECT ' . self::CAMPOS . ', d.dem_titulo, d.dem_situacao, d.dem_id
                FROM pro_manifestacoes m
                JOIN pro_demandas d ON d.dem_id = m.man_dem_id
               WHERE m.man_usu_id = :usuario AND m.man_status = :ativo

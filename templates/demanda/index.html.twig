@@ -75,8 +75,17 @@
                             </td>
                             <td>{{ ui.situacao(d.dem_situacao, d.dem_dt_publicacao is not null) }}</td>
                             {#  Zero é um dado, e não um vazio: fica escrito, em cinza claro, para
-                                a coluna continuar comparável de cima a baixo. #}
-                            <td class="num{{ d.interessados > 0 ? '' : ' zero' }}">{{ d.interessados }}</td>
+                                a coluna continuar comparável de cima a baixo. A partir de um, o
+                                número leva à lista de quem manifestou: contagem que não abre a
+                                coisa contada é um número morto. #}
+                            <td class="num{{ d.interessados > 0 ? '' : ' zero' }}">
+                                {%- if d.interessados > 0 -%}
+                                    <a class="lk" href="{{ app_url }}/demandas/{{ d.dem_id }}/interessados"
+                                       title="Ver quem manifestou interesse">{{ d.interessados }}</a>
+                                {%- else -%}
+                                    {{ d.interessados }}
+                                {%- endif -%}
+                            </td>
                             <td>
                                 {% if d.dem_dt_publicacao %}
                                     <span class="pl-mono">{{ d.dem_dt_publicacao|date('d/m/Y') }}</span>

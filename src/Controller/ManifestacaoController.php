@@ -50,10 +50,28 @@ final class ManifestacaoController
             View::redirecionar('/demandas/abertas');
         }
 
+        // O dono da própria demanda não manifesta interesse nela, e `manifestar()` já recusa —
+        // mas só no POST. Sem esta conferência a tela monta a confirmação inteira, com prévia do
+        // perfil, para um envio que nunca seria aceito.
+        if ((int) $demanda['dem_usu_id'] === $usuarioId) {
+            Flash::erro('Você não pode manifestar interesse na própria demanda.');
+            View::redirecionar('/demandas/' . (int) $id);
+        }
+
+        $previa = $this->manifestacoes->previa($usuarioId, (int) $id);
+
+        // Já manifestou: esta tela não tem o que confirmar, e o POST seria recusado pelo índice
+        // único. Levar direto à conversa é o que a pessoa queria de qualquer jeito — e evita um
+        // formulário que existe só para dar erro.
+        if ($previa['manifestacao_id'] !== null) {
+            Flash::aviso('Você já manifestou interesse nesta demanda. O envio vale uma vez por demanda.');
+            View::redirecionar('/manifestacoes/' . $previa['manifestacao_id']);
+        }
+
         return View::render('manifestacao/confirmar.html.twig', [
             'titulo'  => 'Manifestar interesse',
             'demanda' => $demanda,
-            'previa'  => $this->manifestacoes->previa($usuarioId, (int) $id),
+            'previa'  => $previa,
         ]);
     }
 

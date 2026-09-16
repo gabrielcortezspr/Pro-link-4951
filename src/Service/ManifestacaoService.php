@@ -92,7 +92,13 @@ final class ManifestacaoService
      * para a interface poder avisar quando o snapshot sairia praticamente vazio — o caso em que
      * a pessoa manifestaria interesse e o demandante receberia um nome e nada mais.
      *
-     * @return array{perfil: array<string, mixed>|null, campos: int, arts: int, experiencias: int}
+     * Devolve também `manifestacao_id`: o id da manifestação que este par já tem, ou null. Sem
+     * isso a tela desenha "Manifestar interesse" para quem já manifestou, e a pessoa só descobre
+     * no POST, por mensagem de erro — que é o jeito mais fácil de a demonstração ao vivo
+     * tropeçar. O índice `uq_man_dem_usu` continua sendo a garantia; isto é a cortesia.
+     *
+     * @return array{perfil: array<string, mixed>|null, campos: int, arts: int,
+     *               experiencias: int, manifestacao_id: int|null}
      */
     public function previa(int $candidatoId, int $demandaId): array
     {
@@ -102,6 +108,7 @@ final class ManifestacaoService
             : $this->montarSnapshot($candidatoId, (int) $demanda['dem_usu_id']);
 
         return [
+            'manifestacao_id' => $this->manifestacoes->idDoPar($demandaId, $candidatoId),
             'perfil'       => $perfil,
             'campos'       => count(array_filter($perfil['campos'] ?? [], static fn ($v) => $v !== null)),
             'arts'         => count($perfil['arts'] ?? []),

@@ -18,11 +18,15 @@ declare(strict_types=1);
 use ProLink\Repository\AuditoriaRepository;
 use ProLink\Repository\CompatibilizacaoRepository;
 use ProLink\Repository\DemandaRepository;
+use ProLink\Repository\ManifestacaoRepository;
+use ProLink\Repository\MensagemRepository;
 use ProLink\Repository\TermoRepository;
 use ProLink\Service\BuscaService;
 use ProLink\Service\CompatibilizacaoService;
 use ProLink\Service\DemandaService;
 use ProLink\Service\DenunciaService;
+use ProLink\Service\InteressadoService;
+use ProLink\Service\ManifestacaoService;
 use ProLink\Service\PerfilEmpresaService;
 use ProLink\Service\PerfilService;
 use ProLink\Service\PrivacidadeService;
@@ -258,6 +262,74 @@ return (static function (): array {
                 'ativo'      => 'sessoes',
                 'titulo'     => 'Sessão ' . (int) $maior['mts_id'],
                 'reproducao' => $reproducao,
+            ];
+        }
+    }
+
+    // ---------------------------------------------------------------- manifestação de interesse
+    //
+    // As quatro telas do cenário 4 do Anexo I. Todas dependem de uma manifestação real, que um
+    // banco recém-carregado não tem: sem ela, as entradas simplesmente não entram, e o verificador
+    // relata cobertura parcial em vez de falhar.
+    //
+    // Nenhuma delas passa por `InteressadoService::abrir()`, que é o caminho da tela de detalhe.
+    // `abrir()` **escreve**: marca a manifestação como vista e carimba as mensagens como lidas. Um
+    // script de verificação que roda a cada conferência não pode consumir o estado "não lida" da
+    // base de demonstração. Por isso o detalhe é montado aqui a partir dos mesmos repositórios,
+    // com a mesma conferência de hash que o serviço faz na leitura.
+    $umaManifestacao = $pdo
+        ->query('SELECT man_id FROM pro_manifestacoes WHERE man_status = \'A\' ORDER BY man_id LIMIT 1')
+        ->fetchColumn();
+
+    if ($umaManifestacao !== false) {
+        $manifestacoes = new ManifestacaoRepository();
+        $registro      = $manifestacoes->porId((int) $umaManifestacao);
+
+        if ($registro !== null) {
+            $snapshot = json_decode((string) $registro['man_snapshot'], true);
+
+            $telas['manifestacao/ver.html.twig'] = [
+                'titulo'        => 'Manifestação',
+                'manifestacao'  => $registro,
+                // O lado do demandante: é o do cenário 4 ("a empresa visualiza o perfil"), e o
+                // que desenha mais coisa na tela.
+                'eh_demandante' => true,
+                'perfil'        => is_array($snapshot) ? $snapshot : null,
+                'integro'       => hash('sha256', (string) $registro['man_snapshot'])
+                                   === $registro['man_snapshot_hash'],
+                'mensagens'     => (new MensagemRepository())->daManifestacao((int) $umaManifestacao),
+            ];
+
+            $interessados = new InteressadoService();
+
+            $telas['manifestacao/minhas.html.twig'] = [
+                'titulo'        => 'Meus interesses',
+                'manifestacoes' => $interessados->minhas((int) $registro['man_usu_id']),
+            ];
+
+            $daDemanda = $interessados->daDemanda(
+                (int) $registro['dem_usu_id'],
+                (int) $registro['man_dem_id'],
+            );
+
+            $telas['manifestacao/interessados.html.twig'] = [
+                'titulo'       => 'Interessados',
+                'demanda'      => $daDemanda['demanda'],
+                'interessados' => $daDemanda['interessados'],
+            ];
+
+            // A confirmação com a prévia do mesmo par candidato/demanda: é o caso em que o
+            // snapshot sai praticamente vazio, que é justamente o estado que a tela existe para
+            // mostrar antes do envio.
+            $servico = new ManifestacaoService();
+
+            $telas['manifestacao/confirmar.html.twig'] = [
+                'titulo'  => 'Manifestar interesse',
+                'demanda' => $servico->demandaAberta((int) $registro['man_dem_id']),
+                'previa'  => $servico->previa(
+                    (int) $registro['man_usu_id'],
+                    (int) $registro['man_dem_id'],
+                ),
             ];
         }
     }

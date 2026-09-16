@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ProLink\Controller;
 
 use ProLink\Repository\DemandaRepository;
+use ProLink\Repository\ManifestacaoRepository;
 use ProLink\Repository\TosRepository;
 use ProLink\Service\DemandaService;
 use ProLink\Service\ValidacaoException;
@@ -105,6 +106,13 @@ final class DemandaController
             'eh_dono'   => $ehDono,
             'busca'     => $busca,
             'resultados' => $ehDono && $busca !== '' ? $this->resultados($busca) : [],
+
+            // Quem já manifestou não pode ver o botão de manifestar: a segunda tentativa é
+            // recusada pelo índice único, e descobrir isso depois de preencher a confirmação é
+            // o pior momento. Null quando ainda não manifestou, ou quando quem olha é o dono.
+            'manifestacao_id' => $ehDono || $usuarioId === null
+                ? null
+                : (new ManifestacaoRepository())->idDoPar((int) $id, $usuarioId),
             'erros'     => [],
             ...self::vocabulario(),
         ]);
