@@ -1305,3 +1305,341 @@ textarea.form-control { min-height: 0; }
    nenhuma cor de alerta. O que precisa saltar é o conteúdo do envio, não um aviso vermelho sobre
    uma escolha legítima de privacidade. */
 .pl-envio.vazio { border-color: var(--pl-faint); }
+
+/* ---------- 23. Visão geral do painel: o trabalho na mesa, e o tamanho da operação ----------
+   A tela tinha quatro tiles iguais dizendo "Não medido" e um aviso de prazo embaixo. Quatro caixas
+   de mesmo peso não são hierarquia, e aviso de prazo na primeira tela do painel é a plataforma
+   documentando o próprio atraso para quem abre.
+
+   O que decide o desenho daqui: de tudo que esta tela conta, uma coisa só pede ação de uma pessoa
+   (a fila de denúncias, o único lugar do painel onde alguém escreve). Ela vira o objeto primário,
+   com número em escala de manchete; a composição do cadastro fica ao lado, no painel estreito do
+   .pl-cols; as quatro contagens de operação ficam na fileira de tiles, que é leitura de varredura;
+   e a procedência dos números fecha a página, em texto.
+
+   Nada aqui vira barra, fatia ou porcentagem. Contagem tabular lê igual com 0 e com 9.999, e é a
+   única forma que aguenta a base de demonstração e a base recarregada da banca sem redesenho. */
+
+/* Momento da leitura, na topbar. Painel de indicador que não diz de quando é o número obriga quem
+   olha a supor, e supor é o contrário do que um painel serve para fazer. */
+.pl-momento { font-size: 12px; color: var(--pl-muted); font-variant-numeric: tabular-nums;
+    white-space: nowrap; }
+
+/* Os dois quadros de cima. Mais ar que o .pl-card padrão porque o da esquerda é o único lugar da
+   tela onde alguém decide alguma coisa, e o da direita precisa acompanhar a altura dele. */
+.pl-mod { padding: 20px 22px 18px; display: flex; flex-direction: column; }
+.pl-mod > .pl-linha-titulo { margin-bottom: 16px; }
+.pl-mod .pl-grp { font-family: var(--pl-body); margin: 0; }
+/* Escala de manchete, um degrau e meio acima do .pl-kpi .val (30px): a diferença entre primário e
+   secundário precisa ser visível de relance, não conferida. */
+.pl-mod .nm { font-family: var(--pl-display); font-weight: 700; font-size: 46px; line-height: 1;
+    letter-spacing: -.03em; color: var(--pl-ink); font-variant-numeric: tabular-nums; margin: 0; }
+.pl-mod .ds { margin: 10px 0 0; font-size: 14px; color: var(--pl-ink); max-width: 32ch; }
+.pl-mod .ds .sec { display: block; margin-top: 5px; font-size: 12.5px; line-height: 1.55;
+    color: var(--pl-muted); }
+/* Os dois quadros da fileira de cima dividem a altura dela. Na altura natural eles terminavam com
+   uns 20px de diferença, que é o degrau que faz uma fileira de cards parecer inacabada. */
+.pl-cols > .pl-mod { align-self: stretch; }
+/* A ação mora na coluna do número, não numa faixa embaixo do quadro inteiro. Como faixa, ela
+   esticava a altura do card sem esticar a coluna da direita, e toda a sobra virava um vão embaixo
+   da quebra: com as duas colunas carregando conteúdo, a altura passa a ser a da mais alta. */
+.pl-mod-topo { flex: 1 0 auto; display: flex; align-items: center; justify-content: space-between;
+    gap: 18px 36px; flex-wrap: wrap; }
+/* Quando o corpo do quadro é uma pilha (número em cima, quebra embaixo), a mesma caixa centra na
+   vertical em vez de distribuir na horizontal: é o que consome a sobra da altura compartilhada. */
+.pl-mod-topo.empilha { flex-direction: column; align-items: stretch; justify-content: center; }
+.pl-mod-topo .fila { min-width: 0; flex: 0 1 auto; }
+.pl-mod-topo .pl-quebra { min-width: 248px; flex: 1 1 300px; max-width: 460px; }
+/* Na pilha o eixo principal é vertical, e a base de 300px da regra acima viraria altura mínima:
+   a lista ficava 300px alta com quatro linhas dentro. */
+.pl-mod-topo.empilha .pl-quebra { flex: 0 0 auto; max-width: none; }
+.pl-mod .nm + .pl-quebra { margin-top: 14px; }
+.pl-mod .acoes { margin-top: 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pl-mod .acoes .pl-btn { height: 38px; }
+
+/* Quebra por categoria: rótulo à esquerda, contagem à direita, na mesma coluna de número. Serve à
+   fila de moderação e à composição do cadastro, que são a mesma forma de leitura.
+
+   A ordem vem fixa do template e nunca do tamanho. Ordenar categoria por contagem faz o quadro
+   remontar a cada carregamento e, num painel que fala de gente, desenha a silhueta de um ranking
+   onde não existe nenhum (item 10.1). A terceira coluna de 14px fica reservada mesmo na linha sem
+   link, para que a coluna do número não dance entre um quadro e o outro. */
+.pl-quebra { list-style: none; margin: 0; padding: 0; }
+.pl-quebra > li + li { border-top: 1px solid var(--pl-border-2); }
+.pl-quebra .ln { display: grid; grid-template-columns: minmax(0, 1fr) auto 14px;
+    align-items: center; gap: 12px; padding: 9px 0; font-size: 13px; text-decoration: none; }
+.pl-quebra .k { color: var(--pl-muted); overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; }
+.pl-quebra .v { color: var(--pl-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.pl-quebra .ch { width: 14px; height: 14px; color: var(--pl-border); }
+.pl-quebra a.ln:hover .k, .pl-quebra a.ln:hover .v,
+.pl-quebra a.ln:hover .ch { color: var(--pl-data); }
+.pl-quebra a.ln:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px;
+    border-radius: 8px; }
+/* A soma fecha a lista: filete mais firme que o das linhas e rótulo em tinta cheia, para ler como
+   total e não como mais uma categoria. */
+.pl-quebra > li.tot { border-top-color: var(--pl-border); }
+.pl-quebra > li.tot .k { color: var(--pl-ink); }
+
+/* Fileira de indicadores. O tile ganhou a linha secundária que faltava: número sozinho não diz se
+   o que ele conta chegou a algum lugar, e era nela que o estado vazio cabia. */
+.pl-kpi .sub { margin: 2px 0 0; font-size: 12px; line-height: 1.45; color: var(--pl-muted); }
+/* O selo acompanha o número, não compete com ele: 20px ao lado de um dígito de 30px. */
+.pl-kpi .val .pl-mark { width: 20px; height: 20px; vertical-align: 0; margin-left: 7px; }
+/* Tile que leva a uma tela. Borda e sombra no ponteiro, como no cartão de pessoa da busca: fundo
+   colorido numa fileira de quatro faria a linha inteira piscar. */
+a.pl-kpi { display: block; color: inherit; text-decoration: none;
+    transition: border-color .15s ease, box-shadow .15s ease; }
+a.pl-kpi:hover { border-color: var(--pl-blue-2); box-shadow: 0 10px 26px rgba(11,42,74,.10); }
+a.pl-kpi:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; }
+a.pl-kpi .sub { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+a.pl-kpi:hover .sub { color: var(--pl-data); }
+a.pl-kpi .ch { width: 13px; height: 13px; flex: none; color: var(--pl-faint); }
+a.pl-kpi:hover .ch { color: var(--pl-data); }
+@media (prefers-reduced-motion: reduce) { a.pl-kpi { transition: none; } }
+
+/* Procedência. Não é rodapé de página: é o que separa um painel de indicadores de uma vitrine de
+   números, e as duas notas daqui são a evidência visível de duas decisões do projeto (exclusão
+   lógica e viés declarado). Texto, sem número grande e sem cor de estado, porque nenhuma das duas
+   é alerta. */
+.pl-ressalvas .pl-grp { font-family: var(--pl-body); margin: 0 0 14px; }
+/* min() no piso da coluna: a sidebar do painel tem 232px fixos, e num aparelho estreito sobra
+   menos que 330px de conteúdo. Sem ele a coluna fica maior que a área e a página rola de lado. */
+.pl-ressalvas .itens { display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(330px, 100%), 1fr)); gap: 18px 34px; }
+.pl-ressalvas h3 { font-family: var(--pl-display); font-weight: 600; font-size: 13.5px;
+    letter-spacing: -.01em; color: var(--pl-ink); margin: 0 0 6px; }
+.pl-ressalvas p { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--pl-muted);
+    max-width: 68ch; }
+.pl-ressalvas .lk { display: inline-flex; align-items: center; gap: 5px; margin-top: 10px;
+    font-size: 12.5px; font-weight: 600; color: var(--pl-blue); text-decoration: none; }
+.pl-ressalvas .lk:hover { text-decoration: underline; }
+.pl-ressalvas .lk:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px;
+    border-radius: 6px; }
+.pl-ressalvas .lk svg { width: 12px; height: 12px; }
+
+@media (max-width: 720px) {
+    .pl-mod .nm { font-size: 38px; }
+    .pl-mod-topo .pl-quebra { min-width: 0; }
+    /* Reticências numa coluna de 100px deixavam "Receb… 106" na tela, que não é rótulo nenhum.
+       Aqui o rótulo quebra em duas linhas e a coluna do número continua alinhada. */
+    .pl-quebra .k { white-space: normal; }
+    /* A sidebar do painel tem 232px fixos em qualquer largura, então num aparelho de 430px sobram
+       menos de 200px de conteúdo e nenhum dos dois botões cabe em uma linha. Aqui eles viram caixa
+       de largura total com o texto quebrando, que é o que impede a página inteira de rolar de
+       lado. A regra de texto em uma linha do design system continua valendo acima deste ponto. */
+    .pl-mod .acoes { flex-direction: column; align-items: stretch; }
+    .pl-mod .acoes .pl-btn { width: 100%; height: auto; min-height: 38px; padding: 8px 12px;
+        white-space: normal; text-align: center; }
+    /* A topbar tem altura fixa de 60px e uma linha só, e com a sidebar de 232px ela fica com menos
+       de 200px para o título. O momento da leitura sai daí em vez de empurrar a barra para fora da
+       janela; o "i" ao lado continua dizendo que a contagem é feita quando a página abre. */
+    .pl-momento { display: none; }
+}
+
+/* ---------- 24. Lixeira e parâmetros: o que saiu de operação, e os números que o motor usa ----
+   Duas telas de administração com a mesma origem no edital: uma existe porque o 8.6j manda o
+   registro excluído continuar alcançável, a outra porque o 12.3 manda a supervisão dos critérios
+   de recomendação ser humana. As duas precisavam mostrar não só o dado, mas a REGRA que governa o
+   dado, e é isso que decide o desenho daqui.
+
+   Nenhuma das duas usa --pl-seal: verde água afirma "documento conferido na API do CREA", e nem
+   registro restaurado nem peso de motor é documento verificado. */
+
+/* A navegação do painel sempre teve um <svg> por item e nunca teve tamanho para ele: sem
+   width/height e dentro de um <span> vazio, os quatro ícones da barra mediam 0x0 e a lista era
+   texto com um recuo sem motivo. Com dois itens novos entrando, a régua passa a valer para os
+   seis de uma vez. */
+.pl-nav .ic { display: flex; align-items: center; justify-content: center; width: 18px; flex: none; }
+.pl-nav .ic svg { width: 17px; height: 17px; }
+
+/* Mensagem de POST no painel. O flash é escrito pelo base.html.twig antes do shell, e o shell é a
+   página inteira: solto ali em cima, com o <main> sem padding, ele virava uma caixa arredondada
+   encostada nas bordas da janela. Aqui ele assume o que já é, uma faixa de sistema no topo, com a
+   mesma margem lateral do conteúdo. Vale para todo o painel, não só para estas duas telas: é a
+   única resposta que a restauração e a gravação de parâmetros têm para dar. */
+main.p-0 > .alert { margin: 0; border-radius: 0; border-left: 0; border-right: 0;
+    padding: 13px clamp(18px, 1.8vw, 30px); font-size: 13.5px; }
+
+/* ---- Lixeira: as cinco entidades cobertas ---- */
+/* A contagem mora dentro da aba porque ela é o mapa da lixeira: sem ela, escolher a aba é abrir
+   uma por uma para descobrir onde há registro. Aba em zero continua clicável, e o estado vazio de
+   lá é uma afirmação ("nada deste tipo foi excluído"), não um beco. */
+.pl-abas { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; }
+.pl-abas .pl-btn { gap: 8px; }
+.pl-abas .n { font-variant-numeric: tabular-nums; color: var(--pl-faint); }
+.pl-abas .pl-btn:hover .n, .pl-abas .pl-btn.active .n { color: rgba(255, 255, 255, .72); }
+
+/* ---- Lixeira: a tabela ----
+   Mesma mecânica de log da trilha e das sessões (cabeçalho miúdo, hora monoespaçada, hover de
+   linha, número do registro à direita), sem o cabeçalho de dia: a lista vem na ordem do registro,
+   não na do relógio, e boa parte dela nem tem data de exclusão para agrupar. */
+.pl-lix { min-width: 940px; }
+.pl-lix col.c-tipo  { width: 158px; }
+.pl-lix col.c-saida { width: 174px; }
+.pl-lix col.c-quem  { width: 196px; }
+.pl-lix col.c-acao  { width: 152px; }
+.pl-lix col.c-ref   { width: 64px; }
+
+.pl-lix .tt { display: block; font-size: 13px; font-weight: 600; color: var(--pl-ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-lix .sub { display: block; margin-top: 2px; font-size: 11px; color: var(--pl-faint);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-lix .hora { display: block; }
+/* Ausência de data não é data: quando não há linha de EXCLUIR na trilha, o lugar do horário diz
+   isso com palavra, fora da fonte monoespaçada, para não ser lido como um valor. */
+.pl-lix .hora.vaga { font-family: var(--pl-body); font-size: 12px; color: var(--pl-faint); }
+.pl-lix td.acao { text-align: right; }
+
+/* Linha cuja restauração está fechada. Não é erro nem alerta: é a plataforma respeitando um
+   direito, então o trilho é azul escuro (a cor de dado e decisão) e não vermelho, e a linha se
+   descola do fundo em vez de gritar. */
+.pl-lix tbody tr.fechada td, .pl-lix tbody tr.fechada:hover td { background: var(--pl-app); }
+.pl-lix tbody tr.fechada td { border-bottom: 0; }
+.pl-lix tbody tr.fechada td:first-child { box-shadow: inset 2px 0 0 var(--pl-data); }
+/* Ausência de autor não é o autor: repetida em vinte linhas (carga inicial, escrita direta no
+   banco), em peso de nome ela lia como se "Origem não registrada" fosse gente. */
+.pl-lix .autor.anon { font-size: 12.5px; color: var(--pl-faint); }
+.pl-lix .fechado { display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+    font-weight: 600; color: var(--pl-muted); }
+.pl-lix .fechado svg { width: 13px; height: 13px; flex: none; }
+
+/* A regra, por extenso, na linha debaixo do registro a que ela pertence. Ocupa a largura toda
+   porque acontece em pouquíssimos registros e é a única coisa que esta tela tem a dizer sobre
+   eles. Explicação sob demanda não serve aqui: dentro de uma tabela rolável, ela seria recortada
+   pela barra de rolagem, e é justamente a frase que ninguém pode deixar de ler. */
+.pl-lix tbody tr.motivo td { background: var(--pl-app); padding-top: 0; padding-bottom: 14px;
+    box-shadow: inset 2px 0 0 var(--pl-data); }
+.pl-lix tr.motivo .w { display: flex; align-items: flex-start; gap: 10px; max-width: 96ch; }
+.pl-lix tr.motivo svg { width: 17px; height: 17px; flex: none; margin-top: 1px; color: var(--pl-data); }
+.pl-lix tr.motivo p { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--pl-ink); }
+.pl-lix tr.motivo .fonte { display: block; margin-top: 3px; font-size: 11.5px; color: var(--pl-muted); }
+
+/* ---- Lixeira: a caixa de diálogo do motivo ----
+   O motivo é a diferença entre um registro que voltou e um registro que voltou por um motivo que
+   alguém assinou. Ele não cabe na linha: vinte caixas de texto abertas numa tabela de vinte itens
+   são ruído permanente para uma ação que acontece uma vez. */
+/* Fundo branco explícito: o .modal-content do Bootstrap herda --bs-body-bg, que aqui é o off-white
+   de trás dos quadros. A caixa de diálogo é um quadro, e quadro desta aplicação é branco. */
+.pl-dialogo { background: var(--pl-card); border: 1px solid var(--pl-border); border-radius: 16px;
+    box-shadow: 0 30px 64px rgba(11, 42, 74, .24); }
+.pl-dialogo .modal-header { padding: 16px 20px 14px; border-bottom: 1px solid var(--pl-border-2); }
+.pl-dialogo .modal-title { font-family: var(--pl-display); font-weight: 600; font-size: 16px;
+    letter-spacing: -.01em; margin: 0; }
+.pl-dialogo .modal-body { padding: 16px 20px 18px; }
+.pl-dialogo .modal-footer { padding: 14px 20px; gap: 10px; border-top: 1px solid var(--pl-border-2); }
+/* O Bootstrap dá margem de .25rem a cada filho do rodapé; com gap explícito isso vira espaço
+   dobrado e desalinha o par de botões. */
+.pl-dialogo .modal-footer > * { margin: 0; }
+.pl-dialogo .modal-footer .pl-btn { height: 40px; }
+.pl-dialogo .alvo { margin: 0 0 14px; }
+.pl-dialogo .alvo .tt { display: block; font-family: var(--pl-display); font-weight: 600;
+    font-size: 17px; letter-spacing: -.01em; color: var(--pl-ink); overflow-wrap: anywhere; }
+.pl-dialogo .alvo .sub { display: block; margin-top: 3px; font-size: 12px; color: var(--pl-muted);
+    overflow-wrap: anywhere; }
+.pl-dialogo .form-text { margin-bottom: 0; }
+
+/* ---- Parâmetros: a linha de ajuste ----
+   Uma linha por parâmetro: o que ele faz à esquerda, o campo à direita, e a chave de sistema
+   embaixo do rótulo, em texto terciário. O campo tem a largura do dado que recebe (um peso é
+   "0.40", não um parágrafo), e por isso não acompanha a largura do card. */
+.pl-par .pl-grp { margin: 20px 0 0; }
+.pl-par > .pl-grp:first-child { margin-top: 2px; }
+.pl-par .campo { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+    gap: 4px 20px; padding: 13px 0; border-top: 1px solid var(--pl-border-2); }
+.pl-par .pl-grp + .campo { border-top: 0; }
+.pl-par .campo:first-child { border-top: 0; padding-top: 4px; }
+.pl-par .campo:last-child { padding-bottom: 2px; }
+.pl-par .campo .tx { min-width: 0; }
+.pl-par .campo label, .pl-par .campo .rot { display: block; font-size: 13.5px; font-weight: 500;
+    line-height: 1.45; color: var(--pl-ink); max-width: 64ch; }
+/* A chave é um identificador sem espaço ("match.early_career.min_arts") e mede mais que a área
+   útil de um aparelho estreito: sem quebra dentro da palavra, era ela que empurrava a página
+   inteira para o lado. Quebrar um identificador é pior de ler do que não quebrar, e é melhor do
+   que a tela rolar de lado. */
+.pl-par .campo .ch { margin: 3px 0 0; font-size: 11.5px; color: var(--pl-faint);
+    overflow-wrap: anywhere; }
+.pl-par .campo .ch .k { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+.pl-par .campo .ent { display: flex; align-items: center; gap: 8px; justify-self: end; }
+.pl-par .campo .ent .form-control { width: 106px; min-height: 40px; padding: 8px 10px;
+    font-size: 14px; font-variant-numeric: tabular-nums; }
+.pl-par .campo .un { font-size: 12px; color: var(--pl-muted); white-space: nowrap; }
+.pl-par .campo .fixo { font-size: 14px; font-weight: 600; color: var(--pl-muted);
+    font-variant-numeric: tabular-nums; }
+.pl-par .campo .msg { grid-column: 1 / -1; margin: 2px 0 0; font-size: 12px; color: #b23434; }
+.pl-par .campo .msg.neutra { color: var(--pl-muted); }
+/* O ícone de recusa do Bootstrap é desenhado no fundo do campo e reserva 2,25em à direita: num
+   campo de 106px ele empurra o número para fora. A borda vermelha e a mensagem embaixo já dizem
+   o mesmo, e continuam. */
+.pl-par .form-control.is-invalid, .pl-niveis .form-control.is-invalid {
+    background-image: none; padding-right: 10px; }
+
+/* ---- Parâmetros: a escada de afinidade ----
+   Cinco campos, um por grau de coincidência do código da Tabela de Obras e Serviços, na ordem em
+   que a escada sobe. Um campo só com "[0.00,0.15,0.40,0.75,1.00]" obrigaria a contar vírgula para
+   saber qual posição é qual, e é a posição que significa alguma coisa. */
+/* min() no piso da coluna, como na visão geral: com 232px fixos de barra lateral, um aparelho
+   estreito deixa menos de 166px de conteúdo, e sem isto a fileira ficava maior que a área e a
+   página inteira rolava de lado. */
+.pl-niveis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(166px, 100%), 1fr));
+    gap: 16px; margin-top: 2px; }
+.pl-niveis .nv { display: flex; flex-direction: column; min-width: 0; }
+/* O rótulo cresce e o campo encosta no fim da célula: os cinco rótulos têm uma e duas linhas, e
+   sem isto os cinco campos ficariam em cinco alturas diferentes. */
+.pl-niveis .nv label { flex: 1; margin-bottom: 8px; }
+.pl-niveis .nv .t { display: block; font-size: 12.5px; font-weight: 600; color: var(--pl-ink); }
+.pl-niveis .nv .s { display: block; margin-top: 2px; font-size: 11.5px; line-height: 1.45;
+    color: var(--pl-muted); }
+/* Mesma caixa do campo de peso: os dois recebem um número de 0 a 1, e campo do mesmo dado com
+   largura diferente em dois quadros da mesma tela é a inconsistência que se vê sem medir. */
+.pl-niveis .form-control { width: 106px; min-height: 40px; padding: 8px 10px; font-size: 14px;
+    font-variant-numeric: tabular-nums; }
+.pl-niveis-ch { margin: 14px 0 0; font-size: 11.5px; color: var(--pl-faint);
+    overflow-wrap: anywhere; }
+.pl-niveis-ch .k { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+.pl-card > .msg { margin: 10px 0 0; font-size: 12.5px; color: #b23434; }
+
+/* ---- Parâmetros: a composição gravada, e o lote recusado ---- */
+/* Soma de uma família de pesos. Fecha o grupo como total, sem virar mais uma linha de dimensão:
+   filete mais firme e rótulo em tinta cheia, a mesma gramática da soma da visão geral. */
+.pl-param .tot { margin: 10px 0 0; padding-top: 9px; border-top: 1px solid var(--pl-border);
+    font-size: 12.5px; color: var(--pl-muted); }
+.pl-param .tot b { color: var(--pl-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+/* A ressalva que fecha o quadro não é a continuação da última soma: ela vale para os dois grupos,
+   e por isso se descola deles. Dentro de .grupo, a nota continua colada ao seu grupo (tela de
+   sessão), e é por isso que a regra vale só para o filho direto. */
+.pl-param > .sem { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--pl-border-2); }
+
+.pl-lote { border-radius: var(--pl-r); }
+.pl-lote .t { margin: 0; font-size: 14px; font-weight: 600; }
+.pl-lote ul { margin: 9px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
+.pl-lote li + li { margin-top: 4px; }
+.pl-lote .s { margin: 11px 0 0; font-size: 12.5px; }
+
+/* ---- Parâmetros: a barra de gravação ----
+   Um lote, um botão. A barra acompanha a rolagem porque o botão governa os onze campos, e numa
+   tela de quatro quadros ele estaria sempre longe de metade deles. A consequência da gravação
+   viaja junto, do lado esquerdo: é ela que separa "mudei uma configuração" de "mudei o critério
+   de recomendação da plataforma, e isso ficou registrado". */
+.pl-salvar { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center;
+    justify-content: space-between; gap: 14px 24px; flex-wrap: wrap; padding: 14px 20px;
+    box-shadow: 0 -10px 24px rgba(11, 42, 74, .08); }
+.pl-salvar .pl-consequencia { margin: 0; max-width: 76ch; }
+.pl-salvar .acoes { display: flex; align-items: center; gap: 10px; margin-left: auto;
+    flex-wrap: wrap; }
+.pl-salvar .acoes .pl-btn { height: 40px; }
+
+@media (max-width: 720px) {
+    /* Com 232px fixos de barra lateral, sobra menos de 200px de conteúdo: rótulo e campo deixam de
+       caber lado a lado, e o campo passa a ocupar a linha inteira embaixo do que ele ajusta. */
+    .pl-par .campo { grid-template-columns: minmax(0, 1fr); }
+    .pl-par .campo .ent { justify-self: start; }
+    /* Barra fixa numa janela de 900px de altura comeria um décimo da tela o tempo todo, e o ganho
+       dela (o botão sempre à mão) é de tela larga. Aqui ela volta a ser o fim do formulário. */
+    .pl-salvar { position: static; }
+    /* Mesma regra da visão geral: "Ver as alterações na trilha" em uma linha mede mais que a
+       largura útil de um aparelho estreito, e era ela que fazia a página inteira rolar de lado. */
+    .pl-salvar .acoes { flex-direction: column; align-items: stretch; width: 100%; }
+    .pl-salvar .acoes .pl-btn, .pl-salvar .acoes .pl-cta { width: 100%; height: auto;
+        min-height: 40px; padding: 9px 12px; white-space: normal; text-align: center; }
+}

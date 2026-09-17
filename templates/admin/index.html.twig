@@ -1,23 +1,342 @@
 {% extends 'admin/_layout.html.twig' %}
+{% import 'layout/_ui.html.twig' as ui %}
+
+{#
+    Visão geral do painel administrativo (RF06; Anexo I, item 3, "emitir relatórios").
+
+    A tela responde duas perguntas, nesta ordem: "tem trabalho na minha mesa agora?" e "que tamanho
+    tem a operação?". A primeira tem uma resposta só nesta aplicação: a fila de denúncias, que é o
+    único lugar do painel onde alguém escreve (sessões e auditoria são leitura). Por isso a
+    moderação é o objeto primário e leva o número grande, e o resto da tela é varredura.
+
+    Primário   quantas denúncias esperam apuração, e o caminho até elas.
+    Secundário a composição do cadastro e as quatro contagens da operação.
+    Terciário  a procedência dos números, no rodapé. As duas ressalvas de lá são conteúdo, não
+               enfeite: uma diz que a exclusão é lógica (item 8.6j) e a outra enquadra a medida de
+               viés de início de carreira que a declaração do item 12.3 assume.
+
+    Nada aqui ordena pessoa (item 10.1). Contagem por categoria é composição, e a ordem das
+    categorias é fixa no template justamente para não sair ordenada por tamanho.
+
+    Escala: desenhada para o banco recarregado da demonstração, onde quase tudo é zero ou um
+    dígito. Nenhum número vira barra, fatia ou porcentagem, que é o que quebra quando a base cresce;
+    contagem tabular aguenta 0 e 9.999 na mesma caixa. Categoria sem registro simplesmente não
+    aparece na quebra, em vez de virar uma fileira de zeros.
+#}
 
 {% block titulo %}Administração · Pro-Link{% endblock %}
 {% block titulo_painel %}Visão geral{% endblock %}
 
+{% block topbar_acoes %}
+    {# Todo painel de indicador precisa dizer de quando é o número. Este é lido no render, direto
+       do banco, então o momento da leitura é o momento da página. #}
+    <span class="pl-momento">Contagem lida em {{ "now"|date('d/m/Y, H:i') }}</span>
+    {{ ui.info('O que estes números contam',
+        'Cada contagem é feita no banco no instante em que esta página abre, sem cache e sem janela de tempo. Só registro ativo entra: o que foi excluído sai da conta na mesma hora, porque a exclusão desta plataforma marca a linha em vez de apagá-la.', 'fim') }}
+{% endblock %}
+
 {% block painel %}
-    <div class="row g-3">
-        {% for rotulo in ['Usuários', 'Demandas ativas', 'Manifestações', 'Denúncias abertas'] %}
-            <div class="col-6 col-lg-3">
-                <div class="pl-kpi">
-                    <div class="lab">{{ rotulo }}</div>
-                    {# Indicador ainda não medido. Um traço no tamanho do número lia como valor,
-                       e leitor de tela não lê traço nenhum: aqui o estado está escrito. #}
-                    <div class="val vazio">Não medido</div>
-                </div>
+
+    {% set contas = indicadores.contas %}
+    {% set den    = indicadores.denuncias %}
+    {% set dem    = indicadores.demandas %}
+    {% set man    = indicadores.manifestacoes %}
+    {% set evi    = indicadores.evidencia %}
+    {% set mot    = indicadores.motor %}
+
+    {#  Quebra por situação que chega sem nenhuma linha vem do PHP como lista vazia, não como mapa:
+        `[]` e `{}` são o mesmo valor lá, e é o que acontece hoje com as manifestações. Por isso
+        todo acesso por chave passa por |default(0), que o Twig resolve sem estourar sob
+        strict_variables, e todo laço sobre a quebra tolera a lista vazia (ela só não itera). #}
+    {% set pendentes   = den.por_situacao['PENDENTE']|default(0) %}
+    {% set encerradas  = dem.por_situacao['ENCERRADA']|default(0) %}
+    {% set respondidas = man.por_situacao['RESPONDIDA']|default(0) %}
+
+    {#  Vocabulário fixo de situação, o mesmo de denuncias.html.twig, na forma plural porque aqui
+        cada linha é um grupo de registros e não um registro. Nunca inventar rótulo novo. #}
+    {% set estados = {'PENDENTE': 'Pendentes', 'EM_ANALISE': 'Em análise', 'RESOLVIDA': 'Resolvidas'} %}
+
+    {#  Perfis de acesso, plural do mapa de privacidade/index.html.twig. A ordem é a da finalidade
+        da plataforma (quem ela serve primeiro, depois quem a opera), fixa de propósito. #}
+    {% set perfis = {
+        'PROFISSIONAL': 'Profissionais', 'EMPRESA': 'Empresas',
+        'TERCEIRO': 'Terceiros', 'ADMIN': 'Administração'
+    } %}
+
+    <div class="pl-cols">
+
+        {# ------------------------------------------------------------ o trabalho na mesa #}
+        <section class="pl-card pl-mod" aria-labelledby="h-moderacao">
+            <div class="pl-linha-titulo">
+                <h2 class="pl-grp" id="h-moderacao">Fila de moderação</h2>
+                {{ ui.info('O que acontece antes da apuração',
+                    'Nada é bloqueado automaticamente por ter sido denunciado: a conta ou o anúncio continuam em operação até alguém da Administração apurar e decidir. O bloqueio, quando acontece, é registrado na trilha de auditoria junto com quem o aplicou.') }}
             </div>
-        {% endfor %}
+
+            <div class="pl-mod-topo">
+                <div class="fila">
+                    <p class="nm">{{ pendentes }}</p>
+                    <p class="ds">
+                        {{ pendentes == 1 ? 'denúncia aguardando apuração' : 'denúncias aguardando apuração' }}
+                        <span class="sec">
+                            {%- if pendentes > 0 -%}
+                                A conta denunciada segue em operação até alguém decidir.
+                            {%- elseif den.total > 0 -%}
+                                Tudo que chegou até agora já foi apurado.
+                            {%- else -%}
+                                Nenhuma denúncia foi recebida até agora.
+                            {%- endif -%}
+                        </span>
+                    </p>
+                </div>
+
+                {% if den.total > 0 %}
+                    {#  Aqui o zero é mostrado, e na quebra do cadastro não. A diferença não é
+                        capricho: situação de denúncia é etapa de trabalho, e "nenhuma em análise"
+                        é informação de fila (ninguém pegou nada). Perfil de acesso é população, e
+                        "zero empresas" é só a ausência de um grupo. Por isso esta quebra percorre
+                        o vocabulário fechado, na mesma ordem das abas de denuncias.html.twig, e a
+                        de lá percorre o que existe. #}
+                    <ul class="pl-quebra">
+                        {#  A situação pendente é o número grande ao lado; repeti-la aqui seria a
+                            mesma contagem duas vezes na mesma caixa. #}
+                        {% for codigo, rotulo in estados %}
+                            {% if codigo != 'PENDENTE' %}
+                                <li>
+                                    <a class="ln" href="{{ app_url }}/admin/denuncias?situacao={{ codigo }}">
+                                        <span class="k">{{ rotulo }}</span>
+                                        <span class="v">{{ den.por_situacao[codigo]|default(0) }}</span>
+                                        <svg class="ch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        {#  Situação nova no banco antes de entrar no mapa acima ainda aparece,
+                            pela convenção de fallback de Support\Rotulos: sumir dela faria a
+                            soma das linhas deixar de bater com o total, em silêncio.
+
+                            Sem link, e de propósito: a fila só aceita filtro da lista fechada do
+                            serviço e devolve "todas" para o resto, então o link prometeria um
+                            recorte que a outra tela não faz. #}
+                        {% for codigo, quantidade in den.por_situacao %}
+                            {% if estados[codigo] is not defined %}
+                                <li>
+                                    <span class="ln">
+                                        <span class="k">{{ codigo|lower|replace({'_': ' '})|capitalize }}</span>
+                                        <span class="v">{{ quantidade }}</span>
+                                    </span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        <li class="tot">
+                            <a class="ln" href="{{ app_url }}/admin/denuncias">
+                                <span class="k">Recebidas ao todo</span>
+                                <span class="v">{{ den.total }}</span>
+                                <svg class="ch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                            </a>
+                        </li>
+                    </ul>
+                {% endif %}
+            </div>
+
+            {#  A ação fecha o quadro, depois da quebra: em qualquer largura a leitura é o número,
+                o que ele significa, como ele se divide, e só então o caminho para resolver. #}
+            <div class="acoes">
+                {% if pendentes > 0 %}
+                    <a class="pl-btn" href="{{ app_url }}/admin/denuncias?situacao=PENDENTE">Abrir a fila de pendentes</a>
+                {% else %}
+                    <a class="pl-btn" href="{{ app_url }}/admin/denuncias">Ver a fila de denúncias</a>
+                {% endif %}
+                <a class="pl-btn ghost" href="{{ app_url }}/admin/auditoria">Ver a trilha de auditoria</a>
+            </div>
+        </section>
+
+        {# ------------------------------------------------------------ o tamanho do cadastro #}
+        <section class="pl-card pl-mod" aria-labelledby="h-contas">
+            <div class="pl-linha-titulo">
+                <h2 class="pl-grp" id="h-contas">Contas ativas</h2>
+                {{ ui.info('O que é cada perfil',
+                    'Profissional e Empresa são as contas cujo registro foi conferido na API do CREA-AM, e são as únicas com acervo técnico para verificar. Terceiro é quem contrata sem ter registro no CREA: publica demanda e contrata normalmente, e não tem acervo. Administração é o perfil que modera e audita.', 'fim') }}
+            </div>
+
+            <div class="pl-mod-topo empilha">
+            <p class="nm">{{ contas.total }}</p>
+
+            {% if contas.total > 0 %}
+                <ul class="pl-quebra">
+                    {#  Perfil sem nenhuma conta não vira linha de zero: a quebra mostra a
+                        composição de quem existe, e a soma das linhas é sempre o total acima. #}
+                    {% for codigo, rotulo in perfis %}
+                        {% if contas.por_perfil[codigo]|default(0) > 0 %}
+                            <li>
+                                <span class="ln">
+                                    <span class="k">{{ rotulo }}</span>
+                                    <span class="v">{{ contas.por_perfil[codigo] }}</span>
+                                </span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    {#  Perfil que entrar no banco sem passar pelo mapa acima ainda aparece, pela
+                        mesma convenção de Support\Rotulos: underline vira espaço e a primeira
+                        letra sobe. Some da tela é pior que rótulo desajeitado, porque a quebra
+                        deixaria de somar o total sem dizer nada. #}
+                    {% for codigo, quantidade in contas.por_perfil %}
+                        {% if perfis[codigo] is not defined %}
+                            <li>
+                                <span class="ln">
+                                    <span class="k">{{ codigo|lower|replace({'_': ' '})|capitalize }}</span>
+                                    <span class="v">{{ quantidade }}</span>
+                                </span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="ds"><span class="sec">Nenhuma conta ativa nesta base.</span></p>
+            {% endif %}
+            </div>
+        </section>
+
     </div>
 
-    <p class="pl-nota mt-3 mb-0">
-        Os indicadores entram em 15/09. Demandas e manifestações dependem da RF04 e da RF05.
-    </p>
+    {# ------------------------------------------------------------ a operação, em varredura #}
+    <div class="row g-3">
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="pl-kpi">
+                <div class="lab">Demandas cadastradas</div>
+                <div class="val">{{ dem.total }}</div>
+                {#  A quebra por situação da demanda fica de fora de propósito: `dem_situacao`
+                    vale 'ABERTA' tanto para a demanda publicada quanto para o rascunho, e a
+                    interface chama rascunho de rascunho em toda outra tela. Dizer "abertas" aqui
+                    faria o painel contradizer a lista. Encerrada não tem essa ambiguidade. #}
+                <p class="sub">
+                    {%- if encerradas == 0 -%}
+                        Nenhuma encerrada até agora
+                    {%- else -%}
+                        {{ encerradas }} {{ encerradas == 1 ? 'encerrada' : 'encerradas' }}
+                    {%- endif -%}
+                </p>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="pl-kpi">
+                <div class="lab">Manifestações de interesse</div>
+                {#  Zero é uma medida, não ausência de dado: ele ocupa o tamanho de número, em
+                    tinta cheia, e a linha de baixo diz o que ele significa. Cinza ou traço aqui
+                    leria como "ainda não medimos", que é outra coisa. #}
+                <div class="val">{{ man.total }}</div>
+                <p class="sub">
+                    {%- if man.total == 0 -%}
+                        Nenhuma registrada até agora
+                    {%- elseif respondidas == 0 -%}
+                        Nenhuma respondida ainda
+                    {%- else -%}
+                        {{ respondidas }} {{ respondidas == 1 ? 'respondida' : 'respondidas' }}
+                    {%- endif -%}
+                </p>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="pl-kpi">
+                <div class="lab">ARTs conferidas na API</div>
+                {#  O selo verde água cola no número que ele qualifica, como em toda a interface:
+                    esta contagem é de documento conferido na API do CREA-AM, e é a única desta
+                    tela que carrega o símbolo. #}
+                <div class="val">{{ evi.arts }}
+                    {#  Selo só quando há documento conferido. Colado num zero ele afirmaria
+                        verificação sobre um acervo que não existe. #}
+                    {% if evi.arts > 0 %}
+                        <svg class="pl-mark" role="img" aria-label="Conferidas na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+                    {% endif %}
+                </div>
+                <p class="sub">
+                    {%- if evi.profissionais_com_acervo == 0 -%}
+                        Nenhum acervo registrado até agora
+                    {%- else -%}
+                        de {{ evi.profissionais_com_acervo }}
+                        {{ evi.profissionais_com_acervo == 1 ? 'profissional com acervo' : 'profissionais com acervo' }}
+                    {%- endif -%}
+                </p>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            {#  O único indicador desta fileira com tela para onde levar. Os outros três não têm
+                rota no painel, e número que leva a lugar nenhum não ganha afordância de link. #}
+            <a class="pl-kpi lk" href="{{ app_url }}/admin/sessoes">
+                <div class="lab">Sessões do motor</div>
+                <div class="val">{{ mot.sessoes }}</div>
+                <div class="sub">
+                    <span>
+                        {%- if mot.sessoes == 0 -%}
+                            Nenhuma execução registrada
+                        {%- elseif mot.sessoes_7_dias == mot.sessoes -%}
+                            Todas nos últimos sete dias
+                        {%- elseif mot.sessoes_7_dias == 0 -%}
+                            Nenhuma nos últimos sete dias
+                        {%- else -%}
+                            {{ mot.sessoes_7_dias }} nos últimos sete dias
+                        {%- endif -%}
+                    </span>
+                    <svg class="ch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                </div>
+            </a>
+        </div>
+
+    </div>
+
+    {# ------------------------------------------------------------ de onde vêm os números #}
+    <section class="pl-card pl-ressalvas" aria-labelledby="h-ressalvas">
+        <h2 class="pl-grp" id="h-ressalvas">Como ler estes números</h2>
+
+        <div class="itens">
+            <article>
+                <h3>Exclusão é lógica, e a contagem respeita isso</h3>
+                <p>
+                    {%- if contas.excluidas == 0 -%}
+                        Nenhuma conta está em exclusão lógica nesta base.
+                    {%- elseif contas.excluidas == 1 -%}
+                        1 conta está em exclusão lógica e não entra em nenhum número desta tela.
+                    {%- else -%}
+                        {{ contas.excluidas }} contas estão em exclusão lógica e não entram em nenhum número desta tela.
+                    {%- endif %}
+                    A plataforma não apaga registro: excluir marca a linha, tira ela de operação e
+                    deixa na trilha quem fez e quando.
+                </p>
+                <a class="lk" href="{{ app_url }}/admin/auditoria">
+                    Ver na trilha de auditoria
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                </a>
+            </article>
+
+            <article>
+                {#  Item 12.3. O número existe porque a plataforma assume o viés de início de
+                    carreira e precisa medi-lo; o enquadramento existe porque, solto numa fileira
+                    de indicadores, ele leria como contagem de perfil fraco, que é exatamente o
+                    julgamento de pessoa vedado pelo item 10.1. Por isso ele não é tile: é texto,
+                    sem número grande e sem cor de estado. #}
+                <h3>Perfil em construção mede acervo, não pessoa</h3>
+                <p>
+                    {%- if evi.em_construcao == 0 -%}
+                        Hoje nenhum profissional está abaixo do limiar de acervo verificado.
+                    {%- elseif evi.em_construcao == 1 -%}
+                        1 profissional está abaixo do limiar de acervo verificado, e a plataforma
+                        marca esse perfil como perfil em construção.
+                    {%- else -%}
+                        {{ evi.em_construcao }} profissionais estão abaixo do limiar de acervo
+                        verificado, e a plataforma marca esses perfis como perfil em construção.
+                    {%- endif %}
+                    A marca diz o tamanho do acervo naquele instante, nunca a competência de quem o
+                    tem: quem está em construção continua no conjunto avaliado pelo motor, em
+                    igualdade com os demais. A medida aparece aqui porque a plataforma declara esse
+                    viés de início de carreira, e viés declarado precisa ser medido para poder ser
+                    acompanhado.
+                </p>
+            </article>
+        </div>
+    </section>
+
 {% endblock %}

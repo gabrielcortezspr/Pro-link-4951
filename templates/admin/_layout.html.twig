@@ -29,9 +29,24 @@
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h4l10 10h4"/><path d="M17 21l4-4-4-4"/><path d="M3 17h4l3-3"/><path d="M14 10l3-3h4"/><path d="M17 3l4 4"/></svg></span>
                 Sessões do motor
             </a>
+            {#  Os parâmetros ficam ao lado das sessões porque são o mesmo assunto em dois tempos:
+                a sessão mostra com que números o motor rodou, e esta tela é onde esses números
+                são decididos. É por ela que a supervisão humana do item 12.3 vira ato. #}
+            <a href="{{ app_url }}/admin/parametros"{% if ativo|default('') == 'parametros' %} class="active"{% endif %}>
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4v6M5 14v6M12 4v2M12 10v10M19 4v10M19 18v2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="8" r="2"/><circle cx="19" cy="16" r="2"/></svg></span>
+                Parâmetros
+            </a>
             <a href="{{ app_url }}/admin/auditoria"{% if ativo|default('') == 'auditoria' %} class="active"{% endif %}>
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
                 Auditoria
+            </a>
+            {#  A lixeira vem depois da trilha, e não depois das denúncias: as duas respondem "onde
+                foi parar este registro". O ícone é de arquivo guardado, e não de lata de lixo,
+                porque o item 8.6j trata de registro que continua existindo e continua alcançável
+                por aqui. #}
+            <a href="{{ app_url }}/admin/lixeira"{% if ativo|default('') == 'lixeira' %} class="active"{% endif %}>
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4.5" rx="1.2"/><path d="M5 8.5V19a1.5 1.5 0 001.5 1.5h11A1.5 1.5 0 0019 19V8.5"/><path d="M10 12.5h4"/></svg></span>
+                Lixeira
             </a>
             {# Usuários e Integrações entram em 15/09. Link para rota inexistente vira 404 na
                demonstração, então o item só aparece quando a tela existir. #}

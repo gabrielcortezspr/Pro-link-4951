@@ -25,13 +25,23 @@ export async function entrar(pagina, conta) {
   await pagina.waitForURL((url) => !url.pathname.startsWith('/login'));
 }
 
+/**
+ * Encerra a sessão pela interface, e garante que ela acabou.
+ *
+ * O clique é o caminho que uma pessoa percorre, e é ele que se quer exercitar. A limpeza de
+ * cookies depois não é redundância: o botão de sair do painel administrativo vive na sidebar e
+ * pode não estar visível em toda largura, e sessão sobrevivente fazia o próximo `entrar()` cair
+ * numa tela que não tem campo de e-mail, com o teste falhando por um motivo que não é o dele.
+ */
 export async function sair(pagina) {
   const botao = pagina.getByRole('button', { name: 'Sair' });
 
   if (await botao.count()) {
-    await botao.first().click();
-    await pagina.waitForLoadState('domcontentloaded');
+    await botao.first().click().catch(() => {});
+    await pagina.waitForLoadState('domcontentloaded').catch(() => {});
   }
+
+  await pagina.context().clearCookies();
 }
 
 /**

@@ -459,9 +459,30 @@ conferir(
     recusa(fn () => $lixeira->restaurar('sis_usuarios', 999999999, $autorId, 'Motivo suficientemente longo.')),
 );
 
-// Devolve a conta de apoio à lixeira, para a próxima rodada encontrar o mesmo cenário.
+// Devolve a conta de apoio à lixeira **com a exclusão do titular como evento mais recente**.
+//
+// A ordem importa e custou um achado: as conferências acima gravam primeiro uma exclusão do
+// titular, para provar que ela não é restaurável, e depois uma do administrador, para provar que
+// essa volta. Terminar assim deixava o último evento sendo o do administrador, `pelo_titular`
+// falso, e o caso do art. 18 **sumia da tela da lixeira** ao fim de cada rodada. A evidência que
+// a banca vai olhar é justamente essa linha, e ela precisa sobreviver ao script que a cria.
 $pdo->prepare('UPDATE sis_usuarios SET usu_status = :x WHERE usu_id = :id')
     ->execute([':x' => STATUS_EXCLUIDO, ':id' => $idLixeira]);
+
+ProLink\Support\Auditoria::registrar(
+    ProLink\Support\Auditoria::EXCLUIR,
+    'sis_usuarios',
+    $idLixeira,
+    'usu_status',
+    STATUS_ATIVO,
+    STATUS_EXCLUIDO,
+    $idLixeira,
+);
+
+conferir(
+    'a conta de apoio fica na lixeira como exclusão do próprio titular',
+    ((new ProLink\Repository\LixeiraRepository())->porId('sis_usuarios', $idLixeira)['pelo_titular'] ?? false) === true,
+);
 
 secao('Render das telas');
 
@@ -483,6 +504,19 @@ $telas = [
         'situacao'  => null,
         'situacoes' => DenunciaService::SITUACOES,
         'tipos'     => DenunciaService::TIPOS,
+    ],
+    'admin/lixeira.html.twig' => [
+        'ativo'     => 'lixeira',
+        'lixeira'   => (new ProLink\Service\LixeiraService())->visao('sis_usuarios', 1),
+        'entidades' => ProLink\Repository\LixeiraRepository::ENTIDADES,
+        'erros'     => [],
+    ],
+    'admin/parametros.html.twig' => [
+        'ativo'      => 'parametros',
+        'parametros' => (new ProLink\Service\ParametroService())->listar(),
+        'erros'      => [],
+        'valores'    => [],
+        'aviso'      => '',
     ],
     'admin/denuncia.html.twig' => [
         'ativo'        => 'denuncias',

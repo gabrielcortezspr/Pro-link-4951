@@ -18,6 +18,8 @@ declare(strict_types=1);
 use ProLink\Repository\AuditoriaRepository;
 use ProLink\Repository\CompatibilizacaoRepository;
 use ProLink\Repository\DemandaRepository;
+use ProLink\Repository\IndicadorRepository;
+use ProLink\Repository\LixeiraRepository;
 use ProLink\Repository\ManifestacaoRepository;
 use ProLink\Repository\MensagemRepository;
 use ProLink\Repository\TermoRepository;
@@ -26,7 +28,9 @@ use ProLink\Service\CompatibilizacaoService;
 use ProLink\Service\DemandaService;
 use ProLink\Service\DenunciaService;
 use ProLink\Service\InteressadoService;
+use ProLink\Service\LixeiraService;
 use ProLink\Service\ManifestacaoService;
+use ProLink\Service\ParametroService;
 use ProLink\Service\PerfilEmpresaService;
 use ProLink\Service\PerfilService;
 use ProLink\Service\PrivacidadeService;
@@ -55,7 +59,14 @@ return (static function (): array {
     ];
 
     $telas = [
-        'admin/index.html.twig' => ['ativo' => 'visao'],
+        // A visão geral só vira tela com os indicadores: até 17/09 ela era um espaço reservado sem
+        // variável nenhuma, e por isso a entrada aqui não precisava de dado. Agora precisa, e é
+        // justamente esta tela que a parte renderizada do verificador tem de ver, porque ela
+        // imprime código de perfil e de situação, que é o que só aparece no HTML final.
+        'admin/index.html.twig' => [
+            'ativo'       => 'visao',
+            'indicadores' => (new IndicadorRepository())->resumo(),
+        ],
 
         'admin/auditoria.html.twig' => [
             'ativo'  => 'auditoria',
@@ -71,6 +82,29 @@ return (static function (): array {
             'situacao'  => null,
             'situacoes' => DenunciaService::SITUACOES,
             'tipos'     => DenunciaService::TIPOS,
+        ],
+
+        // Os parâmetros do motor. Das telas do painel, é uma das que mais precisam da conferência
+        // renderizada: ela imprime a chave de sistema de propósito (quem audita quer o
+        // identificador exato) e o valor gravado de onze parâmetros, e valor só existe no HTML
+        // final. O estado de erro por campo não entra aqui: ele depende de um POST recusado, e
+        // este catálogo monta tela de leitura.
+        'admin/parametros.html.twig' => [
+            'ativo'      => 'parametros',
+            'parametros' => (new ParametroService())->listar(),
+            'erros'      => [],
+            'valores'    => [],
+            'aviso'      => '',
+        ],
+
+        // A lixeira, na entidade que sempre tem o que mostrar. As outras quatro abas renderizam o
+        // mesmo template: o que muda entre elas é a coluna de classificação, que some quando a
+        // entidade não tem uma, e quem decide isso é o template, não o dado.
+        'admin/lixeira.html.twig' => [
+            'ativo'     => 'lixeira',
+            'lixeira'   => (new LixeiraService())->visao('sis_usuarios', 1),
+            'entidades' => LixeiraRepository::ENTIDADES,
+            'erros'     => [],
         ],
     ];
 

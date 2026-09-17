@@ -106,6 +106,65 @@ final class ParametroRepository extends Repositorio
     }
 
     /**
+     * A última alteração de cada parâmetro: quando, e por quem.
+     *
+     * Vem de `sis_auditoria`, que já guarda o antes e o depois de cada gravação. Não existe coluna
+     * de "alterado em" em `sis_parametros`, e não deveria existir: seria o mesmo fato em dois
+     * lugares, e o segundo divergiria no primeiro caminho de código que esquecesse dele.
+     *
+     * Uma consulta para todas as chaves, e não uma por parâmetro: são onze linhas na tela, e onze
+     * consultas correlacionadas para montar uma coluna seria o padrão N+1 que a revisão de 15/09
+     * já tirou do portão de privacidade do pool.
+     *
+     * @return array<string, array{quando: string, quem: string|null}>
+     */
+    public function ultimasAlteracoes(): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT a.aud_campo, MAX(a.aud_id) AS ultima
+               FROM sis_auditoria a
+              WHERE a.aud_entidade = :entidade
+                AND a.aud_acao = :acao
+                AND a.aud_campo IS NOT NULL
+              GROUP BY a.aud_campo'
+        );
+
+        $stmt->bindValue(':entidade', 'sis_parametros');
+        $stmt->bindValue(':acao', 'EDITAR');
+        $stmt->execute();
+
+        $ids = [];
+
+        foreach ($stmt->fetchAll() as $linha) {
+            $ids[(int) $linha['ultima']] = (string) $linha['aud_campo'];
+        }
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $linhas = $this->buscarPorIds(
+            static fn (array $marcadores): string =>
+                'SELECT a.aud_id, a.aud_campo, a.aud_dt_registro, u.usu_nome
+                   FROM sis_auditoria a
+                   LEFT JOIN sis_usuarios u ON u.usu_id = a.aud_usu_id
+                  WHERE a.aud_id IN (' . implode(', ', $marcadores) . ')',
+            array_keys($ids),
+        );
+
+        $saida = [];
+
+        foreach ($linhas as $linha) {
+            $saida[(string) $linha['aud_campo']] = [
+                'quando' => (string) $linha['aud_dt_registro'],
+                'quem'   => $linha['usu_nome'] === null ? null : (string) $linha['usu_nome'],
+            ];
+        }
+
+        return $saida;
+    }
+
+    /**
      * Grava o valor de uma chave que já existe.
      *
      * Não cria chave nova de propósito: parâmetro novo nasce em `estrutura.sql`, junto do código

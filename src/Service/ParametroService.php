@@ -48,7 +48,8 @@ final class ParametroService
      */
     public function listar(): array
     {
-        $saida = [];
+        $ultimas = $this->parametros->ultimasAlteracoes();
+        $saida   = [];
 
         foreach ($this->parametros->todos() as $linha) {
             $chave = (string) $linha['par_chave'];
@@ -57,6 +58,11 @@ final class ParametroService
                 'editavel' => Parametros::editavel($chave),
                 'limite'   => Parametros::limite($chave),
                 'grupo'    => Parametros::grupo((string) $linha['par_grupo']),
+                // Quem mudou e quando, para a tela poder mostrar isso ao lado do campo. Numa tela
+                // cuja função é provar a supervisão humana do item 12.3, "mudado por Fulano em tal
+                // dia" é a evidência mais direta que existe, e ela estava a um clique de distância,
+                // na trilha, onde ninguém ia olhar.
+                'ultima_alteracao' => $ultimas[$chave] ?? null,
             ];
         }
 

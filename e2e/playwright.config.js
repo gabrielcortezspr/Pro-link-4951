@@ -41,6 +41,9 @@ export default defineConfig({
   projects: [
     {
       name: 'desktop',
+      // Os testes @responsivo ficam de fora daqui: em 1440px eles passam por não haver o que
+      // medir, e teste que passa por ausência de condição é ruído verde.
+      grepInvert: /@responsivo/,
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
     },
     {
