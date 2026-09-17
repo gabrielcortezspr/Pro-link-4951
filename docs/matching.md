@@ -115,6 +115,12 @@ A afinidade entre um código da demanda e um do acervo é o número de component
 Os pesos são ponto de partida. Precisam ser calibrados e, sobretudo, **declarados na interface**
 e configuráveis pelo administrador (item 12.3, supervisão humana).
 
+**Desde 17/09 eles são as duas coisas**, em `/admin/parametros`: a tela mostra cada peso com o que
+ele significa e a faixa que aceita, agrupa os três verificados contra os três autodeclarados com a
+soma de cada família ao lado, e diz quem alterou cada um e quando. A gravação é um lote atômico, e
+o valor anterior e o novo entram na trilha de auditoria. A faixa aceitável de cada parâmetro é
+regra de negócio e mora no código, não numa coluna: ver D61.
+
 ```python
 def afinidade(a, b, pesos=(0.0, 0.15, 0.40, 0.75, 1.00)):
     na, nb = niveis(a), niveis(b)
