@@ -223,6 +223,47 @@ if (preg_match('/add_header\s+Content-Security-Policy\s+"([^"]+)"/', $conf, $m))
     violar('docker/nginx/default.conf', 'sem Content-Security-Policy: a conferência de origens não roda', '');
 }
 
+// ---------------------------------------------------------------- o que o nginx serve de fato
+//
+// A conferência acima lê `docker/nginx/default.conf`. O servidor pode estar servindo outra coisa,
+// e serviu: o `docker-compose.yml` faz bind mount **de arquivo**, e bind mount de arquivo prende o
+// inode. Editar o arquivo troca o inode, o contêiner segue lendo o conteúdo antigo, e
+// `docker compose up -d` não recria nada porque a especificação não mudou.
+//
+// O efeito é o pior possível para uma verificação: o arquivo está certo, o verificador fica verde,
+// e o navegador recebe uma política diferente da que foi conferida. Aconteceu em 17/09, e só
+// apareceu porque alguém olhou o console.
+//
+// Por isso esta seção pergunta ao **servidor**, e não ao arquivo.
+secao('A política que o servidor entrega');
+
+$cabecalhos = @get_headers('http://nginx/', true);
+
+if ($cabecalhos === false) {
+    printf("  \e[33mpulado\e[0m  o nginx não respondeu neste ambiente\n");
+} else {
+    $servida = $cabecalhos['Content-Security-Policy'] ?? $cabecalhos['content-security-policy'] ?? null;
+    $servida = is_array($servida) ? end($servida) : $servida;
+
+    if ($servida === null) {
+        violar('nginx (servidor)', 'resposta sem Content-Security-Policy', 'nenhum cabeçalho na resposta');
+    } elseif (preg_match('#add_header\s+Content-Security-Policy\s+"([^"]+)"#', $conf, $noArquivo)) {
+        // Compara sem espaço redundante: a diferença que importa é de diretiva, não de formatação.
+        $normalizar = static fn (string $v): string => trim(preg_replace('/\s+/', ' ', $v));
+
+        if ($normalizar($servida) !== $normalizar($noArquivo[1])) {
+            violar(
+                'nginx (servidor)',
+                'a política servida não é a do arquivo versionado: o contêiner está com a '
+                . 'configuração antiga. Rode: docker compose exec nginx nginx -s reload',
+                mb_substr($normalizar($servida), 0, 80),
+            );
+        } else {
+            printf("  \e[32mok\e[0m    a política servida é a mesma do arquivo versionado\n");
+        }
+    }
+}
+
 secao('HTML renderizado');
 
 /**
