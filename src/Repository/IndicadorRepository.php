@@ -27,11 +27,12 @@ final class IndicadorRepository extends Repositorio
      *
      * @return array{
      *     contas: array{total: int, por_perfil: array<string, int>, excluidas: int},
-     *     demandas: array{total: int, por_situacao: array<string, int>},
+     *     demandas: array{total: int, publicadas: int, rascunho: int, por_situacao: array<string, int>},
      *     manifestacoes: array{total: int, por_situacao: array<string, int>},
      *     denuncias: array{total: int, por_situacao: array<string, int>},
      *     evidencia: array{arts: int, profissionais_com_acervo: int, em_construcao: int},
-     *     motor: array{sessoes: int, sessoes_7_dias: int}
+     *     motor: array{sessoes: int, sessoes_7_dias: int},
+     *     limiar_em_construcao: int
      * }
      */
     public function resumo(): array
@@ -44,10 +45,7 @@ final class IndicadorRepository extends Repositorio
                 'por_perfil' => $contas,
                 'excluidas'  => $this->contasExcluidas(),
             ],
-            'demandas' => [
-                'total'        => $this->total('pro_demandas', 'dem_status'),
-                'por_situacao' => $this->porSituacao('pro_demandas', 'dem_situacao', 'dem_status'),
-            ],
+            'demandas' => $this->demandas(),
             'manifestacoes' => [
                 'total'        => $this->total('pro_manifestacoes', 'man_status'),
                 'por_situacao' => $this->porSituacao('pro_manifestacoes', 'man_situacao', 'man_status'),
@@ -58,6 +56,44 @@ final class IndicadorRepository extends Repositorio
             ],
             'evidencia' => $this->evidencia(),
             'motor'     => $this->motor(),
+            // O limiar que define "perfil em construção" vem de `sis_parametros` e é editável
+            // pelo administrador. Sem ele a tela teria de escrever o número à mão, e ele
+            // mudaria sem que a frase mudasse junto.
+            'limiar_em_construcao' => (new ParametroRepository($this->pdo))
+                ->inteiro('match.early_career.min_arts', 3),
+        ];
+    }
+
+    /**
+     * Demandas, separando o que está publicado do que ainda é rascunho.
+     *
+     * `dem_situacao` vale `ABERTA` nos dois casos, e essa é a armadilha: a tela que dissesse "21
+     * abertas" contradiria toda outra da aplicação, que chama rascunho de rascunho. Quem separa é
+     * `dem_dt_publicacao`, nula enquanto ninguém publicou.
+     *
+     * @return array{total: int, publicadas: int, rascunho: int, por_situacao: array<string, int>}
+     */
+    private function demandas(): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) AS total,
+                    SUM(CASE WHEN dem_dt_publicacao IS NOT NULL THEN 1 ELSE 0 END) AS publicadas
+               FROM pro_demandas
+              WHERE dem_status = :ativo'
+        );
+
+        $stmt->bindValue(':ativo', STATUS_ATIVO);
+        $stmt->execute();
+        $linha = $stmt->fetch() ?: [];
+
+        $total      = (int) ($linha['total'] ?? 0);
+        $publicadas = (int) ($linha['publicadas'] ?? 0);
+
+        return [
+            'total'        => $total,
+            'publicadas'   => $publicadas,
+            'rascunho'     => $total - $publicadas,
+            'por_situacao' => $this->porSituacao('pro_demandas', 'dem_situacao', 'dem_status'),
         ];
     }
 
