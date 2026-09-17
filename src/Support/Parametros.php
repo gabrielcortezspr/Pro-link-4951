@@ -60,6 +60,13 @@ final class Parametros
         // uma hora protege o item 10.4: intervalo curto demais transforma sincronização em
         // varredura, que é vedada.
         'api.sincronizacao.horas' => ['min' => 1.0, 'max' => 720.0, 'passo' => 1.0, 'inteiro' => true],
+
+        // Quantos perfis uma execução de sincronização pode conferir. Era constante no serviço, e
+        // virou parâmetro porque é a única coisa da integração que faz sentido ajustar em
+        // operação: lote grande acelera a atualização e gasta mais cota da API de uma vez; lote
+        // pequeno é conservador. O teto de 100 é a mesma proteção do item 10.4 que o piso de uma
+        // hora dá ao intervalo: acima disso a sincronização vira varredura.
+        'api.sincronizacao.lote' => ['min' => 1.0, 'max' => 100.0, 'passo' => 1.0, 'inteiro' => true],
     ];
 
     /**

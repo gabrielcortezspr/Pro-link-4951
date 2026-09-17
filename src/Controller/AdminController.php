@@ -294,6 +294,40 @@ final class AdminController
      */
     public function integracoes(): string
     {
+        return $this->telaDeIntegracoes();
+    }
+
+    /**
+     * Grava os ajustes da sincronização, pelo mesmo lote atômico dos pesos do motor.
+     *
+     * São os dois parâmetros que a administração pode mexer sem tocar no ambiente: o intervalo
+     * mínimo entre reconsultas e o tamanho do lote. Os dois existem por causa do item 10.4, e a
+     * faixa aceitável de cada um está declarada em `Parametros::LIMITES`, com o piso protegendo a
+     * API oficial de virar alvo de varredura.
+     */
+    public function salvarIntegracoes(): string
+    {
+        $enviados = is_array($_POST['parametro'] ?? null) ? $_POST['parametro'] : [];
+
+        try {
+            $alteradas = $this->parametros->salvar((int) Sessao::usuarioId(), $enviados);
+        } catch (ValidacaoException $e) {
+            return $this->telaDeIntegracoes($e->erros(), $enviados, $e->getMessage());
+        }
+
+        Flash::sucesso($alteradas === []
+            ? 'Nenhum ajuste mudou: os valores enviados são os que já estavam gravados.'
+            : count($alteradas) . ' ajuste(s) da integração alterado(s). O valor anterior e o novo foram para a trilha.');
+
+        View::redirecionar('/admin/integracoes');
+    }
+
+    /**
+     * @param array<string, string> $erros   campo => mensagem
+     * @param array<string, mixed>  $valores o que veio do formulário, para não perder a edição
+     */
+    private function telaDeIntegracoes(array $erros = [], array $valores = [], string $aviso = ''): string
+    {
         $token = (string) API_TOKEN;
 
         return View::render('admin/integracoes.html.twig', [
@@ -308,6 +342,15 @@ final class AdminController
             'colecoes'    => $this->integracao->colecoes(),
             'situacao'    => $this->integracao->situacaoDosPerfis(),
             'importacoes' => $this->integracao->ultimasImportacoes(),
+            // Só os da integração: um mesmo controle em duas telas seria duas verdades sobre a
+            // mesma coisa, e a tela de parâmetros passou a apontar para cá.
+            'ajustes'     => array_values(array_filter(
+                $this->parametros->listar(),
+                static fn (array $p): bool => str_starts_with((string) $p['par_chave'], 'api.'),
+            )),
+            'erros'   => $erros,
+            'valores' => $valores,
+            'aviso'   => $aviso,
         ]);
     }
 

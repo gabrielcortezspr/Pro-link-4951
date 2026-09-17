@@ -154,6 +154,13 @@ return (static function (): array {
             'colecoes'    => (new IntegracaoRepository())->colecoes(),
             'situacao'    => (new IntegracaoRepository())->situacaoDosPerfis(),
             'importacoes' => (new IntegracaoRepository())->ultimasImportacoes(),
+            'ajustes'     => array_values(array_filter(
+                (new ParametroService())->listar(),
+                static fn (array $p): bool => str_starts_with((string) $p['par_chave'], 'api.'),
+            )),
+            'erros'   => [],
+            'valores' => [],
+            'aviso'   => '',
         ],
 
         // A lixeira, na entidade que sempre tem o que mostrar. As outras quatro abas renderizam o

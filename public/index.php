@@ -147,6 +147,7 @@ $router->get('/admin/parametros',     AdminController::class, 'parametros', PERF
 $router->post('/admin/parametros',    AdminController::class, 'salvarParametros', PERFIL_ADMIN);
 // Lixeira do item 8.6j: o excluído continua acessível pelo mecanismo administrativo.
 $router->get('/admin/integracoes',    AdminController::class, 'integracoes', PERFIL_ADMIN);
+$router->post('/admin/integracoes',   AdminController::class, 'salvarIntegracoes', PERFIL_ADMIN);
 $router->get('/admin/lixeira',        AdminController::class, 'lixeira', PERFIL_ADMIN);
 $router->post('/admin/lixeira',       AdminController::class, 'restaurar', PERFIL_ADMIN);
 // Gestão de contas (Anexo I item 3, "gerir perfis"): bloquear fora do fluxo de denúncia.

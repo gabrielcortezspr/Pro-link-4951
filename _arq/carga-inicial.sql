@@ -38,7 +38,8 @@ INSERT INTO sis_parametros (par_chave, par_valor, par_tipo, par_grupo, par_descr
   ('match.peso.disponibilidade',    '0.10',  'NUMERO', 'MATCHING',  'Peso da disponibilidade geográfica (autodeclarada)', 0),
   ('match.afinidade.niveis',        '[0.00,0.15,0.40,0.75,1.00]', 'JSON', 'MATCHING', 'Peso por número de componentes iniciais iguais do código TOS', 0),
   ('match.early_career.min_arts',   '3',     'NUMERO', 'MATCHING',  'Abaixo disso o perfil é sinalizado como em construção, sem sair do pool', 0),
-  ('api.sincronizacao.horas',       '24',    'NUMERO', 'GERAL',     'Intervalo mínimo entre sincronizações de status do profissional', 0),
+  ('api.sincronizacao.horas',       '24',    'NUMERO', 'INTEGRACAO','Intervalo mínimo entre sincronizações de status do profissional', 0),
+  ('api.sincronizacao.lote',        '25',    'NUMERO', 'INTEGRACAO','Quantos perfis uma execução de sincronização confere', 0),
   ('manifestacao.limite_hora',      '10',    'NUMERO', 'GERAL',     'Manifestações de interesse por usuário por hora; 0 desliga o limite', 0);
 
 -- ------------------------------------------------------------------ termos

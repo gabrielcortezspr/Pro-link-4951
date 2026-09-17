@@ -1,5 +1,7 @@
 {% extends 'admin/_layout.html.twig' %}
 {% import 'layout/_ui.html.twig' as ui %}
+{% import 'layout/_form.html.twig' as form %}
+{% import 'admin/_parametro.html.twig' as par %}
 
 {#
     Integrações (Anexo I, item 3: o administrador "configura integrações").
@@ -191,6 +193,39 @@
             exigir credencial. Perfil cuja situação no conselho deixou de estar regular tem a
             visibilidade fechada no mesmo ato, e a mudança vai para a trilha.
         </p>
+    </section>
+
+    <section class="pl-card" aria-labelledby="h-ajustes">
+        <div class="pl-linha-titulo">
+            <h2 class="pl-grp" id="h-ajustes">Ajustes da sincronização</h2>
+            {{ ui.info('O que é configurável aqui', 'Os dois limites que a administração pode mexer sem tocar no ambiente. Endpoint e credencial não entram: eles vêm do arquivo de ambiente, como o item 8.3.1 do edital pede, e um formulário que os gravasse no banco criaria duas fontes de verdade para a mesma coisa.') }}
+        </div>
+
+        <p class="pl-nota">
+            Os dois existem por causa do item 10.4, que veda coleta automatizada. O piso de uma
+            hora entre reconsultas e o teto de cem perfis por execução são o que impede a
+            sincronização de virar varredura, e por isso a faixa aceitável aparece ao lado de cada
+            campo em vez de ficar só na validação.
+        </p>
+
+        {% if aviso|default('') %}
+            <div class="alert alert-danger" role="alert">{{ aviso }}</div>
+        {% endif %}
+
+        <form method="post" action="{{ app_url }}/admin/integracoes" novalidate>
+            {{ form.csrf() }}
+
+            <div class="pl-par">
+                {% for p in ajustes %}
+                    {{ par.campo(p, erros|default({}), valores|default({}),
+                        p.par_chave == 'api.sincronizacao.horas' ? 'horas' : 'perfis') }}
+                {% endfor %}
+            </div>
+
+            <div class="pl-acoes">
+                {{ form.botao('Salvar ajustes') }}
+            </div>
+        </form>
     </section>
 
     <section class="pl-card" aria-labelledby="h-trilha">

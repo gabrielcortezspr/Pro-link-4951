@@ -40,8 +40,15 @@ use ProLink\Support\Crypto;
  */
 final class SincronizacaoService
 {
-    /** Teto absoluto por execução, mesmo que alguém peça mais na linha de comando. */
-    public const LIMITE_MAXIMO = 50;
+    /**
+     * Teto absoluto por execução, acima de qualquer configuração.
+     *
+     * O tamanho do lote é configurável em `/admin/integracoes`, dentro da faixa declarada em
+     * `Parametros::LIMITES`. Esta constante é a rede embaixo dela: nem parâmetro gravado no banco
+     * nem argumento de linha de comando passam daqui, porque o item 10.4 do edital trata
+     * sincronização grande demais como varredura.
+     */
+    public const LIMITE_MAXIMO = 100;
 
     public function __construct(
         private readonly ProfissionalRepository $profissionais = new ProfissionalRepository(),
@@ -74,7 +81,8 @@ final class SincronizacaoService
     public function executar(int $limite, bool $simular = false): array
     {
         $horas  = max(1, (int) $this->parametros->inteiro('api.sincronizacao.horas', 24));
-        $limite = max(1, min($limite, self::LIMITE_MAXIMO));
+        $configurado = (int) $this->parametros->inteiro('api.sincronizacao.lote', 25);
+        $limite      = max(1, min($limite, $configurado, self::LIMITE_MAXIMO));
 
         $candidatos = $this->profissionais->vencidos($horas, $limite);
 

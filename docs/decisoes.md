@@ -2357,9 +2357,20 @@ tela, e o próprio `admin/_layout.html.twig` carregava um comentário dizendo qu
 "quando a tela existir". Era a maior lacuna por perfil quando a autora pediu uma última passada.
 
 **Decisão.** A tela existe e responde "a plataforma está falando com a API oficial, e desde
-quando", com três coisas: a conexão (para onde aponta, com que tempo limite, e se a credencial
-está configurada), o que já veio de lá e está em cache com a data de cada coleção, e as últimas
-importações lidas da trilha de auditoria.
+quando", com quatro coisas: a conexão (para onde aponta, com que tempo limite, e se a credencial
+está configurada), o que já veio de lá e está em cache com a data de cada coleção, **os ajustes da
+sincronização, editáveis**, e as últimas importações lidas da trilha de auditoria.
+
+**A primeira versão só mostrava, e isso não bastava.** A autora perguntou se a tela estava certa
+do jeito que estava, e não estava: o verbo do edital é *configurar*, e uma tela de leitura obriga
+quem avalia a procurar o controle em outro lugar. Os dois parâmetros que a administração pode
+mexer sem tocar no ambiente passaram para cá: o intervalo mínimo entre reconsultas, que já
+existia e vivia escondido entre os pesos do motor, e o tamanho do lote, que era constante no
+serviço. Os dois usam o mesmo lote atômico dos pesos, com a faixa aceitável declarada por campo e
+o valor anterior indo para a trilha.
+
+A tela de parâmetros deixou de mostrá-los e passou a apontar para cá: um mesmo controle em duas
+telas seria duas verdades sobre a mesma coisa.
 
 **Duas recusas, que são o conteúdo da decisão.**
 
