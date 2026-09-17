@@ -7,6 +7,8 @@ namespace ProLink\Service;
 use PDO;
 use ProLink\Repository\AcervoRepository;
 use ProLink\Repository\ConsentimentoRepository;
+use ProLink\Repository\ParametroRepository;
+use ProLink\Repository\ProfissionalRepository;
 use ProLink\Support\Acervo;
 use ProLink\Support\Auditoria;
 use ProLink\Support\Cao;
@@ -60,6 +62,8 @@ final class PortfolioService
         private readonly CreaApiClient $api = new CreaApiClient(),
         private readonly AcervoRepository $acervo = new AcervoRepository(),
         private readonly ConsentimentoRepository $consentimentos = new ConsentimentoRepository(),
+        private readonly ProfissionalRepository $profissionais = new ProfissionalRepository(),
+        private readonly ParametroRepository $parametros = new ParametroRepository(),
     ) {
     }
 
@@ -100,6 +104,7 @@ final class PortfolioService
             $usuarioId, $rnp, $numero, $validacao, $atividades, $consultada
         ): array {
             $resultado = $this->persistir($rnp, $validacao, $atividades, $consultada);
+            $this->reavaliarEmConstrucao($rnp, $pdo);
 
             Auditoria::registrar(
                 Auditoria::VALIDAR_ART,
@@ -146,6 +151,8 @@ final class PortfolioService
                 $atividades += $resultado['atividades'];
                 $jaExistiam += $resultado['ja_existia'] ? 1 : 0;
             }
+
+            $this->reavaliarEmConstrucao($rnp, $pdo);
 
             Auditoria::registrar(
                 Auditoria::CONSULTA_API,
@@ -281,6 +288,47 @@ final class PortfolioService
     }
 
     /** Quantas ARTs o profissional tem no acervo local. Alimenta o "perfil em construção". */
+    /**
+     * Recalcula a marca de perfil em construção do titular do RNP.
+     *
+     * ## Por que fica aqui, e não em quem chama
+     *
+     * `prf_em_construcao` é derivado da contagem de ARTs, e quem muda a contagem é este serviço.
+     * Enquanto a atualização morava em `PerfilCreaService`, o cadastro atualizava a marca e a
+     * associação manual de ART não — quem passasse do limiar associando ARTs à mão continuava
+     * sinalizado como iniciante para sempre. Não era visível porque nenhuma rota chamava
+     * `associarArt`, e defeito que espera uma tela para aparecer é defeito que aparece na
+     * demonstração.
+     *
+     * Aqui é o ponto único de escrita: toda entrada de ART passa por `persistir()`, e toda
+     * chamada de `persistir()` está dentro de um destes dois caminhos.
+     *
+     * ## Por que não é derivado na leitura
+     *
+     * Seria o desenho melhor, como a D01 fez com o índice de evidência, e é a alternativa
+     * recusada aqui: `prf_em_construcao` é lido pelo motor em lote, dentro da montagem do pool, e
+     * trocá-lo por contagem na leitura mudaria o `CandidatoRepository` na véspera da entrega. Fica
+     * anotado como melhoria pós-entrega em `docs/decisoes.md` (D63).
+     *
+     * Devolve null quando o RNP não é de nenhum perfil cadastrado, que é o caso normal do CAO: a
+     * empresa importa o acervo de quem talvez nunca tenha criado conta aqui.
+     */
+    private function reavaliarEmConstrucao(string $rnp, ?PDO $pdo = null): ?bool
+    {
+        $perfil = (new ProfissionalRepository($pdo))->porRnp($rnp);
+
+        if ($perfil === null) {
+            return null;
+        }
+
+        $minimo       = $this->parametros->inteiro('match.early_career.min_arts', 3);
+        $emConstrucao = (new AcervoRepository($pdo))->contarPorRnp($rnp) < $minimo;
+
+        (new ProfissionalRepository($pdo))->marcarEmConstrucao((int) $perfil['prf_id'], $emConstrucao);
+
+        return $emConstrucao;
+    }
+
     public function contarArts(string $rnp): int
     {
         return $this->acervo->contarPorRnp($rnp);

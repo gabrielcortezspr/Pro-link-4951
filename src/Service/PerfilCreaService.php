@@ -175,7 +175,11 @@ final class PerfilCreaService
      */
     public function atualizarEmConstrucao(int $profissionalId, string $rnp): bool
     {
-        $minimo = $this->parametros->inteiro('match.early_career.min_arts', 3);
+        // A regra mora num lugar só, e o lugar é quem escreve ARTs: `PortfolioService` recalcula
+        // a marca dentro da própria transação que grava o acervo. Este método continua existindo
+        // porque o cadastro precisa dele nos dois desfechos em que o acervo **não** entrou (API
+        // fora do ar no meio da importação), onde não há transação de acervo para carregá-la.
+        $minimo       = $this->parametros->inteiro('match.early_career.min_arts', 3);
         $emConstrucao = $this->portfolio->contarArts($rnp) < $minimo;
 
         $this->profissionais->marcarEmConstrucao($profissionalId, $emConstrucao);

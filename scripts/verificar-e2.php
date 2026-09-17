@@ -922,6 +922,38 @@ conferir('a tentativa de assumir registro alheio fica em sis_auditoria',
     (int) $negado->fetchColumn() >= 1);
 
 // ---------------------------------------------------------------- limpeza
+secao('Perfil em construção segue a contagem de ARTs');
+
+// O defeito que este bloco fecha: `associarArt` mudava a contagem de ARTs e não recalculava
+// `prf_em_construcao`, então quem passasse do limiar associando ARTs à mão continuava sinalizado
+// como iniciante para sempre. Ninguém tinha visto porque nenhuma rota chamava o método ainda.
+$perfilAtual = (new ProfissionalRepository($pdo))->porUsuario($usuario);
+$minimoArts  = (new ParametroRepository($pdo))->inteiro('match.early_career.min_arts', 3);
+$artsDoRnp   = $acervo->contarPorRnp(RNP);
+
+conferir('o titular do RNP de verificação está acima do limiar de início de carreira',
+    $artsDoRnp >= $minimoArts, "ARTs: {$artsDoRnp} · limiar: {$minimoArts}");
+
+// Força o estado errado, que é exatamente o que o defeito produzia.
+$pdo->prepare('UPDATE pro_profissionais SET prf_em_construcao = 1 WHERE prf_id = :id')
+    ->execute([':id' => (int) $perfilAtual['prf_id']]);
+
+$portfolio->associarArt($usuario, RNP, ART);
+
+$depoisDaAssociacao = (new ProfissionalRepository($pdo))->porUsuario($usuario);
+
+conferir('associar uma ART recalcula a marca de perfil em construção',
+    (int) $depoisDaAssociacao['prf_em_construcao'] === 0,
+    'marca: ' . (string) $depoisDaAssociacao['prf_em_construcao']);
+
+$pdo->prepare('UPDATE pro_profissionais SET prf_em_construcao = 1 WHERE prf_id = :id')
+    ->execute([':id' => (int) $perfilAtual['prf_id']]);
+
+$portfolio->importarArts($usuario, RNP);
+
+conferir('importar o acervo também recalcula a marca',
+    (int) ((new ProfissionalRepository($pdo))->porUsuario($usuario))['prf_em_construcao'] === 0);
+
 secao('Sincronização de situação no CREA (RF02)');
 
 // O `sincronizar-status.php` reconsulta quem venceu o intervalo e fecha a visibilidade de quem
