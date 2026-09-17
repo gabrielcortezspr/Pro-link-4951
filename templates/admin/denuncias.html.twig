@@ -23,7 +23,11 @@
     </nav>
 
     <div class="pl-card">
-        <div class="table-responsive">
+        {#  Alcance de teclado e nome no quadro rolável: o Chrome não dá foco a contêiner de
+            rolagem sozinho, e sem os três atributos quem navega por teclado não chega às
+            colunas da direita. Mesmo padrão da trilha de auditoria. #}
+        <div class="table-responsive" tabindex="0" role="region"
+             aria-label="Fila de denúncias">
             <table class="pl-table">
                 <thead>
                     <tr>

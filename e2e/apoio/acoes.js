@@ -35,10 +35,26 @@ export async function entrar(pagina, conta) {
  */
 export async function sair(pagina) {
   const botao = pagina.getByRole('button', { name: 'Sair' });
+  let saiu = false;
 
   if (await botao.count()) {
-    await botao.first().click().catch(() => {});
+    saiu = await botao.first().click().then(() => true).catch(() => false);
     await pagina.waitForLoadState('domcontentloaded').catch(() => {});
+  }
+
+  // Se o clique não deu certo, o POST vai na mão. Limpar cookie sem isto deixa a sessão **viva no
+  // servidor**: `sis_sessoes` acumulava uma linha aberta por login da suíte, e o painel de
+  // privacidade do profissional de demonstração chegou a listar 61 sessões abertas, o que é dado
+  // constrangedor numa tela que a banca abre.
+  if (!saiu) {
+    const token = await pagina.locator('input[name="_csrf"]').first()
+      .getAttribute('value')
+      .catch(() => null);
+
+    if (token) {
+      await pagina.request.post('/sair', { form: { _csrf: token }, failOnStatusCode: false })
+        .catch(() => {});
+    }
   }
 
   await pagina.context().clearCookies();

@@ -28,7 +28,7 @@
             <div class="pl-det-topo">
                 <div>
                     <p class="rot">Alvo</p>
-                    <p class="alvo">{{ denuncia.alvo_nome|default(denuncia.den_entidade|capitalize ~ ' #' ~ denuncia.den_entidade_id) }}</p>
+                    <p class="alvo">{{ denuncia.alvo_nome|default(denuncia.den_entidade|rotulo_entidade ~ ' nº ' ~ denuncia.den_entidade_id) }}</p>
                     {% if denuncia.alvo_nome %}
                         <p class="rot">Conta{% if denuncia.alvo_status == 'I' %} · bloqueada{% endif %}</p>
                     {% endif %}

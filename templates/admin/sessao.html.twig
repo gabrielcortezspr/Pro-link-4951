@@ -184,7 +184,11 @@
                     'O motor mede seis dimensões em separado e compõe uma nota para decidir quem passa do limiar. A nota não é exibida em tela nenhuma, nem para a Administração: exibida, ela serviria para ordenar pessoas. O que fica registrado e auditável são as seis medidas, uma a uma, e o limiar que separou quem entrou de quem ficou de fora.', 'fim') }}
             </div>
 
-            <div class="table-responsive">
+            {#  Alcance de teclado e nome no quadro rolável: o Chrome não dá foco a contêiner de
+                rolagem sozinho, e sem os três atributos quem navega por teclado não chega às
+                colunas da direita. Mesmo padrão da trilha de auditoria. #}
+            <div class="table-responsive" tabindex="0" role="region"
+                 aria-label="Pool desta sessão do motor">
                 <table class="pl-table pl-log pl-pool">
                     <caption class="visually-hidden">
                         Candidatos do conjunto avaliado, na ordem sorteada pela semente da sessão,

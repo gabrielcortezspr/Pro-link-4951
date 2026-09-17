@@ -43,8 +43,19 @@ final class Rotulos
         'MODERAR'         => 'Moderação',
     ];
 
-    /** Tabelas do esquema. Singular: a linha de auditoria fala de um registro, não da tabela. */
+    /**
+     * Tabelas do esquema. Singular: a linha de auditoria fala de um registro, não da tabela.
+     *
+     * As quatro últimas não são tabelas: são os alvos possíveis de uma denúncia
+     * (`pro_denuncias.den_entidade`). Entraram aqui porque a tela de moderação as imprimia pelo
+     * fallback por convenção, que devolve a forma sem acento: "Usuario" e "Experiencia". Acento
+     * faltando numa tela que a banca abre não é detalhe.
+     */
     private const ENTIDADES = [
+        'USUARIO'             => 'Conta',
+        'DEMANDA'             => 'Demanda',
+        'MENSAGEM'            => 'Mensagem',
+        'EXPERIENCIA'         => 'Experiência',
         'sis_usuarios'        => 'Conta',
         'sis_sessoes'         => 'Sessão',
         'sis_perfis'          => 'Perfil de acesso',

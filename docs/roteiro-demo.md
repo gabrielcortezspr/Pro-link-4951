@@ -26,7 +26,12 @@ curl -s http://localhost:8080/saude          # tem que responder, com tos_carreg
 3. `php scripts/abrir-visibilidade-demo.php` — visibilidade variada e determinística
 4. `php scripts/preencher-declarados-demo.php` — as quatro dimensões autodeclaradas
 
-E duas limpezas, porque os verificadores deixam rastro que a banca veria primeiro:
+E três limpezas, porque os verificadores deixam rastro que a banca veria primeiro:
+
+- `php scripts/revogar-sessoes-de-teste.php` — cada execução da suíte faz vários logins e nem todo
+  caminho termina com logout, então `/privacidade` do profissional de demonstração lista dezenas
+  de sessões abertas. Revoga, não apaga, e só toca conta de verificação e de demonstração.
+
 
 - `scripts/verificar-e4.php` grava **duas sessões do motor por execução**, e elas ocupam a
   primeira página de `/admin/sessoes`.

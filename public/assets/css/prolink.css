@@ -1766,12 +1766,12 @@ main.p-0 > .alert { margin: 0; border-radius: 0; border-left: 0; border-right: 0
 @media (max-width: 768px) {
 
     /* ---- A barra lateral vira faixa ---- */
-    /* Uma linha de identificação e a navegação em chips embaixo dela, quebrando em duas fileiras
-       em vez de rolar de lado. Rolando, o painel caberia em 97px de altura contra 182px, e por
-       85px de tela esconderia metade da navegação atrás de um gesto que nada anuncia: num
-       aparelho de 390px sobram três chips visíveis, e Auditoria e Lixeira, que são a evidência
-       de segurança e do item 8.6j, ficariam fora do ar. Com a quebra, as seis seções estão na
-       tela e a que está aberta é sempre visível. */
+    /* Uma linha de identificação e a navegação em chips embaixo dela, quebrando em fileiras (duas
+       numa janela de 760px, três num aparelho de 390px) em vez de rolar de lado. Rolando, a faixa
+       mediria 97px de altura contra 182px, e por 85px de tela esconderia metade da navegação atrás
+       de um gesto que nada anuncia: em 390px sobram três chips visíveis, e Auditoria e Lixeira,
+       que são a evidência de segurança e a do item 8.6j, ficariam fora do ar. Com a quebra, as
+       seis seções estão na tela e a que está aberta é sempre visível. */
     .pl-app, .pl-app.collapsed { grid-template-columns: minmax(0, 1fr); }
     .pl-side { flex-flow: row wrap; align-items: center; gap: 0 10px; padding: 11px 14px 0;
         white-space: normal; }
@@ -1789,6 +1789,13 @@ main.p-0 > .alert { margin: 0; border-radius: 0; border-left: 0; border-right: 0
     .pl-nav a { flex: none; padding: 8px 13px; border-radius: 999px;
         background: rgba(255, 255, 255, .07); font-size: 13px; }
     .pl-nav a.active { background: #fff; }
+
+    /* ---- O cabeçalho de um registro ---- */
+    /* Título e selo de estado lado a lado numa fileira de flex: sem espaço, quem cede é o título,
+       e "Plano de intervenção urbana, área central de Manaus (062419)" virava cinco linhas de uma
+       palavra ao lado de uma pílula de 250px. Em coluna, o título fica com a largura inteira e o
+       selo assenta embaixo dele, que é onde um estado cabe. */
+    .pl-det-topo { flex-direction: column; gap: 10px; }
 
     /* ---- A topbar em duas linhas ---- */
     /* O título ocupa a primeira sozinho, e o que era "ação de página" desce para a segunda. Nada
@@ -1811,8 +1818,9 @@ main.p-0 > .alert { margin: 0; border-radius: 0; border-left: 0; border-right: 0
        só dele, porque numa fileira de flex cada pedaço é uma caixa que quebra inteira. Em tela
        estreita a linha volta a ser texto: os pedaços fluem como frase, o ponto fica no meio dela
        e o "i" encosta na última palavra, que é onde ele deve estar. */
-    .pl-log-resumo, .pl-head .sub { display: block; }
-    .pl-log-resumo > [aria-hidden="true"], .pl-head .sub > .pl-sep { margin: 0 5px; }
+    .pl-log-resumo, .pl-head .sub, .pl-repro .meta { display: block; }
+    .pl-log-resumo > [aria-hidden="true"], .pl-head .sub > .pl-sep,
+    .pl-repro .meta > .pl-sep { margin: 0 5px; }
     .pl-head .sub > .pl-info { margin-left: 5px; }
 
     /* A caixa do "i" da topbar passa a se medir pela barra, e não pelo botão de 18px que a abre.

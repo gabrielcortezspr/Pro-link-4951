@@ -25,11 +25,14 @@
 <div class="pl-head">
     <div class="tit">
         <h1>Manifestar interesse</h1>
-        <p class="sub">
+        {#  <div> e não <p>: o "i" é um <details>, que não pode viver dentro de parágrafo. O
+            próprio analisador do navegador fecharia o <p> antes dele, e ele cairia numa linha
+            solta embaixo do texto que explica. Mesmo caso já corrigido em busca/profissionais. #}
+        <div class="sub">
             <span>O demandante recebe um retrato do seu perfil, com o que você abriu para ele</span>
             {{ ui.info('Por que um retrato, e não o perfil',
                 'A plataforma congela no envio o que o demandante podia ver naquele instante, e é esse retrato que ele lê depois. Alterações posteriores no seu perfil não mudam o que ele já recebeu, e manifestar interesse não abre nada que você tinha fechado.') }}
-        </p>
+        </div>
     </div>
 </div>
 

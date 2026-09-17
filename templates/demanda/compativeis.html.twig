@@ -162,7 +162,11 @@
                             está no pool pelas outras dimensões medidas acima.
                         </p>
                     {% else %}
-                        <div class="table-responsive">
+                        {#  Alcance de teclado e nome no quadro rolável: o Chrome não dá foco a contêiner de
+                            rolagem sozinho, e sem os três atributos quem navega por teclado não chega às
+                            colunas da direita. Mesmo padrão da trilha de auditoria. #}
+                        <div class="table-responsive" tabindex="0" role="region"
+                             aria-label="Perfis compatíveis com esta demanda">
                             <table class="pl-table">
                                 <caption class="visually-hidden">
                                     Atividades desta demanda cobertas pelo acervo de {{ c.nome }}, com o documento que as sustenta

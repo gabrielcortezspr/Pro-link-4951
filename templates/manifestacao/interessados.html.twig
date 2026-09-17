@@ -69,7 +69,11 @@
             interessados: a decisão é sua.
         </p>
 
-        <div class="table-responsive">
+        {#  Alcance de teclado e nome no quadro rolável: o Chrome não dá foco a contêiner de
+            rolagem sozinho, e sem os três atributos quem navega por teclado não chega às
+            colunas da direita. Mesmo padrão da trilha de auditoria. #}
+        <div class="table-responsive" tabindex="0" role="region"
+             aria-label="Profissionais e empresas que manifestaram interesse">
             <table class="pl-table">
                 <caption class="visually-hidden">
                     Interessados nesta demanda, na ordem em que manifestaram, com a mensagem enviada e a situação de cada uma
