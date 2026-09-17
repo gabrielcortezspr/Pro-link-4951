@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ProLink\Controller;
 
+use ProLink\Repository\IntegracaoRepository;
 use ProLink\Repository\AuditoriaRepository;
 use ProLink\Repository\CompatibilizacaoRepository;
 use ProLink\Repository\IndicadorRepository;
@@ -37,6 +38,9 @@ final class AdminController
         private readonly ParametroService $parametros = new ParametroService(),
         private readonly LixeiraService $lixeira = new LixeiraService(),
         private readonly ContaService $contas = new ContaService(),
+        //  Acrescentado no fim de propósito: inserir parâmetro no meio de um construtor
+        //  quebra em silêncio de tipo toda chamada posicional que já existia.
+        private readonly IntegracaoRepository $integracao = new IntegracaoRepository(),
     ) {
     }
 
@@ -274,6 +278,39 @@ final class AdminController
      * Inclui o que o administrador não pode restaurar: conta que o titular mandou excluir aparece
      * aqui com a restauração fechada, porque esconder resolveria o risco e quebraria o requisito.
      */
+    /**
+     * O estado da integração com a API oficial do CREA-AM (Anexo I, item 3, "configurar
+     * integrações").
+     *
+     * ## O que esta tela recusa fazer
+     *
+     * **Não chama a API.** O item 10.4 veda coleta automatizada e a organização registra cada
+     * chamada ao ambiente fictício; uma tela que consultasse o serviço a cada carregamento
+     * gastaria cota alheia para mostrar um número, e bastaria deixar a página aberta para virar
+     * o que o edital proíbe. O estado vem do cache e da trilha.
+     *
+     * **Não mostra o token.** Ela diz se ele existe e quantos caracteres tem, porque é isso que
+     * responde "a integração está configurada?" sem colocar uma credencial na tela de alguém.
+     */
+    public function integracoes(): string
+    {
+        $token = (string) API_TOKEN;
+
+        return View::render('admin/integracoes.html.twig', [
+            'ativo'    => 'integracoes',
+            'conexao'  => [
+                'base'             => API_BASE,
+                'tempo_limite'     => API_TIMEOUT,
+                'token_presente'   => $token !== '',
+                'token_tamanho'    => mb_strlen($token),
+                'ambiente'         => APP_ENV,
+            ],
+            'colecoes'    => $this->integracao->colecoes(),
+            'situacao'    => $this->integracao->situacaoDosPerfis(),
+            'importacoes' => $this->integracao->ultimasImportacoes(),
+        ]);
+    }
+
     public function lixeira(): string
     {
         return View::render('admin/lixeira.html.twig', [

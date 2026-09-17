@@ -57,8 +57,10 @@
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4.5" rx="1.2"/><path d="M5 8.5V19a1.5 1.5 0 001.5 1.5h11A1.5 1.5 0 0019 19V8.5"/><path d="M10 12.5h4"/></svg></span>
                 Lixeira
             </a>
-            {# Integrações ainda não tem tela. Link para rota inexistente vira 404 na demonstração,
-               então o item só aparece quando a tela existir. #}
+            <a href="{{ app_url }}/admin/integracoes" title="Integrações"{% if ativo|default('') == 'integracoes' %} class="active" aria-current="page"{% endif %}>
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7H6.5a4.5 4.5 0 000 9H9M15 7h2.5a4.5 4.5 0 010 9H15M8.5 11.5h7"/></svg></span>
+                Integrações
+            </a>
         </nav>
 
         {% set u = usuario() %}

@@ -227,6 +227,11 @@ test.describe('Jornadas por perfil', () => {
     await legenda(page, 'Parâmetros do motor', 'Os pesos são editáveis, com faixa declarada por campo, e o antes e o depois vão para a trilha');
     await respirar(page, 4000);
 
+    await page.goto('/admin/integracoes');
+    await telaSaudavel(page);
+    await legenda(page, 'Integrações', 'Para onde a plataforma aponta, o que já veio de lá, e desde quando. A tela não chama a API: o item 10.4 veda coleta automatizada');
+    await respirar(page, 4200);
+
     await page.goto('/admin/lixeira');
     await telaSaudavel(page);
     await legenda(page, 'Lixeira', 'Nada é apagado. O item 8.6j do edital, com a restauração registrada e o que não se restaura');

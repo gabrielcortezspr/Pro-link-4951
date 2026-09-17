@@ -2346,3 +2346,36 @@ execuções seguidas agora dão 42.
 
 **Como corrigir depois.** Trocar o índice por um que inclua o status, ou por um índice parcial
 sobre as linhas ativas, e tratar a violação restante como mensagem de domínio.
+
+## D75 · A tela de integrações mostra o estado, e não chama a API
+
+`17/09/2026` · E7 · `src/Repository/IntegracaoRepository.php`, `templates/admin/integracoes.html.twig`
+
+**Contexto.** O Anexo I, item 3, lista cinco capacidades do administrador: moderar, gerir perfis,
+auditar, tratar denúncias, emitir relatórios e **configurar integrações**. A última não tinha
+tela, e o próprio `admin/_layout.html.twig` carregava um comentário dizendo que o item entraria
+"quando a tela existir". Era a maior lacuna por perfil quando a autora pediu uma última passada.
+
+**Decisão.** A tela existe e responde "a plataforma está falando com a API oficial, e desde
+quando", com três coisas: a conexão (para onde aponta, com que tempo limite, e se a credencial
+está configurada), o que já veio de lá e está em cache com a data de cada coleção, e as últimas
+importações lidas da trilha de auditoria.
+
+**Duas recusas, que são o conteúdo da decisão.**
+
+**Ela não chama a API.** O item 10.4 veda coleta automatizada e a organização registra cada
+chamada ao ambiente fictício. Uma tela que consultasse o serviço a cada carregamento gastaria cota
+alheia para mostrar um número, e bastaria deixar a página aberta para virar exatamente o que o
+edital proíbe. O estado vem do cache e da trilha; a conferência ao vivo continua explícita e fora
+da interface, em `scripts/verificar-api.php`.
+
+**Ela não mostra o token.** Diz que ele existe e quantos caracteres tem, que é o que responde "a
+integração está configurada?" sem colocar uma credencial na tela de alguém. O Anexo VI reprova na
+triagem quem entrega segredo à mostra, e uma tela de administração é um lugar tão bom quanto um
+arquivo para vazar um. A amostra de `scripts/amostras.php` segue a mesma regra.
+
+**Alternativa recusada: formulário que grava a configuração no banco.** Endpoint, credencial e
+tempo limite vêm do ambiente, pelo `_config.php`, e é assim que o item 8.3.1 pede. Um formulário
+criaria duas fontes de verdade para a mesma coisa, e a que vale na hora da requisição continuaria
+sendo a do ambiente. O que é configurável em tempo de execução são os pesos do motor, e esses já
+têm tela própria, com faixa declarada por campo e trilha.

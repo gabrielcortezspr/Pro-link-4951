@@ -15,6 +15,7 @@ declare(strict_types=1);
  * @return array<string, array<string, mixed>>  template => variáveis
  */
 
+use ProLink\Repository\IntegracaoRepository;
 use ProLink\Repository\AuditoriaRepository;
 use ProLink\Repository\CompatibilizacaoRepository;
 use ProLink\Repository\DashboardRepository;
@@ -136,6 +137,23 @@ return (static function (): array {
             'lista'   => (new ContaService())->listar(['termo' => '', 'perfil' => '', 'situacao' => ''], 1),
             'filtros' => ['termo' => '', 'perfil' => '', 'situacao' => ''],
             'perfis'  => PERFIS_AUTENTICADOS,
+        ],
+
+        //  Integrações: tudo vem do cache e da trilha, e nada chama a API (item 10.4). O token é
+        //  lido do ambiente e **não** entra na amostra com valor: a conferência de padrão
+        //  renderiza este HTML, e amostra com credencial dentro seria credencial num arquivo.
+        'admin/integracoes.html.twig' => [
+            'ativo'   => 'integracoes',
+            'conexao' => [
+                'base'           => API_BASE,
+                'tempo_limite'   => API_TIMEOUT,
+                'token_presente' => API_TOKEN !== '',
+                'token_tamanho'  => mb_strlen((string) API_TOKEN),
+                'ambiente'       => APP_ENV,
+            ],
+            'colecoes'    => (new IntegracaoRepository())->colecoes(),
+            'situacao'    => (new IntegracaoRepository())->situacaoDosPerfis(),
+            'importacoes' => (new IntegracaoRepository())->ultimasImportacoes(),
         ],
 
         // A lixeira, na entidade que sempre tem o que mostrar. As outras quatro abas renderizam o
