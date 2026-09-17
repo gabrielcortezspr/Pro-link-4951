@@ -135,7 +135,7 @@
                         <td>
                             {# mts_usu_id é obrigatório e tem chave estrangeira: nome ausente aqui
                                significa cadastro sem a linha, não execução anônima. #}
-                            <span class="autor{% if not s.usu_nome %} anon{% endif %}">{{ s.usu_nome|default('Conta não localizada') }}</span>
+                            <span class="autor{% if not s.usu_nome %} anon{% endif %}">{{ (s.usu_nome|default('Conta não localizada'))|nome_proprio }}</span>
                         </td>
 
                         <td class="qt{% if s.mts_total_pool == 0 %} zero{% endif %}">{{ s.mts_total_pool }}</td>

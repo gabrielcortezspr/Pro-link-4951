@@ -72,7 +72,7 @@
                 <p class="meta">
                     <span>Demanda nº {{ s.mts_dem_id }}</span>
                     <span aria-hidden="true">·</span>
-                    <span>Executada por {{ s.usu_nome|default('conta não localizada') }}</span>
+                    <span>Executada por {{ (s.usu_nome|default('conta não localizada'))|nome_proprio }}</span>
                     <span aria-hidden="true">·</span>
                     <span class="mono">{{ s.mts_dt_registro|date('d/m/Y H:i') }}</span>
                     {% if s.mts_ip %}
@@ -279,7 +279,7 @@
                             <td class="ord">{{ loop.index }}</td>
                             <td>
                                 {% if c.nome %}
-                                    <span class="autor" title="{{ c.nome }}">{{ c.nome }}</span>
+                                    <span class="autor" title="{{ c.nome }}">{{ c.nome|nome_proprio }}</span>
                                 {% else %}
                                     {# Conta excluída depois da sessão. A linha fica e diz o que é:
                                        conjunto com buraco silencioso é auditoria incompleta. #}
@@ -338,8 +338,13 @@
                 usava a de 15px. Dois títulos irmãos, dois tamanhos. #}
             <div class="pl-linha-titulo">
                 <h2 class="pl-card-titulo">Parâmetros desta execução</h2>
+                {#  `fim` porque este "i" é o último elemento da coluna estreita da direita, e a
+                    caixa tem 330px fixos: centrada no botão, ela terminava 2px além da janela a
+                    1440px, e a página inteira ganhava rolagem horizontal por causa dela. Alinhada
+                    pela direita, ela abre para dentro do card. Mesma razão pela qual os "i" da
+                    topbar já usavam `fim`. #}
                 {{ ui.info('Por que os pesos ficam na sessão',
-                    'Os pesos e o limiar são configuráveis pela Administração. Se a sessão guardasse só a referência ao parâmetro, uma recalibração de hoje mudaria a explicação de uma execução de ontem. Por isso cada sessão grava os números com que rodou, e é por eles que ela se explica.') }}
+                    'Os pesos e o limiar são configuráveis pela Administração. Se a sessão guardasse só a referência ao parâmetro, uma recalibração de hoje mudaria a explicação de uma execução de ontem. Por isso cada sessão grava os números com que rodou, e é por eles que ela se explica.', 'fim') }}
             </div>
 
             <div class="grupo">

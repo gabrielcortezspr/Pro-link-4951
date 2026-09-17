@@ -4027,3 +4027,146 @@ html.js-seg .pl-seg-painel:focus-visible { outline: 0; box-shadow: 0 -3px 0 0 va
     .pl-app[data-colapsavel] .pl-topbar-acoes .pl-somente-leitura { display: inline-flex; }
     .pl-app[data-colapsavel] .pl-topbar-acoes .pl-momento { display: inline; }
 }
+
+/* ============================================================================
+   39 · As seis telas do painel falam como uma aplicação só
+   ----------------------------------------------------------------------------
+   Auditoria, sessões, sessão, denúncias, denúncia e lixeira foram portadas em
+   sessões diferentes, e cada uma acertou o próprio detalhe sem olhar para a
+   irmã ao lado. Postas uma depois da outra, três coisas pulavam na navegação.
+   A régua é `contas.html.twig` e `integracoes.html.twig`, as duas mais
+   recentes, e nada aqui inventa medida nova: cada regra adota a que já existia
+   numa das telas e a estende às demais.
+
+   a) **O assunto da linha tem um tratamento só.** `.pl-sess .as` era o único
+      título de linha em fonte de display e 13.5px, enquanto `.tt` de contas,
+      da fila e da lixeira é corpo, 13px, peso 600. Quatro tabelas irmãs, dois
+      pesos de primário, e o salto aparecia ao ir da fila para as sessões.
+
+   b) **A coluna do número fecha as cinco tabelas na mesma medida.** Ela era
+      76px na trilha, nas sessões e na fila, 68px em contas e 64px na lixeira:
+      a borda direita do quadro andava de tela para tela, com o cabeçalho "Nº"
+      em posição diferente em cada uma. 68px é a medida de contas, e comporta
+      o maior número que a base guarda hoje com folga.
+
+   c) **Autor ausente tem um peso só.** "Sem sessão" na trilha vinha em 13px e
+      tinta média; "Origem não registrada" na lixeira, em 12.5px e tinta fraca.
+      É a mesma ausência nas duas, e em nenhuma delas ela é o assunto da
+      coluna: repetida em vinte linhas, em peso de nome, ela lê como se fosse
+      gente. Vale a leitura da lixeira, agora para todas.
+   ============================================================================ */
+
+.pl-sess .as { font-family: var(--pl-body); font-size: 13px; letter-spacing: 0; }
+
+.pl-log col.c-ref { width: 68px; }
+.pl-lix col.c-ref { width: 68px; }
+
+.pl-log .autor.anon { font-size: 12.5px; font-weight: 500; color: var(--pl-faint); }
+
+/* ---------- 41. Parâmetros e visão geral: a sobra vira ritmo, e a coluna vazia deixa de existir
+   Segunda passada sobre as duas telas que a autora reprovou pela mesma frase ("um monte de
+   dimensão aleatória de quadrado"). A seção 40 acertou as medidas; o que sobrou depois dela é de
+   outra natureza, e por isso vem em seção própria em vez de emenda naquela.
+
+   O número desta seção é 41 e não 38: o briefing pediu a 38, mas 38, 39 (duas vezes) e 40 já
+   estavam escritas no arquivo quando eu cheguei, e reusar um número faria duas seções com o mesmo
+   endereço num design system que se navega por número.
+
+   a) **Coluna vazia não se conserta com grade.** O ajuste fino eram dois assuntos lado a lado, um
+      com dois campos e outro com um. A grade da seção 40 fez os títulos, as notas e os campos
+      começarem na mesma altura, e isso era verdade, mas metade da fileira continuava sendo vão,
+      com um filete descendo pelo meio do nada. O conteúdo é que era assimétrico.
+
+      Os três campos passam a ser uma lista só, na largura do quadro, com um rótulo de grupo e a
+      nota daquele grupo antes dos campos dele. Não é forma nova: é exatamente o quadro dos pesos,
+      duas telas acima, e é a forma de /admin/integracoes, o padrão mais recente do painel. A
+      regra `.pl-grp + .campo` já existia na seção 24 e supunha o rótulo colado no primeiro campo;
+      com a nota entre os dois, quem herda a supressão do filete é a nota.
+
+   b) **A sobra da altura compartilhada vira ritmo, não dois buracos.** "Como o motor está hoje"
+      divide a altura com os seis campos ao lado e sobrava-lhe uns 120px. A seção 40 centrou cada
+      grupo de barras dentro do seu quadrão, e o efeito foi juntar a sobra em dois vãos brancos:
+      um entre "Somam 0,70" e o rótulo do segundo grupo, outro entre "Somam 0,30" e a ressalva
+      final. Vão branco no meio de uma lista lê como conteúdo que faltou carregar.
+
+      Com a distribuição nas pontas, a mesma sobra se reparte entre as linhas: o rótulo do grupo
+      fica no topo, a soma fecha embaixo, e as três barras espaçam por igual no meio. O passo
+      entre barras sai de 28px para perto de 48px, que é espaçamento generoso e legível, e some a
+      leitura de buraco. O `min-height` no `.pl-dim` é o piso: numa base em que a ressalva final
+      quebre em mais linhas, a sobra encolhe e as barras não voltam a se colar.
+
+   c) **Os dois números de manchete da visão geral na mesma linha.** "212" e "89" abrem os dois
+      quadros da fileira de cima e apareciam com 20px de diferença de altura entre si: o da
+      esquerda centrado numa caixa que carrega os botões, o da direita centrado numa caixa que não
+      carrega. Dois números do mesmo tamanho, lado a lado, em alturas diferentes, é o desalinho que
+      se vê sem medir. Os dois passam a ancorar no topo do corpo do quadro, logo abaixo do título,
+      e a sobra da altura compartilhada fica embaixo, onde ela é o fim do quadro e não um vão no
+      meio de uma leitura.
+
+   Nenhuma cor nova, nenhum token tocado, nenhum número de tela alterado. Nada aqui ordena pessoa:
+   as quebras continuam na ordem fixa do template (item 10.1). */
+
+/* ---- a) O grupo de campos: rótulo, nota do grupo, campos ---- */
+/* `.pl-par .pl-grp` zera a margem de baixo do rótulo (seção 24), porque lá o rótulo encosta
+   no primeiro campo de propósito. Com a nota do grupo no meio, é ela que carrega os dois
+   respiros: o que a separa do rótulo, e o que a separa do primeiro campo. */
+.pl-par > .pl-nota.grp { margin: 7px 0 11px; max-width: 92ch; }
+/* O primeiro campo do grupo não leva filete: quem abre o grupo é o rótulo, e o filete ali
+   separaria o campo do próprio título dele. Antes da seção 41 essa regra morava em
+   `.pl-grp + .campo`, que deixou de casar quando a nota entrou no meio. */
+.pl-par > .pl-nota.grp + .campo { border-top: 0; padding-top: 4px; }
+
+/* ---- b) A composição gravada: a sobra repartida entre as linhas ---- */
+.pl-par-topo .pl-param > .grupo { justify-content: space-between; }
+.pl-par-topo .pl-param > .grupo .pl-dim { min-height: 22px; }
+
+/* ---- c) Os dois números de manchete ancorados no topo ---- */
+.pl-mod-topo { align-items: flex-start; }
+.pl-mod-topo.empilha { justify-content: flex-start; }
+
+/* ---- d) A explicação de um card não abre para fora da janela ----
+   Os "i" da topbar já se mediam pela barra em tela estreita (seção 23). Os dois que vivem DENTRO
+   dos cards da tela de sessão não tinham esse tratamento, e a caixa de 330px é maior que a coluna
+   que a hospeda: presa a um botão de 18px, ela abria 330px para a esquerda a partir de onde ele
+   estivesse. No card do conjunto avaliado isso a punha atrás do `overflow: hidden` do quadro, e
+   ela sumia; no card dos parâmetros ela saía pela borda esquerda da janela, cortada.
+
+   Aberta, ela deixa de flutuar e vira um bloco em fluxo logo abaixo do título, com a largura do
+   card. É o mesmo conteúdo, no mesmo lugar da leitura, e nada que precise caber em 330px. */
+@media (max-width: 560px) {
+    .pl-log-topo > .pl-info[open],
+    .pl-param .pl-linha-titulo > .pl-info[open] { flex: 1 0 100%; }
+
+    .pl-log-topo > .pl-info,
+    .pl-param .pl-linha-titulo > .pl-info { position: static; }
+
+    .pl-log-topo > .pl-info .pl-info-caixa,
+    .pl-param .pl-linha-titulo > .pl-info .pl-info-caixa {
+        position: static; width: auto; transform: none; margin-top: 9px; box-shadow: none; }
+}
+/* O rótulo do primeiro grupo de barras encostava no título do quadro depois que a distribuição
+   nas pontas empurrou o conteúdo de cada grupo para as bordas dele. `:first-of-type` não serve
+   aqui: o primeiro <div> do quadro é a linha de título, não o grupo. */
+.pl-par-topo .pl-param > .pl-linha-titulo + .grupo { margin-top: 10px; }
+/* Dois filetes a 50px um do outro: o que fecha a soma do primeiro grupo, e o que abre o segundo.
+   Um total já é o fim de um grupo, e o filete dele diz isso; o segundo só repetia a mesma divisão
+   meia dúzia de pixels abaixo. Fica o espaço entre os grupos, que separa igual e não risca. */
+.pl-par-topo .pl-param > .grupo + .grupo { border-top: 0; }
+
+/* ---- e) A tira de recusas com um item só ocupa a fileira ----
+   `.pl-recusas` (seção 32) é uma grade de três colunas porque em contas são três regras. Na
+   lixeira a regra é uma, e numa grade de três ela ficava num terço da largura com dois terços
+   vazios ao lado. Com um item a grade vira uma coluna, e a medida de leitura segura a linha
+   antes da borda do quadro. */
+.pl-recusas.una { grid-template-columns: minmax(0, 1fr); }
+.pl-recusas.una li { max-width: 112ch; }
+/* O rótulo que abre a lista fica a 22px do título do quadro, a mesma medida do quadro de barras
+   ao lado (12px da linha de título + 10px). Com os 2px da seção 24 ele encostava no título e os
+   dois liam como um bloco de duas linhas em vez de título e seção. */
+.pl-par > .pl-grp:first-child { margin-top: 10px; }
+
+/* Fica sem uso a partir daqui: `.pl-par-duo` e as suas regras na seção 40, mais o bloco dela em
+   `@media (max-width: 1080px)`. Nenhum template escreve mais essa classe, porque o ajuste fino
+   deixou de ser duas colunas. Não removi as linhas porque o arquivo é compartilhado e havia outra
+   pessoa escrevendo nele na mesma hora; quem consolidar o CSS pode apagá-las com segurança,
+   conferindo antes que `grep -rn pl-par-duo templates/` continue não achando nada. */

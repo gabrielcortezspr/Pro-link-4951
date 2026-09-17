@@ -92,7 +92,7 @@
                     interface: sobrava apagar o cookie ou esperar expirar. É POST com token, e não
                     link: logout por GET é escrita de estado sem proteção contra requisição
                     forjada (item 8.5e). #}
-                <form method="post" action="{{ app_url }}/sair" class="pl-sair">
+                <form method="post" action="{{ app_url }}/sair">
                     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
                     <button type="submit" class="pl-sair">Sair</button>
                 </form>

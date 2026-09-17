@@ -273,42 +273,40 @@
             </section>
         {% endif %}
 
-        {# ------------------------------------------------------ o ajuste fino, em duas colunas
+        {# ------------------------------------------------------ o ajuste fino, numa lista só
 
-            Era um quadro por assunto, lado a lado, e nenhuma linha dos dois se encontrava: título,
-            nota e campo começavam em alturas diferentes porque cada nota tem um tamanho. Aqui é um
-            quadro só, com as duas colunas na mesma grade: os títulos dividem uma linha, as notas
-            dividem a seguinte, e os campos começam todos na mesma altura. O filete no meio é o que
-            resta da divisão entre os dois assuntos, que continuam sendo dois. #}
-        <section class="pl-card pl-par-duo" aria-labelledby="h-entrada h-operacao">
+            Foram duas colunas, e a assimetria era do conteúdo, não do CSS: um assunto tem dois
+            campos e o outro tem um, então metade da fileira era vão, com um filete descendo pelo
+            meio do nada. Grade nenhuma conserta coluna que não tem o que pôr.
 
-            <div class="bl">
-                <div class="pl-linha-titulo">
-                    <h2 class="pl-secao" id="h-entrada">Entrada no conjunto avaliado</h2>
-                </div>
+            Aqui os três campos entram na MESMA lista do quadro dos pesos, que é a forma que esta
+            tela já usa duas telas acima: um rótulo de grupo, a nota daquele grupo, e os campos
+            dele, na largura inteira do quadro. É também a forma de /admin/integracoes, que é o
+            padrão mais recente do painel. Uma medida de linha só na tela, e nenhum vão. #}
+        <section class="pl-card" aria-labelledby="h-limites">
 
-                <p class="pl-nota">
+            <div class="pl-linha-titulo">
+                <h2 class="pl-secao" id="h-limites">Limites do motor e da plataforma</h2>
+            </div>
+
+            <div class="pl-par">
+
+                <p class="pl-grp">Entrada no conjunto avaliado</p>
+                <p class="pl-nota grp">
                     Os dois números que decidem quem o motor devolve, e como um perfil de início de
                     carreira é sinalizado. Nenhum dos dois ordena pessoa: o primeiro é um corte, o
                     segundo é uma marca no perfil, e quem recebe a marca continua no conjunto em
                     igualdade com os demais.
                 </p>
 
-                <div class="pl-par">
-                    {% set p = por_chave['match.limiar']|default(null) %}
-                    {% if p %}{{ par.campo(p, erros, valores) }}{% endif %}
+                {% set p = por_chave['match.limiar']|default(null) %}
+                {% if p %}{{ par.campo(p, erros, valores) }}{% endif %}
 
-                    {% set p = por_chave['match.early_career.min_arts']|default(null) %}
-                    {% if p %}{{ par.campo(p, erros, valores, 'ARTs') }}{% endif %}
-                </div>
-            </div>
+                {% set p = por_chave['match.early_career.min_arts']|default(null) %}
+                {% if p %}{{ par.campo(p, erros, valores, 'ARTs') }}{% endif %}
 
-            <div class="bl">
-                <div class="pl-linha-titulo">
-                    <h2 class="pl-secao" id="h-operacao">Operação da plataforma</h2>
-                </div>
-
-                <p class="pl-nota">
+                <p class="pl-grp">Operação da plataforma</p>
+                <p class="pl-nota grp">
                     O limite que protege o outro lado da manifestação de interesse. O que ajusta a
                     conversa com a API oficial mora em
                     <a href="{{ app_url }}/admin/integracoes">Integrações</a>, junto do estado da
@@ -316,10 +314,9 @@
                     coisa.
                 </p>
 
-                <div class="pl-par">
-                    {% set p = por_chave['manifestacao.limite_hora']|default(null) %}
-                    {% if p %}{{ par.campo(p, erros, valores) }}{% endif %}
-                </div>
+                {% set p = por_chave['manifestacao.limite_hora']|default(null) %}
+                {% if p %}{{ par.campo(p, erros, valores) }}{% endif %}
+
             </div>
 
         </section>

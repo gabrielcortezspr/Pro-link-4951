@@ -307,7 +307,7 @@
                     {% else %}
                         <div class="pl-exp-lista">
                             {% for exp in p.experiencias %}
-                                <details class="pl-exp"{% if loop.first %} open{% endif %}>
+                                <details class="pl-exp pl-declarado"{% if loop.first %} open{% endif %}>
                                     <summary>
                                         <h3 class="nm">{{ exp.titulo }}</h3>
                                         <span class="qd">

@@ -194,6 +194,33 @@
             {% endif %}
         </div>
 
+        {#  A regra que esta tela existe para provar, escrita onde ela é sempre lida.
+
+            A restauração fechada é o que separa "nada é apagado" de "a administração desfaz o
+            que quiser", e ela só se manifesta nas contas que o próprio titular mandou excluir.
+            Na base de hoje são vinte e três dessas, espalhadas por vinte e sete páginas, e a
+            primeira página não tem nenhuma: quem abre a lixeira e olha o que está na frente vê
+            vinte linhas com o botão "Restaurar" e conclui o contrário do que o item 8.6j
+            garante. A linha impedida continua dizendo o caso dela, por extenso, embaixo de si
+            quando aparece; esta tira diz a regra antes disso, no mesmo lugar e na mesma forma
+            em que contas escreve as três recusas do serviço dela.
+
+            Só na aba de contas: nas outras quatro entidades a restauração não tem impedimento
+            nenhum, e anunciar ali uma regra que não vale seria ruído. #}
+        {% if entidade == 'sis_usuarios' %}
+            <ul class="pl-recusas una">
+                <li>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3.6V12c0 4.4-3.2 7.6-8 9-4.8-1.4-8-4.6-8-9V6.6z"/><path d="M9.2 12.2l2 2 3.6-4"/></svg>
+                    <span>
+                        <b>Conta excluída a pedido do próprio titular aparece nesta lista e não volta por ato administrativo.</b>
+                        A plataforma guarda o registro para provar que atendeu o pedido, e não
+                        reativa a conta sem quem a pediu. Nessas linhas a restauração vem fechada,
+                        com o motivo escrito logo abaixo, e é o servidor que recusa, não a tela.
+                    </span>
+                </li>
+            </ul>
+        {% endif %}
+
         {#  Alcance de teclado e nome no quadro rolável: o Chrome não dá foco a contêiner de
             rolagem sozinho, e sem os três atributos quem navega por teclado não chega às
             colunas da direita. Mesmo padrão da trilha de auditoria. #}
@@ -229,13 +256,13 @@
                     <tr class="lin{% if not item.restauravel %} fechada{% endif %}">
 
                         <td>
-                            <span class="tt">{{ lix.titulo_legivel(item.titulo, vocabulario) }}</span>
+                            <span class="tt">{{ lix.titulo_legivel(item.titulo, vocabulario)|nome_proprio }}</span>
                             {% if item.detalhe %}
                                 {#  O segundo campo muda de sentido com a entidade: na conta é o
                                     e-mail do titular, e nas demais é o nome de quem era dono do
                                     registro. Sem a preposição, "Verificação E2" embaixo do título
                                     de uma experiência leria como parte do título. #}
-                                <span class="sub">{% if entidade != 'sis_usuarios' %}de {% endif %}{{ item.detalhe }}</span>
+                                <span class="sub">{% if entidade != 'sis_usuarios' %}de {% endif %}{{ item.detalhe|nome_proprio }}</span>
                             {% endif %}
                         </td>
 
@@ -271,7 +298,7 @@
 
                         <td>
                             {% if item.excluido_por %}
-                                <span class="autor">{{ item.excluido_por }}</span>
+                                <span class="autor">{{ item.excluido_por|nome_proprio }}</span>
                             {% else %}
                                 <span class="autor anon">Origem não registrada</span>
                             {% endif %}
@@ -413,7 +440,7 @@
                     <div class="modal-body">
                         <p class="alvo">
                             <span class="tt">{{ lix.titulo_legivel(item.titulo, vocabulario) }}</span>
-                            <span class="sub">{{ entidade|rotulo_entidade }} nº {{ item.id }}{% if item.detalhe %} <span aria-hidden="true">·</span> {{ item.detalhe }}{% endif %}</span>
+                            <span class="sub">{{ entidade|rotulo_entidade }} nº {{ item.id }}{% if item.detalhe %} <span aria-hidden="true">·</span> {{ item.detalhe|nome_proprio }}{% endif %}</span>
                         </p>
 
                         <p class="pl-nota">

@@ -29,7 +29,7 @@ com o funcionamento: uma barra por situação, largura total, console limpo, e o
 pintando pixel de verdade.
 
 **Placar**: 193 testes · E1 80 · E2 159 · E4 42 · E6 70 · 42 telas · 72 conferências de padrão ·
-28 no navegador (16 desktop, 5 em 390px, 7 de refinamento).
+31 no navegador (26 desktop, dos quais 7 de refinamento; 5 em 390px).
 
 ## Próximo passo
 
@@ -51,7 +51,7 @@ credencial no `.env.example` ou sem os documentos do 8.3.2; `git tag entrega-fas
   manifestação e denúncia de verdade, pela interface.
 - **A senha da administração mora em `e2e/.env.local`**, fora do versionamento, e `e2e/rodar.sh` a
   carrega. Sem o arquivo, os cenários de administração **pulam** em vez de falhar.
-- **As 488 contas `@verificacao.local` são rastro do volume local e não vão na entrega.** A carga
+- **As 631 contas `@verificacao.local` são rastro do volume local e não vão na entrega.** A carga
   inicial não cria conta nenhuma: quem sobe o banco do zero popula por `criar-admin.php` e
   `semear-candidatos.php`. Não vale apagá-las daqui: a trilha de auditoria é insert-only por
   gatilho e ficaria apontando para contas que deixaram de existir.

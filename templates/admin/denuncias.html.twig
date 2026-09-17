@@ -239,6 +239,10 @@
             </table>
         </div>
 
+        {#  O rodapé fala das linhas ("cada linha acima tem autor"), então ele sai junto com elas:
+            sob um estado vazio a frase descreve uma tabela que não está ali. É a mesma guarda que
+            a lixeira e as sessões põem nos rodapés delas. #}
+        {% if fila|length %}
         <div class="pl-log-rodape">
             <p class="pl-nota">
                 {#  O recorte parcial dito aqui, e não no resumo do topo: é a mesma posição em que
@@ -254,6 +258,7 @@
             </p>
             <a class="pl-btn sm" href="{{ app_url }}/admin/auditoria">Abrir a trilha de auditoria</a>
         </div>
+        {% endif %}
 
     </section>
 
