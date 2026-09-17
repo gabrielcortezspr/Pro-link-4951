@@ -280,14 +280,21 @@ foreach ($criados as $tipo => $conta) {
     conferir("{$tipo}: documento cifrado em repouso (AES-256-GCM)", strlen($cif) >= 29);
     conferir("{$tipo}: hash cego gravado para busca sem decifrar",
         strlen((string) $linha['usu_documento_hash']) === 64);
-    // O perfil de Profissional deixou de ser decidido só pelo formulário: desde a D20, o cadastro
+    // O perfil deixou de ser decidido só pelo formulário: desde a D20 o cadastro de Profissional
     // consulta o CREA, e CPF sem registro lá vira Terceiro PF. Como este script gera documentos
-    // que o CREA nunca conheceu (D15), a conta de Profissional termina como Terceiro quando a API
-    // responde, e como Profissional quando ela não responde — os dois desfechos estão corretos, e
-    // qual deles ocorre não é assunto da RF01. Quem verifica isso de forma determinística, contra
-    // fixtures e sem rede, é o `verificar-e2.php`.
+    // que o CREA nunca conheceu (D15), a conta termina como Terceiro quando a API responde, e como
+    // Profissional quando ela não responde — os dois desfechos estão corretos, e qual deles ocorre
+    // não é assunto da RF01. Quem verifica isso de forma determinística, contra fixtures e sem
+    // rede, é o `verificar-e2.php`.
+    //
+    // **O mesmo vale para a Empresa**, e o script não sabia disso: a D26 espelhou o rebaixamento no
+    // lado da pessoa jurídica, e `200 []` no CNPJ desce a conta para Terceiro PJ. Enquanto a lista
+    // de aceitos só previa o rebaixamento do Profissional, esta conferência falhava sempre que a
+    // API respondia — acusando de defeito o comportamento que a D26 definiu.
     $esperado = \ProLink\Service\AutenticacaoService::perfilDe($tipo);
-    $aceitos  = $tipo === CADASTRO_PROFISSIONAL ? [$esperado, PERFIL_TERCEIRO] : [$esperado];
+    $aceitos  = in_array($tipo, [CADASTRO_PROFISSIONAL, CADASTRO_EMPRESA], true)
+        ? [$esperado, PERFIL_TERCEIRO]
+        : [$esperado];
 
     conferir("{$tipo}: perfil de acesso é um dos coerentes com o tipo",
         in_array($linha['per_codigo'], $aceitos, true),
