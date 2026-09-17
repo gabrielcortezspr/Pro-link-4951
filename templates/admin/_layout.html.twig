@@ -8,10 +8,18 @@
 {% block classe_main %}p-0{% endblock %}
 
 {% block conteudo %}
-<div class="pl-app">
+<div class="pl-app" id="pl-app" data-colapsavel>
 
     <aside class="pl-side">
-        <div class="pl-brand"><span class="m"></span><span>Pro&#8209;Link</span></div>
+        <div class="pl-brand">
+            <span class="m" aria-hidden="true"></span><span class="name">Pro&#8209;Link</span>
+            {#  O mesmo botão de recolher do resto da aplicação. Sem JavaScript ele não aparece:
+                botão que não faz nada é pior que a ausência dele, e a barra funciona expandida. #}
+            <button type="button" class="pl-ham" data-pl-colapsar hidden
+                    aria-controls="pl-app" aria-expanded="true" aria-label="Recolher menu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+        </div>
         <small>Administração</small>
 
         <nav class="pl-nav">
@@ -78,7 +86,17 @@
            deixa o bloco vazio, e a barra volta a ser só o título. #}
         <div class="pl-topbar">
             <h1>{% block titulo_painel %}{% endblock %}</h1>
-            <div class="pl-topbar-acoes">{% block topbar_acoes %}{% endblock %}</div>
+            <div class="pl-topbar-acoes">
+                {% block topbar_acoes %}{% endblock %}
+                {#  Sair faltava aqui, e a administração não tinha como encerrar a sessão pela
+                    interface: sobrava apagar o cookie ou esperar expirar. É POST com token, e não
+                    link: logout por GET é escrita de estado sem proteção contra requisição
+                    forjada (item 8.5e). #}
+                <form method="post" action="{{ app_url }}/sair" class="pl-sair">
+                    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                    <button type="submit" class="pl-sair">Sair</button>
+                </form>
+            </div>
         </div>
         <div class="pl-content">{% block painel %}{% endblock %}</div>
     </div>
