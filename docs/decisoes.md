@@ -2313,3 +2313,36 @@ estado de erro, responsividade), e não para sobrepor o que ele decide.
 e as animações em `<canvas>` do mockup voltaram, com o script movido para `public/assets/js/`,
 depois de terem sido convertidas em SVG estático por uma leitura errada da CSP.
 
+
+## D74 · O par excluído não pode ser recriado, e a limitação fica declarada
+
+`17/09/2026` · E4 · `_arq/estrutura.sql`, `src/Repository/ManifestacaoRepository.php`
+
+**Contexto.** `ManifestacaoRepository::idDoPar()` filtra por `man_status = 'A'`, então a aplicação
+entende que interesse excluído libera um novo registro do mesmo par demanda/pessoa. O índice
+`uq_man_dem_usu`, porém, é sobre `(man_dem_id, man_usu_id)` **sem o status**: o banco recusa a
+reinserção. A tentativa não produziria a mensagem tratada que o serviço escreveu; produziria erro
+de integridade.
+
+**Como apareceu.** Não por um caminho de usuário: apareceu ao consertar
+`scripts/verificar-e4.php`, que criava um interesse por execução e nunca o desfazia. A correção
+natural seria excluir logicamente o que o script criou, e ela não funciona por causa do índice.
+
+**Decisão.** Não alterar o índice a horas da entrega. Mexer em restrição de unicidade de uma
+tabela com dado de demonstração exige migração, recarga e uma nova rodada de verificação de tudo
+que toca manifestação, e o defeito **não tem caminho de usuário que o alcance**: nenhuma tela
+exclui manifestação, e a lixeira administrativa restaura em vez de recriar.
+
+O script passou a remover fisicamente a linha que ele mesmo inseriu, com o motivo escrito no
+código: é rastro de verificação criado segundos antes, pelo id que o próprio arquivo guardou, e
+não dado da aplicação. A trilha de auditoria da operação **fica**, porque é insert-only por
+gatilho, e é ela que prova que o registro aconteceu.
+
+**O que a correção evitou.** A verificação se degradava sozinha: cada execução consumia um
+candidato do pool, e depois de algumas rodadas o bloco inteiro passava a ser pulado, derrubando o
+placar de 42 para 34 sem nada ter quebrado. Verificação que enfraquece a cada execução é pior que
+verificação nenhuma, porque o número continua verde enquanto a cobertura desaparece. Três
+execuções seguidas agora dão 42.
+
+**Como corrigir depois.** Trocar o índice por um que inclua o status, ou por um índice parcial
+sobre as linhas ativas, e tratar a violação restante como mensagem de domínio.

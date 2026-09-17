@@ -295,7 +295,8 @@ if ($demandaPublicada === false) {
            JOIN mat_sessoes s ON s.mts_id = sp.msp_mts_id
            JOIN pro_profissionais p ON p.prf_id = sp.msp_candidato_id AND sp.msp_candidato_tipo = "P"
           WHERE s.mts_dem_id = ' . $idDemanda . '
-            AND p.prf_usu_id NOT IN (SELECT man_usu_id FROM pro_manifestacoes WHERE man_dem_id = ' . $idDemanda . ')
+            AND p.prf_usu_id NOT IN (SELECT man_usu_id FROM pro_manifestacoes
+                                      WHERE man_dem_id = ' . $idDemanda . ' AND man_status = "A")
           LIMIT 1'
     )->fetchColumn();
 
@@ -321,7 +322,7 @@ if ($demandaPublicada === false) {
             strlen((string) ($linha['man_snapshot_hash'] ?? '')) === 64);
 
         $aviso = $pdo->query(
-            'SELECT not_usu_id, not_assunto FROM sis_notificacoes ORDER BY not_id DESC LIMIT 1'
+            'SELECT not_id, not_usu_id, not_assunto FROM sis_notificacoes ORDER BY not_id DESC LIMIT 1'
         )->fetch();
 
         conferir('o aviso vai para o candidato, e não para quem registrou',
@@ -342,6 +343,36 @@ if ($demandaPublicada === false) {
 
         conferir('a trilha registra que a origem foi o demandante',
             str_contains((string) $trilha, '"origem":"D"'), (string) $trilha);
+
+        // ## Por que este bloco apaga fisicamente o que criou
+        //
+        // A plataforma nunca apaga: o item 8.6j exige exclusão lógica, e `man_status = 'X'` é o
+        // que a aplicação faz. Aqui, e só aqui, a linha é removida de verdade, por três motivos.
+        //
+        // **Sem isto a verificação se degrada sozinha.** Cada execução consumia um candidato do
+        // pool e nunca o devolvia. Depois de algumas rodadas o pool esgotava, o bloco inteiro
+        // passava a ser pulado, e o placar caía de 41 para 34 sem nada ter quebrado. Verificação
+        // que enfraquece a cada execução é pior que verificação nenhuma, porque o número continua
+        // verde enquanto a cobertura desaparece.
+        //
+        // **Exclusão lógica não resolveria**, e o motivo é uma limitação conhecida: o índice
+        // `uq_man_dem_usu` é sobre (demanda, usuário) sem o status, então o par excluído não pode
+        // ser recriado. Marcar como excluído deixaria o candidato queimado do mesmo jeito.
+        //
+        // **O rastro não é dado da aplicação.** É linha que este arquivo inseriu segundos atrás,
+        // pelo id que ele mesmo guardou, e que a banca veria como interesse que ninguém registrou.
+        // A trilha de auditoria da operação **fica**: ela é insert-only por gatilho, e é ela que
+        // prova que o registro aconteceu.
+        $pdo->exec("DELETE FROM sis_notificacoes WHERE not_usu_id = {$candidatoLivre}
+                      AND not_assunto LIKE '%interesse no seu perfil%'
+                      AND not_id >= " . (int) ($aviso['not_id'] ?? 0));
+        $pdo->exec("DELETE FROM pro_manifestacoes WHERE man_id = {$idInteresse}");
+
+        conferir(
+            'a verificação devolve o candidato ao pool e não deixa rastro',
+            (int) $pdo->query("SELECT COUNT(*) FROM pro_manifestacoes WHERE man_id = {$idInteresse}")
+                ->fetchColumn() === 0,
+        );
     }
 }
 
