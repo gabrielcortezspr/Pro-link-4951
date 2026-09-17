@@ -25,7 +25,7 @@ test.describe('Os seis cenários do Anexo I', () => {
   test('Cenário 1: profissional vê o acervo verificado e liga uma competência a uma experiência', async ({ page }) => {
     await entrar(page, PROFISSIONAL);
 
-    const resposta = await page.goto('/perfil');
+    const resposta = await page.goto('/perfil#experiencia');
     await telaSaudavel(page, resposta);
 
     await expect(page.getByRole('heading', { level: 1 })).toContainText(comoNaTela(PROFISSIONAL.nome));
@@ -179,7 +179,7 @@ test.describe('Os seis cenários do Anexo I', () => {
 
     await entrar(page, PROFISSIONAL);
 
-    let resposta = await page.goto('/perfil');
+    let resposta = await page.goto('/perfil#preferencias');
     await telaSaudavel(page, resposta);
 
     // Correção: dado autodeclarado é do titular e ele edita quando quiser.
@@ -191,7 +191,7 @@ test.describe('Os seis cenários do Anexo I', () => {
     await expect(page.locator('body')).toContainText('Resumo corrigido');
 
     // Restrição: visibilidade por campo, e o padrão de tudo é privado.
-    await page.goto('/perfil');
+    await page.goto('/perfil#privacidade');
     const campoResumo = page.locator('select[name="nivel[PERFIL:-:RESUMO]"]');
     await campoResumo.selectOption('PRIVADO');
     await page.getByRole('button', { name: /Salvar visibilidade/i }).click();

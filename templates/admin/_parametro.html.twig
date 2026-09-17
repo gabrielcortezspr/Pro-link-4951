@@ -43,18 +43,22 @@
     {% set enviado = valores[p.par_chave]|default(null) %}
     {% set valor   = (enviado is null or enviado is iterable ? p.par_valor : enviado)|replace({',': '.'}) %}
 
+    {#  Dois níveis de texto, e não quatro: o rótulo, e uma linha de apoio onde cabem a faixa
+        aceita, a procedência da última alteração e a chave de sistema, separadas pelo ponto do
+        design system. Empilhadas, as três tinham o mesmo peso do rótulo e a linha do parâmetro
+        virava um parágrafo de quatro alturas diferentes. #}
     <div class="campo{% if erro %} erro{% endif %}">
         <div class="tx">
             {% if p.editavel %}<label for="{{ id }}">{{ p.par_descricao }}</label>
             {% else %}<span class="rot">{{ p.par_descricao }}</span>{% endif %}
-            {{ _self.procedencia(p.ultima_alteracao|default(null)) }}
-            <p class="ch">
-                <span class="k">{{ p.par_chave }}</span>
+
+            <div class="meta">
                 {% if p.limite %}
-                    <span aria-hidden="true">·</span>
-                    aceita de {{ p.limite.min }} a {{ p.limite.max }}{% if p.limite.inteiro %}, em número inteiro{% endif %}
+                    <p class="fx">Aceita de {{ p.limite.min }} a {{ p.limite.max }}{% if p.limite.inteiro %}, em número inteiro{% endif %}</p>
                 {% endif %}
-            </p>
+                {{ _self.procedencia(p.ultima_alteracao|default(null)) }}
+                <p class="ch"><span class="k">{{ p.par_chave }}</span></p>
+            </div>
         </div>
 
         <div class="ent">

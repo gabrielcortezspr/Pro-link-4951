@@ -25,7 +25,7 @@
         <nav class="pl-nav">
             <a href="{{ app_url }}/admin"{% if ativo|default('') == 'visao' %} class="active"{% endif %}>
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></span>
-                Visão geral
+                <span class="lb">Visão geral</span>
             </a>
             {#  Gerir perfis (Anexo I, item 3). O comentário do fim desta lista dizia que o item só
                 entra quando a tela existir, para não virar 404 na demonstração: a tela passou a
@@ -34,28 +34,28 @@
                 que se faz depois de saber disso. #}
             <a href="{{ app_url }}/admin/contas"{% if ativo|default('') == 'contas' %} class="active"{% endif %}>
                 <span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.4"/><path d="M3 20c0-3.3 2.7-5.7 6-5.7s6 2.4 6 5.7"/><path d="M16.2 5.2a3.4 3.4 0 010 5.6"/><path d="M18.4 14.8c1.7.8 2.6 2.5 2.6 5.2"/></svg></span>
-                Contas
+                <span class="lb">Contas</span>
             </a>
             <a href="{{ app_url }}/admin/denuncias"{% if ativo|default('') == 'denuncias' %} class="active"{% endif %}>
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 4h12l-2.5 3L18 10H6"/></svg></span>
-                Denúncias
+                <span class="lb">Denúncias</span>
             </a>
             {# Sessões do motor: a lista fica na navegação, e não num atalho dentro de uma tela,
                porque é por ela que a visão geral e a trilha de auditoria alcançam a reprodução. #}
             <a href="{{ app_url }}/admin/sessoes"{% if ativo|default('') == 'sessoes' %} class="active"{% endif %}>
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h4l10 10h4"/><path d="M17 21l4-4-4-4"/><path d="M3 17h4l3-3"/><path d="M14 10l3-3h4"/><path d="M17 3l4 4"/></svg></span>
-                Sessões do motor
+                <span class="lb">Sessões do motor</span>
             </a>
             {#  Os parâmetros ficam ao lado das sessões porque são o mesmo assunto em dois tempos:
                 a sessão mostra com que números o motor rodou, e esta tela é onde esses números
                 são decididos. É por ela que a supervisão humana do item 12.3 vira ato. #}
             <a href="{{ app_url }}/admin/parametros"{% if ativo|default('') == 'parametros' %} class="active"{% endif %}>
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4v6M5 14v6M12 4v2M12 10v10M19 4v10M19 18v2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="8" r="2"/><circle cx="19" cy="16" r="2"/></svg></span>
-                Parâmetros
+                <span class="lb">Parâmetros</span>
             </a>
             <a href="{{ app_url }}/admin/auditoria"{% if ativo|default('') == 'auditoria' %} class="active"{% endif %}>
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
-                Auditoria
+                <span class="lb">Auditoria</span>
             </a>
             {#  A lixeira vem depois da trilha, e não depois das denúncias: as duas respondem "onde
                 foi parar este registro". O ícone é de arquivo guardado, e não de lata de lixo,
@@ -63,11 +63,11 @@
                 por aqui. #}
             <a href="{{ app_url }}/admin/lixeira"{% if ativo|default('') == 'lixeira' %} class="active"{% endif %}>
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4.5" rx="1.2"/><path d="M5 8.5V19a1.5 1.5 0 001.5 1.5h11A1.5 1.5 0 0019 19V8.5"/><path d="M10 12.5h4"/></svg></span>
-                Lixeira
+                <span class="lb">Lixeira</span>
             </a>
             <a href="{{ app_url }}/admin/integracoes" title="Integrações"{% if ativo|default('') == 'integracoes' %} class="active" aria-current="page"{% endif %}>
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7H6.5a4.5 4.5 0 000 9H9M15 7h2.5a4.5 4.5 0 010 9H15M8.5 11.5h7"/></svg></span>
-                Integrações
+                <span class="lb">Integrações</span>
             </a>
         </nav>
 

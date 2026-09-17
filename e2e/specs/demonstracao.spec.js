@@ -40,7 +40,7 @@ test.describe('Demonstração', () => {
     // ---------------------------------------------------------------- cenário 1
     await legenda(page, 'Cenário 1 de 6', 'O profissional vê o acervo que a API oficial do CREA confirmou');
     await entrar(page, PROFISSIONAL_DEMO);
-    await page.goto('/perfil');
+    await page.goto('/perfil#experiencia');
     await respirar(page, 1500);
 
     await rolarAte(page, '.pl-mark:not(.nao)');
@@ -137,7 +137,7 @@ test.describe('Demonstração', () => {
     // ---------------------------------------------------------------- cenário 5
     await legenda(page, 'Cenário 5 de 6', 'O titular corrige um dado, restringe outro e registra uma denúncia');
     await entrar(page, PROFISSIONAL_DEMO);
-    await page.goto('/perfil');
+    await page.goto('/perfil#privacidade');
     await rolarAte(page, 'select[name="nivel[PERFIL:-:RESUMO]"]');
     await legenda(page, 'Visibilidade campo a campo', 'Nada é público por padrão, e não existe superusuário que abra perfil fechado');
     await page.locator('select[name="nivel[PERFIL:-:RESUMO]"]').selectOption('PRIVADO');

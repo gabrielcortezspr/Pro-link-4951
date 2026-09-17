@@ -109,6 +109,27 @@
         'OUTRO': 'Outro', 'USUARIO': 'Conta', 'DEMANDA': 'Demanda'
     } %}
 
+    {#  Cor por estado, e a MESMA cor que a situação tem nas telas onde ela é operada. A coluna
+        pintava toda categoria de cinza neutro, então uma denúncia pendente era âmbar na fila e
+        cinza aqui, e uma demanda aberta era verde na vitrine e cinza aqui: mesmo estado, dois
+        significados, dentro do mesmo painel.
+
+        A situação gravada é a do momento em que o registro saiu de operação, e ela não mente
+        sobre o registro estar fora: isso quem diz é a tela inteira, é a coluna "Saiu de operação"
+        e é a coluna de restauração ao lado. Estado fora do mapa cai em neutro, que é o que sobra
+        quando a plataforma não tem cor declarada para ele. #}
+    {% set cores = {
+        'PENDENTE': 'warn', 'EM_ANALISE': 'neutral', 'RESOLVIDA': 'ok',
+        'ABERTA': 'ok', 'COM_INTERESSADOS': 'ok', 'ENCERRADA': 'neutral'
+    } %}
+
+    {#  Perfil de acesso não é situação, e não pode usar o componente de situação: a pílula com
+        ponto colorido é o vocabulário de estado do painel inteiro, e "Empresa" não é um estado.
+        Em contas, que é a tela onde o perfil vive, ele é texto simples, e é assim que ele fica
+        aqui. A coluna continua existindo porque é ela que separa conta de empresa de conta de
+        profissional numa lixeira com centenas de linhas. #}
+    {% set coluna_e_situacao = {'pro_demandas': true, 'pro_denuncias': true} %}
+
     {% set entidade  = lixeira.entidade %}
     {% set rotulo    = plural[entidade]|default(entidade|rotulo_entidade) %}
     {% set tem_tipo  = coluna_tipo[entidade] is defined %}
@@ -155,6 +176,16 @@
                         <span>restaurar exige motivo escrito, e o motivo fica na trilha de auditoria</span>
                     </p>
                 {% endif %}
+                {#  Afinidade com a borda, como na trilha, nas sessões e na fila: esta tabela tem
+                    940px de largura mínima e rola dentro do quadro num aparelho estreito, e era a
+                    única das quatro sem o aviso. Reticências no fim do quadro leem como "o texto
+                    foi cortado", não como "a tabela continua". A linha some no desktop. #}
+                {% if lixeira.itens|length %}
+                    <p class="pl-log-lado">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"/><path d="M14 6l6 6-6 6"/></svg>
+                        A tabela continua para o lado
+                    </p>
+                {% endif %}
             </div>
             {% if lixeira.itens|length %}
                 <p class="pl-pag mb-0">
@@ -185,7 +216,10 @@
                         {% if tem_tipo %}<th scope="col">{{ coluna_tipo[entidade] }}</th>{% endif %}
                         <th scope="col">Saiu de operação</th>
                         <th scope="col">Por ordem de</th>
-                        <th scope="col">Restauração</th>
+                        {#  O cabeçalho alinha com a coluna que ele encabeça: as células já iam
+                            para a direita, e o rótulo ficava sozinho na esquerda. Contas e a fila
+                            de denúncias já alinhavam os dois. #}
+                        <th scope="col" class="acao">Restauração</th>
                         <th scope="col" class="num">Nº</th>
                     </tr>
                 </thead>
@@ -207,11 +241,15 @@
 
                         {% if tem_tipo %}
                             <td>
-                                {% if item.categoria %}
-                                    <span class="pl-pill neutral" title="{{ item.categoria }}">
+                                {% set legivel = vocabulario[item.categoria]|default(item.categoria|lower|replace({'_': ' '})|capitalize) %}
+                                {% if item.categoria and coluna_e_situacao[entidade]|default(false) %}
+                                    <span class="pl-pill {{ cores[item.categoria]|default('neutral') }}" title="{{ item.categoria }}">
                                         <span class="pd" aria-hidden="true"></span>
-                                        {{ vocabulario[item.categoria]|default(item.categoria|lower|replace({'_': ' '})|capitalize) }}
+                                        {{ legivel }}
                                     </span>
+                                {% elseif item.categoria %}
+                                    {# Perfil de acesso: texto, como em contas. #}
+                                    <span class="papel" title="{{ item.categoria }}">{{ legivel }}</span>
                                 {% else %}
                                     <span class="nulo" aria-hidden="true"></span>
                                     <span class="visually-hidden">Sem classificação</span>

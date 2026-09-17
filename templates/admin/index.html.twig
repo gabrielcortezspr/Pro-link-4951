@@ -199,10 +199,14 @@
 
     </div>
 
-    {# ------------------------------------------------------------ a operação, em varredura #}
-    <div class="row g-3">
+    {# ------------------------------------------------------------ a operação, em varredura
 
-        <div class="col-sm-6 col-xl-3">
+        Grade própria, e não a do Bootstrap: `row g-3` dá 16px de goteira e o resto da tela anda
+        em 18px (o vão do .pl-cols e o do .pl-content), então a fileira de indicadores ficava com
+        um vão diferente do da fileira de cima, na mesma tela. Quatro colunas em qualquer largura
+        útil, dois em 1280px e um em 640px. #}
+    <div class="pl-vis-tiles">
+
             <div class="pl-kpi">
                 <div class="lab">Demandas cadastradas</div>
                 <div class="val">{{ dem.total }}</div>
@@ -224,9 +228,7 @@
                     {%- endif -%}
                 </p>
             </div>
-        </div>
 
-        <div class="col-sm-6 col-xl-3">
             <div class="pl-kpi">
                 <div class="lab">Manifestações de interesse</div>
                 {#  Zero é uma medida, não ausência de dado: ele ocupa o tamanho de número, em
@@ -243,9 +245,7 @@
                     {%- endif -%}
                 </p>
             </div>
-        </div>
 
-        <div class="col-sm-6 col-xl-3">
             <div class="pl-kpi">
                 <div class="lab">ARTs conferidas na API</div>
                 {#  O selo verde água cola no número que ele qualifica, como em toda a interface:
@@ -267,9 +267,7 @@
                     {%- endif -%}
                 </p>
             </div>
-        </div>
 
-        <div class="col-sm-6 col-xl-3">
             {#  O único indicador desta fileira com tela para onde levar. Os outros três não têm
                 rota no painel, e número que leva a lugar nenhum não ganha afordância de link. #}
             <a class="pl-kpi lk" href="{{ app_url }}/admin/sessoes">
@@ -290,7 +288,6 @@
                     <svg class="ch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
                 </div>
             </a>
-        </div>
 
     </div>
 

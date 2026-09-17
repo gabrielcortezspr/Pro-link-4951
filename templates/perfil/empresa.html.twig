@@ -16,6 +16,7 @@
 {% block conteudo %}
 {% set p = perfil %}
 {% set n_arts = p.arts|length %}
+{% set n_quadro = p.quadro|length %}
 {% set n_vigentes = p.quadro|filter(m => m.vigente)|length %}
 
 {#  ------------------------------------------------------------------ a identidade
@@ -92,7 +93,8 @@
 </section>
 
 {#  Como se lê esta página, em uma linha: o que o conselho confirma e o que a empresa escreve
-    nunca se confundem. As duas marcas da legenda são as mesmas que aparecem nos blocos. #}
+    nunca se confundem. Fica fora das abas, como no perfil do profissional: a distinção vale em
+    todas elas. As duas marcas da legenda são as mesmas que aparecem nos blocos. #}
 <p class="pl-legenda-selo">
     <span>
         <svg class="pl-mark" aria-hidden="true"><use href="#pl-sym-seal"/></svg>
@@ -139,16 +141,48 @@
     </div>
 {% endif %}
 
-<div class="pl-cols">
-    <div class="pl-stack">
+{#  ------------------------------------------------------------------ as abas do perfil
 
+    As mesmas abas do perfil do profissional (seção 38 do prolink.css), com os assuntos que a
+    empresa tem: o acervo herdado, o quadro que o herda, e o controle do titular. Endereço próprio
+    por aba: /perfil#acervo, /perfil#quadro, /perfil#privacidade. O painel abre por `:target` em
+    CSS puro, e `perfil-abas.js` acrescenta por cima o que o CSS não entrega. #}
+{% set abas = [
+    {id: 'acervo', rotulo: 'Acervo operacional', cnt: n_arts},
+    {id: 'quadro', rotulo: 'Quadro técnico',     cnt: n_quadro}
+] %}
+{% if p.eh_dono %}
+    {% set abas = abas|merge([{id: 'privacidade', rotulo: 'Privacidade', cnt: null}]) %}
+{% endif %}
+
+<div class="pl-seg-area">
+    <nav class="pl-seg" aria-label="Seções do perfil">
+        {% for aba in abas %}
+            <a class="pl-seg-b" href="#{{ aba.id }}">
+                {{ aba.rotulo }}
+                {% if aba.cnt is not null %}<span class="n">{{ aba.cnt }}</span>{% endif %}
+            </a>
+        {% endfor %}
+    </nav>
+
+    {# ---------------------------------------------------------------- aba 1: o acervo herdado #}
+    <div class="pl-seg-painel padrao" id="acervo">
         <section class="pl-card">
             <div class="pl-linha-titulo">
                 <h2 class="pl-secao">Acervo operacional</h2>
-                {{ ui.info('De onde vem este acervo',
-                    'A empresa não registra ART. O acervo operacional é o das ARTs registradas pelos profissionais do quadro técnico, e a empresa responde por elas enquanto o vínculo estiver vigente. Vínculo encerrado não herda nada.') }}
                 {% if p.arts is not empty %}
                     <span class="cnt">{{ n_arts }} {{ n_arts == 1 ? 'ART na Certidão de Acervo Operacional' : 'ARTs na Certidão de Acervo Operacional' }}</span>
+                {% endif %}
+                {{ ui.info('De onde vem este acervo',
+                    'A empresa não registra ART. O acervo operacional é o das ARTs registradas pelos profissionais do quadro técnico, e a empresa responde por elas enquanto o vínculo estiver vigente. Vínculo encerrado não herda nada.') }}
+                {% if p.eh_dono and p.arts is not empty %}
+                    <form class="dir" method="post" action="{{ app_url }}/perfil/validar-registro">
+                        {{ form.csrf() }}
+                        <button type="submit" class="pl-btn sm">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                            Reimportar do CREA
+                        </button>
+                    </form>
                 {% endif %}
             </div>
 
@@ -183,92 +217,16 @@
         </section>
     </div>
 
-    <div class="pl-stack">
-        {#  Painel de controle do titular. Sem a guarda, quem abre /perfil/{id} de outra empresa
-            veria um formulário que mudaria a visibilidade da própria conta ao ser enviado. #}
-        {% if p.eh_dono %}
-            <section class="pl-card">
-                <div class="pl-linha-titulo">
-                    <h2 class="pl-secao">Quem vê o quê</h2>
-                    {{ ui.info('Como a visibilidade funciona',
-                        'Cada item tem o seu próprio nível, e o padrão de todos é "Só eu". A escolha é conferida toda vez que alguém lê o perfil, inclusive na compatibilização: um documento fechado continua sustentando a aderência sem ser identificado.', 'fim') }}
-                </div>
-                <p class="pl-nota">Nada fica visível sem você escolher. O padrão de tudo é <strong>Só eu</strong>.</p>
-
-                {#  A linha do mockup (tela 03 de prolink-profissional.html): o item à esquerda, com
-                    uma segunda linha dizendo o que ele é, e o controle à direita. O interruptor do
-                    mockup tem duas posições e o nível tem três, então o controle continua sendo o
-                    <select>, escrito à mão para caber a segunda linha. O par `for`/`id` continua
-                    ligado e a descrição entra por aria-describedby. #}
-                {#  Descrição curta de propósito: a coluna do painel tem pouco mais de 160px, e
-                    frase longa aqui é frase cortada com reticências. #}
-                {% set descricao_do_campo = {
-                    'EMAIL':    'Contato da conta',
-                    'TELEFONE': 'Contato da conta',
-                    'RESUMO':   'Texto escrito pela empresa'
-                } %}
-
-                <form method="post" action="{{ app_url }}/perfil/visibilidade">
-                    {{ form.csrf() }}
-
-                    <fieldset class="pl-vis">
-                        <legend class="pl-legenda">Dados do perfil</legend>
-                        {% for campo in p.campos_do_perfil %}
-                            {% set chave = 'PERFIL:-:' ~ campo %}
-                            {% set id = 'vis-campo-' ~ loop.index %}
-                            <div class="ln">
-                                <div class="tx">
-                                    <label class="vt" for="{{ id }}">{{ campo|rotulo_campo }}</label>
-                                    <span class="vs" id="{{ id }}-ajuda">{{ descricao_do_campo[campo]|default('Dado do perfil da empresa') }}</span>
-                                </div>
-                                <select class="form-select" name="nivel[{{ chave }}]" id="{{ id }}"
-                                        aria-describedby="{{ id }}-ajuda">
-                                    {% for valor, texto in niveis_possiveis %}
-                                        <option value="{{ valor }}"{% if p.niveis[chave]|default('PRIVADO') == valor %} selected{% endif %}>{{ texto }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        {% endfor %}
-                    </fieldset>
-
-                    {% if p.arts is not empty %}
-                        <fieldset class="pl-vis">
-                            <legend class="pl-legenda">Cada ART do acervo, uma a uma</legend>
-                            {% for art in p.arts %}
-                                {% set chave = 'ART:' ~ art.id ~ ':-' %}
-                                {% set id = 'vis-art-' ~ art.id %}
-                                <div class="ln">
-                                    <div class="tx">
-                                        <label class="vt unidade" for="{{ id }}">
-                                            ART {{ art.numero }}
-                                            {% if art.selo_confere %}
-                                                <svg class="pl-mark" role="img" aria-label="Conferida na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
-                                            {% endif %}
-                                        </label>
-                                        <span class="vs" id="{{ id }}-ajuda">{{ art.objeto }}{% if art.contratante %} · {{ art.contratante }}{% endif %}</span>
-                                    </div>
-                                    <select class="form-select" name="nivel[{{ chave }}]" id="{{ id }}"
-                                            aria-describedby="{{ id }}-ajuda">
-                                        {% for valor, texto in niveis_possiveis %}
-                                            <option value="{{ valor }}"{% if p.niveis[chave]|default('PRIVADO') == valor %} selected{% endif %}>{{ texto }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                            {% endfor %}
-                        </fieldset>
-                    {% endif %}
-
-                    <div class="pl-acoes-form">{{ form.botao('Salvar visibilidade') }}</div>
-                </form>
-            </section>
-        {% endif %}
-
+    {# ---------------------------------------------------------------- aba 2: o quadro técnico #}
+    <div class="pl-seg-painel" id="quadro">
         <section class="pl-card">
             <div class="pl-linha-titulo">
                 <h2 class="pl-secao">Quadro técnico</h2>
+                {% if p.quadro is not empty %}
+                    <span class="cnt">{{ n_vigentes }} de {{ n_quadro }} {{ n_vigentes == 1 ? 'vínculo vigente' : 'vínculos vigentes' }}</span>
+                {% endif %}
                 {{ ui.info('O que o vínculo muda',
-                    'Só o vínculo vigente transfere acervo para a empresa. Vínculo encerrado não herda nada, e a API não data a ART, então não há recorte por período.', 'fim') }}
-                {% if p.quadro is not empty %}<span class="cnt">{{ p.quadro|length }}</span>{% endif %}
+                    'Só o vínculo vigente transfere acervo para a empresa. Vínculo encerrado não herda nada, e a API não data a ART, então não há recorte por período.') }}
             </div>
 
             {% if p.quadro is empty %}
@@ -308,5 +266,121 @@
             {% endif %}
         </section>
     </div>
+
+    {# ---------------------------------------------------------------- aba 3: a privacidade
+
+        "Quem vê o quê" virou "Privacidade", como no perfil do profissional. Esta aba governa a
+        exposição de cada item DESTE PERFIL; a tela /privacidade governa a CONTA. O quadro ao lado
+        é a ponte entre as duas, para que o mesmo nome em dois lugares não vire dúvida. #}
+    {% if p.eh_dono %}
+        <div class="pl-seg-painel" id="privacidade">
+            <div class="pl-cols">
+                <div class="pl-stack">
+                    {#  Painel de controle do titular. Sem a guarda, quem abre /perfil/{id} de outra
+                        empresa veria um formulário que mudaria a visibilidade da própria conta ao
+                        ser enviado. #}
+                    <section class="pl-card">
+                        <div class="pl-linha-titulo">
+                            <h2 class="pl-secao">Privacidade</h2>
+                            {{ ui.info('Como a visibilidade funciona',
+                                'Cada item tem o seu próprio nível, e o padrão de todos é "Só eu". A escolha é conferida toda vez que alguém lê o perfil, inclusive na compatibilização: um documento fechado continua sustentando a aderência sem ser identificado.') }}
+                        </div>
+                        <p class="pl-nota">
+                            Quem vê cada item do perfil da empresa. Nada fica visível sem você
+                            escolher, e o padrão de tudo é <strong>Só eu</strong>.
+                        </p>
+
+                        {#  A linha do mockup (tela 03 de prolink-profissional.html): o item à esquerda, com
+                            uma segunda linha dizendo o que ele é, e o controle à direita. O interruptor do
+                            mockup tem duas posições e o nível tem três, então o controle continua sendo o
+                            <select>, escrito à mão para caber a segunda linha. O par `for`/`id` continua
+                            ligado e a descrição entra por aria-describedby. #}
+                        {% set descricao_do_campo = {
+                            'EMAIL':    'Contato da conta',
+                            'TELEFONE': 'Contato da conta',
+                            'RESUMO':   'Texto escrito pela empresa'
+                        } %}
+
+                        <form method="post" action="{{ app_url }}/perfil/visibilidade">
+                            {{ form.csrf() }}
+
+                            <fieldset class="pl-vis">
+                                <legend class="pl-legenda">Dados do perfil</legend>
+                                {% for campo in p.campos_do_perfil %}
+                                    {% set chave = 'PERFIL:-:' ~ campo %}
+                                    {% set id = 'vis-campo-' ~ loop.index %}
+                                    <div class="ln">
+                                        <div class="tx">
+                                            <label class="vt" for="{{ id }}">{{ campo|rotulo_campo }}</label>
+                                            <span class="vs" id="{{ id }}-ajuda">{{ descricao_do_campo[campo]|default('Dado do perfil da empresa') }}</span>
+                                        </div>
+                                        <select class="form-select" name="nivel[{{ chave }}]" id="{{ id }}"
+                                                aria-label="Quem vê {{ campo|rotulo_campo }}"
+                                                aria-describedby="{{ id }}-ajuda">
+                                            {% for valor, texto in niveis_possiveis %}
+                                                <option value="{{ valor }}"{% if p.niveis[chave]|default('PRIVADO') == valor %} selected{% endif %}>{{ texto }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                {% endfor %}
+                            </fieldset>
+
+                            {% if p.arts is not empty %}
+                                <fieldset class="pl-vis">
+                                    <legend class="pl-legenda">Cada ART do acervo, uma a uma</legend>
+                                    {% for art in p.arts %}
+                                        {% set chave = 'ART:' ~ art.id ~ ':-' %}
+                                        {% set id = 'vis-art-' ~ art.id %}
+                                        <div class="ln">
+                                            <div class="tx">
+                                                <label class="vt unidade" for="{{ id }}">
+                                                    ART {{ art.numero }}
+                                                    {% if art.selo_confere %}
+                                                        <svg class="pl-mark" role="img" aria-label="Conferida na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+                                                    {% endif %}
+                                                </label>
+                                                <span class="vs" id="{{ id }}-ajuda">{{ art.objeto }}{% if art.contratante %} · {{ art.contratante }}{% endif %}</span>
+                                            </div>
+                                            <select class="form-select" name="nivel[{{ chave }}]" id="{{ id }}"
+                                                    aria-describedby="{{ id }}-ajuda">
+                                                {% for valor, texto in niveis_possiveis %}
+                                                    <option value="{{ valor }}"{% if p.niveis[chave]|default('PRIVADO') == valor %} selected{% endif %}>{{ texto }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    {% endfor %}
+                                </fieldset>
+                            {% endif %}
+
+                            <div class="pl-acoes-form">{{ form.botao('Salvar visibilidade') }}</div>
+                        </form>
+                    </section>
+                </div>
+
+                <div class="pl-stack">
+                    <section class="pl-card">
+                        <div class="pl-linha-titulo">
+                            <h2 class="pl-secao">Conta e dados</h2>
+                        </div>
+                        <p class="pl-nota">
+                            Esta aba decide quem enxerga cada item <strong>deste perfil</strong>. O que
+                            a plataforma guarda sobre a <strong>sua conta</strong> fica em outra tela:
+                            consentimentos com data, sessões abertas, exportação em JSON e exclusão da
+                            conta.
+                        </p>
+                        <a class="pl-btn" href="{{ app_url }}/privacidade">Abrir conta e dados</a>
+                    </section>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+{#  As abas funcionam sem este arquivo: o painel endereçado abre por `:target` em CSS puro. Ele
+    acrescenta o segmento aceso na carga direta de /perfil#quadro, o padrão de abas com seta e
+    aria-selected, e a página parada ao trocar de aba. Arquivo externo, e não script embutido,
+    porque a CSP recusa inline. #}
+<script src="{{ url_assets }}/js/perfil-abas.js?v={{ assets_v }}" defer></script>
 {% endblock %}

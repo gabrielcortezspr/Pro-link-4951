@@ -84,8 +84,13 @@
         'MODERAR':         'warn',   'REVOGAR':      'warn', 'EXPORTAR_DADOS': 'warn'
     } %}
 
+    {#  'Bloqueada', e não 'Inativa'. É o mesmo valor cru da coluna, mas 'Bloqueada' é a palavra
+        que a tela de Contas usa na pílula, no botão e em toda mensagem que o ContaService
+        produz. A trilha lendo "de Ativa para Inativa" na linha cujo evento se chama "Bloqueio
+        de conta" dava dois nomes ao mesmo estado, em duas telas do mesmo painel. O valor cru
+        continua no title da célula, que é o que quem audita confere. #}
     {% set valores = {
-        'A': 'Ativa', 'I': 'Inativa', 'X': 'Excluída',
+        'A': 'Ativa', 'I': 'Bloqueada', 'X': 'Excluída',
         'F': 'Pessoa física', 'J': 'Pessoa jurídica',
         'PENDENTE': 'Pendente', 'EM_ANALISE': 'Em análise', 'RESOLVIDA': 'Resolvida',
         'ADVERTIR': 'Advertir', 'BLOQUEAR': 'Bloquear a conta', 'REMOVER': 'Remover o conteúdo',

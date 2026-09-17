@@ -10,9 +10,19 @@ Exigido pelo edital, Anexo I, item 8.3.2c.
 | Docker Compose | v2 |
 | Git | 2.30+ |
 
-Nada mais precisa estar instalado na máquina hospedeira: PHP, Composer e MariaDB rodam dentro
-dos contêineres. Para desenvolver fora do Docker seriam necessários PHP 8.2+ com as extensões
-`pdo_mysql`, `mbstring`, `intl`, `openssl` e `curl`, Composer 2 e MariaDB 10.11+.
+Nada mais precisa estar instalado na máquina hospedeira para **subir e usar** a aplicação: PHP,
+Composer e MariaDB rodam dentro dos contêineres.
+
+Duas coisas ficam fora dos contêineres, e só são necessárias para quem quiser rodar a verificação
+completa ou regerar os vídeos:
+
+| Item | Versão | Para quê |
+|---|---|---|
+| Node.js e npm | 18+ | a suíte de ponta a ponta em `e2e/` (Playwright) |
+| Python | 3.11+ | `scripts/atualizar_tos.py` e `scripts/gerar-mer.py`, que já rodaram e cujo resultado está versionado |
+
+Para desenvolver fora do Docker seriam necessários PHP 8.2+ com as extensões `pdo_mysql`,
+`mbstring`, `intl`, `zip`, `opcache`, `openssl`, `curl` e `json`, Composer 2 e MariaDB 10.11+.
 
 ## Instalação
 
@@ -39,10 +49,11 @@ docker compose exec php composer install
 ```
 
 Na primeira subida o MariaDB executa sozinho `_arq/estrutura.sql` e `_arq/carga-inicial.sql`:
-o banco já sobe com as **28 tabelas mais a view `crea_evidencias`**, 27 chaves estrangeiras, as
+o banco já sobe com as **28 tabelas mais a view `crea_evidencias`**, 28 chaves estrangeiras, as
 duas triggers que tornam a trilha de auditoria imutável, os 5 perfis de acesso, as 25 modalidades,
-os 2000 códigos da Tabela de Obras e Serviços, os 11 parâmetros do motor e o texto vigente dos
-Termos de Uso e da Política de Privacidade.
+os 2000 códigos da Tabela de Obras e Serviços, os 12 parâmetros da aplicação (9 do motor de
+compatibilização, 2 de integração e 1 geral) e o texto vigente dos Termos de Uso e da Política de
+Privacidade.
 
 **Nenhum usuário vem na carga**, de propósito: o Anexo VI do edital lista "não contém credenciais,
 secrets ou chaves reais" como item de triagem, e uma senha padrão em `carga-inicial.sql` seria
@@ -70,7 +81,23 @@ docker compose exec -T php php scripts/criar-admin.php \
 A bateria inteira, numa ordem que não se atrapalha e com placar no fim:
 
 ```bash
+cd e2e && npm install && cd ..      # só na primeira vez; sem isso os passos de navegador PULAM
 PROLINK_E2E_ADMIN_SENHA="<a do administrador da suíte>" bash scripts/verificar-tudo.sh
+```
+
+São nove passos: testes de unidade, compilação das telas, padrão visual, os quatro verificadores
+por etapa (E1, E2, E4 e E6) e os dois de navegador (desktop e 390px). **Passo pulado não conta
+como verde**, e o placar final diz quantos foram pulados: sem `e2e/node_modules` ou sem a senha da
+administração, os dois últimos pulam em vez de rodar.
+
+A senha pode vir do ambiente, como acima, ou de `e2e/.env.local`, que o `.gitignore` recusa e que
+tanto `scripts/verificar-tudo.sh` quanto `e2e/rodar.sh` carregam sozinhos:
+
+```bash
+cat > e2e/.env.local <<'ENV'
+PROLINK_E2E_ADMIN_EMAIL=e2e.admin@verificacao.local
+PROLINK_E2E_ADMIN_SENHA=<a que você escolheu>
+ENV
 ```
 
 Nenhum passo dela chama a API oficial. `verificar-api.php` e `semear-candidatos.php` ficam de fora
@@ -78,6 +105,22 @@ de propósito: cada chamada é registrada pela organização, e uma bateria que 
 ser rodada à vontade.
 
 Os passos individuais, se você quiser um de cada vez:
+
+```bash
+docker compose exec -T php composer test                          # 193 testes de unidade
+docker compose exec -T php php scripts/verificar-telas.php        # as 42 telas compilam
+docker compose exec -T php php scripts/verificar-padrao.php       # 72 conferências de padrão
+docker compose exec -T php php scripts/verificar-e1.php http://nginx   # identidade e consentimento
+docker compose exec -T php php scripts/verificar-e2.php           # portfólio e sincronização
+docker compose exec -T php php scripts/verificar-e4.php           # motor de compatibilização
+docker compose exec -T php php scripts/verificar-e6.php           # denúncias e painel
+cd e2e && ./rodar.sh                                              # a suíte pelo navegador
+```
+
+`verificar-e1.php` roda **de dentro do contêiner e com a URL interna** (`http://nginx`): com
+`APP_URL` ele tentaria `localhost:8080`, que lá dentro não existe.
+
+E o estado das peças, sem entrar em contêiner nenhum:
 
 ```bash
 curl -s http://localhost:8080/saude
@@ -102,6 +145,13 @@ Resposta esperada:
 | http://localhost:8080 | aplicação |
 | http://localhost:8025 | Mailpit — os e-mails da RF07 em desenvolvimento |
 | `localhost:3307` | MariaDB, se quiser conectar de fora |
+
+## Demonstração
+
+O roteiro dos seis cenários mínimos do Anexo I, item 7, com as contas, os identificadores que
+funcionam e a ordem de preparo do dado, está em `../docs/roteiro-demo.md`. A versão executável dele
+é `e2e/specs/demonstracao.spec.js`, e há mais três jornadas gravadas, uma por perfil, em
+`e2e/specs/jornadas.spec.js`.
 
 ## Atualização
 

@@ -7,8 +7,13 @@ partir daqui, e o **Demo Day de 26/09**, onde alguém apresenta ao vivo. O camin
 muda é quem conduz.
 
 A versão executável deste roteiro é `e2e/specs/demonstracao.spec.js`, que percorre os seis
-cenários no navegador e grava o vídeo. Quando os dois divergirem, o código está certo e este
-documento está velho.
+cenários no navegador e grava o vídeo da jornada completa. Quando os dois divergirem, o código está
+certo e este documento está velho.
+
+Há mais três vídeos, em `e2e/specs/jornadas.spec.js`: um por perfil (profissional, empresa e
+administração), cada um com uma conta só, do login ao logout, percorrendo o que o Anexo I, item 3,
+atribui àquele perfil. Este roteiro é o da narrativa dos seis cenários; os outros três respondem
+"o que um profissional faz aqui?" sem trocar de papel no meio.
 
 ## Antes de começar
 
@@ -26,12 +31,14 @@ curl -s http://localhost:8080/saude          # tem que responder, com tos_carreg
 3. `php scripts/abrir-visibilidade-demo.php` — visibilidade variada e determinística
 4. `php scripts/preencher-declarados-demo.php` — as quatro dimensões autodeclaradas
 
-E três limpezas, porque os verificadores deixam rastro que a banca veria primeiro:
+E uma limpeza, porque os verificadores deixam rastro que a banca veria primeiro:
 
 - `php scripts/revogar-sessoes-de-teste.php` — cada execução da suíte faz vários logins e nem todo
   caminho termina com logout, então `/privacidade` do profissional de demonstração lista dezenas
   de sessões abertas. Revoga, não apaga, e só toca conta de verificação e de demonstração.
 
+Outros dois rastros **não têm script de limpeza**, e a única forma de tirá-los é recarregar o
+banco antes da demonstração:
 
 - `scripts/verificar-e4.php` grava **duas sessões do motor por execução**, e elas ocupam a
   primeira página de `/admin/sessoes`.
@@ -76,18 +83,27 @@ SELECT evi_tos_codigo, COUNT(DISTINCT CONCAT(evi_candidato_tipo, evi_candidato_i
 
 **Caminho:** entrar como o profissional → `/perfil`
 
+**A página é repartida em quatro abas**, cada uma com endereço próprio: `/perfil#acervo`,
+`/perfil#experiencia`, `/perfil#preferencias` e `/perfil#privacidade`. A divisão é a tese da
+página: a primeira é o que o conselho confirma, as duas do meio são o que a pessoa declara, e a
+última é o controle do titular. A troca é `:target` puro, sem JavaScript, e o conteúdo das quatro
+está no HTML o tempo todo, para quem lê o documento sem executar script.
+
 **O que mostrar, nesta ordem:**
 
-1. **O acervo verificado.** Duas ARTs importadas da API oficial, cada uma com o selo verde água ao
-   lado do número, e os códigos TOS de cada atividade. O selo não é uma marca guardada no banco: a
-   cada exibição a linha é reconferida contra o resumo criptográfico gravado na importação. Se
-   divergir, o selo é suspenso e a divergência entra na trilha.
-2. **A distinção que sustenta o projeto.** Ao lado, "Preferências declaradas", com marca visual
-   diferente. Dado verificado pelo conselho e dado escrito pela pessoa nunca se confundem na tela.
-3. **A experiência com competência.** Preencher "O que você fez", e em "Vincular a uma ART do seu
-   acervo" escolher uma das ARTs. A experiência é autodeclarada, a ART é verificada, e é a ART que
-   carrega os códigos TOS que o motor vai ler.
-4. **"Quem vê o quê", no painel ao lado.** Tudo em "Só eu" por padrão. Nada é público sem escolha.
+1. **O acervo verificado** (aba *Acervo técnico*). Duas ARTs importadas da API oficial, cada uma
+   com o selo verde água ao lado do número, e os códigos TOS de cada atividade. O selo não é uma
+   marca guardada no banco: a cada exibição a linha é reconferida contra o resumo criptográfico
+   gravado na importação. Se divergir, o selo é suspenso e a divergência entra na trilha.
+2. **A distinção que sustenta o projeto** (aba *Preferências*). Marca visual diferente, e a
+   legenda de procedência fica fixa no alto da página, valendo para todas as abas. Dado verificado
+   pelo conselho e dado escrito pela pessoa nunca se confundem na tela.
+3. **A experiência com competência** (aba *Experiência*). Preencher "O que você fez", e em
+   "Vincular a uma ART do seu acervo (opcional)" escolher uma das ARTs. A experiência é
+   autodeclarada, a ART é verificada, e é a ART que carrega os códigos TOS que o motor vai ler.
+4. **A aba *Privacidade***, que é o antigo "Quem vê o quê". Tudo em "Só eu" por padrão. Nada é
+   público sem escolha. Ela governa **cada item deste perfil**; quem governa a conta inteira é a
+   tela `/privacidade`, e cada uma aponta para a outra para as duas nunca se confundirem.
 
 **Frase que vale dizer:** o portfólio não é o que a pessoa diz que fez; é o que o conselho
 registrou que ela fez.
@@ -115,10 +131,10 @@ registrou que ela fez.
 
 Este é o cenário que mais vale mostrar devagar.
 
-1. **Cada compatível tem aderência por dimensão, não uma nota.** Seis barras: competência via
-   ART, área de atuação, localização, experiência declarada, tipo de contrato e abrangência. As
-   três primeiras vêm da API e somam 0.70; as três autodeclaradas somam 0.30. Essa diferença **é**
-   a tese do projeto.
+1. **Cada compatível tem aderência por dimensão, não uma nota.** Seis barras, com o nome que
+   aparece na tela: competência técnica, área de atuação, localização, experiência, tipo de
+   contrato e disponibilidade. As três primeiras vêm da API e somam 0,70; as três autodeclaradas
+   somam 0,30. Essa diferença **é** a tese do projeto.
 2. **Dimensão sem dado não penaliza.** Ela sai da média em vez de contar zero, porque perfil
    incompleto não pode ser punido: o edital pede inclusão de quem está começando.
 3. **A ordem da lista não é classificação.** O score decide quem entra no conjunto; a ordem vem de
@@ -151,10 +167,10 @@ exigência. Ela responde "quem tem acervo aderente a esta demanda", que é outra
 
 **Caminho:** `/perfil` → `/privacidade` → `/denuncias/nova?entidade=DEMANDA&alvo={id}`
 
-1. **Correção.** Editar o resumo profissional. Cada edição guarda o valor anterior e o novo na
-   trilha.
-2. **Restrição.** Em "Quem vê o quê", mudar um campo para "Só eu". Três níveis por campo e por
-   documento.
+1. **Correção.** Na aba *Preferências* do `/perfil`, editar o resumo profissional. Cada edição
+   guarda o valor anterior e o novo na trilha.
+2. **Restrição.** Na aba *Privacidade* do `/perfil`, mudar um campo para "Só eu". Três níveis por
+   campo e por documento.
 3. **Privacidade.** Em `/privacidade`: os consentimentos com data e hora, a exportação dos dados em
    JSON, e a exclusão de conta com o que ela faz escrito na frente de quem clica.
 4. **Denúncia.** Sempre contra um alvo. Abrir `/denuncias/nova` sem alvo devolve 404, e isso é
@@ -175,11 +191,21 @@ exigência. Ela responde "quem tem acervo aderente a esta demanda", que é outra
    afirmando que é reproduzível, é a reprodução acontecendo.
 4. **Moderação** (`/admin/denuncias`). Tratar a denúncia do cenário 5. Bloquear uma conta é
    operação atômica: status, sessões encerradas e registro, tudo ou nada.
-5. **A ação do próprio administrador aparece na trilha.** Voltar em `/admin/auditoria` e mostrar.
+5. **Contas** (`/admin/contas`). É o "gerir perfis" do Anexo I, item 3: a lista com busca, e o
+   bloqueio e o desbloqueio com motivo, que vão para a trilha. Mostrar rápido, e só se sobrar
+   tempo: o que ela prova já apareceu na moderação.
+6. **A ação do próprio administrador aparece na trilha.** Voltar em `/admin/auditoria` e mostrar.
    Quem modera é auditado também.
-6. **Parâmetros** (`/admin/parametros`). Os pesos do motor, editáveis, com o antes e o depois indo
-   para a trilha. É o item 12.3 deixando de ser uma frase na documentação.
-7. **Lixeira** (`/admin/lixeira`). O item 8.6j: nada é apagado, e o excluído continua acessível
+7. **Parâmetros** (`/admin/parametros`). Os pesos do motor, editáveis, com a faixa aceitável
+   declarada por campo e o antes e o depois indo para a trilha. É o item 12.3 deixando de ser uma
+   frase na documentação.
+8. **Integrações** (`/admin/integracoes`). A última capacidade do Anexo I, item 3, e a que mais
+   vale explicar: a tela diz para onde a plataforma aponta, se a credencial está configurada (sem
+   mostrar o token), o que já veio da API e está em cache com a data de cada coleção, e as últimas
+   importações lidas da trilha. Os dois ajustes da sincronização são editáveis aqui. **Ela não
+   chama a API ao carregar**, de propósito: o item 10.4 veda coleta automatizada e a organização
+   registra cada chamada.
+9. **Lixeira** (`/admin/lixeira`). O item 8.6j: nada é apagado, e o excluído continua acessível
    por aqui. Mostrar que conta excluída **pelo próprio titular** aparece e **não** pode ser
    restaurada por ato administrativo.
 

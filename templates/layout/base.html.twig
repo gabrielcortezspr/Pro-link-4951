@@ -102,9 +102,13 @@
                     <span class="lb">Meus interesses</span>
                 </a>
             {% endif %}
-            <a href="{{ app_url }}/privacidade" title="Privacidade"{% if ativo|default('') == 'privacidade' %} class="active" aria-current="page"{% endif %}>
+            {#  "Conta e dados", e não "Privacidade": o perfil ganhou uma aba com esse nome, que
+                governa a exposição de cada campo. Esta tela governa a conta, que é outra coisa.
+                Dois itens com o mesmo nome em lugares diferentes é o tipo de ambiguidade que
+                faz a pessoa procurar no lugar errado. #}
+            <a href="{{ app_url }}/privacidade" title="Conta e dados"{% if ativo|default('') == 'privacidade' %} class="active" aria-current="page"{% endif %}>
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5.5c0 4.4-3 8-7 9.5-4-1.5-7-5.1-7-9.5V6l7-3z"/><path d="M9.2 12.2l2 2 3.6-4"/></svg></span>
-                <span class="lb">Privacidade</span>
+                <span class="lb">Conta e dados</span>
             </a>
         </nav>
 

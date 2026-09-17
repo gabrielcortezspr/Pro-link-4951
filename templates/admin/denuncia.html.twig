@@ -35,6 +35,11 @@
 {% block titulo_painel %}Denúncia nº {{ denuncia.den_id }}{% endblock %}
 
 {% block topbar_acoes %}
+    {#  O modo da tela, no mesmo canto em que as três telas de auditoria dizem "Somente leitura" e
+        em que a lixeira e contas põem a contagem. Aqui a frase é o oposto da delas, e é verdade:
+        esta é a única tela do painel que escreve, e a escrita vai para uma trilha que ninguém
+        edita depois. O canto estava vazio, e o "i" ficava sozinho encostado no botão de sair. #}
+    <span class="pl-momento">A decisão gravada aqui vai para a trilha de auditoria</span>
     {{ ui.info('O que acontece quando você grava',
         'A situação e a providência são gravadas na mesma transação que escreve na trilha de auditoria, com o seu nome, a data e a situação anterior. Quando a providência é bloquear, a conta sai de operação e todas as sessões abertas dela são encerradas no mesmo ato: ou tudo acontece, ou nada acontece.', 'fim') }}
 {% endblock %}

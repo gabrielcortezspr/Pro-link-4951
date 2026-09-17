@@ -29,6 +29,13 @@
 {% block titulo_painel %}Denúncias{% endblock %}
 
 {% block topbar_acoes %}
+    {#  O canto esquerdo da topbar carrega o modo da tela em todo o painel: "Somente leitura" nas
+        três de auditoria, a contagem em contas e na lixeira. Aqui ele estava vazio, e o "i" ficava
+        sozinho encostado no botão de sair. A contagem é a da aba aberta, que é o que a pessoa
+        está olhando. #}
+    <span class="pl-momento">
+        {{ fila|length }} {{ fila|length == 1 ? 'denúncia nesta lista' : 'denúncias nesta lista' }}
+    </span>
     {{ ui.info('O que a fila faz, e o que ela não faz',
         'Nada é bloqueado automaticamente por ter sido denunciado: a conta ou o conteúdo continuam em operação até alguém da Administração apurar e decidir. Toda decisão é registrada na trilha de auditoria com quem a tomou, a data e a situação anterior, e a trilha não aceita edição nem remoção.', 'fim') }}
 {% endblock %}
@@ -83,12 +90,14 @@
                         {{ abas[situacao]|default('Denúncias') }}
                     {%- endif -%}
                 </h2>
+                {#  Segunda metade do resumo: a regra que governa a tela, visível e não atrás do
+                    "i", como em contas ("bloquear exige motivo"), na lixeira ("restaurar exige
+                    motivo") e nas sessões ("sem ranking"). O recorte parcial saiu daqui e foi
+                    para o rodapé, que é onde as telas irmãs dizem o que a lista não mostra. #}
                 <p class="pl-log-resumo">
-                    <span><b>{{ fila|length }}</b> nesta lista</span>
-                    {% if truncada %}
-                        <span aria-hidden="true">·</span>
-                        <span>as mais recentes deste recorte, e a fila tem mais</span>
-                    {% endif %}
+                    <span><b>{{ fila|length }}</b> {{ fila|length == 1 ? 'denúncia' : 'denúncias' }}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>nada sai de operação por ter sido denunciado, só por decisão registrada</span>
                 </p>
                 {#  Afinidade com a borda, como na trilha: em tela estreita a coluna do meio corta
                     com reticências no fim do quadro, e reticências leem como "o texto foi
@@ -98,6 +107,13 @@
                     A tabela continua para o lado
                 </p>
             </div>
+            {#  A faixa exibida, no mesmo canto e na mesma forma da trilha, da lixeira, de contas e
+                das sessões. A fila não pagina, então ela começa sempre em 1. #}
+            {% if fila|length %}
+                <p class="pl-pag mb-0">
+                    <span class="pos">Exibindo <b>1</b> a <b>{{ fila|length }}</b></span>
+                </p>
+            {% endif %}
         </div>
 
         {#  Rola dentro do quadro, e nenhuma coluna sai do ar num aparelho estreito: numa fila de
@@ -225,6 +241,13 @@
 
         <div class="pl-log-rodape">
             <p class="pl-nota">
+                {#  O recorte parcial dito aqui, e não no resumo do topo: é a mesma posição em que
+                    a lista de sessões diz que mostra as 50 mais recentes. Lista truncada em
+                    silêncio é pior que lista vazia, porque parece completa. #}
+                {% if truncada %}
+                    A lista mostra as {{ fila|length }} denúncias mais recentes deste recorte, e a
+                    fila tem mais.
+                {% endif %}
                 Denunciar é ato identificado: cada linha acima tem autor, e o envio ficou na trilha
                 com data e origem. Denúncia tratada também não sai da fila, e continua aqui na
                 situação resolvida, com a providência ao lado.

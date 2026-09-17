@@ -119,7 +119,9 @@
     <form method="post" action="{{ app_url }}/admin/parametros">
         <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 
-        <div class="pl-cols">
+        {#  As duas colunas dividem a altura: a esquerda tem seis campos e a direita, seis barras
+            e duas somas, e na altura natural elas terminavam com 200px de diferença. #}
+        <div class="pl-cols pl-par-topo">
 
             {# ------------------------------------------------------ os seis pesos #}
             <section class="pl-card" aria-labelledby="h-pesos">
@@ -258,8 +260,12 @@
                     {% endfor %}
                 </div>
 
-                {{ par.procedencia(niveis.ultima_alteracao|default(null)) }}
-                <p class="ch pl-niveis-ch"><span class="k">{{ chave_niveis }}</span></p>
+                {#  Mesma linha de apoio do campo de parâmetro, pela mesma razão: procedência e
+                    chave empilhadas repetiam a pilha de textos que a linha de cima já abandonou. #}
+                <div class="meta pl-niveis-meta">
+                    {{ par.procedencia(niveis.ultima_alteracao|default(null)) }}
+                    <p class="ch"><span class="k">{{ chave_niveis }}</span></p>
+                </div>
 
                 {% if erro_niveis %}
                     <p class="msg" id="niveis-erro">{{ erro_niveis }}</p>
@@ -267,10 +273,16 @@
             </section>
         {% endif %}
 
-        <div class="pl-cols igual">
+        {# ------------------------------------------------------ o ajuste fino, em duas colunas
 
-            {# ------------------------------------------------------ quem entra no conjunto #}
-            <section class="pl-card" aria-labelledby="h-entrada">
+            Era um quadro por assunto, lado a lado, e nenhuma linha dos dois se encontrava: título,
+            nota e campo começavam em alturas diferentes porque cada nota tem um tamanho. Aqui é um
+            quadro só, com as duas colunas na mesma grade: os títulos dividem uma linha, as notas
+            dividem a seguinte, e os campos começam todos na mesma altura. O filete no meio é o que
+            resta da divisão entre os dois assuntos, que continuam sendo dois. #}
+        <section class="pl-card pl-par-duo" aria-labelledby="h-entrada h-operacao">
+
+            <div class="bl">
                 <div class="pl-linha-titulo">
                     <h2 class="pl-secao" id="h-entrada">Entrada no conjunto avaliado</h2>
                 </div>
@@ -289,10 +301,9 @@
                     {% set p = por_chave['match.early_career.min_arts']|default(null) %}
                     {% if p %}{{ par.campo(p, erros, valores, 'ARTs') }}{% endif %}
                 </div>
-            </section>
+            </div>
 
-            {# ------------------------------------------------------ operação da plataforma #}
-            <section class="pl-card" aria-labelledby="h-operacao">
+            <div class="bl">
                 <div class="pl-linha-titulo">
                     <h2 class="pl-secao" id="h-operacao">Operação da plataforma</h2>
                 </div>
@@ -309,9 +320,9 @@
                     {% set p = por_chave['manifestacao.limite_hora']|default(null) %}
                     {% if p %}{{ par.campo(p, erros, valores) }}{% endif %}
                 </div>
-            </section>
+            </div>
 
-        </div>
+        </section>
 
         {# ------------------------------------------------------------ o que ainda não tem grupo #}
         {% if restantes|length %}

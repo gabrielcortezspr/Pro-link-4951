@@ -50,7 +50,7 @@ test.describe('Jornadas por perfil', () => {
     await respirar(page, 3000);
 
     // ---- O acervo verificado, que é o argumento do projeto
-    await page.goto('/perfil');
+    await page.goto('/perfil#preferencias');
     await telaSaudavel(page);
     await legenda(page, 'Acervo técnico', 'ARTs importadas da API oficial do CREA-AM, com o selo reconferido a cada exibição');
     await respirar(page, 3400);
@@ -74,7 +74,7 @@ test.describe('Jornadas por perfil', () => {
     }
 
     // ---- Visibilidade por campo
-    await page.goto('/perfil');
+    await page.goto('/perfil#privacidade');
     await rolarAte(page, 'select[name="nivel[PERFIL:-:RESUMO]"]');
     await legenda(page, 'Quem vê o quê', 'Três níveis, campo por campo e documento por documento. O padrão de tudo é "Só eu"');
     await respirar(page, 3400);
