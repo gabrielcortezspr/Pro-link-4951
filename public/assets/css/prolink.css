@@ -2124,3 +2124,153 @@ main.p-0 > .alert { margin: 0; border-radius: 0; border-left: 0; border-right: 0
        que com o nome da área cortado em duas palavras. */
     .pl-pcard .metae { flex-wrap: wrap; }
 }
+
+/* ---------- 29. O shell de quem está logado, e a barra pública do mockup ---------------------
+   Duas barras, e só duas. O `docs/design.md` já dizia (linha 77) que `pl-app` é o shell das
+   páginas logadas e que a top-nav serve as públicas, mas só o painel administrativo tinha a
+   barra lateral: empresa e profissional navegavam numa fileira de links soltos da navbar do
+   Bootstrap, que não existe em mockup nenhum.
+
+   a) **Barra lateral navy** para quem está dentro da conta. A seção 5 já desenhou o shell; o que
+      faltava era o estado recolhido (o mockup esconde rótulo e centra ícone, e aqui a coluna de
+      66px existia sem nenhuma regra para o que acontece dentro dela), o lado direito da topbar
+      (sino e identidade) e as medidas do conteúdo.
+   b) **Barra pública** de `docs/mockups/prolink-busca.html` (telas 02 e 03), que é a mesma da
+      landing em faixa clara: marca à esquerda, três links, "Entrar" discreto e "Usar a
+      plataforma" preenchido. Nenhuma cor nova: a marca é `--pl-navy`, os links são `--pl-muted`,
+      e a ação preenchida é o `.pl-cta` da casa.
+
+   A unidade de leitura da barra lateral é a seção em que a pessoa está: primário o item ativo
+   (único preenchido de branco), secundário os outros itens, terciário a identidade no rodapé. Na
+   topbar, primário é o nome da seção e terciário o sino e o avatar, que são atalho, não assunto.
+
+   Escala: a navegação tem no máximo seis itens por perfil e não cresce com o dado, então não há
+   rolagem interna prevista na barra. Se um dia passar de dez, a coluna precisa de overflow-y. */
+
+/* ---- O shell como página inteira ---- */
+/* O `body` é flex-column com min-vh-100 (Bootstrap). Sem isto o shell, que é grid, não recebe a
+   altura sobrando e o fundo off-white parava no fim do conteúdo curto. */
+body > .pl-app { flex: 1 0 auto; min-width: 0; }
+/* A transição do mockup, que a seção 5 não portou. Recolher sem ela é um salto de 166px. */
+.pl-app { transition: grid-template-columns .22s ease; }
+@media (prefers-reduced-motion: reduce) { .pl-app { transition: none; } }
+
+/* ---- A barra recolhida ---- */
+/* A seção 5 declarava a coluna de 66px e nada sobre o que vive dentro dela: o rótulo continuava
+   ocupando largura, era clipado pelo overflow, e a barra recolhida ficava com meia palavra em
+   cada item. Estas são as regras do mockup (linhas 51-58 de prolink-profissional.html). */
+.pl-app.collapsed .pl-side .name,
+.pl-app.collapsed .pl-side .lb,
+.pl-app.collapsed .pl-side small,
+.pl-app.collapsed .pl-side .foot .txt { display: none; }
+.pl-app.collapsed .pl-brand { justify-content: center; margin: 6px 0 18px; }
+.pl-app.collapsed .pl-brand .m { display: none; }
+.pl-app.collapsed .pl-brand .pl-ham { margin-left: 0; }
+.pl-app.collapsed .pl-nav a { justify-content: center; padding: 10px 0; }
+.pl-app.collapsed .pl-side .foot { justify-content: center; padding: 10px 0; }
+.pl-ham svg { width: 16px; height: 16px; }
+.pl-ham:hover { background: rgba(255,255,255,.14); color: #fff; }
+/* Nome longo na identidade do rodapé: uma linha, cortada, e nunca uma segunda coluna de texto
+   empurrando a barra. "Alfa Engenharia e Consultoria Ltda" tem 33 caracteres. */
+.pl-side .foot .txt { white-space: nowrap; }
+/* Foco de teclado na barra e na topbar: a seção 11 cobriu o que é do painel e nada mais. */
+.pl-nav a:focus-visible, .pl-ham:focus-visible, .pl-topbar-acoes a:focus-visible,
+.pl-topbar-acoes button:focus-visible { outline: 2px solid var(--pl-blue-2); outline-offset: 2px;
+    border-radius: 10px; }
+.pl-topbar-acoes a:focus-visible, .pl-topbar-acoes button:focus-visible {
+    outline-color: var(--pl-blue); }
+
+/* ---- A topbar: o lugar à esquerda, os atalhos à direita ---- */
+/* O nome da seção é indicador de lugar e não o título da página: por isso é <p> e não <h1>. As
+   telas já trazem o próprio <h1> no conteúdo, e dois <h1> na mesma página seriam dois assuntos. */
+.pl-topbar-tt { margin: 0; min-width: 0; font-family: var(--pl-display); font-weight: 600;
+    font-size: 16px; letter-spacing: -.01em; color: var(--pl-ink); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+/* Sino: a mesma caixa de 36px do mockup. Sem contador, porque ninguém mede ainda quantas
+   manifestações chegaram e não foram abertas (DashboardRepository::naoVistas existe, e nenhum
+   controller o chama). Ponto vermelho fixo seria alarme falso permanente. */
+.pl-ibtn { width: 36px; height: 36px; border-radius: 9px; flex: none; display: grid;
+    place-items: center; background: var(--pl-app); border: 1px solid var(--pl-border);
+    color: var(--pl-muted); text-decoration: none; }
+.pl-ibtn:hover { color: var(--pl-data); border-color: var(--pl-blue-2); }
+.pl-ibtn svg { width: 18px; height: 18px; }
+/* A marca de pessoa na escala da topbar: a mesma de .pl-av, sem a sombra, que a 36px vira
+   borrão. */
+.pl-av.xs { width: 36px; height: 36px; border-radius: 9px; font-size: 12px; font-weight: 600;
+    box-shadow: none; text-decoration: none; }
+.pl-sair { height: 36px; padding: 0 12px; border: 0; border-radius: 9px; background: transparent;
+    color: var(--pl-muted); font-family: var(--pl-body); font-weight: 600; font-size: 13px;
+    cursor: pointer; white-space: nowrap; }
+.pl-sair:hover { color: var(--pl-ink); background: var(--pl-app); }
+
+/* ---- A medida do conteúdo dentro do shell ---- */
+/* O teto é à esquerda, e não centralizado: a moldura da página já é a janela inteira, com a
+   barra e a topbar a ocupando. Formulário com medida de leitura no meio de 1700px de área
+   voltaria a ser a coluna estreita com vazio dos dois lados. */
+.pl-content.registro { max-width: 1400px; }
+.pl-content.leitura  { max-width: 1080px; }
+
+/* ---- A fileira de indicadores do início ---- */
+/* `repeat(4, 1fr)` é o do mockup e só serve a quatro: o início da empresa tem cinco tiles e o do
+   contratante tem três, porque ele não tem acervo nem quadro técnico. Com auto-fit a mesma
+   fileira serve aos três casos, e `min()` no piso impede a coluna de ficar maior que a área
+   quando sobram 330px de tela. */
+.pl-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
+    gap: 14px; }
+
+/* ---- A barra pública ---- */
+.pl-topnav { background: var(--pl-card); border-bottom: 1px solid var(--pl-border); }
+.pl-topnav .in { display: flex; align-items: center; gap: 10px 22px; min-height: 62px;
+    flex-wrap: wrap; padding: 8px clamp(16px, 2.4vw, 40px); }
+.pl-topnav .marca { display: flex; align-items: center; gap: 9px; color: var(--pl-navy);
+    font-family: var(--pl-display); font-weight: 700; font-size: 18px; text-decoration: none;
+    white-space: nowrap; }
+.pl-topnav .marca:hover { color: var(--pl-navy-2); }
+.pl-topnav .marca .m { width: 12px; height: 12px; border-radius: 4px; flex: none;
+    background: linear-gradient(135deg, var(--pl-blue-2), var(--pl-blue)); transform: rotate(45deg); }
+.pl-topnav .elos { display: flex; gap: 8px 20px; flex-wrap: wrap; min-width: 0; }
+.pl-topnav .elos a { color: var(--pl-muted); font-size: 14px; font-weight: 500;
+    text-decoration: none; white-space: nowrap; }
+.pl-topnav .elos a:hover { color: var(--pl-ink); }
+.pl-topnav .acoes { margin-left: auto; display: flex; align-items: center; gap: 6px;
+    flex-wrap: wrap; }
+/* Ação terciária sobre a faixa clara: o .pl-btn contornado concorreria com o .pl-cta ao lado. */
+.pl-topnav .ghost { display: inline-flex; align-items: center; height: 40px; padding: 0 14px;
+    border: 0; border-radius: var(--pl-r); background: transparent; color: var(--pl-ink);
+    font-family: var(--pl-body); font-weight: 600; font-size: 14px; text-decoration: none;
+    white-space: nowrap; cursor: pointer; }
+.pl-topnav .ghost:hover { background: var(--pl-app); color: var(--pl-ink); }
+.pl-topnav a:focus-visible, .pl-topnav button:focus-visible { outline: 2px solid var(--pl-blue);
+    outline-offset: 3px; border-radius: 8px; }
+
+/* ---- As duas barras num aparelho de 390px ---- */
+@media (max-width: 768px) {
+    /* A seção 25 transforma a barra lateral em faixa horizontal abaixo de 768px, e ali o estado
+       recolhido não faz sentido: a coluna de 66px já não existe. Sem isto, quem recolheu no
+       desktop abriria o celular com uma faixa de ícones sem rótulo e sem nome de conta. */
+    .pl-app.collapsed .pl-side .name,
+    .pl-app.collapsed .pl-side .lb,
+    .pl-app.collapsed .pl-side small,
+    .pl-app.collapsed .pl-side .foot .txt { display: revert; }
+    .pl-app.collapsed .pl-brand { justify-content: flex-start; margin: 0; }
+    .pl-app.collapsed .pl-brand .m { display: block; }
+    .pl-app.collapsed .pl-nav a { justify-content: flex-start; padding: 8px 13px; }
+    .pl-app.collapsed .pl-side .foot { justify-content: flex-start; padding: 0; }
+    /* O botão de recolher sai: ele comanda uma coluna que não existe nesta largura. */
+    .pl-side .pl-ham { display: none; }
+    /* A seção 25 quebra a topbar em duas linhas, e no painel isso é certo: a segunda linha recebe
+       o selo de somente leitura e a contagem do momento. Aqui a topbar só tem o nome da seção e
+       dois atalhos de 36px, que somam menos de 200px, e em duas linhas ela viraria 120px de barra
+       vazia no topo de um aparelho de 390px. O seletor é o do shell com botão de recolher, para o
+       painel administrativo continuar com o comportamento dele. */
+    .pl-app[data-colapsavel] .pl-topbar { height: 60px; align-items: center; flex-wrap: nowrap;
+        gap: 8px; padding: 0 14px; }
+    .pl-app[data-colapsavel] .pl-topbar-acoes { margin-left: auto; flex-wrap: nowrap; gap: 8px; }
+}
+@media (max-width: 760px) {
+    /* Marca e ações na primeira fileira, os três links na segunda. Deixados à sorte do wrap, o
+       par de botões caía numa terceira fileira e a barra pública ficava com 150px de altura em
+       toda tela pública. */
+    .pl-topnav .in { min-height: 0; gap: 8px 14px; }
+    .pl-topnav .elos { order: 3; width: 100%; gap: 6px 16px; }
+}

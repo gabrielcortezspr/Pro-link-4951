@@ -4,6 +4,13 @@
 
 {% block titulo %}Privacidade e meus dados · Pro-Link{% endblock %}
 
+{#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
+{% set shell = 'app' %}
+{% set ativo = 'privacidade' %}
+{% set medida = 'registro' %}
+
+{% block titulo_tela %}Privacidade e meus dados{% endblock %}
+
 {% block classe_main %}pl-wrap registro{% endblock %}
 
 {% block conteudo %}

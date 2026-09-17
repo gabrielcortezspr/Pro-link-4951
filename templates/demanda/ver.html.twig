@@ -4,6 +4,13 @@
 
 {% block titulo %}{{ demanda.dem_titulo }} · Pro-Link{% endblock %}
 
+{#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
+{% set shell = 'app' %}
+{% set ativo = usuario() and usuario().perfil in ['EMPRESA', 'TERCEIRO'] ? 'demandas' : 'abertas' %}
+{% set medida = 'registro' %}
+
+{% block titulo_tela %}Demanda{% endblock %}
+
 {#  Um registro: conteúdo à esquerda, painel de ação à direita. O 7/5 do Bootstrap dava, num
     monitor de 1600, uma coluna de leitura larga demais e um painel largo demais. #}
 {% block classe_main %}pl-wrap registro{% endblock %}

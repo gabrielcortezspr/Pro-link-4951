@@ -3,6 +3,12 @@
 
 {% block titulo %}Interessados · {{ demanda.dem_titulo }} · Pro-Link{% endblock %}
 
+{#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
+{% set shell = 'app' %}
+{% set ativo = 'demandas' %}
+
+{% block titulo_tela %}Interessados{% endblock %}
+
 {#  Lista de pessoas comparáveis entre si sobre uma mesma demanda. Tabela, e densa: a mensagem que
     cada uma escreveu é o que distingue uma linha da outra, e ela precisa de largura para caber em
     duas linhas sem virar um bloco de texto. #}

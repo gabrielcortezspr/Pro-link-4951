@@ -32,65 +32,159 @@
     </svg>
 </div>
 
-{% block cabecalho %}
-<header>
-    <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom">
-        {#  container-fluid, e não container: a barra acompanha a mesma moldura lateral do conteúdo
-            (seção 14 do prolink.css). O Bootstrap aplica o flex da navbar ao container-fluid do
-            mesmo jeito, então nada de comportamento muda. #}
-        <div class="container-fluid pl-barra">
-            <a class="navbar-brand fw-semibold" href="{{ app_url }}">Pro-Link</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#menu" aria-controls="menu" aria-expanded="false"
-                    aria-label="Abrir menu">
-                <span class="navbar-toggler-icon"></span>
+{#  ------------------------------------------------------------------ Os dois shells
+
+    A aplicação tem duas molduras, e só duas (docs/design.md, "Componentes"):
+
+    1. Barra lateral navy (`.pl-app`, seção 5 do prolink.css) para quem está dentro da conta. Era
+       privilégio do painel administrativo, e por isso empresa e profissional navegavam numa
+       fileira de links soltos no topo, que não é o desenho de prolink-profissional.html nem o de
+       prolink-empresa-1.html.
+    2. Barra pública do mockup (`.pl-topnav`, seção 29) para landing, busca, perfil público,
+       termos e telas de entrada. É a mesma barra das três telas públicas dos mockups: marca, os
+       três links, "Entrar" discreto e "Usar a plataforma" preenchido.
+
+    A escolha é da tela, não do usuário: quem tem sessão e abre os termos continua numa tela
+    pública, e a barra de lá só troca o par de botões de venda pela volta para a aplicação.
+    Tela logada declara `shell` com o valor 'app' no topo do arquivo, e `medida` quando o
+    conteúdo pede menos que a largura inteira.
+
+    O painel administrativo não passa por aqui: ele tem o próprio `.pl-app` em
+    `admin/_layout.html.twig`, com a navegação dele, e continua intocado. #}
+{% set pl_u = usuario() %}
+{% set pl_app = pl_u is not null and shell|default('') == 'app' %}
+
+{% if pl_app %}
+<div class="pl-app" id="pl-app" data-colapsavel>
+
+    <aside class="pl-side">
+        <div class="pl-brand">
+            <span class="m" aria-hidden="true"></span><span class="name">Pro&#8209;Link</span>
+            {#  O botão de recolher é do mockup. Sem JavaScript ele não aparece: botão que não faz
+                nada é pior que a ausência dele, e a barra inteira funciona expandida. #}
+            <button type="button" class="pl-ham" data-pl-colapsar hidden
+                    aria-controls="pl-app" aria-expanded="true" aria-label="Recolher menu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
             </button>
-            <div class="collapse navbar-collapse" id="menu">
-                <ul class="navbar-nav ms-auto">
-                    {% block menu %}{% endblock %}
-                    {#  Fora do {% if u %}: buscar profissionais e ver perfil são capacidades do
-                        perfil Público (Anexo I, item 3), e até aqui a navegação assumia sessão.
-                        Quem não tem conta não deixa de ver a tela, vê menos dado dentro dela. #}
-                    <li class="nav-item"><a class="nav-link" href="{{ app_url }}/profissionais">Profissionais</a></li>
-                    {% set u = usuario() %}
-                    {% if u %}
-                        <li class="nav-item"><a class="nav-link" href="{{ app_url }}/perfil">Meu perfil</a></li>
-                        {% if u.perfil in ['EMPRESA', 'TERCEIRO'] %}
-                            <li class="nav-item"><a class="nav-link" href="{{ app_url }}/demandas">Minhas demandas</a></li>
-                        {% endif %}
-                        <li class="nav-item"><a class="nav-link" href="{{ app_url }}/demandas/abertas">Demandas abertas</a></li>
-                        {#  Quem manifesta interesse é quem tem registro no CREA (D51), e é dele
-                            esta entrada: sem ela, a manifestação enviada só era alcançável pelo
-                            e-mail do outro lado ou por URL digitada. #}
-                        {% if u.perfil in ['PROFISSIONAL', 'EMPRESA'] %}
-                            <li class="nav-item"><a class="nav-link" href="{{ app_url }}/manifestacoes">Meus interesses</a></li>
-                        {% endif %}
-                        {% if u.perfil == 'ADMIN' %}<li class="nav-item"><a class="nav-link" href="{{ app_url }}/admin">Administração</a></li>{% endif %}
-                        <li class="nav-item"><span class="nav-link text-body-secondary">{{ u.nome }}</span></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ app_url }}/privacidade">Privacidade</a></li>
-                        <li class="nav-item">
-                            {# Logout é POST com token: link GET seria escrita de estado sem CSRF (8.5e). #}
-                            <form method="post" action="{{ app_url }}/sair" class="d-inline">
-                                <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-                                <button type="submit" class="nav-link border-0 bg-transparent">Sair</button>
-                            </form>
-                        </li>
-                    {% else %}
-                        <li class="nav-item"><a class="nav-link" href="{{ app_url }}/login">Entrar</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ app_url }}/cadastro">Cadastrar</a></li>
-                    {% endif %}
-                </ul>
+        </div>
+
+        {#  O rótulo do perfil, como nos mockups ("Profissional" / "Empresa"). Terceiro é o
+            demandante sem registro no conselho, e a palavra que o Anexo I usa é "contratante". #}
+        <small>{% if pl_u.perfil == 'PROFISSIONAL' %}Profissional{% elseif pl_u.perfil == 'EMPRESA' %}Empresa{% else %}Contratante{% endif %}</small>
+
+        <nav class="pl-nav" aria-label="Seções da sua conta">
+            <a href="{{ app_url }}/inicio" title="Início"{% if ativo|default('') == 'inicio' %} class="active" aria-current="page"{% endif %}>
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg></span>
+                <span class="lb">Início</span>
+            </a>
+            <a href="{{ app_url }}/perfil" title="Meu perfil"{% if ativo|default('') == 'perfil' %} class="active" aria-current="page"{% endif %}>
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></span>
+                <span class="lb">Meu perfil</span>
+            </a>
+            {#  Publicar demanda é de empresa e contratante (Anexo I, item 3): o profissional não
+                tem "minhas demandas", tem a vitrine. #}
+            {% if pl_u.perfil in ['EMPRESA', 'TERCEIRO'] %}
+                <a href="{{ app_url }}/demandas" title="Minhas demandas"{% if ativo|default('') == 'demandas' %} class="active" aria-current="page"{% endif %}>
+                    <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2h6v2"/><path d="M8 10h8M8 14h8M8 18h5"/></svg></span>
+                    <span class="lb">Minhas demandas</span>
+                </a>
+            {% endif %}
+            <a href="{{ app_url }}/demandas/abertas" title="Demandas abertas"{% if ativo|default('') == 'abertas' %} class="active" aria-current="page"{% endif %}>
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></span>
+                <span class="lb">Demandas abertas</span>
+            </a>
+            {#  Quem manifesta interesse é quem tem registro no CREA (D51), e /manifestacoes é
+                servida a PERFIS_COM_REGISTRO_CREA. Para o contratante a entrada não aparece:
+                seria item de menu que devolve 403 na demonstração. #}
+            {% if pl_u.perfil in ['PROFISSIONAL', 'EMPRESA'] %}
+                <a href="{{ app_url }}/manifestacoes" title="Meus interesses"{% if ativo|default('') == 'manifestacoes' %} class="active" aria-current="page"{% endif %}>
+                    <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4V5z"/><path d="M8.5 10.5h7"/></svg></span>
+                    <span class="lb">Meus interesses</span>
+                </a>
+            {% endif %}
+            <a href="{{ app_url }}/privacidade" title="Privacidade"{% if ativo|default('') == 'privacidade' %} class="active" aria-current="page"{% endif %}>
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5.5c0 4.4-3 8-7 9.5-4-1.5-7-5.1-7-9.5V6l7-3z"/><path d="M9.2 12.2l2 2 3.6-4"/></svg></span>
+                <span class="lb">Privacidade</span>
+            </a>
+        </nav>
+
+        <div class="foot">
+            <span class="av" aria-hidden="true">{{ pl_u.nome|slice(0, 1)|upper }}</span>
+            <span class="txt">{{ pl_u.nome }}<span class="fn">{% if pl_u.perfil == 'PROFISSIONAL' %}Profissional{% elseif pl_u.perfil == 'EMPRESA' %}Empresa{% else %}Contratante{% endif %}</span></span>
+        </div>
+    </aside>
+
+    <div class="pl-main">
+        {#  A topbar do mockup: a seção à esquerda, o sino e a identidade à direita. O nome da
+            seção é indicador de lugar, e não o título da tela: o h1 continua sendo um só, e fica
+            no conteúdo, onde o assunto da página está escrito. #}
+        <header class="pl-topbar">
+            <p class="pl-topbar-tt">{% block titulo_tela %}{% endblock %}</p>
+            <div class="pl-topbar-acoes">
+                {#  Sino sem contador: quem sabe quantas manifestações chegaram e não foram
+                    abertas é DashboardRepository::naoVistas(), e nenhum controller o chama ainda.
+                    Número inventado aqui seria pior que a ausência dele. #}
+                <a class="pl-ibtn" href="{{ app_url }}/manifestacoes" title="Interesses e mensagens">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M9.5 20a2.5 2.5 0 005 0"/></svg>
+                    <span class="visually-hidden">Interesses e mensagens</span>
+                </a>
+                <a class="pl-av xs" href="{{ app_url }}/perfil" title="{{ pl_u.nome }}">
+                    <span aria-hidden="true">{{ pl_u.nome|slice(0, 1)|upper }}</span>
+                    <span class="visually-hidden">Meu perfil</span>
+                </a>
+                {# Logout é POST com token: link GET seria escrita de estado sem CSRF (8.5e). #}
+                <form method="post" action="{{ app_url }}/sair">
+                    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                    <button type="submit" class="pl-sair">Sair</button>
+                </form>
+            </div>
+        </header>
+{% else %}
+    {% block cabecalho %}
+    {#  A barra pública de docs/mockups/prolink-busca.html (telas 02 e 03) e da landing: marca, os
+        três links da landing, "Entrar" discreto e "Usar a plataforma" preenchido. Os links são
+        âncoras da landing, então fora dela apontam para a landing na âncora certa. #}
+    <header class="pl-topnav">
+        <div class="in">
+            <a class="marca" href="{{ app_url }}"><span class="m" aria-hidden="true"></span>Pro&#8209;Link</a>
+            <nav class="elos" aria-label="Navegação da plataforma">
+                <a href="{{ app_url }}/#como">Como funciona</a>
+                {% if pl_u %}
+                    <a href="{{ app_url }}/profissionais">Profissionais</a>
+                    <a href="{{ app_url }}/demandas/abertas">Demandas abertas</a>
+                {% else %}
+                    <a href="{{ app_url }}/#quem">Para profissionais</a>
+                    <a href="{{ app_url }}/#quem">Para empresas</a>
+                {% endif %}
+            </nav>
+            <div class="acoes">
+                {% if pl_u %}
+                    {#  Quem já tem conta não recebe o par de botões de venda: recebe a volta para
+                        a aplicação, como a landing já faz. #}
+                    <a class="ghost" href="{{ app_url }}/perfil">Meu perfil</a>
+                    <form method="post" action="{{ app_url }}/sair">
+                        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                        <button type="submit" class="ghost">Sair</button>
+                    </form>
+                    <a class="pl-cta" href="{{ app_url }}/inicio">Ir para a plataforma</a>
+                {% else %}
+                    <a class="ghost" href="{{ app_url }}/login">Entrar</a>
+                    <a class="pl-cta" href="{{ app_url }}/cadastro">Usar a plataforma</a>
+                {% endif %}
             </div>
         </div>
-    </nav>
-</header>
-{% endblock %}
+    </header>
+    {% endblock %}
+{% endif %}
 
 {#  A largura é decidida por tipo de conteúdo, não pelo `.container` do Bootstrap: ele trava em
     1140px e deixava tabela densa espremida com vazio dos dois lados num monitor de 1920. Ver a
     seção 14 do prolink.css. O padrão é a medida intermediária; tela densa pede `pl-wrap densa`,
-    formulário e texto corrido pedem `pl-wrap leitura`. #}
-<main id="conteudo" class="{% block classe_main %}pl-wrap{% endblock %} flex-grow-1">
+    formulário e texto corrido pedem `pl-wrap leitura`.
+
+    Dentro do shell logado quem manda é `.pl-content` (seções 5 e 29): a moldura já é a página
+    inteira, e a medida vira um teto à esquerda, nunca uma coluna centralizada. #}
+<main id="conteudo" class="{% if pl_app %}pl-content{% if medida|default('') %} {{ medida }}{% endif %}{% else %}{% block classe_main %}pl-wrap{% endblock %} flex-grow-1{% endif %}">
     {% for f in flashes() %}
         <div class="alert alert-{{ f.tipo }} alert-dismissible" role="alert">
             {{ f.texto }}
@@ -100,26 +194,34 @@
     {% block conteudo %}{% endblock %}
 </main>
 
-{% block rodape %}
-<footer class="border-top mt-auto">
-    {#  O rodapé acompanha a moldura lateral da página em vez do `.container`: com a tela ocupando
-        1640px, um rodapé de 1140px centralizado ficava desalinhado do conteúdo acima dele. #}
-    <div class="pl-wrap densa rodape small text-body-secondary">
-        Pro-Link · Desafio CREA Pro-Link · II CENATEC 2026 · Equipe 49/51<br>
-        Dados fictícios fornecidos pela organização. A correspondência entre perfil e demanda é
-        apenas indicativa e não constitui ranking, certificação ou recomendação institucional.
+{% if pl_app %}
     </div>
-</footer>
-{% endblock %}
+</div>
+{% else %}
+    {% block rodape %}
+    <footer class="border-top mt-auto">
+        {#  O rodapé acompanha a moldura lateral da página em vez do `.container`: com a tela
+            ocupando 1640px, um rodapé de 1140px centralizado ficava desalinhado do conteúdo. #}
+        <div class="pl-wrap densa rodape small text-body-secondary">
+            Pro-Link · Desafio CREA Pro-Link · II CENATEC 2026 · Equipe 49/51<br>
+            Dados fictícios fornecidos pela organização. A correspondência entre perfil e demanda é
+            apenas indicativa e não constitui ranking, certificação ou recomendação institucional.
+        </div>
+    </footer>
+    {% endblock %}
+{% endif %}
 
 <script src="{{ url_assets }}/vendor/bootstrap/bootstrap.bundle.min.js?v={{ assets_v }}"></script>
 {#  Confirmação de ação destrutiva para toda tela: formulário com data-confirmar basta.
-    Fica aqui, e não em cada {% block scripts %}, porque esquecer o include devolveria
-    exatamente o defeito que este arquivo conserta — a pergunta sumir sem avisar. #}
+    Fica aqui, e não em cada bloco de scripts, porque esquecer o include devolveria exatamente o
+    defeito que este arquivo conserta: a pergunta sumir sem avisar. #}
 <script src="{{ url_assets }}/js/confirmar-acao.js?v={{ assets_v }}" defer></script>
 {#  O "i" de informação é <details> nativo e funciona sem isto; o script só evita dois painéis
     abertos ao mesmo tempo e acrescenta Esc e clique fora. #}
 <script src="{{ url_assets }}/js/info.js?v={{ assets_v }}" defer></script>
+{#  Recolher a barra lateral. A barra funciona expandida sem ele; o script revela o botão e
+    guarda a escolha, para ela não se perder a cada navegação. #}
+<script src="{{ url_assets }}/js/barra-lateral.js?v={{ assets_v }}" defer></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

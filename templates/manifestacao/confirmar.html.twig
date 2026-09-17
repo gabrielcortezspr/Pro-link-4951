@@ -4,6 +4,13 @@
 
 {% block titulo %}Manifestar interesse · Pro-Link{% endblock %}
 
+{#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
+{% set shell = 'app' %}
+{% set ativo = 'abertas' %}
+{% set medida = 'leitura' %}
+
+{% block titulo_tela %}Manifestar interesse{% endblock %}
+
 {#  Medida de leitura: esta tela é uma decisão, não um registro nem uma lista. O que ela pede é
     que a pessoa leia o que vai sair do perfil dela antes de apertar o botão. #}
 {% block classe_main %}pl-wrap leitura{% endblock %}

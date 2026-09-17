@@ -4,6 +4,13 @@
 
 {% block titulo %}{{ titulo }} · Pro-Link{% endblock %}
 
+{#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
+{% set shell = perfil.eh_dono ? 'app' : '' %}
+{% set ativo = 'perfil' %}
+{% set medida = 'registro' %}
+
+{% block titulo_tela %}Meu perfil{% endblock %}
+
 {#  Um registro: o acervo e as declarações à esquerda, o controle do titular à direita. #}
 {% block classe_main %}pl-wrap registro{% endblock %}
 

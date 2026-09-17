@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ProLink\Support;
 
+use ProLink\Repository\DashboardRepository;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 use Twig\TwigFilter;
@@ -61,6 +62,19 @@ final class View
         $twig->addFunction(new TwigFunction('usuario', [Sessao::class, 'usuarioAtual']));
         $twig->addFunction(new TwigFunction('csrf_token', [Csrf::class, 'token']));
         $twig->addFunction(new TwigFunction('flashes', [Flash::class, 'consumir']));
+
+        // O número do sino da topbar, em toda tela logada. É função e não global porque global
+        // é resolvido na construção do ambiente, e isto custa uma consulta: como função, só roda
+        // onde o template pergunta, e o Twig faz isso uma vez por requisição.
+        //
+        // Não existe notificação dentro da plataforma: `sis_notificacoes` é fila de e-mail, sem
+        // estado de leitura. O número conta manifestação recebida ainda não aberta, que é o que
+        // `man_dt_visualizacao` registra (D72).
+        $twig->addFunction(new TwigFunction('nao_vistas', static function (): int {
+            $id = Sessao::usuarioId();
+
+            return $id === null ? 0 : (new DashboardRepository())->naoVistas($id);
+        }));
 
         self::$twig = $twig;
 

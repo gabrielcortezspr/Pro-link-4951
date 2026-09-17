@@ -4,6 +4,13 @@
 
 {% block titulo %}{{ manifestacao.dem_titulo }} · Pro-Link{% endblock %}
 
+{#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
+{% set shell = 'app' %}
+{% set ativo = 'manifestacoes' %}
+{% set medida = 'registro' %}
+
+{% block titulo_tela %}Interesse{% endblock %}
+
 {#  Um registro com painel de ação ao lado: à esquerda a conversa e o retrato, à direita o que
     identifica esta manifestação. #}
 {% block classe_main %}pl-wrap registro{% endblock %}

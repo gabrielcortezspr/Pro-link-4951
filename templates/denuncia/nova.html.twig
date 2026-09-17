@@ -4,6 +4,13 @@
 
 {% block titulo %}Registrar denúncia · Pro-Link{% endblock %}
 
+{#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
+{% set shell = 'app' %}
+{% set ativo = '' %}
+{% set medida = 'leitura' %}
+
+{% block titulo_tela %}Registrar denúncia{% endblock %}
+
 {% block classe_main %}pl-wrap leitura{% endblock %}
 
 {% block conteudo %}

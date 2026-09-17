@@ -3,6 +3,12 @@
 
 {% block titulo %}Meus interesses · Pro-Link{% endblock %}
 
+{#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
+{% set shell = 'app' %}
+{% set ativo = 'manifestacoes' %}
+
+{% block titulo_tela %}Meus interesses{% endblock %}
+
 {#  Lista de registros comparáveis entre si: a pergunta de quem abre é "o que aconteceu com o que
     eu mandei", e comparar quatro linhas pede colunas alinhadas. #}
 {% block classe_main %}pl-wrap densa{% endblock %}

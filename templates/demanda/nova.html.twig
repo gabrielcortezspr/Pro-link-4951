@@ -4,6 +4,13 @@
 
 {% block titulo %}Nova demanda · Pro-Link{% endblock %}
 
+{#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
+{% set shell = 'app' %}
+{% set ativo = 'demandas' %}
+{% set medida = 'leitura' %}
+
+{% block titulo_tela %}Nova demanda{% endblock %}
+
 {#  Formulário: medida de leitura, não largura de tabela. O card é o objeto da tela, e a moldura
     ao redor dele é intencional, do mesmo jeito que no palco do feed. #}
 {% block classe_main %}pl-wrap leitura{% endblock %}

@@ -3,6 +3,12 @@
 
 {% block titulo %}Minhas demandas · Pro-Link{% endblock %}
 
+{#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
+{% set shell = 'app' %}
+{% set ativo = 'demandas' %}
+
+{% block titulo_tela %}Minhas demandas{% endblock %}
+
 {#  Tabela: o painel do demandante é uma lista de registros comparáveis entre si, e comparar pede
     colunas alinhadas. Densa porque a tabela ganha com a largura. #}
 {% block classe_main %}pl-wrap densa{% endblock %}

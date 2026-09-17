@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 use ProLink\Repository\AuditoriaRepository;
 use ProLink\Repository\CompatibilizacaoRepository;
+use ProLink\Repository\DashboardRepository;
 use ProLink\Repository\DemandaRepository;
 use ProLink\Repository\IndicadorRepository;
 use ProLink\Repository\LixeiraRepository;
@@ -219,6 +220,51 @@ return (static function (): array {
         'titulo'   => 'Demandas abertas',
         'demandas' => (new DemandaRepository())->abertas(),
     ];
+
+    // As duas telas de Início. Sem sessão HTTP o `usuario()` do Twig devolve nulo e o shell de
+    // barra lateral não chega a ser montado: o que esta entrada confere é o corpo da tela, que é
+    // onde mora o dado. A barra em si é conferida no navegador, logado.
+    //
+    // O profissional e o demandante escolhidos são os que têm dado: conta vazia renderiza os
+    // mesmos blocos com zero, e o estado vazio já é exercitado pelas outras telas.
+    $umProfissional = $pdo->query(
+        'SELECT p.prf_usu_id
+           FROM pro_profissionais p
+           JOIN pro_manifestacoes m ON m.man_usu_id = p.prf_usu_id AND m.man_status = \'A\'
+       GROUP BY p.prf_usu_id
+       ORDER BY COUNT(m.man_id) DESC
+          LIMIT 1'
+    )->fetchColumn();
+
+    $umDemandante = $pdo->query(
+        'SELECT dem_usu_id FROM pro_demandas
+          WHERE dem_status = \'A\'
+       GROUP BY dem_usu_id
+       ORDER BY COUNT(dem_id) DESC
+          LIMIT 1'
+    )->fetchColumn();
+
+    $dashboard     = new DashboardRepository();
+    $demandaRepo   = new DemandaRepository();
+    $manifestaRepo = new ManifestacaoRepository();
+
+    if ($umProfissional !== false) {
+        $telas['inicio/profissional.html.twig'] = [
+            'titulo'   => 'Início',
+            'numeros'  => $dashboard->doProfissional((int) $umProfissional),
+            'demandas' => array_slice($demandaRepo->abertas(10), 0, 5),
+            'enviadas' => array_slice($manifestaRepo->doUsuario((int) $umProfissional), 0, 5),
+        ];
+    }
+
+    if ($umDemandante !== false) {
+        $telas['inicio/demandante.html.twig'] = [
+            'titulo'       => 'Início',
+            'numeros'      => $dashboard->daEmpresa((int) $umDemandante),
+            'demandas'     => array_slice($demandaRepo->doUsuario((int) $umDemandante), 0, 5),
+            'tem_registro' => true,
+        ];
+    }
 
     // A busca ativa, do ponto de vista de quem não tem conta: é o alcance mais restrito e o mais
     // exposto, já que esta é a única tela aberta ao perfil Público. Espectador nulo é o anônimo,
