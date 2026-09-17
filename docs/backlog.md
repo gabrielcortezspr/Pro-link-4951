@@ -399,24 +399,16 @@ admin vê a trilha, trata a denúncia e bloqueia.
 > Verificado: `verificar-e2` de 138 para 151 conferências, `verificar-e6` de 19 para 50, 188 testes
 > de unidade, seis cenários verdes no navegador. Carga inicial conferida num MariaDB limpo.
 >
-> **Achado em aberto, com diagnóstico pronto: seis telas rolam na horizontal em 390px.** O Anexo VI
-> cobra uso em dispositivo móvel como item de triagem. O padrão é um só, tabela larga sem
-> contêiner de rolagem própria, e o excesso medido é:
+> **Fechado ainda na mesma sessão: as catorze telas cabem em 390px.** Seis rolavam de lado, as
+> duas de log do painel por quase 800px. A decisão de desenho: tabela de log rola dentro do próprio
+> contêiner em vez de esconder coluna, porque trilha de auditoria é leitura densa, e a affordance
+> de que há mais conteúdo à direita é explícita. No celular a sidebar do painel vira navegação
+> horizontal. O item 10 do Anexo VI saiu de parcial para sim.
 >
-> | Tela | Excesso | Elemento |
-> |---|---|---|
-> | `/admin/sessoes` | 781px | `table.pl-table.pl-log` e `div.pl-topbar-acoes` |
-> | `/admin/auditoria` | 696px | idem |
-> | `/demandas` | 194px | `table.pl-table` |
-> | `/manifestacoes` | 54px | `table.pl-table` |
-> | `/privacidade` | 3px | não isolado |
-> | `/profissionais` | 2px | `article.pl-card` |
->
-> `e2e/specs/responsivo.spec.js` trava isso no pipeline e **falha hoje**, de propósito: verde falso
-> seria pior do que vermelho honesto.
+> **Bateria completa (`scripts/verificar-tudo.sh`): 9 de 9 no verde.**
 
-> **Falta, em ordem de obrigatoriedade:** correção responsiva das seis telas acima; ensaio do
-> roteiro duas vezes; tag, zip e upload antes das 18h de 17/09.
+> **Falta:** decidir o merge de `claude/e7-lacunas` na `main`; ensaiar o roteiro duas vezes; tag,
+> zip e upload antes das 18h de 17/09.
 
 > **Parte do checklist de segurança saiu adiantada em 15/09** (`e0ada5a`, `0c417a6`), por ter
 > aparecido numa revisão de código: CSP conferida por máquina contra o layout (D50), `try_files`

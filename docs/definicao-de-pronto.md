@@ -117,12 +117,16 @@ leitura de código. Conferência de 17/09/2026, madrugada.
 | 7 | Consentimento, correção e controle de visibilidade | **sim** | cenário 5, ponta a ponta: corrige um campo, restringe outro, e o painel de privacidade exporta e revoga |
 | 8 | Trilhas mínimas de auditoria e moderação | **sim** | cenário 6: a denúncia é tratada e a ação do próprio administrador aparece na trilha |
 | 9 | Critérios explicáveis de compatibilização | **sim** | cenário 3 confere a aderência por dimensão na tela e a ausência de qualquer sinal de ranking |
-| 10 | Acessibilidade e uso em dispositivos móveis | **parcial** | `responsivo.spec.js` em 390px: rótulo, hierarquia de título, texto alternativo e teclado passam; **seis telas rolam na horizontal** e estão listadas no `backlog.md` com o elemento culpado |
+| 10 | Acessibilidade e uso em dispositivos móveis | **sim** | `responsivo.spec.js` em 390px, catorze telas nos quatro perfis: nenhuma rola na horizontal, todo campo tem rótulo associado, nenhuma imagem sem texto alternativo, nenhum salto na hierarquia de título, e a entrada é preenchida e submetida só pelo teclado |
 | 11 | Riscos, limitações e uso de inteligência artificial | **sim** | `_arq/arquitetura.md`, seção de declaração; `docs/decisoes.md` com 66 entradas, cada uma com a alternativa recusada |
 | 12 | Código-fonte e documentação no prazo | **pendente** | 17/09 até as 18h |
 
-O item 10 fica **parcial por escolha**: marcar "sim" com seis telas quebrando no celular de quem
-avalia seria a definição de verde falso que este documento existe para impedir.
+O item 10 esteve **parcial** até a madrugada de 17/09, com seis telas rolando de lado, e só virou
+"sim" quando as catorze passaram a caber. O que fica dito, porque é o ponto deste documento: o
+teste que mede isso falhou por horas e não foi silenciado nem marcado como pendente conhecido. A
+correção veio antes da marcação.
+
+O item 12 depende do relógio. Nenhum outro está em aberto.
 
 ### O `.zip`, e por que `git archive`
 
