@@ -490,4 +490,10 @@ o `_arq/` completo, o Docker subindo limpo.
 
 Declarar em `arquitetura.md` como evolução, não esconder: aviso proativo de registro próximo do
 vencimento; preview do pool antes de publicar a demanda; sincronização de status agendada
-(entregue como script executável); chat completo (entregue como mensagens simples).
+(entregue como script executável em 17/09); chat completo (entregue como mensagens simples).
+
+**Certidão de Acervo Técnico (CAT)**, acrescentada em 17/09 (D67). A estrutura está inteira
+(`crea_cats`, `crea_cat_arts`, os dois métodos do cliente da API, e a view `crea_evidencias` já
+lendo as duas tabelas) e **nenhum serviço a alimenta**: as tabelas têm zero linhas. Implementar é
+curto e foi recusado por onde o efeito cai, que é a evidência de cada candidato e o pool de toda
+demanda. O portfólio da entrega é ART e acervo operacional.

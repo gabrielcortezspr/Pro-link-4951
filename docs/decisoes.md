@@ -33,7 +33,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | Front — largura e divulgação progressiva | D53 |
 | E4 — busca ativa e auditoria de sessões | D54, D55, D56 |
 | E5 — manifestação, mensagens e notificações | D57, D58, D59 |
-| E7 — entrega | D60, D61, D62, D63, D64, D65, D66 |
+| E7 — entrega | D60, D61, D62, D63, D64, D65, D66, D67 |
 
 ---
 
@@ -2103,4 +2103,39 @@ sair.
 **Consequência.** O banco acumula registro de verificação a cada execução, e a suíte precisa rodar
 **antes** do recarregamento para a demonstração, nunca depois. Está escrito no `README.md` do
 `e2e/` e no `estado.md`.
+
+---
+
+## D67 · A CAT fica fora do MVP, e a limitação é declarada em vez de silenciada
+
+`17/09/2026` · E7 · `src/Service/CreaApiClient.php`, `_arq/estrutura.sql`
+
+**Contexto.** O projeto se apresenta, no `README.md` e na proposta da fase 1, como compatibilização
+por evidência documental: "ARTs, **CATs** e acervo operacional". A Certidão de Acervo Técnico é o
+documento que o mercado pede em licitação, e a estrutura para ela existe inteira: `crea_cats` e
+`crea_cat_arts` estão em `estrutura.sql` desde a fundação, `CreaApiClient::catsDoProfissional` e
+`::validarCat` estão escritos e testados contra fixture, e a view `crea_evidencias` **já faz
+`JOIN`** com as duas tabelas, expondo `evi_cat_numero` e `evi_cat_dt_validade`.
+
+Falta uma coisa só: nenhum serviço chama aqueles dois métodos. As duas tabelas têm zero linhas, e
+as duas colunas da view são sempre nulas.
+
+**Decisão.** Não implementar na entrega de 17/09, e declarar a ausência em vez de deixar o leitor
+descobrir. O caminho está desenhado e é curto: importar as CATs no mesmo ponto em que as ARTs são
+importadas, e gravar os vínculos que `validarCat` devolve.
+
+**Alternativa recusada.** Implementar hoje, que é tentador justamente por ser curto. Recusada por
+onde o efeito cai: a view `crea_evidencias` é a única coisa que o motor lê, e popular `crea_cats`
+muda **a evidência de cada candidato**, e com ela o pool de toda demanda, na véspera da entrega e
+depois de os seis cenários já estarem verificados de ponta a ponta. Mexer no núcleo do produto
+para ganhar cobertura de um documento que a massa fictícia tem em quantidade mínima é trocar risco
+alto por ganho pequeno.
+
+Também foi recusado esconder a lacuna reescrevendo o `README.md` para não citar CAT. A proposta
+aprovada citou, a estrutura está lá, e a banca compara proposta com entrega: declarar o que ficou
+para depois é mais forte do que fingir que nunca foi prometido.
+
+**Consequência.** O portfólio da entrega é ART e acervo operacional. A CAT aparece no modelo de
+dados e no MER como estrutura pronta e não alimentada, o que é verdade e está escrito. Entra em
+`backlog.md`, junto dos outros itens que a proposta prometeu e o MVP não entrega.
 
