@@ -135,6 +135,12 @@ $router->get('/admin',                AdminController::class, 'index', PERFIL_AD
 $router->get('/admin/denuncias',      AdminController::class, 'denuncias', PERFIL_ADMIN);
 $router->get('/admin/auditoria',      AdminController::class, 'auditoria', PERFIL_ADMIN);
 $router->get('/admin/sessoes',        AdminController::class, 'sessoes', PERFIL_ADMIN);
+// Supervisão humana dos critérios do motor (edital 12.3): quem muda um peso fica na trilha.
+$router->get('/admin/parametros',     AdminController::class, 'parametros', PERFIL_ADMIN);
+$router->post('/admin/parametros',    AdminController::class, 'salvarParametros', PERFIL_ADMIN);
+// Lixeira do item 8.6j: o excluído continua acessível pelo mecanismo administrativo.
+$router->get('/admin/lixeira',        AdminController::class, 'lixeira', PERFIL_ADMIN);
+$router->post('/admin/lixeira',       AdminController::class, 'restaurar', PERFIL_ADMIN);
 // Depois da rota sem parâmetro, pelo mesmo motivo das denúncias: o Router percorre na ordem de
 // registro e {id} casaria 'sessoes' antes.
 $router->get('/admin/sessoes/{id}',   AdminController::class, 'sessao', PERFIL_ADMIN);

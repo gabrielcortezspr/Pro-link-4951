@@ -223,6 +223,246 @@ conferir(
     count($trilha->listar($autorId, 'MODERAR', null, null, 5)) >= 1,
 );
 
+secao('Indicadores da visão geral');
+
+// O painel abria com "Não medido" nos quatro tiles e uma nota dizendo que os indicadores
+// entrariam em 15/09. A conferência aqui não é do número em si, que muda a cada rodada, e sim de
+// que o repositório e o banco contam a mesma coisa: indicador que diverge da tabela é pior do que
+// indicador ausente, porque ninguém desconfia dele.
+$indicadores = (new ProLink\Repository\IndicadorRepository())->resumo();
+
+foreach (['contas', 'demandas', 'manifestacoes', 'denuncias', 'evidencia', 'motor'] as $chave) {
+    conferir("resumo() traz o grupo {$chave}", isset($indicadores[$chave]));
+}
+
+$contasAtivas = (int) $pdo->query(
+    "SELECT COUNT(*) FROM sis_usuarios WHERE usu_status = 'A'"
+)->fetchColumn();
+
+conferir(
+    'contas ativas batem com sis_usuarios',
+    $indicadores['contas']['total'] === $contasAtivas,
+    "indicador {$indicadores['contas']['total']} · tabela {$contasAtivas}",
+);
+
+$denunciasAtivas = (int) $pdo->query(
+    "SELECT COUNT(*) FROM pro_denuncias WHERE den_status = 'A'"
+)->fetchColumn();
+
+conferir(
+    'denúncias batem com pro_denuncias',
+    $indicadores['denuncias']['total'] === $denunciasAtivas,
+    "indicador {$indicadores['denuncias']['total']} · tabela {$denunciasAtivas}",
+);
+
+conferir(
+    'a soma da quebra por perfil é o total de contas',
+    array_sum($indicadores['contas']['por_perfil']) === $indicadores['contas']['total'],
+);
+
+conferir(
+    'a lixeira não entra na contagem de contas ativas',
+    $indicadores['contas']['excluidas'] > 0
+        ? $indicadores['contas']['excluidas'] !== $indicadores['contas']['total']
+        : true,
+);
+
+secao('Parâmetros do motor (edital 12.3, supervisão humana)');
+
+$parametros = new ProLink\Service\ParametroService();
+
+conferir('listar() devolve os parâmetros ativos', count($parametros->listar()) > 0);
+
+conferir(
+    'valor fora da faixa reprova o lote',
+    recusa(fn () => $parametros->salvar($autorId, ['match.limiar' => '1.5'])),
+);
+
+conferir(
+    'chave fora da lista fechada reprova o lote',
+    recusa(fn () => $parametros->salvar($autorId, ['par.inventado' => '1'])),
+);
+
+conferir(
+    'níveis de afinidade decrescentes são recusados',
+    recusa(fn () => $parametros->salvar($autorId, [
+        'match.afinidade.niveis' => '[0.00,0.90,0.40,0.75,1.00]',
+    ])),
+);
+
+conferir(
+    'limiar aceita número inteiro só quando o parâmetro é inteiro',
+    recusa(fn () => $parametros->salvar($autorId, ['match.early_career.min_arts' => '3.5'])),
+);
+
+// Um lote de dois, com um valor inválido no meio: o par com o caso válido é o que prova que a
+// recusa veio da validação e não de tudo estar sendo recusado. Mesma lição da D27 e da D28.
+conferir(
+    'um valor inválido no meio do lote impede a gravação do lote inteiro',
+    recusa(fn () => $parametros->salvar($autorId, [
+        'match.peso.contrato' => '0.20',
+        'match.limiar'        => '-1',
+    ]))
+    && (new ProLink\Repository\ParametroRepository())->numero('match.peso.contrato', -1.0) !== 0.20,
+);
+
+$limiarOriginal = (string) (new ProLink\Repository\ParametroRepository())->numero('match.limiar', 0.35);
+$alteradas      = $parametros->salvar($autorId, ['match.limiar' => '0.42']);
+
+conferir('salvar() devolve a chave alterada', $alteradas === ['match.limiar']);
+
+ProLink\Repository\ParametroRepository::esquecer();
+
+conferir(
+    'o valor novo vale na leitura seguinte',
+    abs((new ProLink\Repository\ParametroRepository())->numero('match.limiar', 0.0) - 0.42) < 0.0001,
+);
+
+$stmt = $pdo->prepare(
+    'SELECT aud_valor_anterior, aud_valor_novo FROM sis_auditoria
+      WHERE aud_entidade = :entidade AND aud_campo = :campo
+      ORDER BY aud_id DESC LIMIT 1'
+);
+$stmt->execute([':entidade' => 'sis_parametros', ':campo' => 'match.limiar']);
+$trilhaParametro = $stmt->fetch();
+
+conferir(
+    'a trilha guarda o valor anterior e o novo',
+    ($trilhaParametro['aud_valor_novo'] ?? null) === '0.42'
+        && ($trilhaParametro['aud_valor_anterior'] ?? null) !== null,
+    'antes: ' . (string) ($trilhaParametro['aud_valor_anterior'] ?? 'nenhum'),
+);
+
+conferir(
+    'gravar o mesmo valor não gera alteração nem linha de trilha',
+    $parametros->salvar($autorId, ['match.limiar' => '0.42']) === [],
+);
+
+// Devolve o limiar ao valor de antes: o script é insumo da próxima rodada e da demonstração.
+$parametros->salvar($autorId, ['match.limiar' => number_format((float) $limiarOriginal, 2, '.', '')]);
+ProLink\Repository\ParametroRepository::esquecer();
+
+secao('Lixeira (edital 8.6j)');
+
+$lixeira = new ProLink\Service\LixeiraService();
+$visao   = $lixeira->visao('sis_usuarios', 1);
+
+conferir('visão da lixeira traz as contagens de todas as entidades', count($visao['contagens']) === 5);
+conferir(
+    'entidade desconhecida cai na primeira, sem estourar',
+    $lixeira->visao('tabela_que_nao_existe', 1)['entidade'] === 'sis_usuarios',
+);
+
+// Uma conta descartável, excluída **pelo próprio titular**, é o caso que a regra de privacidade
+// precisa reconhecer. Criada direto no banco, sem API e sem PrivacidadeService, para não revogar
+// consentimento nem derrubar sessão de conta usada por outras verificações.
+$emailCobaiaLixeira = 'lixeira@verificacao.local';
+$idLixeira          = idPorEmail($pdo, $emailCobaiaLixeira);
+
+if ($idLixeira === null) {
+    $perfilTerceiro = (int) $pdo->query(
+        "SELECT per_id FROM sis_perfis WHERE per_codigo = 'TERCEIRO'"
+    )->fetchColumn();
+
+    $stmt = $pdo->prepare(
+        'INSERT INTO sis_usuarios (usu_per_id, usu_nome, usu_email, usu_senha_hash,
+                                   usu_tipo_pessoa, usu_email_verificado, usu_status)
+         VALUES (:perfil, :nome, :email, :hash, :tipo, 1, :status)'
+    );
+    $stmt->execute([
+        ':perfil' => $perfilTerceiro,
+        ':nome'   => 'Verificação da lixeira',
+        ':email'  => $emailCobaiaLixeira,
+        ':hash'   => password_hash(bin2hex(random_bytes(16)), PASSWORD_ALGO),
+        ':tipo'   => 'F',
+        ':status' => STATUS_ATIVO,
+    ]);
+
+    $idLixeira = (int) $pdo->lastInsertId();
+}
+
+$pdo->prepare('UPDATE sis_usuarios SET usu_status = :x WHERE usu_id = :id')
+    ->execute([':x' => STATUS_EXCLUIDO, ':id' => $idLixeira]);
+
+ProLink\Support\Auditoria::registrar(
+    ProLink\Support\Auditoria::EXCLUIR,
+    'sis_usuarios',
+    $idLixeira,
+    'usu_status',
+    STATUS_ATIVO,
+    STATUS_EXCLUIDO,
+    $idLixeira,
+);
+
+$registro = (new ProLink\Repository\LixeiraRepository())->porId('sis_usuarios', $idLixeira);
+
+conferir('conta excluída aparece na lixeira', $registro !== null);
+conferir(
+    'a lixeira reconhece que quem excluiu foi o próprio titular',
+    ($registro['pelo_titular'] ?? false) === true,
+    'autor da exclusão: ' . (string) ($registro['excluido_por'] ?? 'desconhecido'),
+);
+conferir(
+    'conta excluída pelo titular não é restaurada por ato administrativo',
+    recusa(fn () => $lixeira->restaurar('sis_usuarios', $idLixeira, $autorId, 'Motivo de verificação automática.')),
+);
+conferir(
+    'a conta continua excluída depois da tentativa',
+    $pdo->query("SELECT usu_status FROM sis_usuarios WHERE usu_id = {$idLixeira}")->fetchColumn() === STATUS_EXCLUIDO,
+);
+
+// O mesmo registro, agora excluído pela administração: o caso que **deve** voltar.
+ProLink\Support\Auditoria::registrar(
+    ProLink\Support\Auditoria::EXCLUIR,
+    'sis_usuarios',
+    $idLixeira,
+    'usu_status',
+    STATUS_ATIVO,
+    STATUS_EXCLUIDO,
+    $autorId,
+);
+
+conferir(
+    'restauração sem motivo é recusada',
+    recusa(fn () => $lixeira->restaurar('sis_usuarios', $idLixeira, $autorId, 'curto')),
+);
+
+$restaurado = $lixeira->restaurar(
+    'sis_usuarios',
+    $idLixeira,
+    $autorId,
+    'Restauração de verificação automática do script da E6.',
+);
+
+conferir('restauração devolve o registro', ($restaurado['id'] ?? 0) === $idLixeira);
+conferir(
+    'o registro volta para o status ativo',
+    $pdo->query("SELECT usu_status FROM sis_usuarios WHERE usu_id = {$idLixeira}")->fetchColumn() === STATUS_ATIVO,
+);
+
+$stmt = $pdo->prepare(
+    'SELECT aud_valor_novo FROM sis_auditoria
+      WHERE aud_acao = :acao AND aud_entidade = :entidade AND aud_entidade_id = :id
+      ORDER BY aud_id DESC LIMIT 1'
+);
+$stmt->execute([':acao' => 'RESTAURAR', ':entidade' => 'sis_usuarios', ':id' => $idLixeira]);
+$trilhaRestauro = (string) ($stmt->fetchColumn() ?: '');
+
+conferir(
+    'a trilha de RESTAURAR guarda o motivo escrito pelo administrador',
+    str_contains($trilhaRestauro, 'verificação automática'),
+    $trilhaRestauro,
+);
+
+conferir(
+    'registro inexistente não é restaurado',
+    recusa(fn () => $lixeira->restaurar('sis_usuarios', 999999999, $autorId, 'Motivo suficientemente longo.')),
+);
+
+// Devolve a conta de apoio à lixeira, para a próxima rodada encontrar o mesmo cenário.
+$pdo->prepare('UPDATE sis_usuarios SET usu_status = :x WHERE usu_id = :id')
+    ->execute([':x' => STATUS_EXCLUIDO, ':id' => $idLixeira]);
+
 secao('Render das telas');
 
 // A tela de auditoria subiu em 500 com as 16 verificações anteriores no verde: elas provavam

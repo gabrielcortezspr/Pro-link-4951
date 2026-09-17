@@ -6,8 +6,12 @@ namespace ProLink\Controller;
 
 use ProLink\Repository\AuditoriaRepository;
 use ProLink\Repository\CompatibilizacaoRepository;
+use ProLink\Repository\IndicadorRepository;
+use ProLink\Repository\LixeiraRepository;
 use ProLink\Service\CompatibilizacaoService;
 use ProLink\Service\DenunciaService;
+use ProLink\Service\LixeiraService;
+use ProLink\Service\ParametroService;
 use ProLink\Service\ValidacaoException;
 use ProLink\Support\Auditoria;
 use ProLink\Support\Flash;
@@ -28,6 +32,9 @@ final class AdminController
         private readonly AuditoriaRepository $auditoria = new AuditoriaRepository(),
         private readonly CompatibilizacaoRepository $sessoes = new CompatibilizacaoRepository(),
         private readonly CompatibilizacaoService $motor = new CompatibilizacaoService(),
+        private readonly IndicadorRepository $indicadores = new IndicadorRepository(),
+        private readonly ParametroService $parametros = new ParametroService(),
+        private readonly LixeiraService $lixeira = new LixeiraService(),
     ) {
     }
 
@@ -70,9 +77,18 @@ final class AdminController
         ]);
     }
 
+    /**
+     * Visão geral: os números da operação (RF06; Anexo I, item 3, "emitir relatórios").
+     *
+     * Contagem agregada, nunca lista de pessoas ordenada por nada. O item 10.1 veda ranking de
+     * profissionais, e é num painel de indicadores que ele apareceria disfarçado de métrica.
+     */
     public function index(): string
     {
-        return View::render('admin/index.html.twig', ['ativo' => 'visao']);
+        return View::render('admin/index.html.twig', [
+            'ativo'       => 'visao',
+            'indicadores' => $this->indicadores->resumo(),
+        ]);
     }
 
     public function denuncias(): string
@@ -195,6 +211,103 @@ final class AdminController
             'por_pagina'  => self::AUDITORIA_POR_PAGINA,
             'seguranca'   => $seguranca,
         ]);
+    }
+
+    /**
+     * Os parâmetros do motor, abertos para edição (edital 12.3: supervisão humana).
+     *
+     * A tela mostra o que cada número faz e a faixa que ele aceita, porque parâmetro sem
+     * explicação é campo que ninguém mexe ou que alguém mexe sem saber no quê.
+     */
+    public function parametros(): string
+    {
+        return $this->telaDeParametros();
+    }
+
+    /**
+     * Grava o lote de parâmetros.
+     *
+     * Lote atômico: um valor fora da faixa reprova todos, e a tela volta com o erro por campo.
+     * Meia gravação deixaria o motor num estado que ninguém pediu.
+     */
+    public function salvarParametros(): string
+    {
+        $enviados = is_array($_POST['parametro'] ?? null) ? $_POST['parametro'] : [];
+
+        try {
+            $alteradas = $this->parametros->salvar((int) Sessao::usuarioId(), $enviados);
+        } catch (ValidacaoException $e) {
+            // Volta com o que a pessoa digitou, e não com o que está no banco: o padrão da casa
+            // é re-renderizar o formulário, porque redirecionar perderia a edição inteira por
+            // causa de um campo.
+            return $this->telaDeParametros($e->erros(), $enviados, $e->getMessage());
+        }
+
+        Flash::sucesso($alteradas === []
+            ? 'Nenhum parâmetro mudou: os valores enviados são os que já estavam gravados.'
+            : count($alteradas) . ' parâmetro(s) alterado(s). A mudança vale a partir da próxima sessão do motor.');
+
+        View::redirecionar('/admin/parametros');
+    }
+
+    /**
+     * @param array<string, string> $erros   campo => mensagem
+     * @param array<string, mixed>  $valores o que veio do formulário, para não perder a edição
+     */
+    private function telaDeParametros(array $erros = [], array $valores = [], string $aviso = ''): string
+    {
+        return View::render('admin/parametros.html.twig', [
+            'ativo'      => 'parametros',
+            'parametros' => $this->parametros->listar(),
+            'erros'      => $erros,
+            'valores'    => $valores,
+            'aviso'      => $aviso,
+        ]);
+    }
+
+    /**
+     * A lixeira: o que está em exclusão lógica (edital 8.6j).
+     *
+     * O 8.6j manda o excluído continuar acessível pelo mecanismo administrativo, e é esta tela.
+     * Inclui o que o administrador não pode restaurar: conta que o titular mandou excluir aparece
+     * aqui com a restauração fechada, porque esconder resolveria o risco e quebraria o requisito.
+     */
+    public function lixeira(): string
+    {
+        return View::render('admin/lixeira.html.twig', [
+            'ativo'   => 'lixeira',
+            'lixeira' => $this->lixeira->visao(
+                (string) ($_GET['entidade'] ?? ''),
+                max(1, (int) ($_GET['pagina'] ?? 1)),
+            ),
+            'entidades' => LixeiraRepository::ENTIDADES,
+            'erros'     => [],
+        ]);
+    }
+
+    /**
+     * Devolve um registro à operação, com motivo obrigatório na trilha de auditoria.
+     */
+    public function restaurar(): string
+    {
+        $entidade = (string) ($_POST['entidade'] ?? '');
+        $id       = (int) ($_POST['id'] ?? 0);
+
+        try {
+            $registro = $this->lixeira->restaurar(
+                $entidade,
+                $id,
+                (int) Sessao::usuarioId(),
+                (string) ($_POST['motivo'] ?? ''),
+            );
+        } catch (ValidacaoException $e) {
+            Flash::erro($e->getMessage());
+            View::redirecionar('/admin/lixeira?entidade=' . urlencode($entidade));
+        }
+
+        Flash::sucesso('"' . $registro['titulo'] . '" voltou para a operação. A restauração e o '
+            . 'motivo ficaram na trilha de auditoria.');
+        View::redirecionar('/admin/lixeira?entidade=' . urlencode($entidade));
     }
 
     public function tratar(string $id): string
