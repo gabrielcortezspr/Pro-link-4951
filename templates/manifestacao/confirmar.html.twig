@@ -1,0 +1,214 @@
+{% extends 'layout/base.html.twig' %}
+{% import 'layout/_form.html.twig' as form %}
+{% import 'layout/_ui.html.twig' as ui %}
+
+{% block titulo %}Manifestar interesse · Pro-Link{% endblock %}
+
+{#  Medida de leitura: esta tela é uma decisão, não um registro nem uma lista. O que ela pede é
+    que a pessoa leia o que vai sair do perfil dela antes de apertar o botão. #}
+{% block classe_main %}pl-wrap leitura{% endblock %}
+
+{% block conteudo %}
+{% set p = previa.perfil %}
+{#  Empresa e profissional têm snapshots de forma diferente: a empresa traz quadro técnico e não
+    traz experiência declarada nem modalidade. A forma do próprio snapshot decide o que a tela
+    desenha, em vez de a tela perguntar de novo qual é o perfil de quem está logado. #}
+{% set eh_empresa = p is not null and p.quadro is defined %}
+{% set ident      = p is null ? null : p.identidade %}
+{% set abertos    = p is null ? [] : p.campos|filter(v => v is not null) %}
+{#  "Nada vai junto" é mais do que os três números da prévia: modalidade do registro e quadro
+    técnico também viajam no retrato, e dizer que só o nome sai quando uma delas está aberta
+    seria afirmar na tela algo falso. #}
+{% set nada_vai   = previa.campos == 0 and previa.arts == 0 and previa.experiencias == 0
+                    and (eh_empresa ? p.quadro is empty : p.modalidades is empty) %}
+
+<div class="pl-head">
+    <div class="tit">
+        <h1>Manifestar interesse</h1>
+        <p class="sub">
+            <span>O demandante recebe um retrato do seu perfil, com o que você abriu para ele</span>
+            {{ ui.info('Por que um retrato, e não o perfil',
+                'A plataforma congela no envio o que o demandante podia ver naquele instante, e é esse retrato que ele lê depois. Alterações posteriores no seu perfil não mudam o que ele já recebeu, e manifestar interesse não abre nada que você tinha fechado.') }}
+        </p>
+    </div>
+</div>
+
+<section class="pl-card">
+    <div class="pl-alvo">
+        <p class="rot">Demanda</p>
+        <p class="vl">{{ demanda.dem_titulo }}</p>
+    </div>
+
+    <p class="pl-nota mb-2">
+        {% if demanda.dem_local_municipio %}
+            {{ demanda.dem_local_municipio }}{% if demanda.dem_local_uf %}/{{ demanda.dem_local_uf }}{% endif %}
+            <span class="pl-sep" aria-hidden="true"></span>
+        {% endif %}
+        {#  O gravado é a chave da lista fechada (OBRA_CERTA): o rótulo é obrigação da tela e o
+            valor cru fica no title, como no resto das telas de demanda. #}
+        <span{% if demanda.dem_tipo_contrato %} title="{{ demanda.dem_tipo_contrato }}"{% endif %}>{{ demanda.dem_tipo_contrato|rotulo_contrato ?: 'Contrato a combinar' }}</span>
+        {% if demanda.dem_dt_publicacao %}
+            <span class="pl-sep" aria-hidden="true"></span>
+            Publicada em {{ demanda.dem_dt_publicacao|date('d/m/Y') }}
+        {% endif %}
+    </p>
+
+    <p class="pl-texto">{{ demanda.dem_escopo|slice(0, 320) }}{% if demanda.dem_escopo|length > 320 %}…{% endif %}</p>
+
+    <p class="mt-3 mb-0">
+        <a class="pl-btn sm" href="{{ app_url }}/demandas/{{ demanda.dem_id }}">Ver a demanda inteira</a>
+    </p>
+</section>
+
+<section class="pl-card mt-3">
+    <div class="pl-linha-titulo">
+        <h2 class="pl-secao">O que o demandante vai receber</h2>
+        {{ ui.info('Quem decide o que entra aqui',
+            'Cada campo, cada ART e cada experiência do seu perfil tem o próprio nível de visibilidade, e o padrão de todos é "Só eu". O retrato leva o que estiver aberto para quem publicou a demanda, nada além disso.') }}
+    </div>
+
+    {% if p is null %}
+        {#  Só acontece se o perfil não puder ser montado. O formulário fica fora da tela: enviar
+            daqui devolveria a mesma pessoa para cá com um aviso. #}
+        <p class="pl-nota mb-0">
+            Não foi possível montar seu perfil agora. Abra o seu perfil, confira se o registro no
+            CREA está validado e tente de novo.
+        </p>
+        <p class="mt-3 mb-0"><a class="pl-btn" href="{{ app_url }}/perfil">Abrir meu perfil</a></p>
+    {% else %}
+        <div class="pl-envio{% if nada_vai %} vazio{% endif %}">
+            {#  A identidade nunca é ocultável, e por isso ela aparece aqui como o que de fato vai:
+                nome e registro. No caso em que nada mais está aberto, este quadro É a mensagem. #}
+            <div class="qm">
+                <span class="pl-av sm" aria-hidden="true">{{ ui.iniciais(eh_empresa ? ident.razao_social : ident.nome) }}</span>
+                <span>
+                    <span class="nm">{{ eh_empresa ? ident.razao_social : ident.nome }}</span>
+                    <span class="rg">
+                        {% if eh_empresa %}
+                            <span>Registro no CREA <span class="pl-mono">{{ ident.registro_crea ?: 'Não informado' }}</span></span>
+                        {% else %}
+                            {% if ident.rnp %}
+                                <svg class="pl-mark" role="img" aria-label="Registro validado na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+                                <span>RNP <span class="pl-mono">{{ ident.rnp }}</span></span>
+                                <span class="pl-sep" aria-hidden="true"></span>
+                                <span>Registro no CREA <span class="pl-mono">{{ ident.registro_crea }}</span></span>
+                            {% else %}
+                                <svg class="pl-mark nao" role="img" aria-label="Registro ainda não validado"><use href="#pl-sym-seal-x"/></svg>
+                                <span>Registro no CREA ainda não validado</span>
+                            {% endif %}
+                        {% endif %}
+                    </span>
+                </span>
+            </div>
+
+            <ul class="itens">
+                <li>
+                    <span class="k">Dados do perfil</span>
+                    {% if abertos is empty %}
+                        <span class="v sem">Nenhum aberto para este demandante</span>
+                    {% else %}
+                        {#  Sem denominador: os campos que a visibilidade governa não são os
+                            mesmos que cabem nesta linha (modalidade tem linha própria), e um
+                            "4 de 6" convidaria a uma comparação que não fecha. O que decide é o
+                            que vai, e ele está escrito. #}
+                        <span class="v">{{ abertos|keys|map(c => c|rotulo_campo)|join(', ') }}</span>
+                    {% endif %}
+                </li>
+
+                <li>
+                    <span class="k">Acervo verificado</span>
+                    {% if previa.arts == 0 %}
+                        <span class="v sem">Nenhuma ART aberta para este demandante</span>
+                    {% else %}
+                        <span class="v">
+                            <span class="qt">{{ previa.arts }}</span>
+                            {{ previa.arts == 1 ? 'ART' : 'ARTs' }}:
+                            {% for art in p.arts|slice(0, 4) %}{{ art.numero }}{% if not loop.last %}, {% endif %}{% endfor %}
+                            {%- if previa.arts > 4 %} e mais {{ previa.arts - 4 }}{% endif %}
+                        </span>
+                    {% endif %}
+                </li>
+
+                {% if not eh_empresa and p.modalidades is not empty %}
+                    <li>
+                        <span class="k">Modalidades do registro</span>
+                        <span class="v">{% for modalidade in p.modalidades %}{{ modalidade.mod_nome }}{% if not loop.last %}, {% endif %}{% endfor %}</span>
+                    </li>
+                {% endif %}
+
+                {% if eh_empresa %}
+                    <li>
+                        <span class="k">Quadro técnico</span>
+                        {% if p.quadro is empty %}
+                            <span class="v sem">Nenhum profissional vinculado</span>
+                        {% else %}
+                            <span class="v">
+                                <span class="qt">{{ p.quadro|length }}</span>
+                                {{ p.quadro|length == 1 ? 'profissional registrado no CREA' : 'profissionais registrados no CREA' }}
+                            </span>
+                        {% endif %}
+                    </li>
+                {% else %}
+                    <li>
+                        <span class="k">Experiência declarada</span>
+                        {% if previa.experiencias == 0 %}
+                            <span class="v sem">Nenhuma aberta para este demandante</span>
+                        {% else %}
+                            <span class="v">
+                                <span class="qt">{{ previa.experiencias }}</span>
+                                {{ previa.experiencias == 1 ? 'experiência' : 'experiências' }}:
+                                {% for e in p.experiencias|slice(0, 3) %}{{ e.titulo }}{% if not loop.last %}; {% endif %}{% endfor %}
+                                {%- if previa.experiencias > 3 %} e mais {{ previa.experiencias - 3 }}{% endif %}
+                            </span>
+                        {% endif %}
+                    </li>
+                {% endif %}
+            </ul>
+
+            {#  O caso que esta tela existe para cobrir: o perfil está fechado e o envio leva um
+                nome. Dito sem culpa e sem alarme, porque manter fechado é escolha legítima, e com
+                o caminho para mudar de ideia logo abaixo. #}
+            {% if nada_vai %}
+                <div class="aviso">
+                    <p class="t">Do jeito que está, o demandante vai receber só o seu nome e o seu registro no CREA.</p>
+                    <p class="s">
+                        Nenhum dos seus dados, ARTs ou experiências está aberto para quem publicou
+                        esta demanda, e manifestar interesse não abre nada: o retrato leva apenas o
+                        que já estava visível. Manter fechado continua sendo uma escolha sua. Se
+                        quiser que ele veja o seu acervo, abra o que quiser no seu perfil e volte
+                        para cá.
+                    </p>
+                    <div class="a">
+                        <a class="pl-btn" href="{{ app_url }}/perfil">Escolher o que fica visível</a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/manifestar"
+              class="pl-form-embutido"
+              data-confirmar="Manifestar interesse nesta demanda? O envio não pode ser desfeito e só acontece uma vez por demanda.">
+            {{ form.csrf() }}
+
+            {{ form.area('mensagem', 'Mensagem para o demandante (opcional)', '', null,
+                {rows: 4, maxlength: 1000},
+                'Até 1000 caracteres. Uma ou duas frases sobre por que esta demanda combina com o seu acervo ajudam mais do que um texto longo.') }}
+
+            {#  Consequência de ação irreversível no momento da ação: visível, e não atrás do "i"
+                (D53). A pessoa só decide bem se souber que não há segunda vez. #}
+            <p class="pl-consequencia">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.2v.2"/></svg>
+                <span>
+                    O envio não pode ser desfeito, e é um por demanda. O demandante é avisado por
+                    e-mail e passa a poder responder você aqui dentro.
+                </span>
+            </p>
+
+            <div class="pl-acoes-form">
+                <button type="submit" class="pl-cta">Manifestar interesse</button>
+                <a class="pl-btn ghost" href="{{ app_url }}/demandas/{{ demanda.dem_id }}">Voltar para a demanda</a>
+            </div>
+        </form>
+    {% endif %}
+</section>
+{% endblock %}

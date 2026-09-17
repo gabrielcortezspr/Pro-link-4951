@@ -32,6 +32,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E4 — feed do demandante | D51, D52 |
 | Front — largura e divulgação progressiva | D53 |
 | E4 — busca ativa e auditoria de sessões | D54, D55, D56 |
+| E5 — manifestação, mensagens e notificações | D57, D58, D59 |
 
 ---
 
@@ -1771,3 +1772,107 @@ decisão de interface; reescrever o campo seria adulteração.
 passa a aparecer pela razão social. Na massa do desafio isso nunca acontece, e se a plataforma
 sair do protótipo o certo é preferir a fantasia quando ela não for um fragmento — o que exige uma
 heurística que não vale inventar agora.
+
+---
+
+## D57 · O snapshot congela o que o demandante podia ver, e não o perfil inteiro
+
+`16/09/2026` · E5 · commit `ec83fbe` · `src/Service/ManifestacaoService.php`
+
+**Contexto.** A manifestação grava um retrato do perfil (`man_snapshot`) para que "alterações
+posteriores não afetem o que a empresa já viu", que é diferencial declarado da proposta. Faltava
+decidir o ponto de vista do retrato, e as duas leituras têm apoio no texto: o RF05 diz que a
+empresa "acessa o perfil **completo**", e a mesma linha diz "dados **autorizados** pelo
+profissional".
+
+**Decisão.** O snapshot é montado com o **demandante como espectador**:
+`PerfilService::montar($candidato, $demandante)`. O JSON gravado já passou pela `Visao`, então
+manifestar não abre campo nenhum que o titular tinha fechado. O consentimento de manifestar vale
+para *aquela demanda*, e tratá-lo como autorização genérica sobreporia, sem aviso, a visibilidade
+campo a campo que a D22 estabeleceu.
+
+A decisão tem contrapartida, e ela não podia ficar escondida: quem tem o perfil quase todo fechado
+manifesta e envia pouco. Medido na base — um candidato envia 0 campos, 0 ARTs e 0 experiências, só
+nome e registro. Por isso `previa()` existe e a tela de confirmação mostra o envio real antes de
+enviar, com o caminho para abrir mais. **A tela é parte da decisão, não um adorno dela.**
+
+**Alternativa recusada.** Abrir o perfil inteiro para aquele demandante, ao pé da letra do "perfil
+completo". Recusada porque faria o ato de manifestar operar como revogação silenciosa das escolhas
+de visibilidade: a pessoa clicaria em "tenho interesse" e publicaria, para aquele destinatário,
+campos que havia fechado deliberadamente. Se a plataforma quiser oferecer isso um dia, o desenho
+honesto é visibilidade por destinatário, com caixas na própria tela de manifestação — o que o
+modelo de dados hoje não tem.
+
+**Consequência.** Perfil discreto manifesta e mostra pouco, e isso é o sistema funcionando. A tela
+diz isso antes, não depois. E a leitura do snapshot reconfere o hash: retrato que não bate com o
+próprio `man_snapshot_hash` é alteração no banco, e nesse caso a tela mostra alarme em vez do
+conteúdo.
+
+---
+
+## D58 · A fila de e-mail dispara depois da resposta, não por cron
+
+`16/09/2026` · E5 · commit `26aad26` · `public/index.php`, `scripts/despachar-fila.php`
+
+**Contexto.** `NotificacaoService::despachar()` existia desde a E1 e **nada o chamava**. Setenta e
+sete notificações estavam paradas, 65 de cadastro e 12 de recuperação de senha, algumas havia uma
+semana. O e-mail só saía quando alguém rodava um script à mão, o que não é sistema de notificação,
+é lembrete.
+
+**Decisão.** Um `register_shutdown_function` no front controller despacha um lote pequeno depois de
+`fastcgi_finish_request()`.
+
+O lugar não é estético. O front controller sai por `exit` em seis caminhos — 404, 401, 403, CSRF
+inválido e todo `View::redirecionar()`, que é `never`. Código no fim do arquivo não roda em nenhum
+deles, e a manifestação, que redireciona logo depois de gravar, é justamente o caso que mais
+precisa do e-mail sair. O shutdown dispara em todos.
+
+Rodar **depois** de `fastcgi_finish_request()` tira o SMTP do tempo de resposta: medido, uma
+requisição que despachou cinco e-mails respondeu em 7,6 ms.
+
+**Alternativa recusada.** Cron dentro do contêiner, que é o que produção faria e não acopla e-mail
+a requisição. Recusada por causa de quem vai avaliar: o edital exige ambiente que suba de forma
+padronizada e reproduzível, e um processo agendado é uma peça móvel a mais que pode silenciosamente
+não rodar na máquina da banca. O cenário 4 ao vivo precisa que o e-mail apareça no Mailpit em
+segundos, sem ninguém rodar comando. `scripts/despachar-fila.php` continua existindo para drenar
+fila represada e para servir de alvo a quem preferir agendar.
+
+**Consequência.** O despacho ocupa o processo do php-fpm depois de a resposta ter ido, então o lote
+é pequeno e fila represada drena em várias requisições. Falha de envio nunca chega ao usuário: a
+resposta já saiu, e o que resta é registro. `pendentes()` ganhou teto de tentativas junto — sem
+ele, a mensagem que falha para sempre consome o lote inteiro reencenando a mesma falha e empurra
+para o fim o que sairia.
+
+---
+
+## D59 · Mensagem não dispara e-mail, e o administrador não lê a conversa
+
+`16/09/2026` · E5 · commit `1d5a3f4` · `src/Service/InteressadoService.php`,
+`src/Repository/MensagemRepository.php`
+
+**Contexto.** A manifestação abre um canal entre duas partes. Duas perguntas apareceram juntas:
+cada mensagem gera e-mail, e quem mais pode ler.
+
+**Decisão.** Mensagem **não** gera e-mail. O RF07 lista os eventos que notificam — cadastro,
+recuperação de senha, nova manifestação, atualização de demanda, nova denúncia — e mensagem não
+está entre eles. Quem avisa é a interface, com contagem de não lidas em lote.
+
+O administrador **não** entra na conversa. A D06 recusou superusuário implícito e a D22 recusou
+passe livre de administrador sobre perfil fechado; conversa entre duas partes não é conteúdo
+publicado, e moderá-la por iniciativa própria seria vigilância, não moderação. O caminho para
+conteúdo abusivo é a denúncia, que é a E6 e já existe.
+
+**Alternativa recusada.** Notificar cada mensagem, sob o argumento de que canal que ninguém checa
+é canal morto. Recusada porque acrescentaria um evento que a proposta aprovada não lista — e
+"aderência ao desafio e à proposta" vale 15 pontos —, além de transformar uma conversa de cinco
+trocas em cinco e-mails. Se a ausência de aviso se mostrar um problema real de uso, o desenho certo
+é digest, não mensagem a mensagem.
+
+**Consequência.** Quem não voltar à plataforma não sabe que recebeu resposta. É limitação
+consciente e vale declarar no item 12.3. Um detalhe que a implementação obrigou a acertar:
+`marcarLidas()` filtra por remetente — sem isso, abrir a própria conversa carimbaria como lida a
+mensagem que a pessoa acabou de enviar, e o "não lida" do outro lado sumiria sem ninguém ter lido
+nada.
+
+O corpo da mensagem não entra em `sis_auditoria`: a trilha precisa saber que houve mensagem, não o
+que foi dito.

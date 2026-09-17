@@ -1,0 +1,104 @@
+{% extends 'layout/base.html.twig' %}
+{% import 'layout/_ui.html.twig' as ui %}
+
+{% block titulo %}Meus interesses · Pro-Link{% endblock %}
+
+{#  Lista de registros comparáveis entre si: a pergunta de quem abre é "o que aconteceu com o que
+    eu mandei", e comparar quatro linhas pede colunas alinhadas. #}
+{% block classe_main %}pl-wrap densa{% endblock %}
+
+{% block conteudo %}
+{% set nao_lidas = manifestacoes|reduce((soma, m) => soma + m.nao_lidas, 0) %}
+
+<div class="pl-head">
+    <div class="tit">
+        <h1>Meus interesses</h1>
+        {% if manifestacoes is not empty %}
+            <p class="sub">
+                <span><span class="n">{{ manifestacoes|length }}</span>
+                    {{ manifestacoes|length == 1 ? 'manifestação enviada' : 'manifestações enviadas' }}</span>
+                {% if nao_lidas > 0 %}
+                    <span class="pl-sep" aria-hidden="true"></span>
+                    <span><span class="n">{{ nao_lidas }}</span>
+                        {{ nao_lidas == 1 ? 'mensagem não lida' : 'mensagens não lidas' }}</span>
+                {% endif %}
+            </p>
+        {% endif %}
+    </div>
+    <div class="pl-head-acoes">
+        <a class="pl-btn" href="{{ app_url }}/demandas/abertas">Ver demandas abertas</a>
+    </div>
+</div>
+
+{% if manifestacoes is empty %}
+    <div class="pl-card pl-vazio">
+        <p class="t">Você ainda não manifestou interesse em nenhuma demanda</p>
+        <p class="s">
+            Ao manifestar, a plataforma envia ao demandante um retrato do seu perfil com o que
+            estiver aberto para ele, e abre aqui um canal para os dois conversarem.
+        </p>
+        <div class="a">
+            <a class="pl-cta" href="{{ app_url }}/demandas/abertas">Ver demandas abertas</a>
+        </div>
+    </div>
+{% else %}
+    <div class="pl-card">
+        <div class="table-responsive">
+            <table class="pl-table">
+                <caption class="visually-hidden">
+                    Demandas em que você manifestou interesse, com a situação de cada envio e o retorno do demandante
+                </caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Demanda</th>
+                        <th scope="col">Situação</th>
+                        <th scope="col">Retorno do demandante</th>
+                        <th scope="col">Enviada</th>
+                        <th scope="col"><span class="visually-hidden">Ação</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in manifestacoes %}
+                        <tr>
+                            <td>
+                                <a class="lin-tt" href="{{ app_url }}/manifestacoes/{{ m.man_id }}">{{ m.dem_titulo }}</a>
+                                {#  A demanda encerrada muda o que a pessoa pode esperar daqui, e é
+                                    a única situação da demanda que vale ocupar espaço na linha. #}
+                                {% if m.dem_situacao == 'ENCERRADA' %}
+                                    <span class="lin-sub">Demanda encerrada pelo demandante</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ ui.situacao_manifestacao(m.man_situacao) }}</td>
+                            <td>
+                                {#  Mensagem não lida é o que pede ação de quem lê esta lista, e por
+                                    isso vem antes da data; a data de visualização fica de apoio,
+                                    embaixo, em vez de disputar a mesma linha. #}
+                                {% if m.nao_lidas > 0 %}
+                                    <span class="pl-novas">
+                                        <span class="pd" aria-hidden="true"></span>
+                                        {{ m.nao_lidas }} {{ m.nao_lidas == 1 ? 'mensagem nova' : 'mensagens novas' }}
+                                    </span>
+                                {% endif %}
+                                {% if m.man_dt_visualizacao %}
+                                    <span class="lin-sub">Vista em {{ m.man_dt_visualizacao|date('d/m/Y') }}</span>
+                                {% elseif m.nao_lidas == 0 %}
+                                    <span class="lin-sub">Ainda não aberta</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="pl-mono">{{ m.man_dt_registro|date('d/m/Y') }}</span></td>
+                            <td class="text-end">
+                                <a class="pl-btn sm" href="{{ app_url }}/manifestacoes/{{ m.man_id }}">Abrir</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <p class="pl-nota mt-3 mb-0">
+        O retrato enviado em cada manifestação continua como estava no dia do envio. Mudar o seu
+        perfil hoje não muda o que já foi entregue.
+    </p>
+{% endif %}
+{% endblock %}

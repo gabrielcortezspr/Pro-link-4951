@@ -9,6 +9,14 @@
 {% block classe_main %}pl-wrap densa{% endblock %}
 
 {% block conteudo %}
+{#  Quem pode manifestar interesse: conta com registro no CREA (D51), que não seja a dona da
+    demanda e que caiba no alvo escolhido por ela. O mesmo vocabulário de `dem_alvo`: 'A' para
+    todos, 'E' para empresa, 'P' para profissional. Sem esta conferência, a vitrine ofereceria um
+    botão que o serviço recusaria no fim, que é a pior versão de uma ação. #}
+{% set u = usuario() %}
+{% set meu_tipo = u and u.perfil == 'EMPRESA' ? 'E' : 'P' %}
+{% set com_registro = u and u.perfil in ['PROFISSIONAL', 'EMPRESA'] %}
+
 <div class="pl-head">
     <div class="tit">
         <h1>Demandas abertas</h1>
@@ -56,7 +64,16 @@
 
                     <div class="pe">
                         <span class="meta">Publicada em {{ d.dem_dt_publicacao|date('d/m/Y') }}</span>
-                        <a class="pl-btn sm" href="{{ app_url }}/demandas/{{ d.dem_id }}">Ver demanda</a>
+                        <div class="acoes">
+                            <a class="pl-btn sm" href="{{ app_url }}/demandas/{{ d.dem_id }}">Ver demanda</a>
+                            {#  Manifestar é de quem tem registro no CREA e não é o dono (D51). A
+                                ação preenchida fica no detalhe, depois do escopo lido: a vitrine é
+                                triagem, e vinte botões laranja numa grade não seriam a única ação
+                                que compromete (D34). #}
+                            {% if com_registro and d.dem_usu_id != u.id and d.dem_alvo in ['A', meu_tipo] %}
+                                <a class="pl-btn sm" href="{{ app_url }}/demandas/{{ d.dem_id }}/manifestar">Manifestar interesse</a>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </article>

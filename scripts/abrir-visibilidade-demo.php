@@ -137,8 +137,18 @@ foreach ($candidatos as $candidato) {
           WHERE p.prf_usu_id = ' . $usuarioId . ' ORDER BY a.art_id'
     )->fetchAll(PDO::FETCH_COLUMN));
 
+    // Experiência tem alvo próprio de visibilidade, e esquecê-la deixava o bloco autodeclarado
+    // invisível em toda a plataforma: o perfil mostrava o acervo verificado e nada do que a
+    // pessoa relatou, que é metade do que a proposta promete distinguir.
+    $experiencias = array_map('intval', $pdo->query(
+        'SELECT e.exp_id FROM pro_experiencias e
+           JOIN pro_profissionais p ON p.prf_id = e.exp_prf_id
+          WHERE p.prf_usu_id = ' . $usuarioId . ' AND e.exp_status = "A" ORDER BY e.exp_id'
+    )->fetchAll(PDO::FETCH_COLUMN));
+
     $camposAbertos = fatia(array_keys($campos), $postura['campos']);
     $artsAbertas   = fatia($arts, $postura['arts']);
+    $expAbertas    = fatia($experiencias, $postura['arts']);
 
     $mudou = 0;
 
@@ -154,18 +164,26 @@ foreach ($candidatos as $candidato) {
                 $usuarioId, Visibilidade::ART, $artId, null, $postura['nivel'],
             ) ? 1 : 0;
         }
+
+        foreach ($expAbertas as $expId) {
+            $mudou += $visibilidade->definir(
+                $usuarioId, Visibilidade::EXPERIENCIA, $expId, null, $postura['nivel'],
+            ) ? 1 : 0;
+        }
     }
 
     $mudancas += $mudou;
 
     printf(
-        "  \e[2m%-10s\e[0m %-28s %d/%d campo(s) · %d/%d ART(s)%s\n",
+        "  \e[2m%-10s\e[0m %-28s %d/%d campo(s) · %d/%d ART(s) · %d/%d exp.%s\n",
         $postura['nome'],
         mb_substr((string) $candidato['usu_nome'], 0, 28),
         count($camposAbertos),
         count($campos),
         count($artsAbertas),
         count($arts),
+        count($expAbertas),
+        count($experiencias),
         $simular ? '' : sprintf('  (%d gravada(s))', $mudou),
     );
 }

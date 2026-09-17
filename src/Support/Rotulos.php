@@ -85,12 +85,23 @@ final class Rotulos
      * (ACEITE_TERMOS, CONSULTA_API…), não o nome de uma coluna, porque é ela que muda de
      * concedida para revogada. Uso correto, e as quatro entram aqui porque o fallback por
      * convenção devolveria "Consulta api", perdendo acento e sigla.
+     *
+     * Os seis campos de `Visibilidade::CAMPOS_DO_PERFIL` entram pelo mesmo motivo: eles ocupam
+     * `aud_campo` quando alguém muda a visibilidade, e a tela de confirmação da manifestação
+     * precisa dizer quais deles vão junto no snapshot. O fallback devolveria "Email" e "Tipo
+     * contrato", que é identificador com outra roupa.
      */
     private const CAMPOS = [
         'ACEITE_TERMOS'     => 'Aceite dos termos',
         'CONSULTA_API'      => 'Consulta à API do CREA',
         'EXIBICAO_PERFIL'   => 'Exibição do perfil',
         'NOTIFICACOES'      => 'Notificações',
+        'EMAIL'             => 'E-mail',
+        'TELEFONE'          => 'Telefone',
+        'RESUMO'            => 'Resumo profissional',
+        'MODALIDADES'       => 'Modalidades',
+        'TIPO_CONTRATO'     => 'Regime de contratação',
+        'DISPONIBILIDADE'   => 'Onde aceita trabalhar',
         'usu_status'        => 'Situação da conta',
         'usu_senha_hash'    => 'Senha',
         'usu_per_id'        => 'Perfil de acesso',

@@ -130,3 +130,32 @@
         {% endif %}
     </article>
 {% endmacro %}
+
+{#
+  Situação de uma manifestação de interesse. Vocabulário e cor fixos por estado, num lugar só: as
+  três telas de manifestação mostram a mesma coluna, e o valor gravado (`ENVIADA`, `VISUALIZADA`)
+  é constante de sistema, que não chega à tela por regra.
+
+  Só "Respondida" é verde: é o único estado em que houve retorno de verdade. Vista e enviada são
+  passos do caminho, não desfecho, e pintá-los de verde diria ao candidato que algo aconteceu
+  quando nada aconteceu ainda.
+#}
+{% macro situacao_manifestacao(situacao) %}
+    {%- if situacao == 'RESPONDIDA' -%}
+        <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Respondida</span>
+    {%- elseif situacao == 'VISUALIZADA' -%}
+        <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Vista</span>
+    {%- elseif situacao == 'ARQUIVADA' -%}
+        <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Arquivada</span>
+    {%- else -%}
+        <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Enviada</span>
+    {%- endif -%}
+{% endmacro %}
+
+{#
+  Tipo de candidato ('P' ou 'E'), como está em `man_candidato_tipo` e em `dem_alvo`. Uma letra é
+  identificador; quem lê a lista de interessados precisa da palavra.
+#}
+{% macro tipo_candidato(tipo) %}
+    {{- tipo == 'E' ? 'Empresa' : 'Profissional' -}}
+{% endmacro %}

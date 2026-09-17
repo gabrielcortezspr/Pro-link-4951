@@ -1,0 +1,28 @@
+<p>Olá.</p>
+
+<p>
+    Alguém manifestou interesse na sua demanda <strong>{{ demanda }}</strong>.
+</p>
+
+{% if tem_mensagem %}
+    <p>
+        A pessoa escreveu uma mensagem junto. Ela está na plataforma, com o perfil dela como
+        estava no momento do envio.
+    </p>
+{% else %}
+    <p>
+        O perfil de quem manifestou fica guardado como estava no momento do envio: alterações
+        posteriores não mudam o que você viu.
+    </p>
+{% endif %}
+
+<p>
+    <a href="{{ url }}">Ver os interessados</a>
+</p>
+
+<hr>
+<p style="font-size: 12px; color: #666">
+    Pro-Link · Desafio CREA Pro-Link · II CENATEC 2026 · Equipe 49/51.<br>
+    Plataforma de demonstração com dados fictícios fornecidos pela organização do desafio.
+    Mensagem automática, não responda.
+</p>

@@ -285,6 +285,23 @@ card abre e mostra ART, código e CAT. Mesma semente, mesma ordem.
 
 ## E5 — Manifestação, mensagens e notificações (14/09)
 
+> **Concluída em 16/09**, de `26aad26` a `ce6a535`, cinco commits. O cenário 4 roda pelo navegador:
+> o profissional manifesta, o e-mail chega no Mailpit e as duas partes conversam. Decisões D57 a
+> D59.
+>
+> O gatilho da fila, herdado da E1, foi o primeiro passo e não o último: `despachar()` existia e
+> nada o chamava, com 77 notificações paradas. Mora em `register_shutdown_function` porque o front
+> controller sai por `exit` em seis caminhos, e roda depois de `fastcgi_finish_request()` para o
+> SMTP não entrar no tempo de resposta.
+>
+> Três furos apareceram com a tela na frente, e os três eram do mesmo tipo — a regra existia e
+> estava certa no serviço, e a interface não a conhecia: `dem_alvo` podia ser contornado pela
+> vitrine, quem já tinha manifestado via o botão de manifestar, e o dono da própria demanda abria
+> a tela de confirmação.
+>
+> **Falta só `ARQUIVADA`**: existe no vocabulário de `man_situacao`, não tem rota nem significado
+> definido para quem manifestou. Botão sem destino é pior que ausência.
+
 **Cobre:** RF05, RF07; proposta cenário 04, diferencial "snapshot". **Destrava o cenário 4.**
 
 - `Service/ManifestacaoService::manifestar(demanda, usuario)` — **operação atômica 3**: grava

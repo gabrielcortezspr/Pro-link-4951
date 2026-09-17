@@ -1,0 +1,390 @@
+{% extends 'layout/base.html.twig' %}
+{% import 'layout/_form.html.twig' as form %}
+{% import 'layout/_ui.html.twig' as ui %}
+
+{% block titulo %}{{ manifestacao.dem_titulo }} · Pro-Link{% endblock %}
+
+{#  Um registro com painel de ação ao lado: à esquerda a conversa e o retrato, à direita o que
+    identifica esta manifestação. #}
+{% block classe_main %}pl-wrap registro{% endblock %}
+
+{% block conteudo %}
+{% set m = manifestacao %}
+{% set p = perfil %}
+{% set eh_empresa = p is not null and p.quadro is defined %}
+{#  De quem é cada mensagem sem depender da sessão no template: quem manifestou é `man_usu_id` e
+    quem publicou a demanda é `dem_usu_id`, e quem abre a tela é sempre um dos dois. #}
+{% set eu_id = eh_demandante ? m.dem_usu_id : m.man_usu_id %}
+{% set resumo = p is null ? null : p.campos.RESUMO|default(null) %}
+{#  Um nome só para a mesma pessoa na tela inteira. O nome da conta e o nome que veio da API do
+    CREA podem divergir (a conta se chama de um jeito, o registro de outro), e o retrato é a fonte
+    mais próxima do documento. Quando o retrato não confere, sobra o nome da conta: usar um
+    conteúdo que já se sabe alterado para nomear alguém seria pior do que o nome desajeitado. #}
+{% set nome_candidato = (integro and p is not null)
+    ? (eh_empresa ? p.identidade.razao_social : p.identidade.nome)
+    : m.usu_nome %}
+
+<div class="pl-head">
+    <div class="tit">
+        <p class="mb-2">
+            <a class="pl-link-voltar" href="{{ eh_demandante ? app_url ~ '/demandas/' ~ m.man_dem_id ~ '/interessados' : app_url ~ '/manifestacoes' }}">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H6"/><path d="M11 6l-6 6 6 6"/></svg>
+                {{ eh_demandante ? 'Voltar para os interessados' : 'Voltar para meus interesses' }}
+            </a>
+        </p>
+
+        {#  A mesma tela serve às duas partes, e o assunto de cada uma é diferente: quem publicou
+            veio ver uma pessoa, quem manifestou veio ver uma demanda. O título diz isso, e o
+            outro lado do par fica logo abaixo. #}
+        <h1>{{ eh_demandante ? nome_candidato : m.dem_titulo }}</h1>
+        <p class="sub">
+            {{ ui.situacao_manifestacao(m.man_situacao) }}
+            <span class="pl-sep" aria-hidden="true"></span>
+            {% if eh_demandante %}
+                <span>{{ ui.tipo_candidato(m.man_candidato_tipo) }} interessado em
+                    <a href="{{ app_url }}/demandas/{{ m.man_dem_id }}">{{ m.dem_titulo }}</a></span>
+            {% else %}
+                {#  Sem repetir o título da demanda, que já é o <h1> logo acima: o que falta dizer
+                    aqui é de quem é a manifestação, não qual é a demanda. #}
+                <span>Manifestação enviada por você</span>
+            {% endif %}
+            <span class="pl-sep" aria-hidden="true"></span>
+            <span>Enviada em {{ m.man_dt_registro|date('d/m/Y') }} às {{ m.man_dt_registro|date('H\\hi') }}</span>
+        </p>
+    </div>
+
+    {#  Quadro vazio não entra na marcação: o único caso sem ação no cabeçalho é o do demandante
+        diante de um retrato que não confere, e ali a saída mora dentro do próprio alarme. #}
+    {% if integro or not eh_demandante %}
+    <div class="pl-head-acoes">
+        {% if eh_demandante %}
+            {#  Quando o retrato não confere, o caminho para o perfil vivo sai daqui e passa a ser
+                a única saída do próprio quadro de alarme, para não haver dois botões iguais
+                dizendo a mesma coisa em dois pesos diferentes. #}
+            <a class="pl-btn" href="{{ app_url }}/perfil/{{ m.man_usu_id }}">Ver o perfil de hoje</a>
+        {% else %}
+            <a class="pl-btn" href="{{ app_url }}/demandas/{{ m.man_dem_id }}">Ver a demanda</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<div class="pl-cols">
+    <div class="pl-stack">
+
+        {#  A conversa vem primeiro para os dois lados: para quem manifestou é o retorno que ele
+            veio buscar, e para quem publicou é a única coisa da tela que pede ação. #}
+        <section class="pl-card">
+            <div class="pl-linha-titulo">
+                <h2 class="pl-secao">Conversa</h2>
+                {{ ui.info('Onde esta conversa vive',
+                    'O canal é desta manifestação, e não uma caixa de entrada entre duas pessoas: ele existe enquanto o assunto existir. Nem e-mail nem telefone são entregues pela plataforma. Se as duas partes quiserem trocar contato, escrevem aqui.') }}
+            </div>
+
+            {% if m.man_mensagem is null and mensagens is empty %}
+                <p class="pl-nota mb-0">
+                    {% if eh_demandante %}
+                        Nenhuma mensagem ainda. Responder aqui avisa quem manifestou que você leu o
+                        perfil, sem expor o seu contato.
+                    {% else %}
+                        Você não escreveu nada no envio, e o demandante ainda não respondeu.
+                    {% endif %}
+                </p>
+            {% else %}
+                <ul class="pl-conversa">
+                    {#  A mensagem escrita no envio é a primeira da conversa, e não um campo solto
+                        do registro: ela foi escrita pela mesma pessoa, sobre o mesmo assunto, e
+                        lida como cabeçalho ficaria fora da ordem cronológica. #}
+                    {% if m.man_mensagem %}
+                        <li class="{{ eh_demandante ? 'deles' : '' }}">
+                            <p class="qm">
+                                <span class="nm">{{ eh_demandante ? nome_candidato : 'Você' }}</span>
+                                <span class="papel">Enviada com a manifestação</span>
+                                <span class="qd">{{ m.man_dt_registro|date('d/m/Y') }} às {{ m.man_dt_registro|date('H\\hi') }}</span>
+                            </p>
+                            <p class="tx">{{ m.man_mensagem }}</p>
+                        </li>
+                    {% endif %}
+
+                    {% for msg in mensagens %}
+                        {% set minha = msg.msg_usu_id == eu_id %}
+                        <li class="{{ minha ? '' : 'deles' }}">
+                            <p class="qm">
+                                <span class="nm">{{ minha ? 'Você' : (msg.msg_usu_id == m.man_usu_id ? nome_candidato : msg.usu_nome) }}</span>
+                                <span class="papel">
+                                    {{- msg.msg_usu_id == m.man_usu_id ? 'Quem manifestou' : 'Quem publicou a demanda' -}}
+                                </span>
+                                <span class="qd">{{ msg.msg_dt_registro|date('d/m/Y') }} às {{ msg.msg_dt_registro|date('H\\hi') }}</span>
+                            </p>
+                            <p class="tx">{{ msg.msg_corpo }}</p>
+                            {#  Confirmação de leitura só nas minhas: nas do outro ela seria a
+                                informação de que eu mesmo acabei de abrir a tela. #}
+                            {% if minha %}
+                                <p class="rec">
+                                    {{ msg.msg_dt_leitura ? 'Lida em ' ~ msg.msg_dt_leitura|date('d/m/Y') : 'Ainda não lida' }}
+                                </p>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            {#  POST com redirecionamento, sem JavaScript nenhum: a CSP recusa script embutido, e
+                um canal que só funciona com script não é canal. #}
+            <form method="post" action="{{ app_url }}/manifestacoes/{{ m.man_id }}/mensagens"
+                  class="pl-form-embutido">
+                {{ form.csrf() }}
+                {{ form.area('corpo', 'Responder', '', null, {rows: 3, maxlength: 2000, required: true},
+                    'Até 2000 caracteres. A mensagem fica dentro da plataforma e vale para esta demanda.') }}
+                <div class="pl-acoes-form">
+                    <button type="submit" class="pl-btn">Enviar mensagem</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="pl-card pl-snap">
+            <div class="pl-linha-titulo">
+                <h2 class="pl-secao">{{ eh_demandante ? 'Perfil no momento do envio' : 'O que você enviou' }}</h2>
+                {{ ui.info('Por que um retrato, e não o perfil de hoje',
+                    'A plataforma congela no envio o que o candidato tinha aberto para o demandante, e guarda o sha256 desse conteúdo junto. É isso que sustenta a promessa de que alteração posterior no perfil não muda o que a outra parte já recebeu, nos dois sentidos.') }}
+            </div>
+
+            {% if not integro %}
+                {#  O conteúdo gravado não corresponde ao hash registrado no envio. Não acontece em
+                    operação normal, e é justamente por isso que precisa estar desenhado: exibir o
+                    retrato aqui seria apresentar como original um conteúdo que já se sabe alterado. #}
+                <div class="pl-alarme" role="alert">
+                    <p class="t">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.6L2.6 20h18.8z"/><path d="M12 10v4M12 17.2v.2"/></svg>
+                        Este retrato não confere com o registro do envio
+                    </p>
+                    <p class="s">
+                        O conteúdo guardado não corresponde ao código de verificação gravado no
+                        momento em que a manifestação foi enviada, o que indica alteração depois do
+                        envio. Por isso ele não é exibido aqui: apresentá-lo seria dar como original
+                        um conteúdo que já se sabe diferente do que foi enviado.
+                    </p>
+                    <p class="s">
+                        A conversa acima não depende do retrato e continua valendo. O caminho
+                        confiável para saber o que a pessoa mostra hoje é o perfil dela, com a
+                        visibilidade que ela mantém agora.
+                    </p>
+                    <p class="hs">Código gravado no envio: {{ m.man_snapshot_hash }}</p>
+                    <div class="a">
+                        {% if eh_demandante %}
+                            <a class="pl-btn" href="{{ app_url }}/perfil/{{ m.man_usu_id }}">Ver o perfil de hoje</a>
+                        {% else %}
+                            <a class="pl-btn" href="{{ app_url }}/perfil">Abrir meu perfil</a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% elseif p is null %}
+                <p class="pl-nota mb-0">
+                    O retrato deste envio não pôde ser lido. A conversa acima continua valendo, e o
+                    perfil de hoje está no cadastro da pessoa.
+                </p>
+            {% else %}
+                <p class="pl-retrato">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></svg>
+                    <span>
+                        Retrato de <b>{{ m.man_dt_registro|date('d/m/Y') }} às {{ m.man_dt_registro|date('H\\hi') }}</b>,
+                        com o que
+                        {{ eh_demandante ? 'esta pessoa tinha aberto para você' : 'você tinha aberto para este demandante' }}
+                        naquele instante. O perfil de hoje pode estar diferente, e isto aqui não muda
+                        com ele.
+                        {% if eh_demandante %}
+                            <a href="{{ app_url }}/perfil/{{ m.man_usu_id }}">Ver o perfil de hoje</a>
+                        {% endif %}
+                    </span>
+                </p>
+
+                <div class="pl-snap-topo">
+                    <span class="pl-av sm" aria-hidden="true">{{ ui.iniciais(eh_empresa ? p.identidade.razao_social : p.identidade.nome) }}</span>
+                    <div class="id">
+                        <h3 class="nm">{{ eh_empresa ? p.identidade.razao_social : p.identidade.nome }}</h3>
+                        <p class="rg">
+                            {% if eh_empresa %}
+                                <span>Registro no CREA <span class="pl-mono">{{ p.identidade.registro_crea ?: 'Não informado' }}</span></span>
+                                {% if p.identidade.nome_fantasia %}
+                                    <span class="pl-sep" aria-hidden="true"></span>
+                                    <span>{{ p.identidade.nome_fantasia }}</span>
+                                {% endif %}
+                            {% elseif p.identidade.rnp %}
+                                <svg class="pl-mark" role="img" aria-label="Registro validado na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+                                <span>RNP <span class="pl-mono">{{ p.identidade.rnp }}</span></span>
+                                <span class="pl-sep" aria-hidden="true"></span>
+                                <span>Registro no CREA <span class="pl-mono">{{ p.identidade.registro_crea }}</span></span>
+                            {% else %}
+                                <svg class="pl-mark nao" role="img" aria-label="Registro não validado no envio"><use href="#pl-sym-seal-x"/></svg>
+                                <span>Registro no CREA não validado no envio</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <p class="pl-grp">Acervo verificado na API do CREA</p>
+                {% if p.arts is empty %}
+                    <p class="vazio">
+                        Nenhuma ART foi aberta neste envio. O acervo pode existir e estar fechado:
+                        documento fechado continua sustentando a compatibilização sem ser
+                        identificado.
+                    </p>
+                {% else %}
+                    {% for art in p.arts %}
+                        {{ eh_empresa
+                            ? ui.art(art, {nome: art.profissional, rnp: art.rnp})
+                            : ui.art(art) }}
+                    {% endfor %}
+                {% endif %}
+
+                {% if p.campos is not empty %}
+                    <p class="pl-grp">Informado pelo titular</p>
+                    {% if resumo %}
+                        <p class="pl-texto">{{ resumo }}</p>
+                    {% endif %}
+                    <dl class="pl-dl mini">
+                        {% for chave, valor in p.campos %}
+                            {% if chave != 'RESUMO' %}
+                                <dt>{{ chave|rotulo_campo }}</dt>
+                                <dd>
+                                    {%- if chave == 'TIPO_CONTRATO' -%}
+                                        {{ valor|rotulo_contrato ?: 'Não informado' }}
+                                    {%- elseif chave == 'DISPONIBILIDADE' -%}
+                                        {{ valor|rotulo_abrangencia ?: 'Não informado' }}
+                                    {%- else -%}
+                                        {{ valor ?: 'Não informado' }}
+                                    {%- endif -%}
+                                </dd>
+                            {% endif %}
+                        {% endfor %}
+                    </dl>
+                {% endif %}
+
+                {% if eh_empresa %}
+                    <p class="pl-grp">Quadro técnico no envio</p>
+                    {% if p.quadro is empty %}
+                        <p class="vazio">Nenhum vínculo vigente no momento do envio.</p>
+                    {% else %}
+                        <ul class="pl-quadro">
+                            {% for membro in p.quadro %}
+                                <li>
+                                    <div class="id">
+                                        <span class="nm">{{ membro.nome ?: 'Não informado' }}</span>
+                                        <span class="pl-mono">RNP {{ membro.rnp }}</span>
+                                    </div>
+                                    <p class="fn">{{ membro.funcao ?: 'Função não informada' }}</p>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% else %}
+                    {% if p.modalidades is not empty %}
+                        <p class="pl-grp">Modalidades do registro</p>
+                        <ul class="pl-chips">
+                            {% for modalidade in p.modalidades %}
+                                <li><span class="pl-tag">{{ modalidade.mod_nome }}</span></li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+
+                    <p class="pl-grp">Experiência declarada</p>
+                    {% if p.experiencias is empty %}
+                        <p class="vazio">Nenhuma experiência declarada foi aberta neste envio.</p>
+                    {% else %}
+                        {% for exp in p.experiencias %}
+                            <article class="dado-declarado mb-2">
+                                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                                    <div>
+                                        <h4 class="h6 mb-1">{{ exp.titulo }}</h4>
+                                        <p class="small mb-0 text-body-secondary">
+                                            {% if exp.dt_inicio and exp.dt_fim %}
+                                                {{ exp.dt_inicio }} a {{ exp.dt_fim }}
+                                            {% elseif exp.dt_inicio %}
+                                                Desde {{ exp.dt_inicio }}
+                                            {% elseif exp.dt_fim %}
+                                                Até {{ exp.dt_fim }}
+                                            {% else %}
+                                                Período não informado
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                    <span class="pl-pill neutral" title="Informado pelo próprio titular. A plataforma não verificou.">
+                                        <span class="pd" aria-hidden="true"></span>Declarado
+                                    </span>
+                                </div>
+                                {% if exp.descricao %}<p class="small mb-0 mt-2">{{ exp.descricao }}</p>{% endif %}
+                                {% if exp.art_numero %}
+                                    <p class="small mb-0 mt-2">
+                                        Ligada à <span class="pl-mono">ART {{ exp.art_numero }}</span>
+                                        <svg class="pl-mark" role="img" aria-label="Conferida na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+                                        do acervo verificado.
+                                    </p>
+                                {% endif %}
+                            </article>
+                        {% endfor %}
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+        </section>
+    </div>
+
+    <div class="pl-stack">
+        <section class="pl-card">
+            <div class="pl-linha-titulo"><h2 class="pl-secao">Esta manifestação</h2></div>
+
+            <dl class="pl-dl mini mt-0">
+                <dt>Demanda</dt>
+                <dd><a href="{{ app_url }}/demandas/{{ m.man_dem_id }}">{{ m.dem_titulo }}</a></dd>
+
+                <dt>{{ eh_demandante ? 'Interessado' : 'Enviada por' }}</dt>
+                <dd>{{ eh_demandante ? nome_candidato : 'Você' }}
+                    <span class="lin-sub">{{ ui.tipo_candidato(m.man_candidato_tipo) }} registrado no CREA</span></dd>
+
+                <dt>Enviada em</dt>
+                <dd class="pl-mono">{{ m.man_dt_registro|date('d/m/Y') }} às {{ m.man_dt_registro|date('H\\hi') }}</dd>
+
+                <dt>Situação</dt>
+                <dd>{{ ui.situacao_manifestacao(m.man_situacao) }}</dd>
+
+                <dt>{{ eh_demandante ? 'Aberta por você' : 'Aberta pelo demandante' }}</dt>
+                <dd>
+                    {% if m.man_dt_visualizacao %}
+                        <span class="pl-mono">{{ m.man_dt_visualizacao|date('d/m/Y') }} às {{ m.man_dt_visualizacao|date('H\\hi') }}</span>
+                    {% else %}
+                        Ainda não
+                    {% endif %}
+                </dd>
+            </dl>
+        </section>
+
+        <section class="pl-card">
+            <div class="pl-linha-titulo">
+                <h2 class="pl-secao">Integridade do retrato</h2>
+                {{ ui.info('O que este código prova',
+                    'É o sha256 do conteúdo enviado, calculado no momento do envio e conferido de novo toda vez que esta tela abre. Ele não protege contra quem tem o banco; protege contra alteração acidental, que é o risco real, e permite dizer com precisão que o que está na tela é o que foi enviado.', 'fim') }}
+            </div>
+
+            {% if integro %}
+                <p class="mb-2">
+                    <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Confere com o envio</span>
+                </p>
+                <p class="pl-nota mb-2">
+                    O conteúdo acima é byte a byte o que foi enviado em
+                    {{ m.man_dt_registro|date('d/m/Y') }}.
+                </p>
+            {% else %}
+                <p class="mb-2">
+                    <span class="pl-pill danger"><span class="pd" aria-hidden="true"></span>Não confere</span>
+                </p>
+                <p class="pl-nota mb-2">
+                    O conteúdo guardado foi alterado depois do envio. O retrato não é exibido.
+                </p>
+            {% endif %}
+
+            <p class="pl-mono mb-0" title="{{ m.man_snapshot_hash }}">
+                {{ m.man_snapshot_hash|slice(0, 24) }}…
+            </p>
+        </section>
+    </div>
+</div>
+{% endblock %}

@@ -16,6 +16,13 @@
     é a própria sigla, que é string: `merge` só renumera chave inteira, então a armadilha do
     <select> de ART (ver perfil/index) não se aplica. #}
 {% set ufs_mapa = ufs_possiveis|reduce((mapa, uf) => mapa|merge({(uf): uf}), {}) %}
+{#  Quem pode manifestar interesse aqui: conta com registro no CREA (D51) que não seja a dona da
+    demanda e que caiba no alvo escolhido por ela ('A' todos, 'E' empresa, 'P' profissional). A
+    mesma conferência da vitrine, porque oferecer a ação e recusá-la no envio é pior do que não
+    oferecer. #}
+{% set u = usuario() %}
+{% set meu_tipo = u and u.perfil == 'EMPRESA' ? 'E' : 'P' %}
+{% set com_registro = u and u.perfil in ['PROFISSIONAL', 'EMPRESA'] %}
 
 <div class="pl-head">
     <div class="tit">
@@ -36,12 +43,17 @@
         </p>
     </div>
 
-    {% if eh_dono and d.dem_dt_publicacao is not null and d.tos is not empty %}
+    {% if eh_dono and d.dem_dt_publicacao is not null %}
         <div class="pl-head-acoes">
-            <a class="pl-btn" href="{{ app_url }}/demandas/{{ d.dem_id }}/compativeis">
-                Ver perfis compatíveis
-                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="M13 6l6 6-6 6"/></svg>
-            </a>
+            {#  Quem já se ofereceu vem antes de quem o motor aproxima: um é gente que decidiu, o
+                outro é uma lista indicativa. #}
+            <a class="pl-btn" href="{{ app_url }}/demandas/{{ d.dem_id }}/interessados">Ver interessados</a>
+            {% if d.tos is not empty %}
+                <a class="pl-btn" href="{{ app_url }}/demandas/{{ d.dem_id }}/compativeis">
+                    Ver perfis compatíveis
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="M13 6l6 6-6 6"/></svg>
+                </a>
+            {% endif %}
         </div>
     {% endif %}
 </div>
@@ -251,6 +263,44 @@
                     <dt>Publicada em</dt>
                     <dd class="mono">{{ d.dem_dt_publicacao ? d.dem_dt_publicacao|date('d/m/Y') : 'Não informado' }}</dd>
                 </dl>
+
+                {#  A ação que compromete fica depois dos fatos, e não no topo da tela: quem
+                    manifesta interesse precisa ter lido o escopo ao lado. É o caso legítimo do
+                    laranja nesta tela (D34), porque é irreversível e vale uma por demanda. #}
+                {% if com_registro and d.dem_situacao != 'ENCERRADA' %}
+                    {% if d.dem_alvo in ['A', meu_tipo] %}
+                        {#  Já manifestou: o botão sairia para uma confirmação que o POST vai
+                            recusar pelo índice único. Vale uma por demanda, e o caminho útil
+                            agora é a conversa, não um segundo envio. #}
+                        {% if manifestacao_id %}
+                            <div class="pl-acoes-form">
+                                <a class="pl-btn" href="{{ app_url }}/manifestacoes/{{ manifestacao_id }}">
+                                    Abrir a sua manifestação
+                                </a>
+                            </div>
+                            <p class="pl-nota mt-2 mb-0">
+                                Você já manifestou interesse nesta demanda. O envio vale uma vez
+                                por demanda; o que houver de novo acontece na conversa.
+                            </p>
+                        {% else %}
+                            <div class="pl-acoes-form">
+                                <a class="pl-cta" href="{{ app_url }}/demandas/{{ d.dem_id }}/manifestar">
+                                    Manifestar interesse
+                                </a>
+                            </div>
+                            <p class="pl-nota mt-2 mb-0">
+                                Você confere o que o demandante vai receber do seu perfil antes de
+                                enviar, e o envio vale uma vez por demanda.
+                            </p>
+                        {% endif %}
+                    {% else %}
+                        <p class="pl-nota mt-3 mb-0">
+                            Esta demanda está dirigida a
+                            {{ d.dem_alvo == 'E' ? 'empresas' : 'profissionais' }} registrados no
+                            CREA, então ela não recebe manifestação da sua conta.
+                        </p>
+                    {% endif %}
+                {% endif %}
             </section>
         {% endif %}
     </div>
