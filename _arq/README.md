@@ -67,6 +67,18 @@ docker compose exec -T php php scripts/criar-admin.php \
 
 ## Verificação
 
+A bateria inteira, numa ordem que não se atrapalha e com placar no fim:
+
+```bash
+PROLINK_E2E_ADMIN_SENHA="<a do administrador da suíte>" bash scripts/verificar-tudo.sh
+```
+
+Nenhum passo dela chama a API oficial. `verificar-api.php` e `semear-candidatos.php` ficam de fora
+de propósito: cada chamada é registrada pela organização, e uma bateria que gasta cota não pode
+ser rodada à vontade.
+
+Os passos individuais, se você quiser um de cada vez:
+
 ```bash
 curl -s http://localhost:8080/saude
 ```
