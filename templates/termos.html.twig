@@ -11,7 +11,7 @@
         <p class="sub">
             <span>Versão <span class="n">{{ termo.ter_versao }}</span></span>
             <span class="pl-sep" aria-hidden="true"></span>
-            <span>em vigor desde {{ termo.ter_dt_vigencia }}</span>
+            <span>em vigor desde {{ termo.ter_dt_vigencia|date('d/m/Y') }}</span>
         </p>
     </div>
 </div>
