@@ -66,15 +66,17 @@ flowchart TD
   NOTIF -.-> DASHE
 
   subgraph ADMG["ADMIN (RF06)"]
-    ADM["Painel admin"]
-    AUD["Trilha de auditoria<br/>log imutável"]
+    ADM["Visão geral<br/>contagem agregada, nunca lista de pessoas ordenada"]
+    AUD["Trilha de auditoria<br/>log imutável por trigger"]
     SESS["Sessões do motor<br/>replay pela semente: mesma semente, mesma ordem"]
     DEN["Fila de denúncias + moderação"]
-    USRG["Gestão de usuários"]
+    PARAM["Parâmetros do motor<br/>supervisão humana do item 12.3"]
+    LIX["Lixeira<br/>item 8.6j: o excluído continua acessível"]
     ADM --> AUD
     AUD --> SESS
     ADM --> DEN
-    ADM --> USRG
+    ADM --> PARAM
+    ADM --> LIX
   end
 ```
 
@@ -135,3 +137,8 @@ O `backlog.md` diz em que etapa cada um destrava; aqui, o caminho:
 4. **Manifestação e a empresa vê o perfil** — FEEDP/PERFV → MANIF → COMM/NOTIF (E5).
 5. **Correção e denúncia** — VISP + denúncia; ADM → AUD/DEN (E6).
 6. **Admin vê auditoria e modera** — ADM → AUD → DEN, bloqueio (E6).
+
+**Gestão de usuários não existe como tela**, e o diagrama deixou de prometê-la: o que a
+administração faz com uma conta acontece pela fila de denúncias (advertir, bloquear, remover) e
+pela lixeira, que é onde o item 8.6j manda o excluído continuar acessível. Declarado como evolução
+em `backlog.md`, não escondido.
