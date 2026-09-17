@@ -27,8 +27,13 @@ namespace ProLink\Repository;
  */
 final class ManifestacaoRepository extends Repositorio
 {
+    //  `man_origem` está aqui porque a tela precisa dela para não mentir. A coluna diz de que
+    //  lado partiu o ato: 'C' quando o titular do perfil se candidatou a uma demanda, 'D' quando
+    //  quem publicou a demanda registrou interesse naquele perfil. Sem ela na consulta, as telas
+    //  tratavam toda linha como candidatura, e as duas linhas de origem 'D' apareciam com a
+    //  mensagem do demandante assinada como "Você" para quem a recebeu.
     private const CAMPOS = 'm.man_id, m.man_dem_id, m.man_usu_id, m.man_candidato_tipo,
-                            m.man_mensagem, m.man_situacao, m.man_dt_visualizacao,
+                            m.man_origem, m.man_mensagem, m.man_situacao, m.man_dt_visualizacao,
                             m.man_dt_registro, m.man_snapshot_hash';
 
     /** @param array<string, mixed> $dados */
