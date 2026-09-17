@@ -32,3 +32,10 @@ venv/
 
 # O pacote da entrega é gerado por scripts/empacotar-entrega.sh, e não se versiona.
 entrega/
+
+# Credencial local da suíte de ponta a ponta. Nunca versionada (Anexo VI, item 5).
+e2e/.env.local
+
+# Os vídeos são gerados pela suíte (e2e/rodar.sh) e pesam dezenas de MB: ficam fora do
+# repositório, e o README da pasta diz como refazê-los.
+e2e/videos/

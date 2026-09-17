@@ -151,3 +151,43 @@ de recarregar o banco para a demonstração**, nunca depois. A ordem de preparo 
 Playwright é **Apache-2.0**, roda fora do contêiner e nada dele é servido pela aplicação. Mesmo
 estatuto do Python em `scripts/`: ferramenta de desenvolvimento, não dependência do produto. Está
 declarado em `_arq/dependencias.md` (item 16.5 do edital).
+
+## Os quatro vídeos, e por que são quatro
+
+| Arquivo | O quê |
+|---|---|
+| `demonstracao.spec.js` | **a narrativa do desafio**: os seis cenários do Anexo I, item 7, na ordem em que são numerados, num vídeo só. Salta de conta em conta porque o cenário 4 exige os dois lados da mesma interação. |
+| `jornadas.spec.js` | **uma conta por vídeo**, do login ao logout, percorrendo tudo que o Anexo I, item 3, diz que aquele perfil precisa poder fazer. Três vídeos: profissional, empresa e administração. |
+
+A diferença é a pergunta que cada um responde. O primeiro responde "a plataforma
+cumpre os seis cenários?". Os outros respondem "o que um profissional faz aqui?",
+e quem avalia vê a resposta inteira sem trocar de papel no meio.
+
+```bash
+./rodar.sh specs/jornadas.spec.js --project=desktop
+mkdir -p videos
+cp "resultados/jornadas-*profissional*/video.webm"   videos/jornada-profissional.webm
+cp "resultados/jornadas-*empresa*/video.webm"        videos/jornada-empresa.webm
+cp "resultados/jornadas-*administra*/video.webm"     videos/jornada-administracao.webm
+```
+
+Os arquivos ficam fora do versionamento: pesam dezenas de MB e são gerados.
+
+## A credencial da administração
+
+Metade dos cenários precisa entrar como administração, e a senha não pode viver em
+arquivo versionado (Anexo VI, item 5). Ela fica em `e2e/.env.local`, que o
+`.gitignore` recusa, e `./rodar.sh` a carrega só para o processo do Playwright:
+
+```bash
+cat > e2e/.env.local <<'ENV'
+PROLINK_E2E_ADMIN_EMAIL=...
+PROLINK_E2E_ADMIN_SENHA=...
+ENV
+
+./rodar.sh                                   # a suíte inteira
+./rodar.sh specs/cenarios.spec.js            # um arquivo
+```
+
+Sem o arquivo a suíte roda igual, e os testes de administração **pulam** em vez de
+falhar: falta de configuração de quem roda não é defeito da aplicação.
