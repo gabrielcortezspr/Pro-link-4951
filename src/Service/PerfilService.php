@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ProLink\Service;
 
 use ProLink\Repository\AcervoRepository;
+use ProLink\Repository\EmpresaRepository;
 use ProLink\Repository\ExperienciaRepository;
 use ProLink\Repository\ProfissionalRepository;
 use ProLink\Repository\UsuarioRepository;
@@ -37,6 +38,10 @@ final class PerfilService
         private readonly AcervoRepository $acervo = new AcervoRepository(),
         private readonly ExperienciaRepository $experiencias = new ExperienciaRepository(),
         private readonly VisibilidadeService $visibilidades = new VisibilidadeService(),
+        // No fim, e não no meio: há chamadas com argumentos posicionais nos scripts de
+        // verificação, e inserir parâmetro no meio de um construtor as quebra em silêncio de
+        // tipo. Parâmetro novo entra no fim, sempre.
+        private readonly EmpresaRepository $empresas = new EmpresaRepository(),
     ) {
     }
 
@@ -82,9 +87,16 @@ final class PerfilService
         // Uma leitura do acervo, usada tanto para a lista quanto para os controles do dono.
         $acervo = $profissional === null ? [] : $this->acervo->porRnp((string) $profissional['prf_rnp']);
 
-        $experiencias = $profissional === null
-            ? []
-            : $this->experiencias->porProfissional((int) $profissional['prf_id']);
+        // A experiência é dos dois perfis desde 17/09 (Anexo I item 3). O dono muda a coluna, não a
+        // natureza: nos dois casos é relato autodeclarado, e a tela o distingue do verificado.
+        if ($profissional !== null) {
+            $experiencias = $this->experiencias->porProfissional((int) $profissional['prf_id']);
+        } else {
+            $empresa      = $this->empresas->porUsuario($donoId);
+            $experiencias = $empresa === null
+                ? []
+                : $this->experiencias->porEmpresa((int) $empresa['emp_id']);
+        }
 
         return [
             'usuario_id'   => $donoId,

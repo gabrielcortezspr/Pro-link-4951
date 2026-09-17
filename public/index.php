@@ -78,9 +78,9 @@ $router->post('/perfil/preferencias',        PerfilController::class, 'salvarPre
 
 // Experiência autodeclarada (RF03). Só o profissional tem: `exp_prf_id` referencia
 // pro_profissionais, porque quem tem trajetória é a pessoa — a empresa tem quadro técnico.
-$router->post('/perfil/experiencias',                 PerfilController::class, 'criarExperiencia', PERFIL_PROFISSIONAL);
-$router->post('/perfil/experiencias/{id}',            PerfilController::class, 'editarExperiencia', PERFIL_PROFISSIONAL);
-$router->post('/perfil/experiencias/{id}/excluir',    PerfilController::class, 'excluirExperiencia', PERFIL_PROFISSIONAL);
+$router->post('/perfil/experiencias',                 PerfilController::class, 'criarExperiencia', PERFIS_COM_REGISTRO_CREA);
+$router->post('/perfil/experiencias/{id}',            PerfilController::class, 'editarExperiencia', PERFIS_COM_REGISTRO_CREA);
+$router->post('/perfil/experiencias/{id}/excluir',    PerfilController::class, 'excluirExperiencia', PERFIS_COM_REGISTRO_CREA);
 
 // Perfil de outra pessoa. Depois das rotas literais acima, porque {id} casaria 'visibilidade'
 // antes delas. PerfilService::montar() já recebe o espectador e filtra pela Visao: quem não é o

@@ -6,6 +6,7 @@ namespace ProLink\Service;
 
 use PDO;
 use ProLink\Repository\AcervoRepository;
+use ProLink\Repository\EmpresaRepository;
 use ProLink\Repository\ExperienciaRepository;
 use ProLink\Repository\ProfissionalRepository;
 use ProLink\Support\Auditoria;
@@ -49,6 +50,7 @@ final class ExperienciaService
         private readonly ExperienciaRepository $experiencias = new ExperienciaRepository(),
         private readonly ProfissionalRepository $profissionais = new ProfissionalRepository(),
         private readonly AcervoRepository $acervo = new AcervoRepository(),
+        private readonly EmpresaRepository $empresas = new EmpresaRepository(),
     ) {
     }
 
@@ -59,12 +61,13 @@ final class ExperienciaService
      */
     public function criar(int $usuarioId, array $entrada): int
     {
-        $profissional = $this->exigirProfissional($usuarioId);
-        $dados        = $this->validar($entrada, (string) $profissional['prf_rnp']);
+        $titular = $this->exigirTitular($usuarioId);
+        $dados   = $this->validar($entrada, $titular['rnp']);
 
-        return Database::transacao(function (PDO $pdo) use ($usuarioId, $profissional, $dados): int {
+        return Database::transacao(function (PDO $pdo) use ($usuarioId, $titular, $dados): int {
             $id = $this->experiencias->criar([
-                'profissional_id' => (int) $profissional['prf_id'],
+                'profissional_id' => $titular['tipo'] === 'P' ? $titular['id'] : null,
+                'empresa_id'      => $titular['tipo'] === 'E' ? $titular['id'] : null,
                 ...$dados,
             ]);
 
@@ -84,9 +87,9 @@ final class ExperienciaService
      */
     public function editar(int $usuarioId, int $experienciaId, array $entrada): void
     {
-        $profissional = $this->exigirProfissional($usuarioId);
-        $atual        = $this->exigirPropria($usuarioId, $experienciaId, (int) $profissional['prf_id']);
-        $dados        = $this->validar($entrada, (string) $profissional['prf_rnp']);
+        $titular = $this->exigirTitular($usuarioId);
+        $atual   = $this->exigirPropria($usuarioId, $experienciaId, $titular);
+        $dados   = $this->validar($entrada, $titular['rnp']);
 
         Database::transacao(function (PDO $pdo) use ($usuarioId, $experienciaId, $atual, $dados): void {
             $this->experiencias->atualizar($experienciaId, $dados);
@@ -107,8 +110,8 @@ final class ExperienciaService
     /** Exclusão lógica: a linha fica, com `exp_status = 'X'` (item 8.6j). */
     public function excluir(int $usuarioId, int $experienciaId): void
     {
-        $profissional = $this->exigirProfissional($usuarioId);
-        $atual        = $this->exigirPropria($usuarioId, $experienciaId, (int) $profissional['prf_id']);
+        $titular = $this->exigirTitular($usuarioId);
+        $atual   = $this->exigirPropria($usuarioId, $experienciaId, $titular);
 
         Database::transacao(function (PDO $pdo) use ($usuarioId, $experienciaId, $atual): void {
             $this->experiencias->excluir($experienciaId);
@@ -130,11 +133,12 @@ final class ExperienciaService
      * Valida e normaliza a entrada do formulário.
      *
      * @param array<string, mixed> $entrada
-     * @param string $rnp acervo contra o qual a ART informada é conferida
+     * @param ?string $rnp acervo contra o qual a ART informada é conferida; nulo para empresa,
+     *                      que não vincula ART porque o acervo verificado dela é o operacional
      * @return array{titulo: string, descricao: ?string, art_id: ?int,
      *               dt_inicio: ?string, dt_fim: ?string}
      */
-    private function validar(array $entrada, string $rnp): array
+    private function validar(array $entrada, ?string $rnp): array
     {
         $titulo    = trim((string) ($entrada['titulo'] ?? ''));
         $descricao = trim((string) ($entrada['descricao'] ?? ''));
@@ -163,10 +167,18 @@ final class ExperienciaService
         $artId = null;
 
         if ($artBruto !== '') {
-            $artId = ctype_digit($artBruto) ? (int) $artBruto : 0;
+            if ($rnp === null) {
+                // Empresa não vincula ART, e o campo nem é desenhado para ela: se chegou aqui,
+                // veio de requisição forjada, e a recusa é a mesma da D27.
+                $v->exigir('art_id', false,
+                    'A experiência da empresa não vincula ART. O acervo verificado dela é o '
+                    . 'operacional, herdado do quadro técnico.');
+            } else {
+                $artId = ctype_digit($artBruto) ? (int) $artBruto : 0;
 
-            $v->exigir('art_id', $artId > 0 && $this->artEhDoProfissional($artId, $rnp),
-                'Esta ART não está no seu acervo. Só dá para vincular uma ART que é sua.');
+                $v->exigir('art_id', $artId > 0 && $this->artEhDoProfissional($artId, $rnp),
+                    'Esta ART não está no seu acervo. Só dá para vincular uma ART que é sua.');
+            }
         }
 
         $v->lancarSeInvalido();
@@ -199,18 +211,40 @@ final class ExperienciaService
     }
 
     /** @return array<string, mixed> */
-    private function exigirProfissional(int $usuarioId): array
+    /**
+     * Quem é o dono da experiência: um profissional ou uma empresa.
+     *
+     * O Anexo I item 3 dá "publicar experiência" aos dois perfis, e até 17/09 só o profissional
+     * tinha caminho. A diferença que sobra entre eles é o vínculo de ART: o profissional amarra a
+     * experiência a uma ART do próprio acervo, e a empresa não, porque o acervo verificado dela é
+     * o operacional, herdado do quadro técnico pelo CAO e já exibido no perfil. Por isso `rnp` vem
+     * nulo para empresa, e `validar()` trata nulo como "esta experiência não vincula ART".
+     *
+     * @return array{tipo: 'P'|'E', id: int, rnp: ?string}
+     * @throws ValidacaoException
+     */
+    private function exigirTitular(int $usuarioId): array
     {
         $profissional = $this->profissionais->porUsuario($usuarioId);
 
-        if ($profissional === null) {
-            throw new ValidacaoException(
-                'Seu registro no CREA ainda não foi validado. Valide-o pelo seu perfil antes de '
-                . 'registrar experiências.'
-            );
+        if ($profissional !== null) {
+            return [
+                'tipo' => 'P',
+                'id'   => (int) $profissional['prf_id'],
+                'rnp'  => (string) $profissional['prf_rnp'],
+            ];
         }
 
-        return $profissional;
+        $empresa = $this->empresas->porUsuario($usuarioId);
+
+        if ($empresa !== null) {
+            return ['tipo' => 'E', 'id' => (int) $empresa['emp_id'], 'rnp' => null];
+        }
+
+        throw new ValidacaoException(
+            'Seu registro no CREA ainda não foi validado. Valide-o pelo seu perfil antes de '
+            . 'registrar experiências.'
+        );
     }
 
     /**
@@ -222,12 +256,15 @@ final class ExperienciaService
      *
      * @return array<string, mixed>
      */
-    private function exigirPropria(int $usuarioId, int $experienciaId, int $profissionalId): array
+    private function exigirPropria(int $usuarioId, int $experienciaId, array $titular): array
     {
         $experiencia = $this->experiencias->porId($experienciaId);
 
+        $coluna = $titular['tipo'] === 'P' ? 'exp_prf_id' : 'exp_emp_id';
+
         $minha = $experiencia !== null
-            && (int) $experiencia['exp_prf_id'] === $profissionalId
+            && $experiencia[$coluna] !== null
+            && (int) $experiencia[$coluna] === $titular['id']
             && $experiencia['exp_status'] === STATUS_ATIVO;
 
         if ($minha) {

@@ -78,6 +78,18 @@ function conferir(string $descricao, bool $condicao, string $detalhe = ''): void
     printf("  \e[31mFALHOU\e[0m %s%s\n", $descricao, $detalhe !== '' ? "  ({$detalhe})" : '');
 }
 
+/** Recusa esperada: devolve true quando a chamada lança ValidacaoException. */
+function recusa(callable $chamada): bool
+{
+    try {
+        $chamada();
+    } catch (ValidacaoException) {
+        return true;
+    }
+
+    return false;
+}
+
 function secao(string $titulo): void
 {
     printf("\n\e[1m%s\e[0m\n", $titulo);
@@ -922,6 +934,65 @@ conferir('a tentativa de assumir registro alheio fica em sis_auditoria',
     (int) $negado->fetchColumn() >= 1);
 
 // ---------------------------------------------------------------- limpeza
+secao('A empresa também publica experiência (Anexo I item 3)');
+
+// O Anexo I dá "publicar experiência" ao profissional **e** à empresa, e até 17/09 só o
+// profissional tinha caminho: as três rotas eram PERFIL_PROFISSIONAL e `exp_prf_id` era NOT NULL
+// com chave estrangeira para pro_profissionais.
+$experienciasDeEmpresa = new ExperienciaService();
+
+$idExpEmpresa = $experienciasDeEmpresa->criar($daEmpresa, [
+    'titulo'    => 'Execução de reforço estrutural, verificação automática',
+    'descricao' => 'Relato declarado pela empresa, criado pelo verificador da E2.',
+]);
+
+$linhaExp = $pdo->query(
+    "SELECT exp_prf_id, exp_emp_id FROM pro_experiencias WHERE exp_id = {$idExpEmpresa}"
+)->fetch();
+
+conferir('a empresa cria experiência', $idExpEmpresa > 0);
+conferir('a linha nasce sem dono profissional', $linhaExp['exp_prf_id'] === null);
+conferir('e com o dono empresa preenchido', $linhaExp['exp_emp_id'] !== null);
+
+// O acervo verificado da empresa é o operacional, herdado do quadro técnico pelo CAO. Vincular
+// ART aqui seria afirmar que a empresa registrou a ART, que é o oposto da D24.
+conferir(
+    'experiência de empresa não vincula ART',
+    recusa(fn () => $experienciasDeEmpresa->criar($daEmpresa, [
+        'titulo' => 'Com ART', 'art_id' => (string) ($gravada['art']['art_id'] ?? 1),
+    ])),
+);
+
+conferir(
+    'o profissional não mexe em experiência da empresa',
+    recusa(fn () => $experienciasDeEmpresa->excluir($usuario, $idExpEmpresa)),
+);
+
+$experienciasDeEmpresa->editar($daEmpresa, $idExpEmpresa, [
+    'titulo' => 'Execução de reforço estrutural, título editado',
+]);
+
+conferir(
+    'a empresa edita a própria experiência',
+    $pdo->query("SELECT exp_titulo FROM pro_experiencias WHERE exp_id = {$idExpEmpresa}")->fetchColumn()
+        === 'Execução de reforço estrutural, título editado',
+);
+
+$perfilDaEmpresa = (new PerfilService())->montar($daEmpresa, $daEmpresa);
+
+conferir(
+    'a experiência aparece no perfil da empresa',
+    count($perfilDaEmpresa['experiencias'] ?? []) > 0,
+);
+
+$experienciasDeEmpresa->excluir($daEmpresa, $idExpEmpresa);
+
+conferir(
+    'a exclusão é lógica, como no lado do profissional',
+    $pdo->query("SELECT exp_status FROM pro_experiencias WHERE exp_id = {$idExpEmpresa}")->fetchColumn()
+        === STATUS_EXCLUIDO,
+);
+
 secao('Perfil em construção segue a contagem de ARTs');
 
 // O defeito que este bloco fecha: `associarArt` mudava a contagem de ARTs e não recalculava

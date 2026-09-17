@@ -421,7 +421,8 @@ CREATE TABLE pro_empresas (
 -- misturá-las: dado verificado e dado declarado nunca se confundem visualmente.
 CREATE TABLE pro_experiencias (
   exp_id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  exp_prf_id      BIGINT UNSIGNED NOT NULL,
+  exp_prf_id      BIGINT UNSIGNED NULL COMMENT 'dono profissional; NULL quando a experiência é de empresa',
+  exp_emp_id      BIGINT UNSIGNED NULL COMMENT 'dono empresa; NULL quando a experiência é de profissional',
   exp_titulo      VARCHAR(190) NOT NULL,
   exp_descricao   TEXT         NULL,
   exp_art_id      BIGINT UNSIGNED NULL COMMENT 'NULL = experiência sem ART',
@@ -432,6 +433,10 @@ CREATE TABLE pro_experiencias (
   exp_status      CHAR(1)      NOT NULL DEFAULT 'A',
   CONSTRAINT pk_exp_id PRIMARY KEY (exp_id),
   CONSTRAINT fk_exp_prf_id FOREIGN KEY (exp_prf_id) REFERENCES pro_profissionais (prf_id),
+  CONSTRAINT fk_exp_emp_id FOREIGN KEY (exp_emp_id) REFERENCES pro_empresas (emp_id),
+  -- Exatamente um dono. O Anexo I item 3 dá a "publicar experiência" ao profissional e à empresa,
+  -- e o banco garante que a linha pertence a um dos dois, nunca aos dois nem a nenhum.
+  CONSTRAINT ck_exp_dono CHECK ((exp_prf_id IS NULL) <> (exp_emp_id IS NULL)),
   CONSTRAINT fk_exp_art_id FOREIGN KEY (exp_art_id) REFERENCES crea_arts (art_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
