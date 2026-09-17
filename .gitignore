@@ -29,3 +29,6 @@ venv/
 /storage/cache/*
 /storage/logs/*
 !/storage/*/.gitkeep
+
+# O pacote da entrega é gerado por scripts/empacotar-entrega.sh, e não se versiona.
+entrega/
