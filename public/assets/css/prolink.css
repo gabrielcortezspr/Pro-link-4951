@@ -2359,11 +2359,9 @@ body > .pl-app { flex: 1 0 auto; min-width: 0; }
 .pl-feed .pl-acoes .pl-cta.lg, .pl-feed .pl-acoes .pl-btn.lg { height: 48px; border-radius: 14px; }
 .pl-feed .pl-acoes .pl-cta.lg { padding: 0 22px; font-size: 14px; }
 .pl-feed .pl-acoes .pl-btn.lg { padding: 0 20px; }
-/* O `.pl-cta` é o único acionável da casa sem regra de foco: ele ficava com o anel fino padrão do
-   navegador, que sobre o laranja quase não aparece, ao lado de um `.pl-btn` com o anel de 2px.
-   A regra fica no escopo do feed; a lacuna vale para o `.pl-cta` da aplicação inteira e está no
-   relatório, porque corrigir por fora daqui mudaria telas que não são desta tarefa. */
-.pl-feed .pl-cta:focus-visible { outline: 2px solid var(--pl-data); outline-offset: 3px; }
+/* O anel de foco do `.pl-cta` nasceu aqui, no escopo do feed, com a lacuna anotada para a
+   aplicação inteira. A regra geral está na seção 31, e esta saiu: duas regras idênticas, uma
+   dentro da outra, é a que fica para trás quando a de fora muda. */
 .pl-feed .pl-nota-acao { margin-top: 14px; max-width: 62ch; }
 
 .pl-feed .pl-peek { margin-top: -16px; border-radius: 0 0 22px 22px; padding: 26px 34px 14px;
@@ -2419,4 +2417,296 @@ body > .pl-app { flex: 1 0 auto; min-width: 0; }
     .pl-feed .pl-proveniencia { padding: 0 16px 18px; }
     /* A malha só faz sentido com palco largo: em 390px ela vira ruído atrás do texto. */
     .pl-feed .pl-motivo { display: none; }
+}
+
+/* ============================================================================
+   31 · Avisos que flutuam sobre a tela
+   ----------------------------------------------------------------------------
+   Eles ficavam no topo do `<main>`, dentro do fluxo, e empurravam a página para
+   baixo: entrar na conta jogava o herói da landing meio quadro abaixo. Agora são
+   fixos no alto, à direita, onde a leitura ocidental termina e nada importante
+   da tela costuma estar.
+
+   Em telas estreitas eles ocupam a largura, porque um cartão de 400px num
+   aparelho de 390px sobraria para fora ou encolheria a ponto de quebrar a frase
+   em cinco linhas.
+   ============================================================================ */
+
+.pl-toasts {
+    position: fixed;
+    /* Abaixo da barra do topo, que tem 60px nas telas de dentro da conta e 64px na pública:
+       flutuar em cima dela escondia o sino, o avatar e o Sair enquanto o aviso durasse. */
+    top: 76px;
+    right: 18px;
+    z-index: 1080;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(400px, calc(100vw - 36px));
+    pointer-events: none;
+}
+
+.pl-toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 13px 14px 13px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--pl-line);
+    border-left: 3px solid var(--pl-data);
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(11, 31, 59, .14), 0 2px 6px rgba(11, 31, 59, .08);
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity .22s ease, transform .22s ease;
+}
+
+.pl-toast.saindo { opacity: 0; transform: translateY(-6px); }
+
+.pl-toast .tx {
+    margin: 0;
+    flex: 1;
+    font-size: .93rem;
+    line-height: 1.45;
+    color: var(--pl-ink);
+}
+
+.pl-toast .x {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--pl-muted);
+    cursor: pointer;
+}
+
+.pl-toast .x:hover { background: var(--pl-bg-2); color: var(--pl-ink); }
+
+/* A cor da barra diz o que é sem depender de ícone, e o verde água continua
+   reservado a verificação: sucesso usa o verde de estado, não o selo. */
+.pl-toast.is-success { border-left-color: var(--pl-ok, #2f855a); }
+.pl-toast.is-danger  { border-left-color: var(--pl-err, #c53030); }
+.pl-toast.is-warning { border-left-color: var(--pl-warn, #b7791f); }
+.pl-toast.is-info    { border-left-color: var(--pl-data); }
+
+@media (max-width: 575.98px) {
+    .pl-toasts { top: 70px; right: 12px; left: 12px; width: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pl-toast { transition: none; }
+}
+
+/* ---------- 31. A entrada no núcleo da landing, a gestão de contas, e três correções de casa ---
+   Quatro assuntos, e o primeiro explica os outros:
+
+   a) **A família de entrada** (`/login`, `/cadastro`, `/recuperar-senha`, redefinir senha). Não há
+      mockup de login em `docs/mockups/`: o que existe lá é o botão "Entrar" da barra pública. O
+      pedido foi que estas telas ficassem "no core da landing page de design", então elas são
+      derivadas da seção 26, e nenhum valor aqui é novo: o azul é o mesmo `--pl-navy` com o mesmo
+      degradê radial do herói, os quatro tons de texto sobre ele são os quatro que a sidebar e o
+      herói já usam (#fff, #ccdcf1, #aec2e0, #8fa8cc), a palavra da tese usa o mesmo degradê de
+      `--pl-blue` para `--pl-blue-2`, o escudo é o par `--pl-seal-bg` + `--pl-seal`, e a ação
+      preenchida é o laranja único, que aqui chega pelo `.btn-primary` já retematizado na seção 2.
+
+      A composição é a faixa inteira repartida em duas colunas, e não o cartão de 420px centrado da
+      seção 19: aquele cartão deixava mais de mil pixels de off-white vazio dos dois lados de um
+      formulário de dois campos, que é a coluna estreita que a régua do projeto proíbe. O
+      `.pl-auth` da seção 19 continua onde está, porque a tela de erro ainda o usa.
+
+   b) **A tela de contas** do painel (Anexo I, item 3). Reaproveita a mecânica de log da seção 12 e
+      a barra de filtro da seção 11; o que ela acrescenta é a tira das três recusas do serviço e as
+      medidas de coluna próprias.
+
+   c) **O anel de foco do `.pl-cta`**, que a seção 30 corrigiu só dentro do feed e deixou anotado
+      como pendência da aplicação inteira. Agora vale em todo lugar, e a regra de lá saiu.
+
+   d) **A barra lateral que estica com o conteúdo.** `.pl-side` era `static` com altura automática,
+      então em qualquer tela mais alta que a janela o cartão de identidade do rodapé ia parar
+      abaixo da dobra: medido em `/demandas/{id}/compativeis` numa janela de 1000px de altura, o
+      cartão ficava em 1073px. Nos mockups ele está sempre visível, colado no pé da barra. */
+
+/* ---- d) A barra lateral acompanha a janela ---- */
+/* `sticky` e não `fixed`: a barra continua sendo a primeira coluna do grid, então nada precisa
+   compensar a largura dela com margem, e o estado recolhido de 66px continua valendo sem uma
+   segunda regra. A altura é a da janela, e a navegação rola dentro dela quando a janela é baixa,
+   para o cartão de identidade nunca ser empurrado para fora por um menu comprido.
+
+   Acima de 768px só: abaixo disso a seção 25 transforma a barra em faixa horizontal no topo, onde
+   `sticky` com 100vh de altura ocuparia a tela inteira de um aparelho de 390px. */
+@media (min-width: 769px) {
+    .pl-side { position: sticky; top: 0; height: 100vh; align-self: start; }
+    /* `min-height: 0` é o que permite o filho encolher dentro de um contêiner flex: sem ele a
+       navegação se recusa a ficar menor que o conteúdo dela e empurra o rodapé para fora de novo,
+       que é exatamente o defeito que esta regra existe para consertar. */
+    .pl-side .pl-nav { overflow-y: auto; min-height: 0; }
+    /* O cartão de identidade não encolhe junto com a navegação: ele é o que precisa sobreviver. */
+    .pl-side .foot { flex: none; }
+}
+
+/* ---- c) O foco do `.pl-cta`, na aplicação inteira ---- */
+/* O anel fino padrão do navegador some sobre o laranja, ao lado de um `.pl-btn` com anel de 2px.
+   O azul escuro é a cor de contorno que a seção 11 já usa no painel. */
+.pl-cta:focus-visible { outline: 2px solid var(--pl-data); outline-offset: 3px; }
+
+/* ---- a) A entrada: a página inteira, repartida em duas ---- */
+/* Mesma correção do `.pl-lp`: o `main` perde a medida do `.pl-wrap` e cada metade pinta até a
+   borda da janela. O respiro volta dentro de cada painel. */
+.pl-ent { width: 100%; max-width: none; padding: 0; display: flex; flex-direction: column; }
+/* Aviso de sessão chega antes da faixa e precisa de medida própria, senão encosta nas duas bordas
+   da janela. Mesma decisão de `.pl-lp > .alert`. */
+.pl-ent > .alert { width: calc(100% - 2 * clamp(20px, 4vw, 56px)); margin: 18px auto 0; }
+.pl-ent-grade { flex: 1 1 auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch; }
+@media (max-width: 900px) { .pl-ent-grade { grid-template-columns: minmax(0, 1fr); } }
+
+/* O painel azul. O degradê radial é o do herói da landing, na mesma posição e na mesma extensão. */
+.pl-ent-lado { min-width: 0; color: #ccdcf1; display: flex; flex-direction: column;
+    justify-content: center; padding: clamp(34px, 5vw, 76px) clamp(22px, 4.5vw, 72px);
+    background: radial-gradient(60% 55% at 82% -10%, var(--pl-navy-2) 0%, transparent 55%),
+                var(--pl-navy); }
+.pl-ent-olho { display: block; font-size: 12px; letter-spacing: .2em; text-transform: uppercase;
+    color: #8fa8cc; }
+/* A tese não é <h1> nem <h2>: o assunto da página é a tarefa do formulário, e o <h1> dele é quem
+   responde por ela. O porte é o do herói, um degrau abaixo, porque aqui ela é contexto. */
+.pl-ent-lado .tese { font-family: var(--pl-display); font-weight: 700; color: #fff;
+    font-size: clamp(30px, 3.3vw, 44px); line-height: 1.06; letter-spacing: -.03em;
+    margin: 14px 0 16px; text-wrap: balance; max-width: 18ch; }
+.pl-ent-lado .tese .v { background: linear-gradient(90deg, var(--pl-blue), var(--pl-blue-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+.pl-ent-lado .sub { color: #aec2e0; font-size: 16px; line-height: 1.6; max-width: 46ch; margin: 0; }
+/* O selo da landing, com o par do selo da casa: fundo verde água claro e a marca em verde água. */
+.pl-ent-selo { display: inline-flex; align-items: center; gap: 8px; margin: 22px 0 0;
+    font-size: 13px; color: #aec2e0; }
+.pl-ent-escudo { flex: none; }
+.pl-ent-escudo .corpo { fill: var(--pl-seal-bg); }
+.pl-ent-escudo .marca { fill: none; stroke: var(--pl-seal); stroke-width: 2.4;
+    stroke-linecap: round; stroke-linejoin: round; }
+/* Os itens de confirmação, com o mesmo símbolo da faixa "Para quem". Sobre o azul os dois tons do
+   símbolo trocam: o disco vira o azul de dado a 22% e a marca vira o azul claro da sidebar. */
+.pl-ent-lista { list-style: none; margin: 26px 0 0; padding: 0; max-width: 46ch; }
+.pl-ent-lista li { display: flex; gap: 10px; align-items: flex-start; font-size: 14px;
+    line-height: 1.5; color: #aec2e0; margin-bottom: 12px; }
+.pl-ent-lista li:last-child { margin-bottom: 0; }
+.pl-ent-lista svg { flex: none; margin-top: 1px; }
+.pl-ent-lista .fundo { fill: rgba(46,107,230,.22); }
+.pl-ent-lista .marca { fill: none; stroke: var(--pl-blue-2); stroke-width: 2.2;
+    stroke-linecap: round; stroke-linejoin: round; }
+
+/* O painel do formulário. Branco, e não o off-white do fundo: o formulário é o quadro da página,
+   e quadro desta aplicação é branco. */
+.pl-ent-painel { min-width: 0; background: var(--pl-card); display: flex; align-items: center;
+    justify-content: center; padding: clamp(30px, 4vw, 60px) clamp(22px, 3.4vw, 56px); }
+/* Formulário longo (cadastro) começa no topo: centrado, ele nasceria fora da primeira dobra. */
+.pl-ent-painel.longo { align-items: flex-start; }
+.pl-ent-caixa { width: 100%; max-width: 420px; }
+.pl-ent-caixa.larga { max-width: 560px; }
+.pl-ent-caixa h1 { font-family: var(--pl-display); font-weight: 700; font-size: 30px;
+    letter-spacing: -.025em; margin: 0 0 6px; }
+.pl-ent-caixa .pl-linha-titulo { margin-bottom: 6px; }
+.pl-ent-caixa .pl-linha-titulo > h1 { margin: 0; }
+.pl-ent-ld { font-size: 14px; line-height: 1.6; color: var(--pl-muted); margin: 0 0 22px; }
+.pl-ent-caixa .alert { font-size: 13.5px; }
+/* Botão único de formulário curto ocupa a largura da caixa: 90px encostados na esquerda de um
+   formulário de 420px era o desalinhamento visível destas telas. */
+.pl-ent-caixa form > button[type="submit"].btn { width: 100%; height: 46px; border-radius: var(--pl-r);
+    font-size: 15px; margin-top: 4px; }
+/* A barra de ações do cadastro. `.pl-acoes-form` é usada por nove telas e nunca teve regra
+   nenhuma, então aqui ela fica no escopo desta caixa: as outras telas continuam como estão. */
+.pl-ent-caixa .pl-acoes-form { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-top: 4px; }
+.pl-ent-caixa .pl-acoes-form .btn { height: 46px; padding: 0 22px; border-radius: var(--pl-r);
+    font-size: 15px; }
+.pl-ent-caixa .pl-acoes-form .pl-btn { height: 46px; padding: 0 20px; border-radius: var(--pl-r);
+    font-size: 14px; }
+.pl-ent-links { margin: 18px 0 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    font-size: 13px; }
+.pl-ent-links a { color: var(--pl-blue); text-decoration: none; }
+.pl-ent-links a:hover { text-decoration: underline; }
+
+/* O painel azul do cadastro acompanha a rolagem do formulário longo. `align-self: start` é o que
+   dá ao item de grid uma altura própria, sem a qual `sticky` não tem folga para deslizar. */
+@media (min-width: 901px) {
+    .pl-ent-grade.longo .pl-ent-lado { position: sticky; top: 0; align-self: start;
+        min-height: 100vh; }
+}
+
+/* ---- A entrada num aparelho de 390px ---- */
+@media (max-width: 900px) {
+    /* O painel azul vira uma faixa curta no topo: a tarefa é o formulário, e em tela estreita ele
+       precisa estar na primeira dobra. A lista de itens sai por isso, e não por caber: ela é
+       reforço de argumento, e argumento não pode empurrar o campo de e-mail para fora da tela. */
+    .pl-ent-lado { padding: 26px clamp(18px, 5vw, 32px) 28px; }
+    .pl-ent-lado .tese { font-size: clamp(26px, 7vw, 34px); margin: 10px 0 12px; max-width: none; }
+    .pl-ent-lado .sub { font-size: 14.5px; max-width: none; }
+    .pl-ent-selo { margin-top: 16px; }
+    .pl-ent-lista { display: none; }
+    .pl-ent-painel, .pl-ent-painel.longo { align-items: flex-start;
+        padding: 30px clamp(18px, 5vw, 32px) 40px; }
+    .pl-ent-caixa, .pl-ent-caixa.larga { max-width: 560px; margin-inline: auto; }
+    .pl-ent-caixa h1 { font-size: 26px; }
+}
+
+/* ---- b) Contas: a lista de quem existe na plataforma ---- */
+/* A tabela é a de log da seção 12, com as medidas desta tela. 1040px de mínimo é o mesmo da
+   trilha: abaixo disso o quadro rola dentro de si, e nenhuma coluna vira uma tira de duas letras. */
+.pl-contas { min-width: 1040px; }
+.pl-contas col.c-papel    { width: 150px; }
+.pl-contas col.c-situacao { width: 172px; }
+.pl-contas col.c-sessoes  { width: 104px; }
+.pl-contas col.c-acesso   { width: 176px; }
+.pl-contas col.c-acao     { width: 158px; }
+.pl-contas col.c-ref      { width: 68px; }
+
+.pl-contas .tt { display: block; font-size: 13px; font-weight: 600; color: var(--pl-ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-contas .sub { display: block; margin-top: 2px; font-size: 11px; color: var(--pl-faint);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-contas .papel { display: block; font-size: 12.5px; color: var(--pl-ink); }
+.pl-contas .hora { display: block; }
+/* Ausência de acesso não é uma data: sai da fonte monoespaçada para não ser lida como valor. */
+.pl-contas .hora.vaga { font-family: var(--pl-body); font-size: 12px; color: var(--pl-faint); }
+/* A contagem de sessões é dado, não referência: ela fica alinhada à direita como o número do
+   registro, e em tinta cheia, porque é ela que diz o tamanho do efeito de um bloqueio. */
+.pl-contas td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600;
+    color: var(--pl-ink); }
+.pl-contas td.acao { text-align: right; }
+/* A pílula do estado ganha a linha inteira para a trava de entrada assentar embaixo dela. */
+.pl-contas td .pl-pill { display: inline-flex; }
+
+/* Linha que a administração não gere. Como na lixeira, não é erro nem alerta: é o serviço
+   recusando por uma regra, então o trilho é azul escuro, a cor de dado e decisão, e não vermelho. */
+.pl-contas tbody tr.fechada td, .pl-contas tbody tr.fechada:hover td { background: var(--pl-app); }
+.pl-contas tbody tr.fechada td:first-child { box-shadow: inset 2px 0 0 var(--pl-data); }
+.pl-contas .fechado { display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+    font-weight: 600; color: var(--pl-muted); }
+.pl-contas .fechado svg { flex: none; }
+
+/* As três recusas, escritas uma vez entre o cabeçalho do quadro e a tabela.
+   Uma frase por linha impedida, como a lixeira faz, não serve aqui: lá o caso é raro, e aqui a
+   base de demonstração tem centenas de contas excluídas. A tira fica no fundo da área de conteúdo,
+   como o cabeçalho de dia da trilha, para não virar um card dentro do card. */
+.pl-recusas { list-style: none; margin: 0; padding: 12px 18px 13px; display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 22px;
+    background: var(--pl-app); border-bottom: 1px solid var(--pl-border); }
+@media (max-width: 1100px) { .pl-recusas { grid-template-columns: minmax(0, 1fr); } }
+.pl-recusas li { display: flex; align-items: flex-start; gap: 9px; font-size: 12px;
+    line-height: 1.5; color: var(--pl-muted); }
+.pl-recusas svg { flex: none; margin-top: 1px; color: var(--pl-data); }
+.pl-recusas b { display: block; color: var(--pl-ink); font-weight: 600; }
+
+/* A barra de filtro desta tela: as três larguras vêm do dado que cada campo recebe, e não são
+   iguais entre si, pela mesma razão da seção 11. */
+.pl-filtros .campo-termo    { width: 280px; }
+.pl-filtros .campo-perfil   { width: 196px; }
+.pl-filtros .campo-situacao { width: 176px; }
+@media (max-width: 640px) {
+    .pl-filtros .campo-termo, .pl-filtros .campo-perfil, .pl-filtros .campo-situacao { width: 100%; }
+    .pl-filtros-acoes { width: 100%; }
+    .pl-filtros-acoes .pl-btn { flex: 1; }
 }

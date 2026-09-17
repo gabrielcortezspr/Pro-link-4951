@@ -40,7 +40,7 @@
         <h1>Visão geral</h1>
         <p class="sub">
             {% if u %}
-                <span>{{ u.nome }}</span>
+                <span>{{ u.nome|nome_proprio }}</span>
                 <span class="pl-sep" aria-hidden="true"></span>
             {% endif %}
             <span>Profissional com registro no Sistema Confea/CREA</span>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ProLink\Controller;
 
+use ProLink\Support\Rotulos;
 use ProLink\Repository\TermoRepository;
 use ProLink\Service\AutenticacaoService;
 use ProLink\Service\EmpresaCreaService;
@@ -169,8 +170,20 @@ final class AuthController
             ]);
         }
 
-        Flash::sucesso('Bem-vindo, ' . $usuario['nome'] . '.');
-        View::redirecionar('/');
+        Flash::sucesso('Bem-vindo, ' . Rotulos::nomeProprio((string) $usuario['nome']) . '.');
+
+        //  Entrar leva para dentro da conta, e não para a landing.
+        //
+        //  `/` é a página de quem ainda não decidiu: herói, busca sem conta, "como funciona". Quem
+        //  acabou de digitar a senha já decidiu, e devolvê-la ao discurso de venda obriga a
+        //  procurar de novo a porta que ela acabou de abrir. O destino é a primeira entrada da
+        //  barra lateral, que é onde os mockups colocam quem entra.
+        //
+        //  A administração tem painel próprio e barra própria: mandá-la para `/inicio` só
+        //  produziria mais um salto, porque aquela rota redireciona administrador para `/admin`.
+        View::redirecionar(
+            ($usuario['perfil'] ?? '') === PERFIL_ADMIN ? '/admin' : '/inicio'
+        );
     }
 
     /** POST, não GET: logout por link seria escrita sem proteção de CSRF (edital 8.5e). */

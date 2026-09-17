@@ -185,14 +185,35 @@
     Dentro do shell logado quem manda é `.pl-content` (seções 5 e 29): a moldura já é a página
     inteira, e a medida vira um teto à esquerda, nunca uma coluna centralizada. #}
 <main id="conteudo" class="{% if pl_app %}pl-content{% if medida|default('') %} {{ medida }}{% endif %}{% else %}{% block classe_main %}pl-wrap{% endblock %} flex-grow-1{% endif %}">
-    {% for f in flashes() %}
-        <div class="alert alert-{{ f.tipo }} alert-dismissible" role="alert">
-            {{ f.texto }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-        </div>
-    {% endfor %}
     {% block conteudo %}{% endblock %}
 </main>
+
+{#  Os avisos flutuam sobre a tela, e não dentro do documento.
+    Eles viviam no topo do `<main>`, no fluxo, e empurravam a página inteira para baixo: entrar na
+    conta jogava o herói da landing meio quadro abaixo, e a primeira coisa que a pessoa via era uma
+    faixa de ponta a ponta, não a tela para onde ela foi.
+    O que fala com leitor de tela é o `aria-live` da região, e não a posição no documento, então
+    flutuar não custa acessibilidade: o erro é `assertive` porque interrompe, e o resto é `polite`,
+    que espera a leitura corrente terminar. #}
+{% set avisos = flashes() %}
+{% if avisos %}
+    <div class="pl-toasts" data-toasts>
+        {% for f in avisos %}
+            <div class="pl-toast is-{{ f.tipo }}"
+                 role="{{ f.tipo == 'danger' ? 'alert' : 'status' }}"
+                 aria-live="{{ f.tipo == 'danger' ? 'assertive' : 'polite' }}"
+                 {% if f.tipo != 'danger' %}data-esvair{% endif %}>
+                <p class="tx">{{ f.texto }}</p>
+                <button type="button" class="x" data-fechar aria-label="Fechar aviso">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                        <path d="M6 6l12 12M18 6L6 18"/>
+                    </svg>
+                </button>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
 
 {% if pl_app %}
     </div>
@@ -222,6 +243,9 @@
 {#  Recolher a barra lateral. A barra funciona expandida sem ele; o script revela o botão e
     guarda a escolha, para ela não se perder a cada navegação. #}
 <script src="{{ url_assets }}/js/barra-lateral.js?v={{ assets_v }}" defer></script>
+{#  Fechar aviso. Sem ele o aviso continua aparecendo e some na próxima navegação, porque o flash
+    já foi consumido no servidor: o script só acrescenta o fechar e o esvair. #}
+<script src="{{ url_assets }}/js/avisos.js?v={{ assets_v }}" defer></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
