@@ -80,6 +80,23 @@ E, nos cenários onde cabe:
   por ser o código com mais candidatos, e só então a demanda foi escrita em torno dele. A ordem
   inversa produz um cenário sem compatível nenhum.
 
+## Uma execução por vez
+
+`workers: 1` limita o paralelismo **dentro** de uma execução, e não impede duas execuções
+simultâneas de se atrapalharem. Elas compartilham o mesmo banco e as mesmas contas: uma publica a
+demanda que a outra vai compatibilizar, as duas manifestam interesse com o mesmo profissional, e o
+limite de manifestações por hora conta as duas juntas.
+
+O sintoma é sempre o mesmo e engana: o cenário 4 estoura o tempo em `waitForURL`, como se o botão
+de manifestar não funcionasse. Aconteceu em 17/09, com duas sessões de trabalho rodando a suíte ao
+mesmo tempo, e o servidor respondia 303 normalmente quando sondado à mão.
+
+Antes de acreditar numa falha do cenário 4, confira se não há outra execução no ar:
+
+```bash
+pgrep -fl playwright
+```
+
 ## A suíte cria dado real
 
 Ela cadastra experiência, publica demanda, manifesta interesse, denuncia e modera, tudo pela
