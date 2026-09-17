@@ -33,6 +33,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | Front — largura e divulgação progressiva | D53 |
 | E4 — busca ativa e auditoria de sessões | D54, D55, D56 |
 | E5 — manifestação, mensagens e notificações | D57, D58, D59 |
+| E7 — entrega | D60 |
 
 ---
 
@@ -1876,3 +1877,49 @@ nada.
 
 O corpo da mensagem não entra em `sis_auditoria`: a trilha precisa saber que houve mensagem, não o
 que foi dito.
+
+---
+
+## D60 · O front é servido pela própria aplicação, e a CSP fecha em `'self'` (encerra a pendência da D50)
+
+`16/09/2026` · E7 · commit `dfe3762` · `templates/layout/base.html.twig`,
+`docker/nginx/default.conf`, `public/assets/vendor/`
+
+**Contexto.** A **D50** fixou que a Content-Security-Policy espelha exatamente as origens que o
+layout carrega, e deixou registrada uma pendência na Consequência: *"servir Bootstrap e as fontes
+de `public/assets` e fechar a CSP em `'self'` continua sendo a escolha certa"*. Ela foi recusada
+**naquela sessão** por escopo, não por mérito — era mudança de infraestrutura de front no meio de
+uma revisão de motor.
+
+Três sessões depois a pendência continuava, e o `estado.md` a carregava como o maior risco
+operacional: o Demo Day é presencial, e a plataforma dependia de `cdn.jsdelivr.net` e de
+`fonts.googleapis.com` estarem acessíveis para ter qualquer aparência. Rede filtrada no auditório
+significava apresentar a solução sem estilo nenhum — e, pior, sem aviso: bloqueio de CSP não
+produz erro de tela, só linha no console.
+
+**Decisão.** Bootstrap 5.3.3 (CSS e bundle JS) e as 14 faces de Inter e Space Grotesk passam a ser
+servidas de `public/assets/vendor/`, versionadas no repositório. A CSP fecha em `'self'`:
+`default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'`.
+
+Só os subconjuntos `latin` e `latin-ext` das fontes — cirílico, grego e vietnamita somariam mais
+de vinte arquivos que nenhuma tela desta plataforma usa. Total versionado: 988 KB.
+
+**O fechamento da CSP é a própria garantia.** Não é preciso confiar em disciplina de quem escreve
+a próxima tela: se um template voltar a apontar para um CDN, o navegador bloqueia e a tela quebra
+imediatamente, em desenvolvimento. `scripts/verificar-padrao.php` continua comparando a diretiva
+com o que os templates carregam.
+
+**Alternativa recusada.** Manter o CDN e aceitar o risco, com a justificativa de que auditório de
+evento costuma ter rede. Recusada porque o custo do erro é assimétrico: acertar economiza 988 KB
+no repositório, errar custa a demonstração ao vivo, que é onde estão os 20 pontos de
+"Funcionalidade e experiência" — o critério de maior peso da ficha.
+
+Também foi recusado baixar os arquivos num passo de instalação (`composer` ou script de setup).
+Acrescentaria uma dependência de rede ao **momento de subir o ambiente**, que é exatamente o que o
+item 8.8 pede que seja reproduzível, e moveria o problema em vez de resolvê-lo.
+
+**Consequência.** O repositório carrega binário de terceiros, o que normalmente se evita. É
+deliberado e está declarado em `_arq/dependencias.md` com versão e licença — MIT para o Bootstrap
+e SIL OFL 1.1 para as duas famílias, todas permitindo redistribuição embutida. Atualizar o
+Bootstrap passa a ser um passo manual: baixar, substituir, conferir a aparência. Para um protótipo
+com data de entrega, é o lado certo da troca.

@@ -367,6 +367,23 @@ admin vê a trilha, trata a denúncia e bloqueia.
 
 ## E7 — Endurecimento, documentação, demo e entrega (16–17/09)
 
+> **Em andamento.** Dois itens fechados em 16/09, de `fef829c` a `dfe3762`:
+>
+> A **declaração de uso de IA, vieses e limitações** (12.3 e Anexo VI) entrou em
+> `_arq/arquitetura.md`, em oito seções. Ela não existia — o documento era de 06/09, anterior a E2
+> até E5, sem uma ocorrência de "viés". Declara que não há IA no produto, os vieses que a massa
+> fictícia esconde e que os testes não conseguem detectar, as assimetrias entre o que o motor usa
+> e o que a tela mostra, e o uso de IA na própria construção do sistema.
+>
+> **O front deixou de depender da rede** (D60), fechando a pendência que a D50 registrou e que
+> ficou aberta por três sessões. Bootstrap e fontes servidos de `public/assets/vendor`, CSP em
+> `'self'`, zero origens externas em qualquer tela. `dependencias.md` atualizado com as versões
+> travadas do lock e as seis transitivas.
+>
+> **Falta, em ordem de obrigatoriedade:** MER em `_arq/mer/` (8.3.2b, o único item obrigatório que
+> ainda não existe); texto real de `sis_termos`, hoje espaço reservado (11.3); README testado em
+> clone limpo; roteiro dos seis cenários e ensaio; tag, zip e upload antes das 18h de 17/09.
+
 > **Parte do checklist de segurança saiu adiantada em 15/09** (`e0ada5a`, `0c417a6`), por ter
 > aparecido numa revisão de código: CSP conferida por máquina contra o layout (D50), `try_files`
 > no location PHP do nginx, sessão revogada conferida em toda requisição autenticada e não só nas
