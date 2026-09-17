@@ -73,7 +73,7 @@ test.describe('Demonstração', () => {
 
     const demandaTitulo = `Plano de intervenção urbana, área central de Manaus (${selo})`;
     await preencherDevagar(page.getByLabel(/Título/i), demandaTitulo);
-    await page.getByLabel(/O que precisa ser feito/i).fill(
+    await page.getByLabel(/Descrição do escopo/i).fill(
       'Elaboração de plano de intervenção urbana para a área central, com diagnóstico '
       + 'físico-territorial, diretrizes de uso e ocupação do solo e plano de ação por etapas.',
     );
@@ -148,7 +148,7 @@ test.describe('Demonstração', () => {
     await page.goto(`/denuncias/nova?entidade=DEMANDA&alvo=${demandaId}`);
     await legenda(page, 'Denúncia', 'Sempre contra um alvo, nunca genérica');
     await page.getByLabel(/Tipo de denúncia/i).selectOption({ index: 1 });
-    await page.getByLabel(/Descrição/i).fill(
+    await page.getByLabel(/O que aconteceu/i).fill(
       'Registro de demonstração: a demanda descreve escopo que não corresponde ao objeto anunciado.',
     );
     await respirar(page, 1800);
@@ -177,9 +177,9 @@ test.describe('Demonstração', () => {
       await primeira.click();
       await page.waitForURL(/\/admin\/denuncias\/\d+/);
       await legenda(page, 'Moderação', 'Advertir, bloquear, remover ou julgar improcedente, e tudo fica na trilha');
-      await page.getByLabel(/Situação/i).selectOption('EM_ANALISE');
+      await page.getByLabel(/Situação da apuração|^Situação$/i).selectOption('EM_ANALISE');
       await respirar(page, 1800);
-      await page.getByRole('button', { name: /Registrar providência/i }).click();
+      await page.getByRole('button', { name: /Registrar a decisão|Atualizar a decisão|Registrar providência/i }).click();
       await page.waitForLoadState('domcontentloaded');
       await respirar(page, 1500);
     }

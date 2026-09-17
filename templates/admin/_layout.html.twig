@@ -19,6 +19,15 @@
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></span>
                 Visão geral
             </a>
+            {#  Gerir perfis (Anexo I, item 3). O comentário do fim desta lista dizia que o item só
+                entra quando a tela existir, para não virar 404 na demonstração: a tela passou a
+                existir em 17/09, e sem entrada aqui ela seria uma rota que ninguém alcança. Vem
+                antes das denúncias porque responde "quem existe na plataforma", e a moderação é o
+                que se faz depois de saber disso. #}
+            <a href="{{ app_url }}/admin/contas"{% if ativo|default('') == 'contas' %} class="active"{% endif %}>
+                <span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.4"/><path d="M3 20c0-3.3 2.7-5.7 6-5.7s6 2.4 6 5.7"/><path d="M16.2 5.2a3.4 3.4 0 010 5.6"/><path d="M18.4 14.8c1.7.8 2.6 2.5 2.6 5.2"/></svg></span>
+                Contas
+            </a>
             <a href="{{ app_url }}/admin/denuncias"{% if ativo|default('') == 'denuncias' %} class="active"{% endif %}>
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 4h12l-2.5 3L18 10H6"/></svg></span>
                 Denúncias
@@ -48,8 +57,8 @@
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4.5" rx="1.2"/><path d="M5 8.5V19a1.5 1.5 0 001.5 1.5h11A1.5 1.5 0 0019 19V8.5"/><path d="M10 12.5h4"/></svg></span>
                 Lixeira
             </a>
-            {# Usuários e Integrações entram em 15/09. Link para rota inexistente vira 404 na
-               demonstração, então o item só aparece quando a tela existir. #}
+            {# Integrações ainda não tem tela. Link para rota inexistente vira 404 na demonstração,
+               então o item só aparece quando a tela existir. #}
         </nav>
 
         {% set u = usuario() %}

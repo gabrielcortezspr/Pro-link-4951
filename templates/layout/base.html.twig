@@ -143,7 +143,12 @@
     {% block cabecalho %}
     {#  A barra pública de docs/mockups/prolink-busca.html (telas 02 e 03) e da landing: marca, os
         três links da landing, "Entrar" discreto e "Usar a plataforma" preenchido. Os links são
-        âncoras da landing, então fora dela apontam para a landing na âncora certa. #}
+        âncoras da landing, então fora dela apontam para a landing na âncora certa.
+
+        A tela de entrar declara `shell = 'nu'` e não recebe barra nenhuma: o mockup dela põe a
+        marca dentro da própria composição, e uma barra com "Entrar" no topo de uma página que já
+        é a de entrar ofereceria à pessoa o lugar onde ela está. #}
+    {% if shell|default('') != 'nu' %}
     <header class="pl-topnav">
         <div class="in">
             <a class="marca" href="{{ app_url }}"><span class="m" aria-hidden="true"></span>Pro&#8209;Link</a>
@@ -174,6 +179,7 @@
             </div>
         </div>
     </header>
+    {% endif %}
     {% endblock %}
 {% endif %}
 

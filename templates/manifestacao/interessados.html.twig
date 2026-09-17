@@ -3,6 +3,21 @@
 
 {% block titulo %}Interessados · {{ demanda.dem_titulo }} · Pro-Link{% endblock %}
 
+{#
+    O outro lado do cenário 4: quem se interessou por uma demanda minha.
+
+    docs/mockups/prolink-interacoes.html não desenha esta tela (ele traz a confirmação e a
+    denúncia), e o que veio de lá são as peças: a nota neutra `.miniinfo` (aqui `.pl-miniinfo`) e
+    o vocabulário de situação em pílula. A declaração de não-ranking continua em `.pl-nota` em
+    texto corrido, e não dentro da caixa: ela é exigência do item 10.1 e não pode ser lida como
+    nota de rodapé ao lado de uma explicação de funcionamento.
+
+    Falta de dado anotada no relatório: `man_origem` diz se a linha nasceu de uma manifestação do
+    titular ou de um interesse registrado pelo demandante, e não chega aqui (não está em
+    `ManifestacaoRepository::CAMPOS`). Sem ele a tela não pode distinguir as duas origens, e por
+    isso não afirma nenhuma das duas na linha: o rótulo da coluna é "Interessado".
+#}
+
 {#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
 {% set shell = 'app' %}
 {% set ativo = 'demandas' %}
@@ -62,7 +77,11 @@
 {% else %}
     <div class="pl-card">
         <div class="pl-linha-titulo">
-            <h2 class="pl-secao">Quem manifestou interesse</h2>
+            {#  Origem-neutro de propósito: a mesma tabela recebe a manifestação que partiu do
+                titular do perfil e o interesse que você registrou a partir dos compatíveis. Sem
+                `man_origem` na consulta, "quem manifestou" afirmaria a primeira origem para as
+                duas. #}
+            <h2 class="pl-secao">Quem se interessou por esta demanda</h2>
             <span class="cnt">{{ interessados|length }}</span>
             {{ ui.info('O que você recebeu de cada um',
                 'Cada manifestação traz um retrato do perfil do candidato como ele estava no envio, com o que aquele titular tinha aberto para você. Abrir a manifestação marca a data em que você a viu, e essa data aparece para quem manifestou.', 'fim') }}
@@ -130,5 +149,17 @@
             </table>
         </div>
     </div>
+
+    {#  A promessa do retrato, dita na lista e não só dentro de cada registro: quem varre esta
+        tela precisa saber que "Ver perfil" abre o perfil daquele instante, e não o de hoje. Mesma
+        caixa neutra da confirmação e de "Meus interesses". #}
+    <p class="pl-miniinfo mt-3">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></svg>
+        <span>
+            Cada linha abre o perfil congelado no instante do envio, com o que aquele titular
+            tinha aberto para você. O perfil de hoje pode estar diferente, e o que você recebeu
+            não muda com ele.
+        </span>
+    </p>
 {% endif %}
 {% endblock %}

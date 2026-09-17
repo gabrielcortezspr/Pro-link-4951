@@ -15,25 +15,94 @@
 
 {% block conteudo %}
 {% set p = perfil %}
+{% set n_arts = p.arts|length %}
+{% set n_vigentes = p.quadro|filter(m => m.vigente)|length %}
 
-<div class="pl-head">
-    <div class="tit">
-        <h1>{{ p.identidade.razao_social }}</h1>
-        <p class="sub">
-            {% if p.identidade.nome_fantasia %}
-                <span>{{ p.identidade.nome_fantasia }}</span>
-                <span class="pl-sep" aria-hidden="true"></span>
+{#  ------------------------------------------------------------------ a identidade
+
+    O mesmo retrato do perfil do profissional (docs/mockups/prolink-early-career.html, telas 02 e
+    03), com o que muda de verdade entre pessoa física e jurídica: a empresa não tem RNP, e o
+    acervo dela é herdado do quadro técnico em vez de registrado em nome próprio. Vocabulário da
+    seção 13 do prolink.css, o mesmo do feed: retrato tem um desenho só na plataforma. #}
+<section class="pl-card pl-perfil-id">
+    <div class="pl-topo">
+        <span class="pl-av" aria-hidden="true">{{ ui.iniciais(p.identidade.razao_social) }}</span>
+
+        <div class="pl-ident">
+            <h1 class="pl-name">
+                {{ p.identidade.razao_social }}
+                {% if p.identidade.registro_crea %}
+                    <svg class="pl-seal" role="img" aria-label="Registro conferido na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+                {% endif %}
+            </h1>
+
+            <p class="pl-meta">
+                {% if p.identidade.nome_fantasia %}
+                    <span>{{ p.identidade.nome_fantasia }}</span>
+                    <span aria-hidden="true">·</span>
+                {% endif %}
+                <span>Empresa</span>
+                {% if p.identidade.registro_crea %}
+                    <span aria-hidden="true">·</span>
+                    <span>Registro no CREA <span class="mono">{{ p.identidade.registro_crea }}</span></span>
+                {% else %}
+                    <span aria-hidden="true">·</span>
+                    <span>Registro no CREA ainda não validado</span>
+                {% endif %}
+            </p>
+
+            {#  A linha de acervo. O selo verde água só acompanha afirmação sustentada por
+                documento: com a certidão vazia ele afirmaria o contrário do texto. #}
+            <p class="pl-acervo">
+                {% if n_arts > 0 %}
+                    <svg class="pl-mark" role="img" aria-label="Conferidas na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+                    {{ n_arts }} {{ n_arts == 1 ? 'ART na Certidão de Acervo Operacional' : 'ARTs na Certidão de Acervo Operacional' }}
+                {% else %}
+                    <svg class="pl-mark nao" role="img" aria-label="Sem ART na certidão"><use href="#pl-sym-seal-x"/></svg>
+                    Nenhuma ART na Certidão de Acervo Operacional
+                {% endif %}
+                {% if n_vigentes > 0 %}
+                    <span aria-hidden="true">·</span>
+                    <span>{{ n_vigentes }} {{ n_vigentes == 1 ? 'vínculo vigente no quadro técnico' : 'vínculos vigentes no quadro técnico' }}</span>
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="pl-perfil-est">
+            {#  "Perfil visível" e não "Perfil público": cada item tem o seu nível e o padrão de
+                todos é "Só eu", então perfil aberto quer dizer consentimento de pé e registro
+                regular, não que algo esteja público. #}
+            {% if p.eh_dono %}
+                {% if p.perfil_aberto %}
+                    <span class="pl-pill ok" title="O consentimento de exibição está de pé e o registro está regular. O que cada pessoa enxerga continua sendo o que você escolheu item a item.">
+                        <span class="pd" aria-hidden="true"></span>Perfil visível
+                    </span>
+                {% else %}
+                    <span class="pl-pill neutral" title="Ninguém além de você enxerga este perfil agora.">
+                        <span class="pd" aria-hidden="true"></span>Perfil fechado
+                    </span>
+                {% endif %}
+            {% elseif p.identidade.registro_crea %}
+                <span class="pl-pill ok" title="Registro conferido na API oficial do CREA-AM.">
+                    <span class="pd" aria-hidden="true"></span>Registro ativo
+                </span>
             {% endif %}
-            {% if p.identidade.registro_crea %}
-                <svg class="pl-mark" role="img" aria-label="Registro validado na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
-                <span>Registro no CREA <span class="pl-mono">{{ p.identidade.registro_crea }}</span></span>
-            {% else %}
-                <svg class="pl-mark nao" role="img" aria-label="Registro ainda não validado"><use href="#pl-sym-seal-x"/></svg>
-                <span>Registro no CREA ainda não validado</span>
-            {% endif %}
-        </p>
+        </div>
     </div>
-</div>
+</section>
+
+{#  Como se lê esta página, em uma linha: o que o conselho confirma e o que a empresa escreve
+    nunca se confundem. As duas marcas da legenda são as mesmas que aparecem nos blocos. #}
+<p class="pl-legenda-selo">
+    <span>
+        <svg class="pl-mark" aria-hidden="true"><use href="#pl-sym-seal"/></svg>
+        Verificado na API oficial do CREA-AM
+    </span>
+    <span>
+        <svg class="pl-mark nao" aria-hidden="true"><use href="#pl-sym-seal-x"/></svg>
+        Declarado pela empresa, sem verificação da plataforma
+    </span>
+</p>
 
 {% if p.eh_dono and p.validacao_pendente %}
     <div class="alert alert-warning d-flex flex-wrap gap-3 align-items-center" role="alert">
@@ -79,14 +148,33 @@
                 {{ ui.info('De onde vem este acervo',
                     'A empresa não registra ART. O acervo operacional é o das ARTs registradas pelos profissionais do quadro técnico, e a empresa responde por elas enquanto o vínculo estiver vigente. Vínculo encerrado não herda nada.') }}
                 {% if p.arts is not empty %}
-                    <span class="cnt">{{ p.arts|length }} {{ p.arts|length == 1 ? 'ART na Certidão de Acervo Operacional' : 'ARTs na Certidão de Acervo Operacional' }}</span>
+                    <span class="cnt">{{ n_arts }} {{ n_arts == 1 ? 'ART na Certidão de Acervo Operacional' : 'ARTs na Certidão de Acervo Operacional' }}</span>
                 {% endif %}
             </div>
 
+            {#  Certidão vazia é estado legítimo e sinalizado, nunca escondido. Para o dono o
+                quadro traz a saída; para quem visita, o mesmo fato sem adjetivo. #}
             {% if p.arts is empty %}
-                <p class="pl-nota mb-0">
-                    Nenhuma ART no acervo ainda.
-                </p>
+                <div class="pl-vazio">
+                    <p class="t">Nenhuma ART no acervo ainda</p>
+                    <p class="s">
+                        {% if p.eh_dono %}
+                            O acervo operacional é lido da Certidão de Acervo Operacional na API
+                            oficial do CREA-AM, e não é preenchido à mão. Ele começa a existir
+                            quando houver vínculo vigente com profissional que tenha ART
+                            registrada.
+                        {% else %}
+                            Esta empresa ainda não tem ART herdada do quadro técnico, ou escolheu
+                            não exibir nenhuma.
+                        {% endif %}
+                    </p>
+                    {% if p.eh_dono %}
+                        <form class="a" method="post" action="{{ app_url }}/perfil/validar-registro">
+                            {{ form.csrf() }}
+                            <button type="submit" class="pl-btn">Importar quadro técnico e acervo</button>
+                        </form>
+                    {% endif %}
+                </div>
             {% else %}
                 {% for art in p.arts %}
                     {{ ui.art(art, {nome: art.profissional, rnp: art.rnp}) }}
@@ -107,25 +195,65 @@
                 </div>
                 <p class="pl-nota">Nada fica visível sem você escolher. O padrão de tudo é <strong>Só eu</strong>.</p>
 
+                {#  A linha do mockup (tela 03 de prolink-profissional.html): o item à esquerda, com
+                    uma segunda linha dizendo o que ele é, e o controle à direita. O interruptor do
+                    mockup tem duas posições e o nível tem três, então o controle continua sendo o
+                    <select>, escrito à mão para caber a segunda linha. O par `for`/`id` continua
+                    ligado e a descrição entra por aria-describedby. #}
+                {#  Descrição curta de propósito: a coluna do painel tem pouco mais de 160px, e
+                    frase longa aqui é frase cortada com reticências. #}
+                {% set descricao_do_campo = {
+                    'EMAIL':    'Contato da conta',
+                    'TELEFONE': 'Contato da conta',
+                    'RESUMO':   'Texto escrito pela empresa'
+                } %}
+
                 <form method="post" action="{{ app_url }}/perfil/visibilidade">
                     {{ form.csrf() }}
 
-                    <fieldset class="mb-3">
-                        <legend class="form-label">Dados do perfil</legend>
+                    <fieldset class="pl-vis">
+                        <legend class="pl-legenda">Dados do perfil</legend>
                         {% for campo in p.campos_do_perfil %}
                             {% set chave = 'PERFIL:-:' ~ campo %}
-                            {{ form.selecao('nivel[' ~ chave ~ ']', campo|replace({'_': ' '})|capitalize,
-                                niveis_possiveis, p.niveis[chave]|default('PRIVADO'), null, {}, false) }}
+                            {% set id = 'vis-campo-' ~ loop.index %}
+                            <div class="ln">
+                                <div class="tx">
+                                    <label class="vt" for="{{ id }}">{{ campo|rotulo_campo }}</label>
+                                    <span class="vs" id="{{ id }}-ajuda">{{ descricao_do_campo[campo]|default('Dado do perfil da empresa') }}</span>
+                                </div>
+                                <select class="form-select" name="nivel[{{ chave }}]" id="{{ id }}"
+                                        aria-describedby="{{ id }}-ajuda">
+                                    {% for valor, texto in niveis_possiveis %}
+                                        <option value="{{ valor }}"{% if p.niveis[chave]|default('PRIVADO') == valor %} selected{% endif %}>{{ texto }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                         {% endfor %}
                     </fieldset>
 
                     {% if p.arts is not empty %}
-                        <fieldset class="mb-3">
-                            <legend class="form-label">Cada ART do acervo, uma a uma</legend>
+                        <fieldset class="pl-vis">
+                            <legend class="pl-legenda">Cada ART do acervo, uma a uma</legend>
                             {% for art in p.arts %}
                                 {% set chave = 'ART:' ~ art.id ~ ':-' %}
-                                {{ form.selecao('nivel[' ~ chave ~ ']', 'ART ' ~ art.numero,
-                                    niveis_possiveis, p.niveis[chave]|default('PRIVADO'), null, {}, false) }}
+                                {% set id = 'vis-art-' ~ art.id %}
+                                <div class="ln">
+                                    <div class="tx">
+                                        <label class="vt unidade" for="{{ id }}">
+                                            ART {{ art.numero }}
+                                            {% if art.selo_confere %}
+                                                <svg class="pl-mark" role="img" aria-label="Conferida na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+                                            {% endif %}
+                                        </label>
+                                        <span class="vs" id="{{ id }}-ajuda">{{ art.objeto }}{% if art.contratante %} · {{ art.contratante }}{% endif %}</span>
+                                    </div>
+                                    <select class="form-select" name="nivel[{{ chave }}]" id="{{ id }}"
+                                            aria-describedby="{{ id }}-ajuda">
+                                        {% for valor, texto in niveis_possiveis %}
+                                            <option value="{{ valor }}"{% if p.niveis[chave]|default('PRIVADO') == valor %} selected{% endif %}>{{ texto }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
                             {% endfor %}
                         </fieldset>
                     {% endif %}

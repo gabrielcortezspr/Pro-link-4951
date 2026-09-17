@@ -2558,9 +2558,6 @@ body > .pl-app { flex: 1 0 auto; min-width: 0; }
 /* Mesma correção do `.pl-lp`: o `main` perde a medida do `.pl-wrap` e cada metade pinta até a
    borda da janela. O respiro volta dentro de cada painel. */
 .pl-ent { width: 100%; max-width: none; padding: 0; display: flex; flex-direction: column; }
-/* Aviso de sessão chega antes da faixa e precisa de medida própria, senão encosta nas duas bordas
-   da janela. Mesma decisão de `.pl-lp > .alert`. */
-.pl-ent > .alert { width: calc(100% - 2 * clamp(20px, 4vw, 56px)); margin: 18px auto 0; }
 .pl-ent-grade { flex: 1 1 auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: stretch; }
 @media (max-width: 900px) { .pl-ent-grade { grid-template-columns: minmax(0, 1fr); } }
@@ -2580,8 +2577,13 @@ body > .pl-app { flex: 1 0 auto; min-width: 0; }
 .pl-ent-lado .tese .v { background: linear-gradient(90deg, var(--pl-blue), var(--pl-blue-2));
     -webkit-background-clip: text; background-clip: text; color: transparent; }
 .pl-ent-lado .sub { color: #aec2e0; font-size: 16px; line-height: 1.6; max-width: 46ch; margin: 0; }
-/* O selo da landing, com o par do selo da casa: fundo verde água claro e a marca em verde água. */
-.pl-ent-selo { display: inline-flex; align-items: center; gap: 8px; margin: 22px 0 0;
+/* O selo da landing, com o par do selo da casa: fundo verde água claro e a marca em verde água.
+   Fecha o painel, e não abre a lista: colado acima dos itens de confirmação ele virava o primeiro
+   item de uma lista de três, com um ícone diferente dos outros dois. Aqui ele é a garantia que
+   assina o bloco, separada por uma linha fina, que é o mesmo recurso da faixa de provas da
+   landing (`.pl-lp-proof`), no mesmo tom. */
+.pl-ent-selo { display: flex; align-items: center; gap: 8px; max-width: 46ch;
+    margin: 26px 0 0; padding-top: 20px; border-top: 1px solid rgba(120,160,220,.16);
     font-size: 13px; color: #aec2e0; }
 .pl-ent-escudo { flex: none; }
 .pl-ent-escudo .corpo { fill: var(--pl-seal-bg); }
@@ -2589,7 +2591,7 @@ body > .pl-app { flex: 1 0 auto; min-width: 0; }
     stroke-linecap: round; stroke-linejoin: round; }
 /* Os itens de confirmação, com o mesmo símbolo da faixa "Para quem". Sobre o azul os dois tons do
    símbolo trocam: o disco vira o azul de dado a 22% e a marca vira o azul claro da sidebar. */
-.pl-ent-lista { list-style: none; margin: 26px 0 0; padding: 0; max-width: 46ch; }
+.pl-ent-lista { list-style: none; margin: 24px 0 0; padding: 0; max-width: 46ch; }
 .pl-ent-lista li { display: flex; gap: 10px; align-items: flex-start; font-size: 14px;
     line-height: 1.5; color: #aec2e0; margin-bottom: 12px; }
 .pl-ent-lista li:last-child { margin-bottom: 0; }
@@ -2675,7 +2677,7 @@ body > .pl-app { flex: 1 0 auto; min-width: 0; }
    registro, e em tinta cheia, porque é ela que diz o tamanho do efeito de um bloqueio. */
 .pl-contas td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600;
     color: var(--pl-ink); }
-.pl-contas td.acao { text-align: right; }
+.pl-contas td.acao, .pl-contas thead th.acao { text-align: right; }
 /* A pílula do estado ganha a linha inteira para a trava de entrada assentar embaixo dela. */
 .pl-contas td .pl-pill { display: inline-flex; }
 
@@ -2704,9 +2706,705 @@ body > .pl-app { flex: 1 0 auto; min-width: 0; }
    iguais entre si, pela mesma razão da seção 11. */
 .pl-filtros .campo-termo    { width: 280px; }
 .pl-filtros .campo-perfil   { width: 196px; }
-.pl-filtros .campo-situacao { width: 176px; }
+.pl-filtros .campo-situacao { width: 202px; }
 @media (max-width: 640px) {
     .pl-filtros .campo-termo, .pl-filtros .campo-perfil, .pl-filtros .campo-situacao { width: 100%; }
     .pl-filtros-acoes { width: 100%; }
     .pl-filtros-acoes .pl-btn { flex: 1; }
+}
+
+/* ---------- 33. As telas de interesse, no porte de docs/mockups/prolink-interacoes.html -------
+   Cobre o cenário 4 (confirmar, minhas, interessados, ver). Duas peças vieram do mockup e não
+   existiam na casa:
+
+   a) `.pl-miniinfo`, o `.miniinfo` de lá: a nota neutra em caixa, com ícone, que o mockup usa
+      para dizer na tela o que a plataforma faz no instante do clique (o retrato é capturado
+      agora; o envio vai por e-mail e entra no histórico). Não é alerta e não é erro, então não
+      tem cor de estado: é o fundo da área de conteúdo dentro do card branco, como `.pl-retrato`,
+      do qual herda a medida. A diferença entre os dois é o assunto, não a forma: `.pl-retrato`
+      data um conteúdo já congelado, `.pl-miniinfo` antecipa o que ainda vai acontecer.
+
+   b) `.pl-fatos`, a fileira "Localização: … Contrato: …" do cartão da demanda no mockup. Rótulo
+      em tinta cheia e valor em cinza, na mesma linha, quebrando em duas quando a janela aperta.
+      É diferente de `.pl-meta`, que é uma linha de identificação separada por pontos e sem
+      rótulo: aqui cada fato precisa do nome dele, porque "Manaus, AM" e "Prestação de serviço"
+      não se explicam pela posição.
+
+   Nada aqui usa --pl-seal nem --pl-accent: nota não é selo de verificação e não é ação. */
+
+.pl-miniinfo { display: flex; align-items: flex-start; gap: 9px; margin: 0 0 10px;
+    padding: 11px 13px; background: var(--pl-app); border: 1px solid var(--pl-border-2);
+    border-radius: 10px; font-size: 12.5px; line-height: 1.6; color: var(--pl-muted); }
+.pl-miniinfo:last-child { margin-bottom: 0; }
+.pl-miniinfo > svg { width: 15px; height: 15px; flex: none; margin-top: 3px; color: var(--pl-faint); }
+.pl-miniinfo b { color: var(--pl-ink); font-weight: 600; }
+/* Medida de leitura própria: dentro de `.pl-content.leitura` a caixa já é estreita, mas na tela
+   larga (interessados) uma nota de 160 caracteres atravessaria 1440px inteiros. */
+.pl-miniinfo > span { max-width: 92ch; }
+
+.pl-fatos { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 0 0 14px;
+    font-size: 12.5px; color: var(--pl-muted); }
+.pl-fatos > span { min-width: 0; }
+.pl-fatos b { color: var(--pl-ink); font-weight: 600; margin-right: 4px; }
+
+/* Num aparelho de 390px os fatos empilham: lado a lado, "Prestação de serviço (PJ)" quebra no
+   meio da palavra e a linha perde o par rótulo-valor. */
+@media (max-width: 560px) {
+    .pl-fatos { flex-direction: column; gap: 5px; }
+}
+
+/* ---------- 34. As telas de demanda: o painel, o formulário de publicar e o detalhe ----------
+   Porte de docs/mockups/prolink-empresa-1.html (tela 02, "Publicar Demanda", e tela 03, "Minhas
+   Demandas") e do quadro vazio de docs/mockups/prolink-estados-criticos.html.
+
+   Cobre quatro coisas, e nenhuma delas é cor nova:
+
+   a) a tabela de largura fixa com célula que corta em reticências e coluna de contagem centrada,
+      que é o `.tfixed` / `.ttrunc` / `.tcenter` do mockup;
+   b) o caminho do rascunho, que o mockup não desenha porque lá a demanda nasce publicada. Aqui
+      ela nasce rascunho por decisão de projeto (sem código da tabela não há o que compatibilizar),
+      e o preço de uma decisão dessas é ter de mostrar o caminho inteiro na tela onde ele começa;
+   c) a fileira de campos do `.formgrid3`, com largura por campo em vez de três colunas iguais:
+      a UF tem duas letras e não ocupa o mesmo que um seletor de rótulo longo;
+   d) a nota de modo leitura da demanda encerrada (`.dreadonly`) e o quadro tracejado de lista
+      filtrada sem resultado (`.pl-empty` dos estados críticos). */
+
+/* ---- a) A tabela do painel do demandante ----
+   Largura fixa só a partir de 992px. Abaixo disso a tabela volta ao cálculo automático e rola
+   dentro do próprio quadro, que é o que a seção 25 já resolveu para 390px: largura fixa somada a
+   `min-width: 190px` na coluna do assunto seria uma regra brigando com a outra. Pelo mesmo motivo
+   o corte em reticências mora dentro da media query: `white-space: nowrap` numa tabela de largura
+   automática não corta nada, só empurra a tabela para o lado. */
+@media (min-width: 992px) {
+    .pl-table.fixa { table-layout: fixed; }
+    .pl-table.fixa .trunc { display: block; max-width: 100%; overflow: hidden;
+        text-overflow: ellipsis; white-space: nowrap; }
+}
+.pl-table th.cen, .pl-table td.cen { text-align: center; font-variant-numeric: tabular-nums; }
+/* A contagem que abre a lista contada continua sendo link, e link dentro de coluna centrada
+   precisa do mesmo alvo de clique que o número solto ao lado. */
+.pl-table td.cen .lk { color: var(--pl-data); font-weight: 600; text-decoration: none; }
+.pl-table td.cen .lk:hover { text-decoration: underline; }
+
+/* ---- b) O caminho do rascunho ----
+   Três passos numerados, o corrente em tinta cheia e os outros dois em cinza: a pessoa precisa
+   saber, antes de preencher, que salvar não publica. É lista ordenada de verdade, e não três
+   divs, porque a ordem é o conteúdo. O traço entre um passo e outro é decorativo e sai do fluxo
+   de leitura pelo `aria-hidden` do template. */
+.pl-passos { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    list-style: none; margin: 0 0 18px; padding: 0; }
+.pl-passos > li { display: flex; align-items: center; gap: 9px; font-size: 12.5px;
+    color: var(--pl-muted); min-width: 0; }
+.pl-passos .n { display: grid; place-items: center; flex: none; width: 22px; height: 22px;
+    border-radius: 50%; background: var(--pl-app); border: 1px solid var(--pl-border);
+    font-size: 11.5px; font-weight: 600; color: var(--pl-faint);
+    font-variant-numeric: tabular-nums; }
+.pl-passos > li.atual { color: var(--pl-ink); font-weight: 600; }
+.pl-passos > li.atual .n { background: var(--pl-blue-100); border-color: #D3E3FB; color: #215ac2; }
+.pl-passos .li { width: 22px; height: 1px; background: var(--pl-border); flex: none; }
+
+/* ---- c) A fileira de campos ----
+   O `.formgrid3` do mockup com largura por campo: município é texto livre, UF são duas letras,
+   e os dois seletores pedem a largura do rótulo mais longo da lista. Em 900px vira duas colunas,
+   e em 620px uma só. `.mb-3` zerado porque o espaçamento aqui é o `gap` da grade, não a margem
+   que cada macro de campo traz. */
+.pl-form-linha { display: grid; grid-template-columns: minmax(0, 1.5fr) 128px minmax(0, 1.4fr);
+    gap: 0 14px; }
+.pl-form-linha.dois { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+@media (max-width: 900px) { .pl-form-linha { grid-template-columns: minmax(0, 1fr) 128px; }
+    .pl-form-linha > *:last-child { grid-column: 1 / -1; } }
+@media (max-width: 620px) { .pl-form-linha, .pl-form-linha.dois { grid-template-columns: minmax(0, 1fr); }
+    .pl-form-linha > *:last-child { grid-column: auto; } }
+
+/* ---- d) Os dois estados desenhados ----
+   Modo leitura: nota, e não banner. Esticada de ponta a ponta numa tela de 1400px ela teria o
+   peso de um alerta, e o fato é o oposto disso — a demanda está inteira, só não aceita mais
+   edição. É a mesma razão pela qual `.pl-somente-leitura` não podia ser esticada (seção 11). */
+.pl-leitura-aviso { align-self: flex-start; max-width: 100%; margin: 0;
+    font-size: 12px; color: var(--pl-muted); background: var(--pl-border-2);
+    border-radius: 8px; padding: 8px 12px; }
+
+/* Lista que existe mas o filtro não achou nada: quadro tracejado dentro do card, e não a tabela
+   com zero linhas. Tracejado, e não sólido, porque o vazio aqui é transitório (basta limpar o
+   filtro), ao contrário do estado vazio de tela inteira, que é o começo de tudo. */
+.pl-vazio.tracejado { padding: 30px 20px; border: 1px dashed var(--pl-border);
+    border-radius: 14px; background: var(--pl-app); }
+.pl-vazio.tracejado .t { font-size: 14px; }
+.pl-vazio.tracejado .s { font-size: 12.5px; }
+
+/* ---------- 34, continuação: as três medidas que faltavam às telas de demanda ----------
+   Separada do bloco acima porque foi escrita depois de as telas existirem, e o arquivo está
+   sendo acrescentado por mais de uma mão ao mesmo tempo: reescrever a seção para caber três
+   regras apagaria trabalho alheio em silêncio. */
+
+/* As colunas do painel do demandante, na proporção do `colgroup` do mockup. Em classe e não em
+   `style`, porque proporção de coluna é desenho da tabela, não dado da página: as duas telas que
+   usam .pl-table com esta grade precisam responder igual. As larguras só valem com
+   `table-layout: fixed`, portanto a partir de 992px; abaixo disso a tabela rola (seção 25). */
+.pl-table.fixa .c-assunto  { width: 32%; }
+.pl-table.fixa .c-regime   { width: 15%; }
+.pl-table.fixa .c-data     { width: 13%; }
+.pl-table.fixa .c-situacao { width: 14%; }
+.pl-table.fixa .c-conta    { width: 11%; }
+.pl-table.fixa .c-acao     { width: 15%; }
+
+/* O h1 de uma tela cujo assunto inteiro mora dentro de um card: é o título da página, e não pode
+   ter o tamanho de um título de seção. São os 19px/700 do quadro "Nova demanda" do mockup. */
+.pl-secao.tela { font-size: 19px; font-weight: 700; }
+
+/* Rodapé de formulário alinhado à direita, como no quadro de publicar demanda: a saída à
+   esquerda, a ação que compromete encostada na borda onde o olho termina de ler o formulário. */
+.pl-acoes-form.fim { justify-content: flex-end; }
+
+/* ---------- 32. As duas telas de perfil: o retrato, a legenda de procedência e o painel de
+   visibilidade -----------------------------------------------------------------------------
+   Porte de docs/mockups/prolink-early-career.html (telas 02 e 03) e da tela 03 de
+   docs/mockups/prolink-profissional.html para `perfil/index.html.twig` e `perfil/empresa.html.twig`.
+
+   A unidade de leitura da tela é a PESSOA (ou a empresa) e a procedência de cada coisa que ela
+   mostra. Primário é o retrato: nome, registro e quanto acervo verificado existe. Secundário são
+   os blocos de conteúdo, na ordem que diz quem sustenta quem — primeiro o que o conselho confirma,
+   depois o que a pessoa declara. Terciário é o controle do titular, na coluna do painel.
+
+   O que esta seção acrescenta, e por quê:
+
+   a) **Retrato** (`.pl-perfil-id`). O cabeçalho era `<h1>` mais uma linha de texto: o nome tinha o
+      mesmo peso visual de qualquer título de tela e o acervo não aparecia até a metade da página.
+      O mockup abre com marca de pessoa, nome selado, registro e a linha "N ARTs verificadas". O
+      vocabulário (`pl-topo`, `pl-av`, `pl-ident`, `pl-name`, `pl-meta`, `pl-acervo`) é o da seção
+      13, portado do mesmo mockup para o feed: só a escala muda, porque aqui o nome é o `<h1>` da
+      página e não o do candidato em foco no palco.
+
+   b) **Perfil em construção** (`.pl-construcao`, `.pl-apoio`). Estado legítimo e sinalizado, nunca
+      escondido (o edital pede inclusão de quem está começando). Marca neutra com o ícone de obra
+      do mockup, e nunca `warn` nem `danger`: início de carreira não é defeito. A copy de apoio é
+      exclusiva do dono, como o mockup manda; quem visita recebe o fato e nada mais.
+
+   c) **Legenda de procedência** (`.pl-legenda-selo`). É a tese do projeto em uma linha. Usa as
+      duas MARCAS que a tela usa de verdade, e não dois pontos coloridos: a legenda tem de ensinar
+      o símbolo que a pessoa vai encontrar três parágrafos abaixo.
+
+   d) **Painel de visibilidade** (`.pl-vis`). O `form.selecao` empilhado dava uma torre de rótulo e
+      controle em que "ART AM20269998821" era tudo que se sabia da ART cuja exposição estava sendo
+      decidida. A linha do mockup põe o item à esquerda, com a segunda linha dizendo qual é, e o
+      controle à direita. O controle continua sendo `<select>` e não interruptor, porque o nível
+      tem três estados.
+
+   Escala: o painel foi desenhado para o acervo típico do dado fictício (2 a 6 ARTs). A partir de
+   umas 25 linhas a coluna do painel vira uma rolagem longa e o certo passa a ser paginar ou
+   agrupar por ano; não há dado assim hoje. */
+
+/* ---- O retrato ---- */
+.pl-perfil-id { margin-bottom: 14px; }
+/* A marca de pessoa em escala de cabeçalho de página: a de 62px da seção 13 foi medida contra o
+   nome de 30px do palco do feed, e ao lado de um h1 de 26px ela passa a competir com o nome. */
+.pl-perfil-id .pl-av { width: 54px; height: 54px; border-radius: 16px; font-size: 18px; }
+.pl-perfil-id .pl-name { font-size: 26px; }
+.pl-perfil-id .pl-meta { margin-top: 5px; }
+.pl-perfil-id .pl-acervo { margin-top: 9px; flex-wrap: wrap; gap: 7px 10px; }
+/* O selo da conta fica no alto, alinhado com o nome, e não no meio da altura do retrato. */
+.pl-perfil-est { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* ---- Perfil em construção ---- */
+/* Mesma caixa da `.pl-pill.neutral`, com o ícone de obra do mockup no lugar do ponto: a marca
+   precisa ser reconhecível ao lado da contagem de ARTs, que é texto corrido. */
+.pl-construcao { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px;
+    font-weight: 600; color: var(--pl-muted); background: #EEF0F3; border-radius: 20px;
+    padding: 4px 10px; white-space: nowrap; }
+.pl-construcao svg { width: 13px; height: 13px; flex: none; }
+/* A copy de apoio. Faixa no fundo da área de conteúdo, não um card dentro do card: ela é um
+   recado ao dono, e transformá-la em objeto próprio a faria concorrer com o acervo. */
+.pl-apoio { display: flex; align-items: flex-start; gap: 11px; margin-top: 16px; padding: 13px 15px;
+    background: var(--pl-app); border: 1px solid var(--pl-border-2); border-radius: 12px; }
+.pl-apoio > .ic { width: 19px; height: 19px; flex: none; margin-top: 1px; color: var(--pl-muted); }
+.pl-apoio p { margin: 0; font-size: 13px; line-height: 1.55; color: var(--pl-ink); max-width: 72ch; }
+.pl-apoio .act { margin-top: 10px; }
+
+/* ---- A legenda de procedência ---- */
+.pl-legenda-selo { display: flex; flex-wrap: wrap; gap: 6px 20px; margin: 0 0 18px;
+    font-size: 11.5px; color: var(--pl-muted); }
+.pl-legenda-selo > span { display: inline-flex; align-items: center; gap: 7px; }
+.pl-legenda-selo .pl-mark { width: 14px; height: 14px; vertical-align: 0; }
+
+/* ---- O painel de visibilidade ---- */
+.pl-vis { border: 0; padding: 0; margin: 0 0 18px; min-width: 0; }
+.pl-vis:last-of-type { margin-bottom: 20px; }
+/* 168px é a medida de "Qualquer pessoa", o mais longo dos três níveis, com o chevron e o padding
+   do <select> nativo. Abaixo disso o Chrome corta a palavra em "Qualquer pesso". */
+.pl-vis .ln { display: grid; grid-template-columns: minmax(0, 1fr) 168px; align-items: center;
+    gap: 6px 12px; padding: 11px 0; border-bottom: 1px solid var(--pl-border-2); }
+.pl-vis .ln:last-child { border-bottom: 0; padding-bottom: 0; }
+.pl-vis .tx { min-width: 0; overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
+/* O rótulo é o conteúdo que se lê, e não um rótulo de campo de formulário: fica em tinta cheia,
+   um degrau acima dos 12,5px do `.form-label`. O selo cola nele, como em toda a interface. */
+.pl-vis .vt { display: flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 600;
+    color: var(--pl-ink); margin: 0; cursor: pointer; overflow-wrap: anywhere; }
+/* O número da ART é uma unidade: "ART AM20269999008" quebrado em duas linhas parece dois itens
+   quando a linha de baixo já é a descrição. Um degrau de fonte compra os 20px que faltavam para
+   ele caber inteiro ao lado do controle. Título de experiência continua quebrando, porque lá o
+   texto é livre e pode ter dez palavras. */
+.pl-vis .vt.unidade { white-space: nowrap; font-size: 13px; }
+/* A segunda linha responde "qual é este item?". Duas linhas e corta: objeto de ART somado ao nome
+   do contratante passa de 90 caracteres, e a linha do painel não é o lugar de lê-lo inteiro. */
+.pl-vis .vs { font-size: 12px; line-height: 1.45; color: var(--pl-muted); overflow: hidden;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.pl-vis .form-select { font-size: 13px; }
+
+/* ---- Os dois perfis num aparelho de 390px ---- */
+@media (max-width: 640px) {
+    /* O retrato empilha: a marca de pessoa ao lado de um nome longo em 390px deixava o nome em
+       quatro linhas de duas palavras. O selo da conta vai para baixo do nome, pela mesma razão. */
+    .pl-perfil-id .pl-topo { flex-wrap: wrap; gap: 12px; }
+    .pl-perfil-id .pl-name { font-size: 21px; }
+    .pl-perfil-est { margin-left: 0; width: 100%; }
+    /* O controle passa a ocupar a linha inteira abaixo do item: 168px de `select` ao lado de um
+       objeto de ART nesta largura deixa as duas colunas ilegíveis. */
+    .pl-vis .ln { grid-template-columns: minmax(0, 1fr); }
+    .pl-vis .form-select { width: 100%; }
+}
+
+/* ---------- 35. Moderação e telas de exceção: a fila, a decisão, e as cinco respostas de erro ---
+   Três assuntos, todos do lado "o que a plataforma faz quando algo dá errado":
+
+   a) **A fila de denúncias e a tela de decisão.** A fila reaproveita a mecânica de log da seção 12
+      (cabeçalho de dia, hora monoespaçada, hover de linha), porque ela e a trilha respondem a mesma
+      pergunta em tempos diferentes. O que esta seção acrescenta são as medidas de coluna próprias,
+      o trilho âmbar do que ainda espera decisão humana, e a lista de efeitos que põe ao lado do
+      campo o que cada providência faz de verdade.
+
+   b) **A evidência da denúncia**, que é texto escrito por terceiro e por isso nunca vira âncora:
+      ela tem caixa própria, monoespaçada, com quebra em qualquer ponto, porque endereço longo sem
+      espaço estourava a coluna do detalhe.
+
+   c) **A tela de exceção** (401, 403, 404, 419, 500). Era um quadro estreito centrado com mais de
+      mil pixels vazios dos dois lados. Aqui a página inteira é a composição, na gramática da
+      família de entrada da seção 31: painel azul com o degradê radial do herói à esquerda, painel
+      branco com a explicação e a saída à direita. Nenhum valor novo, nenhum token novo.
+
+      A cor do ponto de estado segue a ficha de docs/mockups/prolink-estados-criticos.html, e é a
+      única diferença visual entre os cinco casos: azul para o que é recuperável sem culpa (401,
+      404), âmbar para o transitório (419, formulário expirado), vermelho para operação impedida e
+      falha (403, 500). O verde água não aparece aqui: ele afirma verificação pela API, e não há o
+      que verificar numa tela de erro. */
+
+/* ---- a) A fila de moderação ---- */
+/* A tabela é a de log da seção 12, com as medidas desta tela. 1100px de mínimo: abaixo disso o
+   quadro rola dentro de si, e nenhuma coluna vira uma tira de duas letras. */
+.pl-fila { min-width: 1100px; }
+.pl-fila col.c-tipo     { width: 190px; }
+.pl-fila col.c-autor    { width: 200px; }
+.pl-fila col.c-situacao { width: 176px; }
+.pl-fila col.c-acao     { width: 120px; }
+
+.pl-fila .tt { display: block; font-size: 13px; font-weight: 600; color: var(--pl-ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-fila .sub { display: block; margin-top: 2px; font-size: 11px; color: var(--pl-faint);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-fila .tipo { display: block; font-size: 12.5px; color: var(--pl-ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A pílula ganha a linha inteira para a providência assentar embaixo dela. */
+.pl-fila td .pl-pill { display: inline-flex; }
+.pl-fila td.acao, .pl-fila thead th.acao { text-align: right; }
+
+/* Trilho âmbar no que ainda espera decisão humana. Qualifica o estado do trabalho, nunca o alvo:
+   é a diferença entre sinalizar fila e julgar pessoa (item 10.1). Âmbar e não vermelho porque
+   denúncia pendente não é erro, é trabalho na mesa. */
+.pl-fila tbody tr.aguarda td:first-child { box-shadow: inset 2px 0 0 var(--pl-warn); }
+
+/* ---- a) A decisão sobre uma denúncia ---- */
+/* A linha de procedência do alvo, no topo do detalhe. Mesmo desenho da sessão do motor, que é a
+   outra tela de registro único do painel. */
+.pl-det-topo .meta { margin: 6px 0 0; display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+    font-size: 12.5px; color: var(--pl-muted); }
+
+/* O que cada providência faz, ao lado do campo que a escolhe. Um bloco dividido em linhas, e não
+   um cartão por item: quatro cartões dentro de um card seriam caixa dentro de caixa dentro de
+   caixa, que é exatamente o ruído que o design system proíbe. */
+.pl-efeitos { list-style: none; margin: 0 0 18px; padding: 0; background: var(--pl-app);
+    border: 1px solid var(--pl-border-2); border-radius: 10px; overflow: hidden; }
+.pl-efeitos li { padding: 10px 14px; border-bottom: 1px solid var(--pl-border-2);
+    font-size: 12.5px; line-height: 1.55; color: var(--pl-muted); }
+.pl-efeitos li:last-child { border-bottom: 0; }
+.pl-efeitos b { display: block; font-size: 12.5px; font-weight: 600; color: var(--pl-ink);
+    margin-bottom: 1px; }
+/* A única providência com efeito imediato no sistema ganha o trilho, para não ficar
+   indistinguível das três que só registram o desfecho. */
+.pl-efeitos li.forte { box-shadow: inset 2px 0 0 var(--pl-warn); }
+
+/* ---- b) A evidência indicada por quem denunciou ---- */
+/* Quebra em qualquer ponto: endereço longo sem espaço estourava a coluna do detalhe. O seletor
+   repete `:last-child` porque a regra de .pl-descricao que ele precisa vencer também o tem. */
+.pl-descricao .pl-evidencia, .pl-descricao .pl-evidencia:last-child {
+    margin: 0; padding: 9px 12px; background: var(--pl-app); border: 1px solid var(--pl-border-2);
+    border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px; line-height: 1.6; color: var(--pl-ink);
+    white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* ---- c) A tela de exceção, na faixa inteira ---- */
+/* Mesma correção do .pl-ent: o main perde a medida do .pl-wrap e cada metade pinta até a borda da
+   janela. O respiro volta dentro de cada painel. */
+.pl-erro { width: 100%; max-width: none; padding: 0; display: flex; flex-direction: column; }
+.pl-erro-grade { flex: 1 1 auto; display: grid;
+    grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr); align-items: stretch; }
+@media (max-width: 900px) { .pl-erro-grade { grid-template-columns: minmax(0, 1fr); } }
+
+.pl-erro-lado { min-width: 0; color: #ccdcf1; display: flex; flex-direction: column;
+    justify-content: center; padding: clamp(34px, 5vw, 76px) clamp(22px, 4.5vw, 72px);
+    background: radial-gradient(60% 55% at 82% -10%, var(--pl-navy-2) 0%, transparent 55%),
+                var(--pl-navy); }
+/* O número é o dado da tela, e tem o porte de dado. Tabular para 401 e 500 ocuparem a mesma caixa. */
+.pl-erro-lado .cod { font-family: var(--pl-display); font-weight: 700; color: #fff;
+    font-size: clamp(74px, 9.5vw, 148px); line-height: .88; letter-spacing: -.05em; margin: 0;
+    font-variant-numeric: tabular-nums; }
+.pl-erro-lado .olho { display: flex; align-items: center; gap: 9px; margin: 20px 0 0;
+    font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: #8fa8cc; }
+.pl-erro-lado .olho::before { content: ""; width: 8px; height: 8px; border-radius: 50%; flex: none;
+    background: var(--pl-blue-2); box-shadow: 0 0 0 4px rgba(46, 107, 230, .22); }
+.pl-erro-lado.expirado .olho::before { background: var(--pl-warn);
+    box-shadow: 0 0 0 4px rgba(232, 163, 23, .24); }
+.pl-erro-lado.recusa .olho::before, .pl-erro-lado.falha .olho::before { background: var(--pl-danger);
+    box-shadow: 0 0 0 4px rgba(226, 74, 74, .24); }
+.pl-erro-lado .sub { margin: 16px 0 0; max-width: 42ch; font-size: 14px; line-height: 1.6;
+    color: #aec2e0; }
+.pl-erro-lado .pl-mono { color: #fff; }
+
+.pl-erro-painel { min-width: 0; background: var(--pl-card); display: flex; align-items: center;
+    padding: clamp(30px, 4vw, 60px) clamp(22px, 3.4vw, 56px); }
+.pl-erro-caixa { width: 100%; max-width: 62ch; }
+.pl-erro-caixa h1 { font-family: var(--pl-display); font-weight: 700;
+    font-size: clamp(24px, 2.6vw, 32px); letter-spacing: -.025em; margin: 0 0 14px;
+    text-wrap: balance; }
+/* O que houve, em tinta cheia. O que o sistema já fez, um degrau abaixo. A ordem é a da ficha de
+   estados críticos, e o contraste entre as duas é o que faz a ordem ser lida. */
+.pl-erro-caixa .houve { font-size: 15px; line-height: 1.65; color: var(--pl-ink); margin: 0 0 14px; }
+.pl-erro-caixa .fez { font-size: 13.5px; line-height: 1.65; color: var(--pl-muted); margin: 0 0 22px; }
+/* O detalhe que o controller mandou. Azul de informação: é contexto recuperável, não acusação. */
+.pl-erro-caixa .detalhe { display: flex; align-items: flex-start; gap: 9px; margin: 0 0 16px;
+    padding: 10px 13px; background: var(--pl-blue-100); border: 1px solid #D3E3FB;
+    border-radius: 10px; font-size: 13px; line-height: 1.55; color: var(--pl-ink); }
+.pl-erro-caixa .detalhe svg { flex: none; margin-top: 2px; color: var(--pl-blue); }
+.pl-erro-saidas { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pl-erro-saidas .pl-btn { height: 44px; padding: 0 20px; }
+.pl-erro-rodape { margin: 24px 0 0; padding-top: 16px; border-top: 1px solid var(--pl-border-2);
+    font-size: 12.5px; line-height: 1.6; color: var(--pl-faint); max-width: 62ch; }
+
+@media (max-width: 900px) {
+    .pl-erro-lado { padding: 28px clamp(18px, 5vw, 32px) 30px; }
+    .pl-erro-lado .cod { font-size: clamp(54px, 15vw, 88px); }
+    .pl-erro-lado .sub { max-width: none; font-size: 13.5px; }
+    .pl-erro-painel { align-items: flex-start; padding: 28px clamp(18px, 5vw, 32px) 44px; }
+    .pl-erro-caixa { max-width: none; }
+    .pl-erro-saidas .pl-cta, .pl-erro-saidas .pl-btn { flex: 1 1 auto; justify-content: center; }
+}
+
+/* ---------- 34, fim: dois acertos vistos na tela, não no código ----------
+
+   1. O caminho do rascunho vira faixa própria.
+      Solto entre o parágrafo de explicação e o primeiro rótulo, ele lia como continuação do
+      texto: mesma cor de fundo, mesma margem, e o olho não tinha onde saber que ali começa outra
+      coisa. A faixa usa o mesmo fundo, contorno e raio dos quadros de número do mockup, portanto
+      não é componente novo, é o mesmo vocabulário aplicado a um caso a mais.
+
+   2. O traço entre um passo e outro some quando a lista quebra de linha.
+      Em 390px os três passos empilham, e o traço ficava pendurado no fim de cada linha apontando
+      para o vazio. Ele é decoração de sequência horizontal: sem a horizontal, não tem o que
+      ligar, e a ordem continua dita pelos números.
+
+   3. A UF cabe inteira.
+      "Não informada" saía cortado em "Não inform" numa coluna de 128px. */
+.pl-passos { background: var(--pl-app); border: 1px solid var(--pl-border-2);
+    border-radius: 12px; padding: 11px 14px; margin: 0 0 20px; gap: 10px 12px; }
+@media (max-width: 720px) { .pl-passos .li { display: none; }
+    .pl-passos > li[aria-hidden="true"] { display: none; }
+    .pl-passos { flex-direction: column; align-items: flex-start; gap: 8px; } }
+.pl-form-linha { grid-template-columns: minmax(0, 1.5fr) 156px minmax(0, 1.4fr); }
+@media (max-width: 900px) { .pl-form-linha { grid-template-columns: minmax(0, 1fr) 156px; } }
+
+/* ============================================================================
+   36 · As duas barras públicas passam a ser a mesma barra
+   ----------------------------------------------------------------------------
+   Elas nasceram em sessões diferentes e ficaram parecidas, não iguais: a da
+   landing tinha 72px de altura e 72px de recuo lateral; a das outras telas
+   públicas, 62px e 38px. Numa navegação a diferença aparece como um pulo da
+   marca e da altura entre uma tela e a seguinte, que é o que a autora apontou
+   olhando a barra da tela de entrar.
+
+   A régua é a landing, porque é dela que o desenho todo saiu. O recuo usa o
+   mesmo `clamp` do contêiner da landing (`.pl-lp-in`), e não um valor fixo,
+   para as duas encolherem juntas.
+   ============================================================================ */
+
+.pl-topnav .in {
+    min-height: 72px;
+    gap: 10px 22px;
+    padding: 10px clamp(22px, 4.5vw, 72px);
+}
+
+.pl-topnav .marca      { font-size: 19px; }
+.pl-topnav .marca .m   { width: 13px; height: 13px; }
+.pl-topnav .elos       { gap: 8px 22px; }
+.pl-topnav .ghost      { padding: 0 16px; }
+
+/* ============================================================================
+   37 · A entrada, do mockup de login
+   ----------------------------------------------------------------------------
+   Portada do artefato que a autora desenhou, e que não estava em `docs/mockups/`
+   quando as telas de autenticação foram feitas pela primeira vez. As medidas,
+   os raios e os degradês são os de lá.
+
+   As cores vivem no escopo da tela e não na seção 1: são os tons do desenho do
+   volume (os três eixos), e não tokens da aplicação. O laranja, esse sim, é o
+   token de sempre, porque é a mesma ação preenchida de toda tela.
+   ============================================================================ */
+
+.pl-e3 {
+    --e3-bg:     #060d1c;
+    --e3-x:      #2E6BE6;
+    --e3-y:      #63A0F0;
+    --e3-z:      #8FE3FF;
+    --e3-painel: #0e1f39;
+    --e3-painel2:#0a1728;
+    --e3-linha:  rgba(120, 160, 220, .16);
+    --e3-tx:     #9FB6D6;
+
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    max-width: none;
+    color: #EAF1FB;
+    background:
+        radial-gradient(70% 60% at 78% -8%, #143a6e 0%, transparent 55%),
+        radial-gradient(60% 70% at 4% 106%, #0f2747 0%, transparent 55%),
+        var(--e3-bg);
+}
+
+.pl-e3-tela { display: grid; grid-template-columns: 1.15fr .85fr; min-height: 100vh; }
+
+/* ---- Lado da marca ---- */
+
+.pl-e3-marca-lado {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: clamp(28px, 4vw, 54px);
+    overflow: hidden;
+}
+
+.pl-e3-marca {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--pl-display);
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: -.01em;
+    color: #EAF1FB;
+    text-decoration: none;
+}
+
+.pl-e3-marca .m {
+    width: 13px;
+    height: 13px;
+    border-radius: 4px;
+    flex: none;
+    background: linear-gradient(135deg, var(--e3-z), var(--e3-x));
+    transform: rotate(45deg);
+    box-shadow: 0 0 16px rgba(143, 227, 255, .5);
+}
+
+.pl-e3-fig { flex: 1; min-height: 280px; position: relative; margin: 6px -10px; }
+.pl-e3-fig canvas { width: 100%; height: 100%; display: block; }
+
+/* O par canvas e SVG: sem JavaScript fica o desenho parado, e a <canvas> nunca
+   aparece vazia. Com JavaScript o script marca o par e a troca acontece. */
+.pl-e3-fig canvas          { display: none; }
+.pl-e3-fig.is-js canvas    { display: block; }
+.pl-e3-parado              { width: 100%; height: 100%; display: block; }
+.pl-e3-fig.is-js .pl-e3-parado { display: none; }
+
+.pl-e3-tese .lead {
+    font-family: var(--pl-display);
+    font-weight: 600;
+    font-size: clamp(24px, 3vw, 38px);
+    line-height: 1.1;
+    letter-spacing: -.02em;
+    margin: 0 0 12px;
+    max-width: 16ch;
+    text-wrap: balance;
+}
+
+.pl-e3-tese .lead .g {
+    background: linear-gradient(90deg, var(--e3-x), var(--e3-z));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.pl-e3-tese .sub { color: #AEC2E0; font-size: 15px; max-width: 46ch; margin: 0 0 18px; }
+
+.pl-e3-tese .eixos {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 12px;
+    color: #8FA8CC;
+}
+
+.pl-e3-tese .eixos li { display: flex; align-items: center; gap: 7px; }
+.pl-e3-tese .eixos i  { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.pl-e3-tese .eixos .x { background: var(--e3-x); }
+.pl-e3-tese .eixos .y { background: var(--e3-y); }
+.pl-e3-tese .eixos .z { background: var(--e3-z); box-shadow: 0 0 10px var(--e3-z); }
+
+/* ---- Lado do formulário ---- */
+
+.pl-e3-forma {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(24px, 3vw, 48px);
+    background: linear-gradient(180deg, rgba(14, 31, 57, .5), rgba(6, 13, 28, .2));
+    border-left: 1px solid var(--e3-linha);
+}
+
+.pl-e3-cartao {
+    width: 100%;
+    max-width: 380px;
+    background: linear-gradient(180deg, var(--e3-painel), var(--e3-painel2));
+    border: 1px solid var(--e3-linha);
+    border-radius: 20px;
+    padding: 34px 30px;
+    box-shadow: 0 30px 70px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+
+.pl-e3-selo {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11.5px;
+    color: #AEC2E0;
+    background: rgba(46, 107, 230, .14);
+    border: 1px solid rgba(120, 160, 220, .22);
+    padding: 6px 11px;
+    border-radius: 20px;
+    margin-bottom: 22px;
+}
+
+.pl-e3-selo svg { width: 13px; height: 13px; flex: none; }
+
+.pl-e3-cartao h1 {
+    font-family: var(--pl-display);
+    font-weight: 600;
+    font-size: 24px;
+    letter-spacing: -.01em;
+    color: #EAF1FB;
+    margin: 0 0 4px;
+}
+
+.pl-e3-dica { color: var(--e3-tx); font-size: 13.5px; margin: 0 0 24px; }
+
+/* Os campos vêm das macros do projeto, que são as mesmas de toda tela: o que muda
+   aqui é só a pele, porque o cartão é escuro. */
+.pl-e3-cartao .form-label {
+    font-size: 11.5px;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--e3-tx);
+    margin-bottom: 7px;
+    font-weight: 500;
+}
+
+.pl-e3-cartao .form-control {
+    height: 46px;
+    border-radius: 12px;
+    background: #0a1830;
+    border: 1px solid var(--e3-linha);
+    color: #dbe8fa;
+    font-size: 14px;
+    padding: 0 14px;
+}
+
+.pl-e3-cartao .form-control::placeholder { color: #5f7599; }
+
+.pl-e3-cartao .form-control:focus {
+    background: #0a1830;
+    color: #dbe8fa;
+    border-color: var(--e3-x);
+    box-shadow: 0 0 0 3px rgba(46, 107, 230, .22);
+}
+
+.pl-e3-cartao .form-text,
+.pl-e3-cartao .pl-nota { color: #7f96b8; }
+
+.pl-e3-cartao .invalid-feedback,
+.pl-e3-cartao .alert-danger {
+    color: #ffb4a3;
+    background: rgba(190, 60, 40, .16);
+    border-color: rgba(255, 140, 120, .28);
+    border-radius: 12px;
+}
+
+.pl-e3-cartao .alert-danger { padding: 10px 13px; font-size: 13.5px; margin-bottom: 18px; }
+
+/* O olho de revelar a senha, que a macro traz e o cartão escuro precisa recolorir. */
+.pl-e3-cartao .pl-olho,
+.pl-e3-cartao .btn-outline-secondary {
+    background: transparent;
+    border-color: var(--e3-linha);
+    color: var(--e3-tx);
+}
+
+.pl-e3-cartao .pl-olho:hover,
+.pl-e3-cartao .btn-outline-secondary:hover { background: rgba(120, 160, 220, .12); color: #dbe8fa; }
+
+.pl-e3-linha { display: flex; justify-content: flex-end; margin: 6px 0 20px; font-size: 13px; }
+.pl-e3-linha a { color: var(--e3-tx); text-decoration: none; }
+.pl-e3-linha a:hover { color: #dbe8fa; text-decoration: underline; }
+
+.pl-e3-cartao .btn-primary,
+.pl-e3-cartao button[type="submit"] {
+    width: 100%;
+    height: 48px;
+    border: 0;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    color: #fff;
+    background: linear-gradient(135deg, #ff8a3d, var(--pl-accent));
+    box-shadow: 0 12px 30px rgba(242, 107, 33, .42);
+    transition: transform .12s, box-shadow .12s;
+}
+
+.pl-e3-cartao .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 36px rgba(242, 107, 33, .5);
+}
+
+.pl-e3-cartao .btn-primary:focus-visible {
+    outline: 3px solid rgba(255, 138, 61, .5);
+    outline-offset: 2px;
+}
+
+.pl-e3-alt { text-align: center; color: var(--e3-tx); font-size: 13.5px; margin: 18px 0 0; }
+.pl-e3-alt a { color: var(--e3-z); text-decoration: none; font-weight: 600; }
+.pl-e3-alt a:hover { text-decoration: underline; }
+
+.pl-e3 a:focus-visible {
+    outline: 2px solid var(--e3-z);
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+@media (max-width: 840px) {
+    .pl-e3-tela { grid-template-columns: 1fr; }
+    .pl-e3-marca-lado { min-height: 52vh; }
+    .pl-e3-forma { border-left: 0; border-top: 1px solid var(--e3-linha); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pl-e3-cartao .btn-primary { transition: none; }
+    .pl-e3-cartao .btn-primary:hover { transform: none; }
 }

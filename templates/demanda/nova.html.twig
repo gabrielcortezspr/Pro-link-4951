@@ -2,14 +2,35 @@
 {% import 'layout/_form.html.twig' as form %}
 {% import 'layout/_ui.html.twig' as ui %}
 
-{% block titulo %}Nova demanda · Pro-Link{% endblock %}
+{#
+    Publicar demanda, portado do bloco "02 Publicar Demanda" de
+    docs/mockups/prolink-empresa-1.html.
+
+    A composição é a de lá: a seção na topbar, e no conteúdo um quadro só, com o nome da tela, a
+    explicação de como a compatibilização enxerga a demanda, os campos e o rodapé de ação alinhado
+    à direita. O que mudou, e só o que tinha de mudar:
+
+    1. O campo "Atividades TOS" do mockup escolhe os códigos aqui dentro. Na plataforma a demanda
+       nasce rascunho e os códigos são escolhidos depois, no detalhe: a busca na tabela precisa de
+       uma demanda já salva onde pendurar o resultado, e um formulário que carregasse buscas no
+       meio perderia o texto digitado. Isso não é um passo a menos, é um passo a mais, então no
+       lugar do campo fica o caminho inteiro escrito: salvar rascunho, escolher os códigos,
+       publicar.
+    2. A ação preenchida do mockup diz "Publicar". Aqui ela diz o que faz de verdade, que é salvar
+       o rascunho. Botão que promete publicação e devolve rascunho é a pior versão desta tela.
+    3. O mockup tem "Modalidade", que a demanda não grava, e não tem "Quem pode atender", que ela
+       grava e que decide quem consegue manifestar interesse. A fileira de campos é a mesma; o que
+       está nela é o que existe.
+#}
+
+{% block titulo %}Publicar demanda · Pro-Link{% endblock %}
 
 {#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
 {% set shell = 'app' %}
 {% set ativo = 'demandas' %}
 {% set medida = 'leitura' %}
 
-{% block titulo_tela %}Nova demanda{% endblock %}
+{% block titulo_tela %}Publicar demanda{% endblock %}
 
 {#  Formulário: medida de leitura, não largura de tabela. O card é o objeto da tela, e a moldura
     ao redor dele é intencional, do mesmo jeito que no palco do feed. #}
@@ -21,16 +42,6 @@
     <select> de ART (ver perfil/index) não se aplica. #}
 {% set ufs_mapa = ufs_possiveis|reduce((mapa, uf) => mapa|merge({(uf): uf}), {}) %}
 
-<div class="pl-head">
-    <div class="tit">
-        <div class="pl-linha-titulo">
-            <h1>Nova demanda</h1>
-            {{ ui.info('Por que a demanda nasce rascunho',
-                'Salvar cria o rascunho, que só você enxerga. A publicação é um segundo passo porque antes dela é preciso escolher as atividades da Tabela de Obras e Serviços: é por elas que a plataforma encontra quem já comprovou fazer este tipo de serviço.') }}
-        </div>
-    </div>
-</div>
-
 {% if aviso is defined and aviso %}
     <div class="alert alert-danger" role="alert">{{ aviso }}</div>
 {% endif %}
@@ -38,43 +49,59 @@
 <form method="post" action="{{ app_url }}/demandas" class="pl-card">
     {{ form.csrf() }}
 
-    {{ form.campo('titulo', 'Título', 'text', valores.titulo|default(''),
-        erros.titulo|default(null), {required: true},
+    <div class="pl-linha-titulo">
+        <h1 class="pl-secao tela">Nova demanda</h1>
+        {{ ui.info('Por que a demanda nasce rascunho',
+            'Salvar cria o rascunho, que só você enxerga. A publicação é um segundo passo porque antes dela é preciso escolher as atividades da Tabela de Obras e Serviços: é por elas que a plataforma encontra quem já comprovou fazer este tipo de serviço.') }}
+    </div>
+
+    <p class="pl-nota">
+        Escreva o escopo do serviço. A compatibilização cruza as atividades da Tabela de Obras e
+        Serviços desta demanda com as atividades das ARTs verificadas de cada profissional, que é
+        o eixo principal e o único conferível na API do CREA-AM. Local e tipo de contrato entram
+        como dimensões complementares.
+    </p>
+
+    {#  O caminho inteiro, na tela onde ele começa. Sem isto, "Salvar rascunho" parece o fim do
+        fluxo e a demanda fica parada sem que ninguém entenda por quê. #}
+    <ol class="pl-passos">
+        <li class="atual"><span class="n">1</span>Salvar o rascunho</li>
+        <li aria-hidden="true"><span class="li"></span></li>
+        <li><span class="n">2</span>Escolher as atividades da tabela</li>
+        <li aria-hidden="true"><span class="li"></span></li>
+        <li><span class="n">3</span>Publicar</li>
+    </ol>
+
+    {{ form.campo('titulo', 'Título da demanda', 'text', valores.titulo|default(''),
+        erros.titulo|default(null), {required: true, maxlength: 190},
         'Uma linha. Ex.: Reforma estrutural da fachada do bloco A.') }}
 
-    {{ form.area('escopo', 'O que precisa ser feito', valores.escopo|default(''),
-        erros.escopo|default(null), {required: true, rows: 6}) }}
+    {{ form.area('escopo', 'Descrição do escopo', valores.escopo|default(''),
+        erros.escopo|default(null), {required: true, rows: 5},
+        'O que precisa ser feito, em quanto detalhe você tiver.') }}
 
-    <div class="row">
-        <div class="col-sm-8">
-            {{ form.campo('local_municipio', 'Município', 'text',
-                valores.local_municipio|default(''), erros.local_municipio|default(null)) }}
-        </div>
-        <div class="col-sm-4">
-            {#  Lista fechada dos dois lados: é a UF daqui que o motor compara com a abrangência
-                declarada pelo candidato. Texto livre nunca casava. #}
-            {{ form.selecao('local_uf', 'UF', ufs_mapa, valores.local_uf|default(''),
-                erros.local_uf|default(null), {}, 'Não informada') }}
-        </div>
+    {#  A fileira de campos do mockup, com largura por campo: a UF tem duas letras e não ocupa o
+        mesmo que um seletor de rótulo longo. #}
+    <div class="pl-form-linha">
+        {{ form.campo('local_municipio', 'Município', 'text',
+            valores.local_municipio|default(''), erros.local_municipio|default(null)) }}
+        {#  Lista fechada dos dois lados: é a UF daqui que o motor compara com a abrangência
+            declarada pelo candidato. Texto livre nunca casava. #}
+        {{ form.selecao('local_uf', 'UF', ufs_mapa, valores.local_uf|default(''),
+            erros.local_uf|default(null), {}, 'Não informada') }}
+        {{ form.selecao('tipo_contrato', 'Tipo de contrato', contratos_possiveis,
+            valores.tipo_contrato|default(''), erros.tipo_contrato|default(null), {}, 'A combinar') }}
     </div>
 
-    <div class="row">
-        <div class="col-sm-6">
-            {{ form.selecao('tipo_contrato', 'Tipo de contrato', contratos_possiveis,
-                valores.tipo_contrato|default(''), erros.tipo_contrato|default(null), {}, 'A combinar') }}
-        </div>
-        <div class="col-sm-6">
-            {{ form.selecao('alvo', 'Quem pode atender', {
-                'A': 'Profissionais e empresas',
-                'P': 'Somente profissionais',
-                'E': 'Somente empresas'
-            }, valores.alvo|default('A'), erros.alvo|default(null), {required: true}, false) }}
-        </div>
-    </div>
+    {{ form.selecao('alvo', 'Quem pode atender', {
+        'A': 'Profissionais e empresas',
+        'P': 'Somente profissionais',
+        'E': 'Somente empresas'
+    }, valores.alvo|default('A'), erros.alvo|default(null), {required: true}, false) }}
 
-    <div class="pl-acoes-form">
-        {{ form.botao('Salvar rascunho') }}
+    <div class="pl-acoes-form fim">
         <a class="pl-btn ghost" href="{{ app_url }}/demandas">Cancelar</a>
+        {{ form.botao('Salvar rascunho') }}
     </div>
 </form>
 {% endblock %}

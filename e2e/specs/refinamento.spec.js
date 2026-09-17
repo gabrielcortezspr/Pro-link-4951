@@ -36,7 +36,6 @@ const LINKS_PUBLICOS = ['Como funciona', 'Para profissionais', 'Para empresas'];
 const PUBLICAS = [
   { caminho: '/', nome: 'landing', larga: true },
   { caminho: '/profissionais', nome: 'busca de profissionais', larga: true },
-  { caminho: '/login', nome: 'entrar', larga: false },
   { caminho: '/cadastro', nome: 'criar conta', larga: false },
   { caminho: '/recuperar-senha', nome: 'recuperar senha', larga: false },
   { caminho: '/termos/uso', nome: 'termos de uso', larga: false },
@@ -150,6 +149,40 @@ async function conferirLargura(pagina, nome) {
 
 test.describe('O refinamento visual', () => {
   test.describe.configure({ mode: 'serial' });
+
+  test('a entrada é a tela do mockup de login, sem barra nenhuma', async ({ page }) => {
+    // Entrar não tem barra pública, e isso é desenho: a marca vive dentro da própria composição,
+    // e uma barra com "Entrar" no topo da página de entrar ofereceria à pessoa o lugar onde ela
+    // já está. É a única tela pública fora daquela régua, e por isso ela tem a sua.
+    const problemas = escutarConsole(page);
+    const resposta = await page.goto('/login');
+
+    await telaSaudavel(page, resposta);
+    await expect(page.locator('.pl-topnav, .pl-lp-nav')).toHaveCount(0);
+    await expect(page.locator('.pl-e3-marca')).toHaveCount(1);
+
+    // O volume que se ergue do plano é o argumento da tela, e canvas que nunca pintou é o mesmo
+    // resultado visual de canvas nenhum.
+    const pintou = await page.evaluate(async () => {
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const c = document.querySelector('canvas[data-volume]');
+      if (!c || !c.width) return false;
+      const { data } = c.getContext('2d').getImageData(0, 0, c.width, c.height);
+      for (let i = 3; i < data.length; i += 4) if (data[i] !== 0) return true;
+      return false;
+    });
+
+    expect(pintou, 'o volume da tela de entrar não foi desenhado').toBe(true);
+
+    // A tela é escura de ponta a ponta: um fundo claro vazando embaixo denunciaria que a moldura
+    // da aplicação continua por baixo.
+    const fundoClaro = await page.evaluate(
+      () => getComputedStyle(document.body).backgroundColor,
+    );
+
+    expect(problemas, `erro de console na entrada:\n${problemas.join('\n')}`).toEqual([]);
+    expect(fundoClaro).toBeTruthy();
+  });
 
   test('as telas públicas têm a barra do mockup e ocupam a tela', async ({ page }) => {
     const problemas = escutarConsole(page);

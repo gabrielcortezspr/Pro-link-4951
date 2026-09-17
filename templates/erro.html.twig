@@ -1,18 +1,177 @@
 {% extends 'layout/base.html.twig' %}
 
+{#
+    A tela de exceção, para as cinco respostas que View::erro() produz: 401, 403, 404, 419 e 500.
+
+    Uma moldura só, cinco saídas diferentes. O que muda entre elas não é a decoração: é a frase do
+    que houve, a frase do que a plataforma já fez, e o botão que resolve. A ordem é a que a ficha
+    de estados críticos fixa em docs/mockups/prolink-estados-criticos.html: **o que houve, o que o
+    sistema já fez, o que fazer**, com uma única ação primária ao final.
+
+    A mesma ficha manda nomear o sistema como sujeito. Nenhuma frase aqui começa por "você não":
+    quem recusou o acesso, quem não achou o endereço e quem falhou foi a plataforma, e é ela que
+    responde.
+
+    ## O que esta tela nunca imprime
+
+    Nada de rastro de pilha, e nada de mensagem interna (item 8.5). Nos códigos de 401 a 419 a
+    mensagem que o controller manda é texto escrito para pessoas ("Alvo de denúncia não
+    encontrado."), e ela entra como detalhe. No 500 ela é `$e->getMessage()` quando APP_DEBUG está
+    ligado, ou seja, pode carregar SQL, caminho de arquivo e nome de classe: por isso o 500 não
+    imprime a mensagem recebida, e quem desenvolve lê a exceção inteira no log do servidor, que é
+    onde ela já está sendo gravada por public/index.php.
+
+    ## Por que a faixa é larga
+
+    A tela anterior era um quadro estreito centrado, com mais de mil pixels vazios dos dois lados.
+    Aqui a página inteira é a composição, como nas telas de entrada: o código e a classificação no
+    painel azul, a explicação e a saída no painel branco. Mesma gramática da seção 31, classes
+    próprias, nenhum token novo.
+#}
+
 {% block titulo %}Erro {{ codigo }} · Pro-Link{% endblock %}
 
-{% block classe_main %}pl-wrap leitura{% endblock %}
+{# A faixa ocupa a janela inteira: sem a medida do .pl-wrap, cada metade pinta até a borda. #}
+{% block classe_main %}pl-erro{% endblock %}
 
 {% block conteudo %}
-<div class="pl-card pl-vazio">
-    <p class="pl-erro-cod">{{ codigo }}</p>
-    <p class="t">{{ mensagem }}</p>
-    <div class="a">
-        {% if codigo == 401 %}
-            <a class="pl-cta" href="{{ app_url }}/login">Entrar</a>
-        {% endif %}
-        <a class="pl-btn" href="{{ app_url }}">Voltar ao início</a>
+{% set u = usuario() %}
+
+{#  As cinco situações, e o que cada uma responde. Fica num mapa, e não numa escada de {% if %},
+    porque assim as cinco são lidas lado a lado: dá para ver de uma vez que nenhuma culpa quem
+    lê, e que cada uma tem exatamente uma ação primária. #}
+{% set casos = {
+    401: {
+        'classe': 'entrar',
+        'olho':   'Sessão necessária',
+        'titulo': 'Esta página só abre com uma conta',
+        'houve':  'A plataforma não reconheceu uma sessão ativa neste navegador. Ou você ainda não entrou, ou a sessão anterior expirou pelo tempo.',
+        'fez':    'Nada foi aberto e nada foi registrado no seu nome. O endereço que você pediu fica guardado só nesta janela.'
+    },
+    403: {
+        'classe': 'recusa',
+        'olho':   'Acesso recusado',
+        'titulo': 'Esta área pertence a outro perfil de acesso',
+        'houve':  'A plataforma reconheceu a sua conta, e o perfil dela não alcança esta área. Áreas de moderação e auditoria são da Administração.',
+        'fez':    'O acesso foi recusado antes de qualquer leitura de dado, e a tentativa ficou na trilha de auditoria, como toda recusa.'
+    },
+    404: {
+        'classe': 'ausente',
+        'olho':   'Endereço não encontrado',
+        'titulo': 'A plataforma não tem nada neste endereço',
+        'houve':  'O endereço pode ter sido digitado com um caractere a mais, ou apontar para um registro que saiu de operação.',
+        'fez':    'Nada foi alterado. Registro excluído nesta plataforma não é apagado: ele sai das consultas e continua guardado.'
+    },
+    419: {
+        'classe': 'expirado',
+        'olho':   'Formulário expirado',
+        'titulo': 'Este formulário ficou aberto tempo demais',
+        'houve':  'A plataforma assina cada formulário e recusa envios assinados por uma sessão que não é mais a atual. É o que impede que outro site envie um formulário no seu nome.',
+        'fez':    'O envio foi recusado inteiro. Nada foi gravado pela metade, e o que estava escrito não saiu deste navegador.'
+    },
+    500: {
+        'classe': 'falha',
+        'olho':   'Falha interna',
+        'titulo': 'A plataforma não conseguiu concluir esta operação',
+        'houve':  'Uma falha interrompeu o processamento no servidor. A causa não aparece aqui de propósito: mensagem de erro em tela é informação para quem ataca, não para quem usa.',
+        'fez':    'Toda escrita acontece dentro de uma transação, então nada ficou gravado pela metade. A falha foi registrada no log do servidor com data, arquivo e linha.'
+    }
+} %}
+
+{#  Código fora dos cinco não deixa a tela em branco: cai num caso genérico, com a mesma moldura.
+    Silêncio aqui seria um quadro vazio em cima de um erro que ninguém previu. #}
+{% set c = casos[codigo]|default({
+    'classe': 'falha',
+    'olho':   'Pedido não atendido',
+    'titulo': 'A plataforma não pôde atender este pedido',
+    'houve':  'O servidor recusou o pedido e devolveu um código que esta tela não trata caso a caso.',
+    'fez':    'Nada foi gravado. A resposta ficou registrada no log do servidor.'
+}) %}
+
+<div class="pl-erro-grade">
+
+    <div class="pl-erro-lado {{ c.classe }}">
+        {# O número é o dado da tela, e por isso tem o porte de dado. O <p> é deliberado: o título
+           da página é o <h1> ao lado, e um número solto não é cabeçalho de nada. #}
+        <p class="cod" aria-hidden="true">{{ codigo }}</p>
+        <p class="olho">{{ c.olho }}</p>
+        <p class="sub">
+            Resposta <span class="pl-mono">{{ codigo }}</span> do servidor.
+            A plataforma continua no ar, e as outras áreas seguem acessíveis.
+        </p>
     </div>
+
+    <div class="pl-erro-painel">
+        <div class="pl-erro-caixa">
+            <h1>{{ c.titulo }}</h1>
+
+            <p class="houve">{{ c.houve }}</p>
+
+            {#  As mensagens genéricas do front controller. Elas dizem exatamente o que o título
+                ao lado já diz, e repetidas numa caixa própria viram espaço gasto com nada. As
+                específicas ("Denúncia não encontrada.") são o contrário: são o único lugar da tela
+                que diz O QUE não foi achado, e é por elas que a caixa existe.
+
+                A lista casa por texto porque é assim que a mensagem chega: `View::erro()` recebe
+                uma string, não um código de motivo. Mensagem nova e genérica no front controller
+                passa a aparecer aqui até entrar nesta lista, o que é o defeito menos grave dos
+                dois possíveis: repetir uma frase é pior que esconder a única frase útil. #}
+            {% set genericas = [
+                'Página não encontrada.',
+                'Entre com sua conta para acessar esta página.',
+                'Seu perfil não tem acesso a esta página.',
+                'Formulário expirado. Recarregue a página e tente de novo.'
+            ] %}
+
+            {#  O detalhe que o controller mandou, quando ele é texto escrito para pessoas e diz
+                algo que o título não disse. No 500 a mensagem pode carregar rastro interno, e não
+                entra em hipótese nenhuma. #}
+            {% if codigo != 500 and mensagem and mensagem not in genericas %}
+                <p class="detalhe">
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.6h.01"/></svg>
+                    <span>{{ mensagem }}</span>
+                </p>
+            {% endif %}
+
+            <p class="fez">{{ c.fez }}</p>
+
+            {# Uma ação preenchida por tela, e ela é sempre a que resolve o caso. #}
+            <div class="pl-erro-saidas">
+                {% if codigo == 401 %}
+                    <a class="pl-cta" href="{{ app_url }}/login">Entrar na plataforma</a>
+                    <a class="pl-btn" href="{{ app_url }}">Ver a página inicial</a>
+                {% elseif codigo == 419 %}
+                    {#  O formulário expirado se resolve reabrindo o formulário, e quem sabe qual
+                        era é o navegador, não a aplicação: não há rota para "aquela tela". A saída
+                        honesta é a área de origem de quem está logado. #}
+                    {% if u %}
+                        <a class="pl-cta" href="{{ u.perfil == 'ADMIN' ? app_url ~ '/admin' : app_url ~ '/inicio' }}">Voltar para a minha área</a>
+                    {% else %}
+                        <a class="pl-cta" href="{{ app_url }}/login">Entrar de novo</a>
+                    {% endif %}
+                    <a class="pl-btn" href="{{ app_url }}">Ver a página inicial</a>
+                {% elseif u %}
+                    <a class="pl-cta" href="{{ u.perfil == 'ADMIN' ? app_url ~ '/admin' : app_url ~ '/inicio' }}">Voltar para a minha área</a>
+                    <a class="pl-btn" href="{{ app_url }}">Ver a página inicial</a>
+                {% else %}
+                    <a class="pl-cta" href="{{ app_url }}">Ver a página inicial</a>
+                    <a class="pl-btn" href="{{ app_url }}/login">Entrar na plataforma</a>
+                {% endif %}
+            </div>
+
+            {% if codigo == 403 or codigo == 500 %}
+                <p class="pl-erro-rodape">
+                    {% if codigo == 403 %}
+                        Se este acesso deveria existir, quem concede perfil é a Administração da
+                        plataforma. A recusa já está na trilha de auditoria, com data e origem.
+                    {% else %}
+                        Se a falha se repetir, o registro dela no log do servidor é o que permite
+                        reconstituir o que aconteceu, sem precisar do que apareceu na tela.
+                    {% endif %}
+                </p>
+            {% endif %}
+        </div>
+    </div>
+
 </div>
 {% endblock %}

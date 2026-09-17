@@ -2,109 +2,152 @@
 {% import 'layout/_form.html.twig' as form %}
 {% import 'layout/_ui.html.twig' as ui %}
 
+{#
+    Criar conta, na mesma família da entrada (ver o cabeçalho de auth/login.html.twig).
+
+    O formulário é longo: quatro grupos, nove campos e cinco caixas de aceite. Ele continua com
+    medida de leitura, e o que muda é o que fica em volta dela: em vez de off-white vazio dos dois
+    lados, o lado esquerdo é o painel azul da landing, que acompanha a rolagem e responde a única
+    pergunta que faz alguém desistir aqui no meio, que é "por que eu estou preenchendo isto".
+
+    Nada do formulário mudou: nome de campo, ordem, ajuda, aceite, versão de termo e ação de POST
+    são os mesmos, porque o backend do cadastro é de outro integrante da equipe.
+#}
+
 {% block titulo %}Criar conta · Pro-Link{% endblock %}
 
-{#  Formulário longo: medida de leitura dentro de um card, e não uma coluna de 1140px com o campo
-    de senha esticado de ponta a ponta. #}
-{% block classe_main %}pl-wrap leitura{% endblock %}
+{% block classe_main %}pl-ent{% endblock %}
 
 {% block conteudo %}
-<div class="pl-head">
-    <div class="tit">
-        <div class="pl-linha-titulo">
-            <h1>Criar conta</h1>
-            {{ ui.info('Qual tipo de cadastro é o seu',
-                'Profissional e Empresa exigem registro no CREA-AM: o registro é validado na API oficial no momento do cadastro, e é o que permite importar ARTs e CATs. Quem não tem registro entra como Terceiro e publica demandas.') }}
+{% import _self as fig %}
+
+<div class="pl-ent-grade longo">
+
+    <section class="pl-ent-lado">
+        <span class="pl-ent-olho">Sistema Confea/CREA-AM</span>
+        <p class="tese">O seu acervo, no seu <span class="v">nome</span>.</p>
+        <p class="sub">
+            Profissional e empresa entram com o registro no conselho: a plataforma consulta a API
+            oficial no momento do cadastro e traz de lá as ARTs e CATs. Quem não tem registro entra
+            como terceiro e publica demandas.
+        </p>
+
+        <ul class="pl-ent-lista">
+            <li>{{ fig.check() }}Nada do seu perfil é público por padrão.</li>
+            <li>{{ fig.check() }}Cada consentimento é separado, e pode ser revogado depois.</li>
+            <li>{{ fig.check() }}O dado técnico não é digitado por você: ele vem do conselho.</li>
+        </ul>
+
+        <p class="pl-ent-selo">
+            <svg class="pl-ent-escudo" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path class="corpo" d="M12 2l7 3v6c0 5-3.5 8-7 9-3.5-1-7-4-7-9V5z"/><path class="marca" d="M8.5 12l2.5 2.5 4.5-5"/></svg>
+            Cada perfil é verificado pela API oficial do CREA-AM
+        </p>
+    </section>
+
+    <div class="pl-ent-painel longo">
+        <div class="pl-ent-caixa larga">
+            <div class="pl-linha-titulo">
+                <h1>Criar conta</h1>
+                {{ ui.info('Qual tipo de cadastro é o seu',
+                    'Profissional e Empresa exigem registro no CREA-AM: o registro é validado na API oficial no momento do cadastro, e é o que permite importar ARTs e CATs. Quem não tem registro entra como Terceiro e publica demandas.') }}
+            </div>
+            <p class="pl-ent-ld">Leva menos de um minuto, e o acervo chega depois, sozinho.</p>
+
+            {% if aviso|default(null) %}<div class="alert alert-danger" role="alert">{{ aviso }}</div>{% endif %}
+
+            <form method="post" action="{{ app_url }}/cadastro" novalidate>
+                {{ form.csrf() }}
+
+                <fieldset class="mb-4">
+                    <legend class="pl-legenda">Tipo de cadastro</legend>
+                    {{ form.selecao('tipo_cadastro', 'Como você vai usar a plataforma', {
+                        'PROFISSIONAL': 'Profissional registrado no CREA-AM (CPF)',
+                        'EMPRESA':      'Empresa registrada no CREA-AM (CNPJ)',
+                        'TERCEIRO_PF':  'Pessoa física sem registro no CREA (CPF)',
+                        'TERCEIRO_PJ':  'Pessoa jurídica sem registro no CREA (CNPJ)'
+                    }, valores.tipo_cadastro|default(''), erros.tipo_cadastro|default(null), {required: true}) }}
+                </fieldset>
+
+                <fieldset class="mb-4">
+                    <legend class="pl-legenda">Identificação</legend>
+
+                    {{ form.campo('nome', 'Nome completo ou razão social', 'text',
+                        valores.nome|default(''), erros.nome|default(null),
+                        {autocomplete: 'name', maxlength: 150, required: true}) }}
+
+                    {{ form.campo('documento', 'CPF ou CNPJ', 'text',
+                        valores.documento|default(''), erros.documento|default(null),
+                        {inputmode: 'numeric', maxlength: 18, required: true},
+                        'Só números ou com pontuação, tanto faz.') }}
+
+                    {{ form.campo('telefone', 'Telefone (opcional)', 'tel',
+                        valores.telefone|default(''), erros.telefone|default(null),
+                        {autocomplete: 'tel', maxlength: 20}) }}
+                </fieldset>
+
+                <fieldset class="mb-4">
+                    <legend class="pl-legenda">Acesso</legend>
+
+                    {{ form.campo('email', 'E-mail', 'email',
+                        valores.email|default(''), erros.email|default(null),
+                        {autocomplete: 'email', maxlength: 190, required: true}) }}
+
+                    {{ form.senha('senha', 'Senha', erros.senha|default(null),
+                        {autocomplete: 'new-password'},
+                        'Pelo menos 12 caracteres.') }}
+
+                    {{ form.senha('senha_confirmacao', 'Repita a senha',
+                        erros.senha_confirmacao|default(null), {autocomplete: 'new-password'}) }}
+                </fieldset>
+
+                <fieldset class="mb-4">
+                    <legend class="pl-legenda">Termos e consentimentos</legend>
+                    <p class="form-text mt-0 mb-3">
+                        Cada finalidade é separada, pode ser revogada depois, e nada do seu perfil é
+                        público por padrão.
+                    </p>
+
+                    {{ form.caixa('aceite_uso', 'Li e aceito os',
+                        valores.aceite_uso|default(false), erros.aceite_uso|default(null), {required: true},
+                        {url: app_url ~ '/termos/uso', texto: 'Termos de Uso'},
+                        termos.USO is defined ? '(versão ' ~ termos.USO.ter_versao ~ ')' : null) }}
+
+                    {{ form.caixa('aceite_privacidade', 'Li e aceito a',
+                        valores.aceite_privacidade|default(false), erros.aceite_privacidade|default(null), {required: true},
+                        {url: app_url ~ '/termos/privacidade', texto: 'Política de Privacidade'},
+                        termos.PRIVACIDADE is defined ? '(versão ' ~ termos.PRIVACIDADE.ter_versao ~ ')' : null) }}
+
+                    <hr class="my-3">
+
+                    {{ form.caixa('consentimento_api',
+                        'Autorizo consultar a API oficial do CREA-AM com meu CPF ou CNPJ, para validar meu registro e importar minhas ARTs e CATs',
+                        valores.consentimento_api|default(false), erros.consentimento_api|default(null)) }}
+                    <p class="form-text mt-n2 mb-3">
+                        Obrigatório para profissional e empresa: sem a consulta não há como comprovar
+                        o registro. Terceiros podem deixar desmarcado.
+                    </p>
+
+                    {{ form.caixa('consentimento_perfil',
+                        'Autorizo exibir meu perfil para demandantes e na busca da plataforma',
+                        valores.consentimento_perfil|default(false), erros.consentimento_perfil|default(null)) }}
+
+                    {{ form.caixa('consentimento_notificacoes',
+                        'Quero receber notificações por e-mail sobre demandas compatíveis e manifestações',
+                        valores.consentimento_notificacoes|default(false), erros.consentimento_notificacoes|default(null)) }}
+                </fieldset>
+
+                <div class="pl-acoes-form">
+                    {{ form.botao('Criar conta') }}
+                    <a class="pl-btn ghost" href="{{ app_url }}/login">Já tenho conta</a>
+                </div>
+            </form>
         </div>
     </div>
+
 </div>
-
-{% if aviso|default(null) %}<div class="alert alert-danger" role="alert">{{ aviso }}</div>{% endif %}
-
-<form method="post" action="{{ app_url }}/cadastro" class="pl-card" novalidate>
-    {{ form.csrf() }}
-
-    <fieldset class="mb-4">
-        <legend class="pl-legenda">Tipo de cadastro</legend>
-        {{ form.selecao('tipo_cadastro', 'Como você vai usar a plataforma', {
-            'PROFISSIONAL': 'Profissional registrado no CREA-AM (CPF)',
-            'EMPRESA':      'Empresa registrada no CREA-AM (CNPJ)',
-            'TERCEIRO_PF':  'Pessoa física sem registro no CREA (CPF)',
-            'TERCEIRO_PJ':  'Pessoa jurídica sem registro no CREA (CNPJ)'
-        }, valores.tipo_cadastro|default(''), erros.tipo_cadastro|default(null), {required: true}) }}
-    </fieldset>
-
-    <fieldset class="mb-4">
-        <legend class="pl-legenda">Identificação</legend>
-
-        {{ form.campo('nome', 'Nome completo ou razão social', 'text',
-            valores.nome|default(''), erros.nome|default(null),
-            {autocomplete: 'name', maxlength: 150, required: true}) }}
-
-        {{ form.campo('documento', 'CPF ou CNPJ', 'text',
-            valores.documento|default(''), erros.documento|default(null),
-            {inputmode: 'numeric', maxlength: 18, required: true},
-            'Só números ou com pontuação, tanto faz.') }}
-
-        {{ form.campo('telefone', 'Telefone (opcional)', 'tel',
-            valores.telefone|default(''), erros.telefone|default(null),
-            {autocomplete: 'tel', maxlength: 20}) }}
-    </fieldset>
-
-    <fieldset class="mb-4">
-        <legend class="pl-legenda">Acesso</legend>
-
-        {{ form.campo('email', 'E-mail', 'email',
-            valores.email|default(''), erros.email|default(null),
-            {autocomplete: 'email', maxlength: 190, required: true}) }}
-
-        {{ form.senha('senha', 'Senha', erros.senha|default(null),
-            {autocomplete: 'new-password'},
-            'Pelo menos 12 caracteres.') }}
-
-        {{ form.senha('senha_confirmacao', 'Repita a senha',
-            erros.senha_confirmacao|default(null), {autocomplete: 'new-password'}) }}
-    </fieldset>
-
-    <fieldset class="mb-4">
-        <legend class="pl-legenda">Termos e consentimentos</legend>
-        <p class="form-text mt-0 mb-3">
-            Cada finalidade é separada, pode ser revogada depois, e nada do seu perfil é
-            público por padrão.
-        </p>
-
-        {{ form.caixa('aceite_uso', 'Li e aceito os',
-            valores.aceite_uso|default(false), erros.aceite_uso|default(null), {required: true},
-            {url: app_url ~ '/termos/uso', texto: 'Termos de Uso'},
-            termos.USO is defined ? '(versão ' ~ termos.USO.ter_versao ~ ')' : null) }}
-
-        {{ form.caixa('aceite_privacidade', 'Li e aceito a',
-            valores.aceite_privacidade|default(false), erros.aceite_privacidade|default(null), {required: true},
-            {url: app_url ~ '/termos/privacidade', texto: 'Política de Privacidade'},
-            termos.PRIVACIDADE is defined ? '(versão ' ~ termos.PRIVACIDADE.ter_versao ~ ')' : null) }}
-
-        <hr class="my-3">
-
-        {{ form.caixa('consentimento_api',
-            'Autorizo consultar a API oficial do CREA-AM com meu CPF ou CNPJ, para validar meu registro e importar minhas ARTs e CATs',
-            valores.consentimento_api|default(false), erros.consentimento_api|default(null)) }}
-        <p class="form-text mt-n2 mb-3">
-            Obrigatório para profissional e empresa: sem a consulta não há como comprovar
-            o registro. Terceiros podem deixar desmarcado.
-        </p>
-
-        {{ form.caixa('consentimento_perfil',
-            'Autorizo exibir meu perfil para demandantes e na busca da plataforma',
-            valores.consentimento_perfil|default(false), erros.consentimento_perfil|default(null)) }}
-
-        {{ form.caixa('consentimento_notificacoes',
-            'Quero receber notificações por e-mail sobre demandas compatíveis e manifestações',
-            valores.consentimento_notificacoes|default(false), erros.consentimento_notificacoes|default(null)) }}
-    </fieldset>
-
-    <div class="pl-acoes-form">
-        {{ form.botao('Criar conta') }}
-        <a class="pl-btn ghost" href="{{ app_url }}/login">Já tenho conta</a>
-    </div>
-</form>
 {% endblock %}
+
+{#  O mesmo símbolo da faixa "Para quem" da landing. Ver o comentário em auth/login.html.twig. #}
+{% macro check() %}
+<svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><circle class="fundo" cx="12" cy="12" r="10"/><path class="marca" d="M8 12l2.5 2.5L16 9"/></svg>
+{% endmacro %}

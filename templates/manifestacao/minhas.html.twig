@@ -3,6 +3,16 @@
 
 {% block titulo %}Meus interesses · Pro-Link{% endblock %}
 
+{#
+    A lista de quem manifestou, irmã da confirmação no cenário 4.
+
+    docs/mockups/prolink-interacoes.html não desenha esta tela: das duas que ele traz, a primeira
+    é a confirmação (portada em confirmar.html.twig) e a segunda é a denúncia. O que vem de lá são
+    as peças, não a composição: a nota neutra `.miniinfo` (aqui `.pl-miniinfo`), o vocabulário de
+    situação em pílula e a entrada "Minhas manifestações" da barra lateral, que nesta aplicação se
+    chama "Meus interesses" porque a lista também recebe a linha aberta pelo demandante.
+#}
+
 {#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
 {% set shell = 'app' %}
 {% set ativo = 'manifestacoes' %}
@@ -103,9 +113,14 @@
         </div>
     </div>
 
-    <p class="pl-nota mt-3 mb-0">
-        O retrato enviado em cada manifestação continua como estava no dia do envio. Mudar o seu
-        perfil hoje não muda o que já foi entregue.
+    {#  A nota neutra do mockup, e não `.pl-nota` em texto corrido: é a mesma promessa que a
+        confirmação faz antes do clique, e as duas telas passaram a dizê-la na mesma caixa. #}
+    <p class="pl-miniinfo mt-3">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></svg>
+        <span>
+            O retrato enviado em cada manifestação continua como estava no dia do envio. Mudar o
+            seu perfil hoje não muda o que já foi entregue.
+        </span>
     </p>
 {% endif %}
 {% endblock %}

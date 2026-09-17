@@ -26,6 +26,7 @@ use ProLink\Repository\MensagemRepository;
 use ProLink\Repository\TermoRepository;
 use ProLink\Service\BuscaService;
 use ProLink\Service\CompatibilizacaoService;
+use ProLink\Service\ContaService;
 use ProLink\Service\DemandaService;
 use ProLink\Service\DenunciaService;
 use ProLink\Service\InteressadoService;
@@ -90,6 +91,30 @@ return (static function (): array {
             'tipos'     => DenunciaService::TIPOS,
         ],
 
+        // O formulário de denúncia. Entra com o alvo já resolvido para nome, que é o estado em que
+        // o DenunciaController o renderiza: é a resolução do alvo que impede a tela de imprimir o
+        // nome da entidade, e é exatamente isso que a conferência do HTML final procura.
+        'denuncia/nova.html.twig' => [
+            'entidade'    => 'USUARIO',
+            'alvo_id'     => 10,
+            'alvo_rotulo' => 'Pedro Henrique Alves',
+            'tipos'       => DenunciaService::TIPOS,
+            'valores'     => [],
+            'erros'       => [],
+            'aviso'       => null,
+        ],
+
+        // A tela de exceção serve cinco códigos com a mesma moldura, e o catálogo monta uma tela
+        // por entrada. O caso escolhido é o 404 com mensagem específica, porque é o único que
+        // imprime texto que não está escrito no template: a frase vem do controller, e é o único
+        // ponto desta tela por onde conteúdo dinâmico chega ao HTML. O resto da tela é cópia fixa.
+        // O 500 é justamente o caso em que a mensagem recebida NÃO é impressa, então não há o que
+        // conferir nele.
+        'erro.html.twig' => [
+            'codigo'   => 404,
+            'mensagem' => 'Denúncia não encontrada.',
+        ],
+
         // Os parâmetros do motor. Das telas do painel, é uma das que mais precisam da conferência
         // renderizada: ela imprime a chave de sistema de propósito (quem audita quer o
         // identificador exato) e o valor gravado de onze parâmetros, e valor só existe no HTML
@@ -101,6 +126,16 @@ return (static function (): array {
             'erros'      => [],
             'valores'    => [],
             'aviso'      => '',
+        ],
+
+        // A gestão de contas. Entra aqui porque é a tela que mais imprime valor cru vindo do
+        // banco: situação (`A`/`I`/`X`), perfil de acesso e tipo de pessoa, todos de lista
+        // fechada, e todos traduzidos no template. Valor fora do mapa só aparece no HTML final.
+        'admin/contas.html.twig' => [
+            'ativo'   => 'contas',
+            'lista'   => (new ContaService())->listar(['termo' => '', 'perfil' => '', 'situacao' => ''], 1),
+            'filtros' => ['termo' => '', 'perfil' => '', 'situacao' => ''],
+            'perfis'  => PERFIS_AUTENTICADOS,
         ],
 
         // A lixeira, na entidade que sempre tem o que mostrar. As outras quatro abas renderizam o

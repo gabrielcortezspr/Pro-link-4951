@@ -77,7 +77,7 @@ test.describe('Os seis cenários do Anexo I', () => {
     demanda.titulo = `Plano de intervenção urbana, verificação ${AGORA}`;
 
     await page.getByLabel(/Título/i).fill(demanda.titulo);
-    await page.getByLabel(/O que precisa ser feito/i).fill(
+    await page.getByLabel(/Descrição do escopo/i).fill(
       'Elaboração de plano de intervenção urbana para área central, com diagnóstico '
       + 'físico-territorial, diretrizes de uso e ocupação e plano de ação. Demanda criada pela '
       + 'suíte de ponta a ponta.',
@@ -184,7 +184,7 @@ test.describe('Os seis cenários do Anexo I', () => {
 
     // Correção: dado autodeclarado é do titular e ele edita quando quiser.
     const resumo = `Resumo corrigido pela verificação de ponta a ponta ${AGORA}.`;
-    await page.getByLabel(/Resumo profissional/i).fill(resumo);
+    await page.getByLabel(/^Resumo profissional/i).fill(resumo);
     await page.getByRole('button', { name: /Salvar preferências/i }).click();
     await page.waitForLoadState('domcontentloaded');
     await telaSaudavel(page);
@@ -209,7 +209,7 @@ test.describe('Os seis cenários do Anexo I', () => {
     await telaSaudavel(page, resposta);
 
     await page.getByLabel(/Tipo de denúncia/i).selectOption({ index: 1 });
-    await page.getByLabel(/Descrição/i).fill(
+    await page.getByLabel(/O que aconteceu/i).fill(
       'Denúncia registrada pela suíte de ponta a ponta para provar o cenário 5 do Anexo I. '
       + 'Alvo é a demanda criada pela própria suíte.',
     );
@@ -258,8 +258,8 @@ test.describe('Os seis cenários do Anexo I', () => {
 
     const denunciaTratada = Number(page.url().match(/\/admin\/denuncias\/(\d+)/)[1]);
 
-    await page.getByLabel(/Situação/i).selectOption('EM_ANALISE');
-    await page.getByRole('button', { name: /Registrar providência/i }).click();
+    await page.getByLabel(/Situação da apuração|^Situação$/i).selectOption('EM_ANALISE');
+    await page.getByRole('button', { name: /Registrar a decisão|Atualizar a decisão|Registrar providência/i }).click();
     await page.waitForLoadState('domcontentloaded');
     await telaSaudavel(page);
 

@@ -1,36 +1,131 @@
 {% extends 'layout/base.html.twig' %}
 {% import 'layout/_form.html.twig' as form %}
 
+{#
+    A entrada, portada do mockup de login que a autora desenhou.
+
+    Ele não estava em `docs/mockups/` e por isso duas sessões concluíram que não existia: é um
+    artefato à parte, e a autora o entregou depois. O que está aqui é aquele desenho, com a mesma
+    geometria, as mesmas medidas e as mesmas cores.
+
+    ## O que a tela diz, e por que ela diz assim
+
+    O plano de dois eixos que se ergue em volume é o argumento pessoal da autora, o mesmo que a
+    landing usa: confiabilidade e compatibilidade formam o plano, e a terceira dimensão é a que
+    faltava. Os três eixos ficam nomeados embaixo, cada um na cor da própria aresta.
+
+    ## Três adaptações, e o motivo de cada uma
+
+    1. **O campo é o e-mail, não CPF ou CNPJ.** A autenticação é por e-mail, e o backend da
+       entrada é de outro integrante da equipe. Trocar a chave de login seria mexer no trabalho
+       dele na véspera da entrega, e por uma razão de aparência.
+    2. **"Lembrar" não entrou.** Não existe sessão persistente na plataforma, e uma caixa que não
+       faz nada é pior que a ausência dela: promete o que o sistema não cumpre.
+    3. **A senha tem o olho de revelar**, que o mockup não desenha e a macro do projeto já traz.
+       Tirar seria piorar uma tela que já resolveu isso.
+
+    Nome de campo, ação, token e mensagem de erro continuam exatamente como estavam.
+#}
+
+{% set shell = 'nu' %}
+
 {% block titulo %}Entrar · Pro-Link{% endblock %}
 
-{#  Entrada: um cartão centrado é a forma esperada desta tela, e aqui a moldura vazia é
-    composição, não coluna estreita esquecida no meio da página. #}
-{% block classe_main %}pl-wrap leitura{% endblock %}
+{% block classe_main %}pl-e3{% endblock %}
 
 {% block conteudo %}
-<div class="pl-auth">
-    <div class="pl-card">
-        <h1 class="pl-secao mb-3">Entrar</h1>
+<div class="pl-e3-tela">
 
-        {% if aviso|default(null) %}<div class="alert alert-danger" role="alert">{{ aviso }}</div>{% endif %}
+    <section class="pl-e3-marca-lado">
+        <a class="pl-e3-marca" href="{{ app_url }}"><span class="m" aria-hidden="true"></span>Pro&#8209;Link</a>
 
-        <form method="post" action="{{ app_url }}/login" novalidate>
-            {{ form.csrf() }}
+        {#  A cena animada e, ao lado, o quadro final parado. Sem JavaScript fica o SVG; com ele o
+            `entrada-3d.js` marca o par e a <canvas> toma o lugar. Só um dos dois é anunciado. #}
+        <div class="pl-e3-fig" data-fig>
+            <canvas data-volume role="img"
+                    aria-label="Visualização em três dimensões: um plano azul, de confiabilidade e compatibilidade, do qual se ergue a profundidade"></canvas>
+            <svg class="pl-e3-parado" viewBox="0 0 420 320" role="img"
+                 aria-label="Um plano de dois eixos do qual se ergue um volume: a terceira dimensão">
+                <g fill="none" stroke="rgba(120,165,240,.14)" stroke-width="1">
+                    <path d="M60 232L210 174M110 251L260 193M160 270L310 212M110 213L260 155M160 194L310 136"/>
+                </g>
+                <polygon points="210,116 330,162 210,208 90,162" fill="rgba(46,107,230,.10)"/>
+                <path d="M90 162L210 116" stroke="#2E6BE6" stroke-width="2"/>
+                <path d="M210 208L330 162" stroke="#2E6BE6" stroke-width="2"/>
+                <path d="M90 162L210 208" stroke="#63A0F0" stroke-width="2"/>
+                <path d="M330 162L210 116" stroke="#63A0F0" stroke-width="2"/>
+                <g stroke="#8FE3FF" stroke-width="1.8" fill="none">
+                    <path d="M90 162V92M330 162V92M210 116V46M210 208V138"/>
+                    <polygon points="210,46 330,92 210,138 90,92" fill="rgba(143,227,255,.10)"/>
+                </g>
+                <path d="M210 162V92" stroke="#8FE3FF" stroke-width="2.4"/>
+                <g fill="#DCEBFF">
+                    <circle cx="210" cy="46" r="3"/><circle cx="330" cy="92" r="3"/>
+                    <circle cx="210" cy="138" r="3"/><circle cx="90" cy="92" r="3"/>
+                </g>
+            </svg>
+        </div>
 
-            {{ form.campo('email', 'E-mail', 'email',
-                valores.email|default(''), erros.email|default(null),
-                {autocomplete: 'email', required: true}) }}
+        <div class="pl-e3-tese">
+            {#  Não é <h1>: o assunto desta página é entrar, e quem responde por ele é o título do
+                formulário. Dois <h1> dariam dois assuntos à mesma tela. #}
+            <p class="lead">Sua identidade técnica, <span class="g">em três dimensões.</span></p>
+            <p class="sub">
+                Confiabilidade e compatibilidade formam o plano. O contato verificado, e a
+                perspectiva de quem tenta burlar, é a profundidade que faltava.
+            </p>
+            <ul class="eixos">
+                <li><i class="x" aria-hidden="true"></i>Cliente</li>
+                <li><i class="y" aria-hidden="true"></i>Desenvolvedor</li>
+                <li><i class="z" aria-hidden="true"></i>Atacante · profundidade</li>
+            </ul>
+        </div>
+    </section>
 
-            {{ form.senha('senha', 'Senha', erros.senha|default(null)) }}
+    <section class="pl-e3-forma">
+        <div class="pl-e3-cartao">
+            <span class="pl-e3-selo">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 2l7 3v6c0 5-3.5 8-7 9-3.5-1-7-4-7-9V5z" fill="#2E6BE6"/>
+                    <path d="M8.5 12l2.5 2.5 4.5-5" stroke="#fff" stroke-width="2.2"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Dados verificados pelo CREA-AM
+            </span>
 
-            {{ form.botao('Entrar') }}
-        </form>
-    </div>
+            <h1>Entrar</h1>
+            <p class="pl-e3-dica">Acesse com o e-mail e a senha da sua conta.</p>
 
-    <p class="pl-auth-links">
-        <a href="{{ app_url }}/recuperar-senha">Esqueci minha senha</a>
-        <span class="pl-sep" aria-hidden="true"></span>
-        <a href="{{ app_url }}/cadastro">Criar uma conta</a>
-    </p>
+            {% if aviso|default(null) %}
+                <div class="alert alert-danger" role="alert">{{ aviso }}</div>
+            {% endif %}
+
+            <form method="post" action="{{ app_url }}/login" novalidate>
+                {{ form.csrf() }}
+
+                {{ form.campo('email', 'E-mail', 'email',
+                    valores.email|default(''), erros.email|default(null),
+                    {autocomplete: 'email', required: true}) }}
+
+                {{ form.senha('senha', 'Senha', erros.senha|default(null)) }}
+
+                <p class="pl-e3-linha">
+                    <a href="{{ app_url }}/recuperar-senha">Esqueci a senha</a>
+                </p>
+
+                {{ form.botao('Entrar') }}
+            </form>
+
+            <p class="pl-e3-alt">
+                Primeiro acesso?
+                <a href="{{ app_url }}/cadastro">Criar perfil verificado &rarr;</a>
+            </p>
+        </div>
+    </section>
+
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_assets }}/js/entrada-3d.js?v={{ assets_v }}" defer></script>
 {% endblock %}
