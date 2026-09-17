@@ -17,6 +17,7 @@
 # Uso:
 #   bash scripts/verificar-tudo.sh                 # tudo, menos o que precisa de senha
 #   PROLINK_E2E_ADMIN_SENHA=... bash scripts/verificar-tudo.sh
+#   (ou deixe a credencial em e2e/.env.local, que este script carrega sozinho)
 #
 # A senha do administrador da suíte de ponta a ponta vem do ambiente. Sem ela, os passos de
 # navegador são pulados com aviso, e o resto roda: pular com aviso é melhor do que falhar por um
@@ -72,6 +73,17 @@ passo "E4, motor de compatibilização"  docker compose exec -T php php scripts/
 passo "E6, denúncias e painel"         docker compose exec -T php php scripts/verificar-e6.php
 
 # ---------------------------------------------------------------- pelo navegador
+# A credencial da administração pode vir do ambiente ou de `e2e/.env.local`, que o .gitignore
+# recusa e que `e2e/rodar.sh` também carrega. Sem isso, a bateria pulava os dois passos de
+# navegador mesmo com o arquivo no lugar, e o placar dizia "7 no verde, 2 pulados" numa máquina
+# onde os nove passam.
+if [ -z "${PROLINK_E2E_ADMIN_SENHA:-}" ] && [ -f e2e/.env.local ]; then
+    set -a
+    # shellcheck disable=SC1091
+    . ./e2e/.env.local
+    set +a
+fi
+
 if [ -z "${PROLINK_E2E_ADMIN_SENHA:-}" ]; then
     pular "Seis cenários pelo navegador" "exporte PROLINK_E2E_ADMIN_SENHA"
     pular "Acessibilidade e 390px"       "exporte PROLINK_E2E_ADMIN_SENHA"
