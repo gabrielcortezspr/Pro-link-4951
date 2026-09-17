@@ -1,0 +1,232 @@
+{% extends 'layout/base.html.twig' %}
+{% import 'layout/_ui.html.twig' as ui %}
+
+{#
+    O início de quem publica demanda, portado do bloco "01 Dashboard Empresa" de
+    docs/mockups/prolink-empresa-1.html.
+
+    A composição é a de lá: cabeçalho com a ação de publicar à direita, barra de busca, fileira de
+    indicadores e o quadro das demandas recentes. O que mudou, e só o que tinha de mudar:
+
+    1. O subtítulo do mockup traz o CNPJ, que esta rota não carrega. Fica o nome da conta e o
+       papel, que a sessão tem.
+    2. Os indicadores do mockup ("Compatíveis novos", "desde a última visita") pressupõem uma
+       marca de última visita que não existe em lugar nenhum do banco. Os cinco números daqui são
+       os que o DashboardRepository mede de verdade.
+    3. Terceiro é demandante sem registro no conselho: não tem acervo nem quadro técnico, e os
+       dois tiles não aparecem para ele. Tile que vale zero para sempre não é indicador, é ruído.
+    4. A coluna "Atividade TOS" do mockup precisa das atividades de cada demanda, que esta rota
+       não carrega; a coluna "Compatíveis" virou "Interessados", que é o que a plataforma conta e
+       o que abre uma tela de verdade. Nenhuma das duas é ordenação de pessoas (item 10.1).
+#}
+
+{% set shell = 'app' %}
+{% set ativo = 'inicio' %}
+
+{% block titulo %}Início · Pro-Link{% endblock %}
+{% block titulo_tela %}Início{% endblock %}
+
+{% block conteudo %}
+{% set u = usuario() %}
+
+<div class="pl-head">
+    <div class="tit">
+        <h1>Visão geral</h1>
+        <p class="sub">
+            {% if u %}
+                <span>{{ u.nome|nome_proprio }}</span>
+                <span class="pl-sep" aria-hidden="true"></span>
+            {% endif %}
+            <span>{{ tem_registro ? 'Empresa com registro no Sistema Confea/CREA' : 'Contratante sem registro no conselho' }}</span>
+        </p>
+    </div>
+    <div class="pl-head-acoes">
+        <a class="pl-cta" href="{{ app_url }}/demandas/nova">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Publicar demanda
+        </a>
+    </div>
+</div>
+
+{#  A barra de busca do mockup, ligada à busca de verdade: GET para /profissionais, sem
+    JavaScript. O mockup diz "Buscar demanda ou profissional"; a busca que existe é a de
+    profissional, e prometer a outra seria um campo que devolve a tela errada. #}
+<form class="pl-busca-row mb-0" method="get" action="{{ app_url }}/profissionais" role="search">
+    <div class="cx">
+        <span class="lupa" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.6-3.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+        <label class="visually-hidden" for="q">Nome, especialidade ou experiência</label>
+        <input type="search" id="q" name="q" maxlength="80" autocomplete="off"
+               placeholder="Nome, especialidade ou experiência. Ex.: Construção Civil, estruturas, Ana">
+    </div>
+    <button type="submit" class="pl-btn">Buscar</button>
+</form>
+
+{# ------------------------------------------------------------------ os indicadores #}
+<div class="pl-kpis">
+    <a class="pl-kpi" href="{{ app_url }}/demandas">
+        <div class="lab">Demandas cadastradas</div>
+        <div class="val">{{ numeros.demandas }}</div>
+        <div class="sub">
+            <span>
+                {%- if numeros.demandas == 0 -%}
+                    Nenhuma cadastrada até agora
+                {%- else -%}
+                    Publicadas e rascunhos
+                {%- endif -%}
+            </span>
+            <svg class="ch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </div>
+    </a>
+
+    <div class="pl-kpi">
+        <div class="lab">Publicadas</div>
+        <div class="val">{{ numeros.publicadas }}</div>
+        {#  A quebra vem de `dem_dt_publicacao`, e não da situação gravada: aquela coluna vale
+            'ABERTA' tanto para a demanda publicada quanto para o rascunho. #}
+        <p class="sub">
+            {%- if numeros.demandas == 0 -%}
+                Visíveis na vitrine quando existirem
+            {%- elseif numeros.publicadas == numeros.demandas -%}
+                Todas as suas demandas estão na vitrine
+            {%- else -%}
+                {{ numeros.demandas - numeros.publicadas }} ainda em rascunho
+            {%- endif -%}
+        </p>
+    </div>
+
+    <a class="pl-kpi" href="{{ app_url }}/demandas">
+        <div class="lab">Interessados que chegaram</div>
+        <div class="val">{{ numeros.interessados }}</div>
+        <div class="sub">
+            <span>
+                {%- if numeros.interessados == 0 -%}
+                    Nenhuma manifestação recebida
+                {%- else -%}
+                    Manifestações nas suas demandas
+                {%- endif -%}
+            </span>
+            <svg class="ch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </div>
+    </a>
+
+    {#  Acervo e quadro técnico vêm do registro no conselho, e o contratante não tem registro:
+        para ele os dois tiles não existem, em vez de existirem valendo zero para sempre. #}
+    {% if tem_registro %}
+        <a class="pl-kpi" href="{{ app_url }}/perfil">
+            <div class="lab">ARTs no acervo da empresa</div>
+            <div class="val">
+                {{ numeros.acervo }}
+                {% if numeros.acervo > 0 %}
+                    <svg class="pl-mark" role="img" aria-label="Conferidas na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+                {% endif %}
+            </div>
+            <div class="sub">
+                <span>
+                    {%- if numeros.acervo == 0 -%}
+                        Herdado do quadro técnico vigente
+                    {%- else -%}
+                        Do quadro técnico, pela API do CREA-AM
+                    {%- endif -%}
+                </span>
+                <svg class="ch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+        </a>
+
+        <a class="pl-kpi" href="{{ app_url }}/perfil">
+            <div class="lab">Quadro técnico vigente</div>
+            <div class="val">{{ numeros.quadro }}</div>
+            <div class="sub">
+                <span>
+                    {%- if numeros.quadro == 0 -%}
+                        Valide o registro para trazer o quadro
+                    {%- else -%}
+                        {{ numeros.quadro == 1 ? 'Vínculo sem data de fim' : 'Vínculos sem data de fim' }}
+                    {%- endif -%}
+                </span>
+                <svg class="ch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+        </a>
+    {% endif %}
+</div>
+
+{# ------------------------------------------------------------------ as demandas recentes #}
+<section class="pl-card">
+    <div class="pl-linha-titulo">
+        <h2 class="pl-secao">Suas demandas recentes</h2>
+        <span class="cnt">As cinco últimas cadastradas</span>
+        <div class="dir">
+            <a class="pl-btn sm" href="{{ app_url }}/demandas">Ver todas</a>
+        </div>
+    </div>
+
+    {% if demandas is empty %}
+        <div class="pl-vazio">
+            <p class="t">Você ainda não publicou nenhuma demanda</p>
+            <p class="s">
+                Publique o que precisa ser feito e escolha as atividades da Tabela de Obras e
+                Serviços: é por elas que a plataforma encontra quem já comprovou fazer aquilo.
+            </p>
+            <div class="a">
+                <a class="pl-cta" href="{{ app_url }}/demandas/nova">Criar a primeira demanda</a>
+            </div>
+        </div>
+    {% else %}
+        <div class="table-responsive" tabindex="0" role="region" aria-label="Suas demandas mais recentes">
+            <table class="pl-table">
+                <caption class="visually-hidden">
+                    As demandas mais recentes desta conta, com situação, número de interessados e data de publicação
+                </caption>
+                <thead>
+                    <tr>
+                        <th scope="col" class="assunto">Demanda</th>
+                        <th scope="col">Situação</th>
+                        <th scope="col" class="num">Interessados</th>
+                        <th scope="col">Publicada</th>
+                        <th scope="col"><span class="visually-hidden">Ação</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in demandas %}
+                        <tr>
+                            <td class="assunto">
+                                <a class="lin-tt" href="{{ app_url }}/demandas/{{ d.dem_id }}">{{ d.dem_titulo }}</a>
+                                <span class="lin-sub">
+                                    {%- if d.dem_local_municipio -%}
+                                        {{ d.dem_local_municipio }}{% if d.dem_local_uf %}/{{ d.dem_local_uf }}{% endif %}
+                                    {%- else -%}
+                                        Local não informado
+                                    {%- endif -%}
+                                </span>
+                            </td>
+                            <td>{{ ui.situacao(d.dem_situacao, d.dem_dt_publicacao is not null) }}</td>
+                            {#  Zero é um dado, e não um vazio: fica escrito, em cinza claro, para
+                                a coluna continuar comparável. A partir de um, o número leva à
+                                lista de quem manifestou. #}
+                            <td class="num{{ d.interessados > 0 ? '' : ' zero' }}">
+                                {%- if d.interessados > 0 -%}
+                                    <a class="lk" href="{{ app_url }}/demandas/{{ d.dem_id }}/interessados"
+                                       title="Ver quem manifestou interesse">{{ d.interessados }}</a>
+                                {%- else -%}
+                                    {{ d.interessados }}
+                                {%- endif -%}
+                            </td>
+                            <td>
+                                {%- if d.dem_dt_publicacao -%}
+                                    <span class="pl-mono">{{ d.dem_dt_publicacao|date('d/m/Y') }}</span>
+                                {%- else -%}
+                                    <span class="lin-sub">Não publicada</span>
+                                {%- endif -%}
+                            </td>
+                            <td class="text-end">
+                                <a class="pl-btn sm" href="{{ app_url }}/demandas/{{ d.dem_id }}">Abrir</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

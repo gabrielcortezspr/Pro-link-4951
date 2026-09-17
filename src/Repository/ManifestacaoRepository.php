@@ -27,8 +27,13 @@ namespace ProLink\Repository;
  */
 final class ManifestacaoRepository extends Repositorio
 {
+    //  `man_origem` está aqui porque a tela precisa dela para não mentir. A coluna diz de que
+    //  lado partiu o ato: 'C' quando o titular do perfil se candidatou a uma demanda, 'D' quando
+    //  quem publicou a demanda registrou interesse naquele perfil. Sem ela na consulta, as telas
+    //  tratavam toda linha como candidatura, e as duas linhas de origem 'D' apareciam com a
+    //  mensagem do demandante assinada como "Você" para quem a recebeu.
     private const CAMPOS = 'm.man_id, m.man_dem_id, m.man_usu_id, m.man_candidato_tipo,
-                            m.man_mensagem, m.man_situacao, m.man_dt_visualizacao,
+                            m.man_origem, m.man_mensagem, m.man_situacao, m.man_dt_visualizacao,
                             m.man_dt_registro, m.man_snapshot_hash';
 
     /** @param array<string, mixed> $dados */
@@ -36,16 +41,19 @@ final class ManifestacaoRepository extends Repositorio
     {
         $stmt = $this->pdo->prepare(
             'INSERT INTO pro_manifestacoes
-                (man_dem_id, man_usu_id, man_candidato_tipo, man_mensagem,
+                (man_dem_id, man_usu_id, man_candidato_tipo, man_origem, man_mensagem,
                  man_snapshot, man_snapshot_hash)
              VALUES
-                (:demanda, :usuario, :tipo, :mensagem, :snapshot, :hash)'
+                (:demanda, :usuario, :tipo, :origem, :mensagem, :snapshot, :hash)'
         );
 
         $stmt->execute([
             ':demanda'  => $dados['demanda_id'],
             ':usuario'  => $dados['usuario_id'],
             ':tipo'     => $dados['candidato_tipo'],
+            // Quem começou: 'C' o candidato, 'D' o demandante. O padrão é 'C' porque foi o único
+            // caminho que existiu até 17/09, e a coluna nasceu com ele para não reescrever linha.
+            ':origem'   => $dados['origem'] ?? 'C',
             ':mensagem' => $dados['mensagem'],
             ':snapshot' => $dados['snapshot'],
             ':hash'     => $dados['hash'],

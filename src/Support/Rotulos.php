@@ -43,8 +43,19 @@ final class Rotulos
         'MODERAR'         => 'Moderação',
     ];
 
-    /** Tabelas do esquema. Singular: a linha de auditoria fala de um registro, não da tabela. */
+    /**
+     * Tabelas do esquema. Singular: a linha de auditoria fala de um registro, não da tabela.
+     *
+     * As quatro últimas não são tabelas: são os alvos possíveis de uma denúncia
+     * (`pro_denuncias.den_entidade`). Entraram aqui porque a tela de moderação as imprimia pelo
+     * fallback por convenção, que devolve a forma sem acento: "Usuario" e "Experiencia". Acento
+     * faltando numa tela que a banca abre não é detalhe.
+     */
     private const ENTIDADES = [
+        'USUARIO'             => 'Conta',
+        'DEMANDA'             => 'Demanda',
+        'MENSAGEM'            => 'Mensagem',
+        'EXPERIENCIA'         => 'Experiência',
         'sis_usuarios'        => 'Conta',
         'sis_sessoes'         => 'Sessão',
         'sis_perfis'          => 'Perfil de acesso',
@@ -211,5 +222,69 @@ final class Rotulos
         $texto = (string) preg_replace('/^(sis|pro|crea|mat|[a-z]{3})_/', '', $texto);
 
         return ucfirst(str_replace('_', ' ', $texto));
+    }
+
+    /**
+     * O nome de uma pessoa ou empresa em caixa de título, para exibição.
+     *
+     * ## Por que existe
+     *
+     * A API oficial devolve tudo em caixa alta, e a plataforma guarda como recebeu: o valor
+     * gravado é o que o conselho registrou, e mudá-lo no banco seria alterar dado verificado. Mas
+     * "CONSTRUTORA MANAUARA LTDA" em 42px no feed grita, e nome em caixa alta é mais lento de ler,
+     * porque some o contorno das letras que o olho usa para reconhecer a palavra.
+     *
+     * Então a conversão é só de **exibição**: a busca, a trilha de auditoria, o resumo
+     * criptográfico e o que vai para o retrato congelado continuam com o valor original.
+     *
+     * ## O que ele não faz
+     *
+     * Nome que **não** está todo em caixa alta passa intacto. Quem digitou "d'Ávila" ou "McKenna"
+     * escreveu assim de propósito, e reescrever seria trocar um erro por outro pior: o de corrigir
+     * quem estava certo.
+     */
+    public static function nomeProprio(?string $nome): string
+    {
+        $nome = trim((string) $nome);
+
+        if ($nome === '' || $nome !== mb_strtoupper($nome, 'UTF-8')) {
+            return $nome;
+        }
+
+        // Ligações que só sobem de caixa quando abrem o nome: "Costa e Silva", mas "E Silva Ltda"
+        // se a palavra vier primeiro.
+        $ligacoes = ['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'no', 'na', 'a', 'o'];
+
+        // Forma jurídica e titulação não são nome: continuam como o registro escreve.
+        $siglas = [
+            'LTDA', 'ME', 'EPP', 'EIRELI', 'MEI', 'SA', 'S/A', 'S.A.', 'CIA', 'EPC', 'SS',
+            'CNPJ', 'CPF', 'CREA', 'ART', 'CAT', 'II', 'III', 'IV',
+        ];
+
+        $palavras = preg_split('/(\s+)/u', $nome, -1, PREG_SPLIT_DELIM_CAPTURE) ?: [];
+        $posicao  = 0;
+
+        foreach ($palavras as $i => $palavra) {
+            if (trim($palavra) === '') {
+                continue;
+            }
+
+            $limpa = rtrim($palavra, '.,');
+
+            if (in_array($limpa, $siglas, true)) {
+                ++$posicao;
+                continue;
+            }
+
+            $minuscula = mb_strtolower($palavra, 'UTF-8');
+
+            $palavras[$i] = $posicao > 0 && in_array($minuscula, $ligacoes, true)
+                ? $minuscula
+                : mb_convert_case($palavra, MB_CASE_TITLE, 'UTF-8');
+
+            ++$posicao;
+        }
+
+        return implode('', $palavras);
     }
 }

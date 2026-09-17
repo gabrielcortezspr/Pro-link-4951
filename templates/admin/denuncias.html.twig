@@ -1,17 +1,74 @@
 {% extends 'admin/_layout.html.twig' %}
+{% import 'layout/_ui.html.twig' as ui %}
+
+{#
+    Fila de moderação (RF06; edital 8.5g).
+
+    É a única tela do painel onde a Administração escreve: sessões, auditoria e lixeira são
+    leitura. Por isso ela é a mesa de trabalho, e a pergunta que a linha responde é "isto precisa
+    de mim agora, e sobre o que":
+
+    Primário   o alvo (quem ou o que foi denunciado) e o tipo da denúncia.
+    Secundário a situação, que diz se alguém já pegou o caso, e quem denunciou.
+    Terciário  a hora, o número da denúncia e o caminho para o detalhe.
+
+    A tela é gêmea da trilha de auditoria: mesma mecânica de log, mesmo cabeçalho de dia, mesma
+    hora monoespaçada. As duas respondem "o que aconteceu e quando", e divergir no desenho faria o
+    painel parecer duas aplicações.
+
+    Ordenar denúncia por data não é ranking. O que o item 10.1 veda é ordenar PESSOAS por mérito, e
+    nada aqui compara pessoas: o alvo aparece porque é o objeto da apuração, nunca com nota e nunca
+    com posição, e a contagem de denúncias por conta não existe em lugar nenhum desta tela.
+
+    Escala: DenunciaService::fila() devolve no máximo 50 linhas e não pagina. A base de
+    demonstração tem 275 denúncias ativas, então o recorte é sempre parcial, e a tela diz isso com
+    todas as letras em vez de deixar quem lê achar que viu a fila inteira.
+#}
 
 {% block titulo %}Denúncias · Pro-Link{% endblock %}
 {% block titulo_painel %}Denúncias{% endblock %}
 
+{% block topbar_acoes %}
+    {#  O canto esquerdo da topbar carrega o modo da tela em todo o painel: "Somente leitura" nas
+        três de auditoria, a contagem em contas e na lixeira. Aqui ele estava vazio, e o "i" ficava
+        sozinho encostado no botão de sair. A contagem é a da aba aberta, que é o que a pessoa
+        está olhando. #}
+    <span class="pl-momento">
+        {{ fila|length }} {{ fila|length == 1 ? 'denúncia nesta lista' : 'denúncias nesta lista' }}
+    </span>
+    {{ ui.info('O que a fila faz, e o que ela não faz',
+        'Nada é bloqueado automaticamente por ter sido denunciado: a conta ou o conteúdo continuam em operação até alguém da Administração apurar e decidir. Toda decisão é registrada na trilha de auditoria com quem a tomou, a data e a situação anterior, e a trilha não aceita edição nem remoção.', 'fim') }}
+{% endblock %}
+
 {% block painel %}
 
-    {# Vocabulário fixo de status: a aba fala no plural, a pílula da linha no singular, e a cor
+    {# Vocabulário fixo de situação: a aba fala no plural, a pílula da linha no singular, e a cor
        é fixa por estado (docs/design.md). Nunca inventar rótulo novo aqui. #}
     {% set abas   = {'PENDENTE': 'Pendentes', 'EM_ANALISE': 'Em análise', 'RESOLVIDA': 'Resolvidas'} %}
     {% set estado = {'PENDENTE': 'Pendente',  'EM_ANALISE': 'Em análise', 'RESOLVIDA': 'Resolvida'} %}
     {% set cores  = {'PENDENTE': 'warn',      'EM_ANALISE': 'neutral',    'RESOLVIDA': 'ok'} %}
 
-    <nav class="mb-3 d-flex flex-wrap gap-2" aria-label="Filtrar por situação">
+    {#  Providência, no vocabulário de denuncia.html.twig. Na coluna de situação ela aparece no
+        particípio, como desfecho: "Conta bloqueada" e não "Bloquear", porque ali o ato já
+        aconteceu e o infinitivo prometeria uma ação ainda disponível. #}
+    {% set providencia = {
+        'ADVERTIR':     'Advertência aplicada',
+        'BLOQUEAR':     'Conta bloqueada',
+        'REMOVER':      'Conteúdo removido',
+        'IMPROCEDENTE': 'Improcedente'
+    } %}
+
+    {% set meses = {
+        1: 'janeiro', 2: 'fevereiro', 3: 'março',    4: 'abril',    5: 'maio',     6: 'junho',
+        7: 'julho',   8: 'agosto',    9: 'setembro', 10: 'outubro', 11: 'novembro', 12: 'dezembro'
+    } %}
+
+    {#  O limite do serviço é 50 e não há paginação. Quando a fila volta cheia, o recorte é parcial
+        por definição, e a tela precisa dizer isso: lista truncada em silêncio é pior que lista
+        vazia, porque parece completa. #}
+    {% set truncada = fila|length >= 50 %}
+
+    <nav class="pl-abas" aria-label="Filtrar por situação">
         <a class="pl-btn sm{% if situacao is null %} active{% endif %}"
            href="{{ app_url }}/admin/denuncias"
            {% if situacao is null %}aria-current="page"{% endif %}>Todas</a>
@@ -22,55 +79,187 @@
         {% endfor %}
     </nav>
 
-    <div class="pl-card">
-        <div class="table-responsive">
-            <table class="pl-table">
+    <section class="pl-card pl-log-card">
+
+        <div class="pl-log-topo">
+            <div>
+                <h2 class="pl-card-titulo">
+                    {%- if situacao is null -%}
+                        Denúncias recebidas
+                    {%- else -%}
+                        {{ abas[situacao]|default('Denúncias') }}
+                    {%- endif -%}
+                </h2>
+                {#  Segunda metade do resumo: a regra que governa a tela, visível e não atrás do
+                    "i", como em contas ("bloquear exige motivo"), na lixeira ("restaurar exige
+                    motivo") e nas sessões ("sem ranking"). O recorte parcial saiu daqui e foi
+                    para o rodapé, que é onde as telas irmãs dizem o que a lista não mostra. #}
+                <p class="pl-log-resumo">
+                    <span><b>{{ fila|length }}</b> {{ fila|length == 1 ? 'denúncia' : 'denúncias' }}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>nada sai de operação por ter sido denunciado, só por decisão registrada</span>
+                </p>
+                {#  Afinidade com a borda, como na trilha: em tela estreita a coluna do meio corta
+                    com reticências no fim do quadro, e reticências leem como "o texto foi
+                    cortado", não como "a tabela continua". A linha some no desktop. #}
+                <p class="pl-log-lado">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"/><path d="M14 6l6 6-6 6"/></svg>
+                    A tabela continua para o lado
+                </p>
+            </div>
+            {#  A faixa exibida, no mesmo canto e na mesma forma da trilha, da lixeira, de contas e
+                das sessões. A fila não pagina, então ela começa sempre em 1. #}
+            {% if fila|length %}
+                <p class="pl-pag mb-0">
+                    <span class="pos">Exibindo <b>1</b> a <b>{{ fila|length }}</b></span>
+                </p>
+            {% endif %}
+        </div>
+
+        {#  Rola dentro do quadro, e nenhuma coluna sai do ar num aparelho estreito: numa fila de
+            moderação toda coluna é parte da decisão. Os três atributos põem o quadro ao alcance do
+            teclado, com nome. Mesmo padrão da trilha de auditoria. #}
+        <div class="table-responsive" tabindex="0" role="region" aria-label="Fila de denúncias">
+            <table class="pl-table pl-log pl-fila">
+                <caption class="visually-hidden">
+                    Fila de denúncias, da mais recente para a mais antiga, agrupada por dia. Uma
+                    denúncia por linha, com o alvo, o tipo, quem denunciou e a situação da apuração.
+                </caption>
+                <colgroup>
+                    <col class="c-hora">
+                    <col>
+                    <col class="c-tipo"><col class="c-autor"><col class="c-situacao">
+                    <col class="c-acao"><col class="c-ref">
+                </colgroup>
                 <thead>
                     <tr>
-                        <th>Alvo</th>
-                        <th>Tipo</th>
-                        <th>Autor</th>
-                        <th>Recebida</th>
-                        <th>Situação</th>
-                        <th></th>
+                        <th scope="col">Hora</th>
+                        <th scope="col">Alvo da denúncia</th>
+                        <th scope="col">Tipo</th>
+                        <th scope="col">Quem denunciou</th>
+                        <th scope="col">Situação</th>
+                        <th scope="col" class="acao">Apuração</th>
+                        <th scope="col" class="num">Nº</th>
                     </tr>
                 </thead>
                 <tbody>
                 {% for d in fila %}
-                    <tr>
+
+                    {#  Cabeçalho de dia: a data sai da linha e vira faixa, como na trilha. Compara
+                        com a linha anterior em vez de guardar estado, que dentro de um for do Twig
+                        é frágil. #}
+                    {% if loop.first or d.den_dt_registro|date('Y-m-d') != fila[loop.index0 - 1].den_dt_registro|date('Y-m-d') %}
+                        <tr class="dia">
+                            <td colspan="7">
+                                <div class="w">
+                                    <span class="d">{{ d.den_dt_registro|date('j') }} de {{ meses[d.den_dt_registro|date('n')] }} de {{ d.den_dt_registro|date('Y') }}</span>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+
+                    {#  O trilho âmbar marca o que espera decisão humana. Ele não qualifica o alvo:
+                        qualifica o estado do trabalho, que é a diferença entre sinalizar fila e
+                        julgar pessoa (item 10.1). #}
+                    <tr class="lin{% if d.den_situacao == 'PENDENTE' %} aguarda{% endif %}">
+
+                        <td class="hora">{{ d.den_dt_registro|date('H:i') }}</td>
+
                         <td>
-                            <span class="lin-tt">{{ d.alvo_nome|default(d.den_entidade|rotulo_entidade ~ ' nº ' ~ d.den_entidade_id) }}</span>
-                            {% if d.alvo_nome %}<span class="lin-sub">Conta</span>{% endif %}
+                            {% if d.alvo_nome %}
+                                <span class="tt" title="{{ d.alvo_nome }}">{{ d.alvo_nome|nome_proprio }}</span>
+                                <span class="sub">Conta nº {{ d.den_entidade_id }}</span>
+                            {% else %}
+                                {#  Alvo que não é conta: o rótulo da entidade vem de
+                                    Support\Rotulos, nunca o nome da tabela. #}
+                                <span class="tt">{{ d.den_entidade|rotulo_entidade }} nº {{ d.den_entidade_id }}</span>
+                                <span class="sub">Conteúdo publicado na plataforma</span>
+                            {% endif %}
                         </td>
-                        <td>{{ tipos[d.den_tipo]|default(d.den_tipo) }}</td>
-                        <td>{{ d.autor_nome }}</td>
-                        <td class="mono">{{ d.den_dt_registro|date('d/m/Y H:i') }}</td>
+
                         <td>
-                            <span class="pl-pill {{ cores[d.den_situacao]|default('neutral') }}">
-                                <span class="pd"></span>{{ estado[d.den_situacao]|default(d.den_situacao) }}
+                            {#  title com o código gravado: o rótulo é o que se lê, e o valor exato
+                                continua ao alcance de quem audita. #}
+                            <span class="tipo" title="{{ d.den_tipo }}">{{ tipos[d.den_tipo]|default(d.den_tipo|lower|replace({'_': ' '})|capitalize) }}</span>
+                        </td>
+
+                        {#  Só o nome. "Ato identificado" era verdade em toda linha, e por isso não
+                            discriminava nenhuma: repetido cinquenta vezes virava ruído do tamanho
+                            da coluna. A frase é dita uma vez, no rodapé do quadro. #}
+                        <td><span class="autor">{{ d.autor_nome|nome_proprio }}</span></td>
+
+                        <td>
+                            <span class="pl-pill {{ cores[d.den_situacao]|default('neutral') }}" title="{{ d.den_situacao }}">
+                                <span class="pd" aria-hidden="true"></span>
+                                {{ estado[d.den_situacao]|default('Situação não prevista') }}
                             </span>
+                            {% if d.den_providencia %}
+                                <span class="sub" title="{{ d.den_providencia }}">{{ providencia[d.den_providencia]|default('Providência registrada') }}</span>
+                            {% endif %}
                         </td>
+
                         {# Uma ação por linha: as demais moram no detalhe (docs/design.md). #}
-                        <td class="text-end">
-                            <a class="pl-btn sm" href="{{ app_url }}/admin/denuncias/{{ d.den_id }}">Ver</a>
+                        <td class="acao">
+                            <a class="pl-btn sm" href="{{ app_url }}/admin/denuncias/{{ d.den_id }}">
+                                {{ d.den_situacao == 'RESOLVIDA' ? 'Ver decisão' : 'Apurar' }}
+                            </a>
                         </td>
+
+                        <td class="ref">{{ d.den_id }}</td>
                     </tr>
+
                 {% else %}
-                    <tr>
-                        <td colspan="6">
-                            <div class="pl-vazio">
-                                <p class="t">Nenhuma denúncia nesta situação</p>
-                                <p class="s">
-                                    A fila fica vazia quando não há nada pendente de apuração neste
-                                    recorte. Troque a aba para ver as demais.
-                                </p>
-                            </div>
+
+                    <tr class="vazio">
+                        <td colspan="7">
+                            <p class="t">
+                                {%- if situacao is null -%}
+                                    Nenhuma denúncia recebida
+                                {%- else -%}
+                                    Nenhuma denúncia nesta situação
+                                {%- endif -%}
+                            </p>
+                            <p class="s">
+                                {% if situacao is null %}
+                                    Quando alguém denunciar um perfil ou um conteúdo, a denúncia
+                                    entra aqui como pendente e espera apuração.
+                                {% else %}
+                                    Não há nada pendente de apuração neste recorte. Troque a aba
+                                    para ver as demais.
+                                {% endif %}
+                            </p>
+                            {% if situacao is not null %}
+                                <a class="pl-btn sm" href="{{ app_url }}/admin/denuncias">Ver todas as denúncias</a>
+                            {% endif %}
                         </td>
                     </tr>
+
                 {% endfor %}
                 </tbody>
             </table>
         </div>
-    </div>
+
+        {#  O rodapé fala das linhas ("cada linha acima tem autor"), então ele sai junto com elas:
+            sob um estado vazio a frase descreve uma tabela que não está ali. É a mesma guarda que
+            a lixeira e as sessões põem nos rodapés delas. #}
+        {% if fila|length %}
+        <div class="pl-log-rodape">
+            <p class="pl-nota">
+                {#  O recorte parcial dito aqui, e não no resumo do topo: é a mesma posição em que
+                    a lista de sessões diz que mostra as 50 mais recentes. Lista truncada em
+                    silêncio é pior que lista vazia, porque parece completa. #}
+                {% if truncada %}
+                    A lista mostra as {{ fila|length }} denúncias mais recentes deste recorte, e a
+                    fila tem mais.
+                {% endif %}
+                Denunciar é ato identificado: cada linha acima tem autor, e o envio ficou na trilha
+                com data e origem. Denúncia tratada também não sai da fila, e continua aqui na
+                situação resolvida, com a providência ao lado.
+            </p>
+            <a class="pl-btn sm" href="{{ app_url }}/admin/auditoria">Abrir a trilha de auditoria</a>
+        </div>
+        {% endif %}
+
+    </section>
 
 {% endblock %}

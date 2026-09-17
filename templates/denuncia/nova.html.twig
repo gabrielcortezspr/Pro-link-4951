@@ -2,7 +2,33 @@
 {% import 'layout/_form.html.twig' as form %}
 {% import 'layout/_ui.html.twig' as ui %}
 
+{#
+    Registrar denúncia (RF06; edital 8.5g).
+
+    A tela é curta de propósito, e o que ela precisa carregar não é explicação de funcionamento: é
+    o que a pessoa precisa saber ANTES de enviar, porque depois não dá para desfazer.
+
+    Primário   o alvo, que fica no topo e não é escolhido aqui: ele vem do lugar de onde a pessoa
+               clicou, e denúncia sem alvo vinculado o serviço recusa.
+    Secundário o tipo e o relato, que são o conteúdo da apuração.
+    Terciário  a evidência, opcional, e as duas consequências escritas antes do botão.
+
+    As duas consequências estão em texto visível, e não dentro do "i": quem denuncia fica
+    identificado na trilha, e a denúncia não bloqueia ninguém sozinha. A primeira é consentimento
+    informado; a segunda evita a expectativa de que enviar já resolve.
+
+    O limite de 5000 caracteres do DenunciaService está no campo como `maxlength`. Não substitui a
+    validação do servidor: economiza a viagem em que a pessoa perde o que escreveu.
+#}
+
 {% block titulo %}Registrar denúncia · Pro-Link{% endblock %}
+
+{#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
+{% set shell = 'app' %}
+{% set ativo = '' %}
+{% set medida = 'leitura' %}
+
+{% block titulo_tela %}Registrar denúncia{% endblock %}
 
 {% block classe_main %}pl-wrap leitura{% endblock %}
 
@@ -12,8 +38,12 @@
         <div class="pl-linha-titulo">
             <h1>Registrar denúncia</h1>
             {{ ui.info('O que acontece depois',
-                'A denúncia entra na fila de moderação e é apurada por um administrador, que pode advertir, bloquear a conta, remover o conteúdo ou considerá-la improcedente. Denúncia genérica, sem alvo ou contexto vinculado, não é permitida.') }}
+                'A denúncia entra na fila de moderação e é apurada por uma pessoa da Administração, que pode advertir, bloquear a conta, remover o conteúdo ou considerá-la improcedente. Nada é bloqueado automaticamente, e a decisão, qualquer que seja, fica registrada na trilha de auditoria.') }}
         </div>
+        <p class="sub">
+            A apuração é feita por pessoas, sobre o que você escrever aqui. Quanto mais concreto o
+            relato, menos tempo o caso passa parado na fila.
+        </p>
     </div>
 </div>
 
@@ -26,6 +56,8 @@
     <input type="hidden" name="entidade" value="{{ entidade }}">
     <input type="hidden" name="alvo_id" value="{{ alvo_id }}">
 
+    {#  O alvo não é campo: ele vem da tela de onde a pessoa clicou. Aparece em caixa própria, e
+        não como um campo desabilitado, porque campo desabilitado sugere que havia escolha. #}
     <div class="pl-alvo">
         <p class="rot">Alvo da denúncia</p>
         <p class="vl">{{ alvo_rotulo }}</p>
@@ -33,19 +65,31 @@
 
     {{ form.selecao('tipo', 'Tipo de denúncia', tipos, valores.tipo|default(''), erros.tipo|default(null), {required: true}) }}
 
-    {{ form.area('descricao', 'Descrição', valores.descricao|default(''), erros.descricao|default(null), {required: true, rows: 5}, 'Descreva o ocorrido com o máximo de contexto possível.') }}
+    {{ form.area('descricao', 'O que aconteceu', valores.descricao|default(''), erros.descricao|default(null),
+        {required: true, rows: 6, maxlength: 5000},
+        'Datas, telas e números de registro ajudam a apuração. Até 5000 caracteres.') }}
 
-    {{ form.campo('evidencia', 'Evidência (link ou referência)', 'text', valores.evidencia|default(''), erros.evidencia|default(null), {}, 'Opcional. Informe um link ou a referência de onde o ocorrido pode ser conferido.') }}
+    {{ form.campo('evidencia', 'Onde isso pode ser conferido', 'text', valores.evidencia|default(''), erros.evidencia|default(null), {maxlength: 255},
+        'Opcional. Um endereço ou a referência do registro. Quem apura lê como texto, e não abre o link a partir daqui.') }}
 
-    {#  Consequência da ação, no momento da ação: quem denuncia fica identificado na trilha. Isso
-        não é explicação de funcionamento, é o que a pessoa precisa saber antes de enviar. #}
-    <p class="pl-nota mb-0">
-        Esta ação é registrada na trilha de auditoria com autor, alvo e data e hora.
-    </p>
+    {#  Consequência da ação, no momento da ação. Não é explicação de funcionamento: é o que a
+        pessoa precisa saber antes de enviar. #}
+    <ul class="pl-efeitos">
+        <li>
+            <b>A denúncia não é anônima</b>
+            Ela é registrada na trilha de auditoria com o seu nome, o alvo, a data e a hora. É o que
+            permite apurar, e é o que impede a denúncia de virar arma.
+        </li>
+        <li>
+            <b>Enviar não bloqueia ninguém</b>
+            O alvo continua em operação enquanto o caso é apurado. Quem decide é uma pessoa da
+            Administração, e a decisão fica registrada com o nome de quem a tomou.
+        </li>
+    </ul>
 
     <div class="pl-acoes-form">
         {{ form.botao('Enviar denúncia') }}
-        <a class="pl-btn ghost" href="{{ app_url }}">Cancelar</a>
+        <a class="pl-btn ghost" href="{{ app_url }}/inicio">Cancelar</a>
     </div>
 </form>
 {% endblock %}

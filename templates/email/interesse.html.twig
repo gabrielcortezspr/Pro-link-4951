@@ -1,0 +1,34 @@
+{#  O aviso do caminho inverso: quem publicou a demanda registrou interesse no perfil de quem
+    recebe este e-mail. O texto é diferente do `manifestacao.html.twig` de propósito, porque o
+    fato é outro: lá alguém se candidatou, aqui alguém foi procurado. #}
+<p>Olá.</p>
+
+<p>
+    Quem publicou a demanda <strong>{{ demanda }}</strong> registrou interesse no seu perfil.
+</p>
+
+{% if tem_mensagem %}
+    <p>
+        Veio uma mensagem junto. Ela está na plataforma, e você decide se responde.
+    </p>
+{% else %}
+    <p>
+        Nenhuma mensagem veio junto. Você decide se responde.
+    </p>
+{% endif %}
+
+<p>
+    O seu perfil foi guardado como estava no momento em que foi visto, com o que você tinha
+    aberto: registrar interesse não abre nada que você mantinha fechado.
+</p>
+
+<p>
+    <a href="{{ url }}">Ver na plataforma</a>
+</p>
+
+<hr>
+<p style="font-size: 12px; color: #666">
+    Pro-Link · Desafio CREA Pro-Link · II CENATEC 2026 · Equipe 49/51.<br>
+    Plataforma de demonstração com dados fictícios fornecidos pela organização do desafio.
+    Mensagem automática, não responda.
+</p>

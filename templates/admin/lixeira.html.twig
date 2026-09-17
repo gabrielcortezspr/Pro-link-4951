@@ -1,0 +1,473 @@
+{% extends 'admin/_layout.html.twig' %}
+{% import 'layout/_ui.html.twig' as ui %}
+
+{#
+    Lixeira administrativa (edital 8.6j).
+
+    "O registro excluído some das consultas operacionais e continua acessível só por mecanismo
+    administrativo de lixeira." A primeira metade da regra já valia no código; esta tela é a
+    segunda, e sem ela um registro que some de todo lugar é, na prática, um registro apagado.
+
+    A unidade de leitura é UM registro fora de operação, e a pergunta que a linha responde é
+    "isto volta, e por quê":
+
+    Primário   o que é o registro (o título) e a que tipo ele pertence.
+    Secundário a procedência da exclusão: quando saiu, e por ordem de quem.
+    Terciário  o número do registro, que é por onde ele é achado na trilha de auditoria.
+
+    As duas regras do serviço são o que esta tela precisa tornar visível, e por isso nenhuma das
+    duas está atrás de um clique:
+
+    1. Restaurar exige motivo, de 10 a 500 caracteres, e o motivo vai para a trilha. O campo não
+       mora na linha: seriam vinte caixas de texto para uma ação que acontece uma vez. Ele mora na
+       caixa de diálogo do Bootstrap, que só abre quando alguém decide restaurar aquele registro.
+    2. Conta que o próprio titular mandou excluir APARECE e NÃO volta (LGPD, art. 18, e item 11.3).
+       Isso não é botão desabilitado: é a linha dizendo, com todas as letras, que a plataforma
+       guarda o registro para provar que atendeu o pedido e não reativa a conta sem quem a pediu.
+
+    Escala: desenhada para o banco recarregado da banca, onde cada entidade tem de zero a poucos
+    registros e a procedência de cada linha é o assunto. A base de demonstração de hoje tem 237
+    contas de verificação aqui dentro, e a tela aguenta isso pela paginação de vinte e pela
+    contagem por entidade, não por ter sido desenhada para isso: com centenas de linhas o que
+    faltaria é filtro por autor e por data, que esta tela não tem.
+#}
+
+{% block titulo %}Lixeira · Pro-Link{% endblock %}
+{% block titulo_painel %}Lixeira{% endblock %}
+
+{% block topbar_acoes %}
+    {#  O tamanho da lixeira inteira, e não o da aba aberta: é ele que diz se a exclusão lógica
+        está sendo usada ou se é só uma frase na documentação. A classe é a nota curta da topbar,
+        a mesma da visão geral. #}
+    {% set guardados = lixeira.contagens|reduce((soma, quantos) => soma + quantos, 0) %}
+    <span class="pl-momento">
+        {{ guardados }} {{ guardados == 1 ? 'registro guardado' : 'registros guardados' }}
+    </span>
+    {{ ui.info('O que está guardado aqui',
+        'Nada é apagado do banco nesta plataforma. Excluir marca a linha, tira o registro das consultas operacionais e o mantém acessível só por este mecanismo administrativo, como pede o item 8.6j do edital. É o que permite desfazer uma exclusão indevida sem perder o rastro de quem a fez, e provar que uma exclusão pedida pelo titular foi mesmo atendida.', 'fim') }}
+{% endblock %}
+
+{#
+    Título que chega montado do banco.
+
+    Três das cinco entidades têm título de verdade (nome da conta, título da demanda, título da
+    experiência). As outras duas montam o título no SQL, e a da denúncia concatena duas constantes:
+    "DADO_ENGANOSO em USUARIO". Constante de sistema não chega à tela (Support\Rotulos), e como o
+    valor vem colado dentro de uma frase, a tradução acontece por palavra.
+
+    O vocabulário é o mesmo de denuncias.html.twig e da trilha de auditoria, de propósito: a mesma
+    denúncia não pode ter um nome aqui e outro lá. Palavra fora do mapa que ainda seja constante
+    (MAIÚSCULA com underline) cai na convenção de Support\Rotulos; qualquer outra passa intacta,
+    que é o que preserva texto escrito por gente.
+#}
+{% macro titulo_legivel(texto, vocabulario) %}
+    {{- texto|split(' ')|map(palavra =>
+        vocabulario[palavra]|default(
+            palavra matches '/^[A-Z][A-Z0-9]*(_[A-Z0-9]+)+$/'
+                ? palavra|lower|replace({'_': ' '})|capitalize
+                : palavra
+        )
+    )|join(' ') -}}
+{% endmacro %}
+
+{% block painel %}
+
+    {% import _self as lix %}
+
+    {#  Plural, porque cada aba é um grupo de registros e não um registro: |rotulo_entidade
+        devolve o singular ("Conta"), que é o certo na trilha de auditoria e o errado numa aba de
+        contagem. Mesma decisão da quebra por perfil da visão geral. Entidade nova em
+        LixeiraRepository::ENTIDADES ainda aparece, pelo rótulo singular, em vez de sumir da
+        navegação sem ninguém notar. #}
+    {% set plural = {
+        'sis_usuarios':     'Contas',
+        'pro_demandas':     'Demandas',
+        'pro_experiencias': 'Experiências',
+        'pro_mensagens':    'Mensagens',
+        'pro_denuncias':    'Denúncias'
+    } %}
+
+    {#  O que a coluna de classificação mostra muda com a entidade, e em duas delas ela não existe.
+        Coluna vazia na maioria das linhas é ruído, então ela some para mensagem e experiência em
+        vez de virar uma fileira de células em branco. #}
+    {% set coluna_tipo = {
+        'sis_usuarios':  'Perfil de acesso',
+        'pro_demandas':  'Situação',
+        'pro_denuncias': 'Situação'
+    } %}
+
+    {#  Vocabulário fechado dos valores que chegam crus do banco: perfil de acesso, situação da
+        demanda, situação e tipo da denúncia. Os mesmos rótulos das telas de denúncia, de demanda
+        e da visão geral. #}
+    {% set vocabulario = {
+        'PROFISSIONAL': 'Profissional', 'EMPRESA': 'Empresa',
+        'TERCEIRO': 'Terceiro', 'ADMIN': 'Administração',
+        'ABERTA': 'Aberta', 'ENCERRADA': 'Encerrada', 'COM_INTERESSADOS': 'Com interessados',
+        'PENDENTE': 'Pendente', 'EM_ANALISE': 'Em análise', 'RESOLVIDA': 'Resolvida',
+        'SPAM': 'Spam', 'PERFIL_FRAUDULENTO': 'Perfil fraudulento',
+        'DADO_ENGANOSO': 'Dado enganoso', 'CONTEUDO_IMPROPRIO': 'Conteúdo impróprio',
+        'OUTRO': 'Outro', 'USUARIO': 'Conta', 'DEMANDA': 'Demanda'
+    } %}
+
+    {#  Cor por estado, e a MESMA cor que a situação tem nas telas onde ela é operada. A coluna
+        pintava toda categoria de cinza neutro, então uma denúncia pendente era âmbar na fila e
+        cinza aqui, e uma demanda aberta era verde na vitrine e cinza aqui: mesmo estado, dois
+        significados, dentro do mesmo painel.
+
+        A situação gravada é a do momento em que o registro saiu de operação, e ela não mente
+        sobre o registro estar fora: isso quem diz é a tela inteira, é a coluna "Saiu de operação"
+        e é a coluna de restauração ao lado. Estado fora do mapa cai em neutro, que é o que sobra
+        quando a plataforma não tem cor declarada para ele. #}
+    {% set cores = {
+        'PENDENTE': 'warn', 'EM_ANALISE': 'neutral', 'RESOLVIDA': 'ok',
+        'ABERTA': 'ok', 'COM_INTERESSADOS': 'ok', 'ENCERRADA': 'neutral'
+    } %}
+
+    {#  Perfil de acesso não é situação, e não pode usar o componente de situação: a pílula com
+        ponto colorido é o vocabulário de estado do painel inteiro, e "Empresa" não é um estado.
+        Em contas, que é a tela onde o perfil vive, ele é texto simples, e é assim que ele fica
+        aqui. A coluna continua existindo porque é ela que separa conta de empresa de conta de
+        profissional numa lixeira com centenas de linhas. #}
+    {% set coluna_e_situacao = {'pro_demandas': true, 'pro_denuncias': true} %}
+
+    {% set entidade  = lixeira.entidade %}
+    {% set rotulo    = plural[entidade]|default(entidade|rotulo_entidade) %}
+    {% set tem_tipo  = coluna_tipo[entidade] is defined %}
+    {% set colunas   = tem_tipo ? 6 : 5 %}
+    {% set base      = app_url ~ '/admin/lixeira?entidade=' ~ entidade %}
+
+    {#  O primeiro item da página, deduzido do que chegou em vez de repetir aqui o tamanho de
+        página do serviço: na última página a conta sai do total, e nas demais o próprio número de
+        itens é o tamanho da página. Constante de PHP copiada para o template é a que fica para
+        trás quando o serviço muda. #}
+    {% set faixa_de = lixeira.pagina == lixeira.paginas
+        ? lixeira.total - lixeira.itens|length + 1
+        : (lixeira.pagina - 1) * lixeira.itens|length + 1 %}
+
+    {# ------------------------------------------------------------ as cinco entidades cobertas #}
+    {#  A lista de abas é fixa e vem do repositório: mostrar só as que têm registro esconderia
+        justamente o que o item 8.6j exige declarar, que é o conjunto de coisas cuja exclusão é
+        lógica. Aba em zero é informação: nada daquele tipo foi excluído. #}
+    <nav class="pl-abas" aria-label="Tipo de registro">
+        {% for e in entidades %}
+            <a class="pl-btn sm{% if e == entidade %} active{% endif %}"
+               href="{{ app_url }}/admin/lixeira?entidade={{ e }}"
+               title="{{ e }}"
+               {% if e == entidade %}aria-current="page"{% endif %}>
+                {{ plural[e]|default(e|rotulo_entidade) }}
+                <span class="n">{{ lixeira.contagens[e]|default(0) }}</span>
+            </a>
+        {% endfor %}
+    </nav>
+
+    <section class="pl-card pl-log-card">
+
+        <div class="pl-log-topo">
+            <div>
+                <h2 class="pl-card-titulo">{{ rotulo }} em exclusão lógica</h2>
+                {#  Item 10.2 aplicado ao que esta tela faz: a regra que governa a ação fica
+                    visível ao lado da contagem, não atrás do "i". Com a aba vazia a linha inteira
+                    sai: contar zero e anunciar a regra de uma ação que não existe é ruído, e o
+                    estado vazio logo abaixo já diz tudo que há para dizer. #}
+                {% if lixeira.total > 0 %}
+                    <p class="pl-log-resumo">
+                        <span><b>{{ lixeira.total }}</b> {{ lixeira.total == 1 ? 'registro' : 'registros' }}</span>
+                        <span aria-hidden="true">·</span>
+                        <span>restaurar exige motivo escrito, e o motivo fica na trilha de auditoria</span>
+                    </p>
+                {% endif %}
+                {#  Afinidade com a borda, como na trilha, nas sessões e na fila: esta tabela tem
+                    940px de largura mínima e rola dentro do quadro num aparelho estreito, e era a
+                    única das quatro sem o aviso. Reticências no fim do quadro leem como "o texto
+                    foi cortado", não como "a tabela continua". A linha some no desktop. #}
+                {% if lixeira.itens|length %}
+                    <p class="pl-log-lado">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"/><path d="M14 6l6 6-6 6"/></svg>
+                        A tabela continua para o lado
+                    </p>
+                {% endif %}
+            </div>
+            {% if lixeira.itens|length %}
+                <p class="pl-pag mb-0">
+                    <span class="pos">Exibindo <b>{{ faixa_de }}</b> a <b>{{ faixa_de + lixeira.itens|length - 1 }}</b></span>
+                </p>
+            {% endif %}
+        </div>
+
+        {#  A regra que esta tela existe para provar, escrita onde ela é sempre lida.
+
+            A restauração fechada é o que separa "nada é apagado" de "a administração desfaz o
+            que quiser", e ela só se manifesta nas contas que o próprio titular mandou excluir.
+            Na base de hoje são vinte e três dessas, espalhadas por vinte e sete páginas, e a
+            primeira página não tem nenhuma: quem abre a lixeira e olha o que está na frente vê
+            vinte linhas com o botão "Restaurar" e conclui o contrário do que o item 8.6j
+            garante. A linha impedida continua dizendo o caso dela, por extenso, embaixo de si
+            quando aparece; esta tira diz a regra antes disso, no mesmo lugar e na mesma forma
+            em que contas escreve as três recusas do serviço dela.
+
+            Só na aba de contas: nas outras quatro entidades a restauração não tem impedimento
+            nenhum, e anunciar ali uma regra que não vale seria ruído. #}
+        {% if entidade == 'sis_usuarios' %}
+            <ul class="pl-recusas una">
+                <li>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3.6V12c0 4.4-3.2 7.6-8 9-4.8-1.4-8-4.6-8-9V6.6z"/><path d="M9.2 12.2l2 2 3.6-4"/></svg>
+                    <span>
+                        <b>Conta excluída a pedido do próprio titular aparece nesta lista e não volta por ato administrativo.</b>
+                        A plataforma guarda o registro para provar que atendeu o pedido, e não
+                        reativa a conta sem quem a pediu. Nessas linhas a restauração vem fechada,
+                        com o motivo escrito logo abaixo, e é o servidor que recusa, não a tela.
+                    </span>
+                </li>
+            </ul>
+        {% endif %}
+
+        {#  Alcance de teclado e nome no quadro rolável: o Chrome não dá foco a contêiner de
+            rolagem sozinho, e sem os três atributos quem navega por teclado não chega às
+            colunas da direita. Mesmo padrão da trilha de auditoria. #}
+        <div class="table-responsive" tabindex="0" role="region"
+             aria-label="Registros em exclusão lógica">
+            <table class="pl-table pl-log pl-lix">
+                <caption class="visually-hidden">
+                    Registros em exclusão lógica, do mais recente para o mais antigo. Um registro
+                    por linha, com a origem da exclusão e a ação de restauração quando ela é
+                    permitida.
+                </caption>
+                <colgroup>
+                    <col>
+                    {% if tem_tipo %}<col class="c-tipo">{% endif %}
+                    <col class="c-saida"><col class="c-quem"><col class="c-acao"><col class="c-ref">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th scope="col">Registro</th>
+                        {% if tem_tipo %}<th scope="col">{{ coluna_tipo[entidade] }}</th>{% endif %}
+                        <th scope="col">Saiu de operação</th>
+                        <th scope="col">Por ordem de</th>
+                        {#  O cabeçalho alinha com a coluna que ele encabeça: as células já iam
+                            para a direita, e o rótulo ficava sozinho na esquerda. Contas e a fila
+                            de denúncias já alinhavam os dois. #}
+                        <th scope="col" class="acao">Restauração</th>
+                        <th scope="col" class="num">Nº</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for item in lixeira.itens %}
+
+                    <tr class="lin{% if not item.restauravel %} fechada{% endif %}">
+
+                        <td>
+                            <span class="tt">{{ lix.titulo_legivel(item.titulo, vocabulario)|nome_proprio }}</span>
+                            {% if item.detalhe %}
+                                {#  O segundo campo muda de sentido com a entidade: na conta é o
+                                    e-mail do titular, e nas demais é o nome de quem era dono do
+                                    registro. Sem a preposição, "Verificação E2" embaixo do título
+                                    de uma experiência leria como parte do título. #}
+                                <span class="sub">{% if entidade != 'sis_usuarios' %}de {% endif %}{{ item.detalhe|nome_proprio }}</span>
+                            {% endif %}
+                        </td>
+
+                        {% if tem_tipo %}
+                            <td>
+                                {% set legivel = vocabulario[item.categoria]|default(item.categoria|lower|replace({'_': ' '})|capitalize) %}
+                                {% if item.categoria and coluna_e_situacao[entidade]|default(false) %}
+                                    <span class="pl-pill {{ cores[item.categoria]|default('neutral') }}" title="{{ item.categoria }}">
+                                        <span class="pd" aria-hidden="true"></span>
+                                        {{ legivel }}
+                                    </span>
+                                {% elseif item.categoria %}
+                                    {# Perfil de acesso: texto, como em contas. #}
+                                    <span class="papel" title="{{ item.categoria }}">{{ legivel }}</span>
+                                {% else %}
+                                    <span class="nulo" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Sem classificação</span>
+                                {% endif %}
+                            </td>
+                        {% endif %}
+
+                        <td>
+                            {% if item.excluido_em %}
+                                <span class="hora">{{ item.excluido_em|date('d/m/Y H:i') }}</span>
+                            {% else %}
+                                {#  Nenhuma tabela guarda "excluído em": a data vem da trilha de
+                                    auditoria. Registro sem linha lá saiu por carga ou por escrita
+                                    direta no banco, e dizer isso é informação, não falha. #}
+                                <span class="hora vaga">Data não registrada</span>
+                            {% endif %}
+                            <span class="sub">Criado em {{ item.criado_em|date('d/m/Y') }}</span>
+                        </td>
+
+                        <td>
+                            {% if item.excluido_por %}
+                                <span class="autor">{{ item.excluido_por|nome_proprio }}</span>
+                            {% else %}
+                                <span class="autor anon">Origem não registrada</span>
+                            {% endif %}
+                            {% if item.pelo_titular %}
+                                {#  Para a conta isto é o que fecha a restauração; para os demais
+                                    registros é só procedência, e a diferença está na coluna ao
+                                    lado. Aqui a linha diz o fato, sem julgá-lo. #}
+                                <span class="sub">O próprio titular</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="acao">
+                            {% if item.restauravel %}
+                                <button type="button" class="pl-btn sm"
+                                        data-bs-toggle="modal" data-bs-target="#restaurar-{{ item.id }}">
+                                    Restaurar
+                                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 5 3 11 9 11"/><path d="M5.3 15.5a8 8 0 103-9.2L3 11"/></svg>
+                                </button>
+                            {% else %}
+                                {#  aria-describedby amarra o rótulo ao parágrafo da linha de
+                                    baixo: quem lê com leitor de tela ouve "Fechada" e, junto, o
+                                    motivo, em vez de ouvir só a palavra e seguir. #}
+                                <span class="fechado" aria-describedby="impedimento-{{ item.id }}">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8.5 11V7.5a3.5 3.5 0 017 0V11"/></svg>
+                                    Fechada
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td class="ref">{{ item.id }}</td>
+                    </tr>
+
+                    {#  A regra, escrita por extenso embaixo da linha a que ela pertence.
+
+                        Não é tooltip nem "i": explicação que só aparece sob o ponteiro dentro de
+                        uma tabela rolável é explicação que ninguém lê, e esta é a frase que separa
+                        "o botão não funciona" de "a plataforma está respeitando um direito". Ela
+                        ocupa uma linha inteira porque acontece em pouquíssimos registros, e é
+                        justamente neles que a tela tem algo a dizer.
+
+                        O texto vem do serviço (LixeiraService::IMPEDIMENTO), não daqui: a tela não
+                        reescreve a regra que o servidor aplica. #}
+                    {% if not item.restauravel %}
+                        <tr class="motivo">
+                            <td colspan="{{ colunas }}">
+                                <div class="w">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3.6V12c0 4.4-3.2 7.6-8 9-4.8-1.4-8-4.6-8-9V6.6z"/><path d="M9.2 12.2l2 2 3.6-4"/></svg>
+                                    <p id="impedimento-{{ item.id }}">
+                                        {{ item.impedimento }}
+                                        <span class="fonte">Direito do titular, art. 18 da Lei Geral de Proteção de Dados.</span>
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+
+                {% else %}
+
+                    <tr class="vazio">
+                        <td colspan="{{ colunas }}">
+                            {#  Sem gênero na frase: o rótulo plural entra como complemento, e a
+                                mesma construção serve a uma entidade nova sem virar "Nenhum
+                                mensagem". #}
+                            <p class="t">A lixeira de {{ rotulo|lower }} está vazia</p>
+                            <p class="s">
+                                Quando um registro deste tipo é excluído, ele sai das consultas
+                                operacionais na mesma hora e passa a existir só aqui, com a data e
+                                o autor da exclusão.
+                            </p>
+                        </td>
+                    </tr>
+
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if lixeira.paginas > 1 %}
+            <div class="pl-log-rodape">
+                <nav class="pl-pag" aria-label="Páginas da lixeira">
+                    {% if lixeira.pagina > 1 %}
+                        <a class="pl-btn sm" href="{{ base }}&amp;pagina={{ lixeira.pagina - 1 }}">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+                            Anterior
+                        </a>
+                    {% else %}
+                        <span class="pl-btn sm" aria-disabled="true">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+                            Anterior
+                        </span>
+                    {% endif %}
+
+                    <span class="pos">Página <b>{{ lixeira.pagina }}</b> de <b>{{ lixeira.paginas }}</b></span>
+
+                    {% if lixeira.pagina < lixeira.paginas %}
+                        <a class="pl-btn sm" href="{{ base }}&amp;pagina={{ lixeira.pagina + 1 }}">
+                            Próxima
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                        </a>
+                    {% else %}
+                        <span class="pl-btn sm" aria-disabled="true">
+                            Próxima
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                        </span>
+                    {% endif %}
+                </nav>
+            </div>
+        {% endif %}
+
+    </section>
+
+    {#  ------------------------------------------------------------ o motivo da restauração
+
+        Uma caixa de diálogo por registro restaurável da página, fora da tabela. Dentro da célula
+        elas seriam vinte formulários no meio das linhas; aqui a tabela continua sendo uma tabela e
+        cada diálogo só existe quando alguém pede.
+
+        O motivo não é formalidade: ele entra na trilha junto com o quê, o quando e o quem, porque
+        uma restauração sem motivo responde "o quê" e deixa "por quê" com quem fez, que é
+        justamente o que a auditoria existe para não depender.
+
+        minlength e maxlength repetem no navegador a regra do LixeiraService (10 a 500). Não
+        substituem a validação do servidor: economizam a viagem em que a pessoa perde o que
+        escreveu, porque a recusa do servidor volta como mensagem no topo da página seguinte.  #}
+    {% for item in lixeira.itens|filter(i => i.restauravel) %}
+        <div class="modal fade" id="restaurar-{{ item.id }}" tabindex="-1"
+             aria-labelledby="restaurar-{{ item.id }}-titulo" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <form class="modal-content pl-dialogo" method="post" action="{{ app_url }}/admin/lixeira">
+                    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                    <input type="hidden" name="entidade" value="{{ entidade }}">
+                    <input type="hidden" name="id" value="{{ item.id }}">
+
+                    <div class="modal-header">
+                        <h2 class="modal-title" id="restaurar-{{ item.id }}-titulo">Devolver à operação</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <p class="alvo">
+                            <span class="tt">{{ lix.titulo_legivel(item.titulo, vocabulario) }}</span>
+                            <span class="sub">{{ entidade|rotulo_entidade }} nº {{ item.id }}{% if item.detalhe %} <span aria-hidden="true">·</span> {{ item.detalhe|nome_proprio }}{% endif %}</span>
+                        </p>
+
+                        <p class="pl-nota">
+                            O registro volta às consultas operacionais. A restauração fica na trilha
+                            de auditoria com o seu nome, a data e o motivo abaixo.
+                        </p>
+
+                        <label class="form-label" for="motivo-{{ item.id }}">
+                            Motivo da restauração <span class="text-danger" aria-hidden="true">*</span>
+                        </label>
+                        <textarea class="form-control" id="motivo-{{ item.id }}" name="motivo" rows="3"
+                                  minlength="10" maxlength="500" required
+                                  aria-describedby="motivo-{{ item.id }}-ajuda"
+                                  placeholder="Por que este registro precisa voltar"></textarea>
+                        <p class="form-text" id="motivo-{{ item.id }}-ajuda">
+                            De 10 a 500 caracteres. É o texto que a auditoria vai mostrar como
+                            justificativa desta restauração.
+                        </p>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="pl-btn ghost" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="pl-cta">Restaurar registro</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+
+{% endblock %}

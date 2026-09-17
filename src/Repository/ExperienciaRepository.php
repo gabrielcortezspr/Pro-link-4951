@@ -27,7 +27,7 @@ namespace ProLink\Repository;
  */
 final class ExperienciaRepository extends Repositorio
 {
-    private const CAMPOS = 'exp_id, exp_prf_id, exp_titulo, exp_descricao, exp_art_id,
+    private const CAMPOS = 'exp_id, exp_prf_id, exp_emp_id, exp_titulo, exp_descricao, exp_art_id,
                             exp_dt_inicio, exp_dt_fim, exp_dt_registro, exp_status';
 
     /**
@@ -52,6 +52,29 @@ final class ExperienciaRepository extends Repositorio
     }
 
     /** @return array<string, mixed>|null */
+    /**
+     * As experiências de uma empresa, no mesmo formato das do profissional.
+     *
+     * A empresa não vincula ART: o acervo verificado dela é o operacional, herdado do quadro
+     * técnico pelo CAO, e já aparece no perfil. O que ela publica aqui é relato autodeclarado, e a
+     * tela precisa deixar essa diferença visível como já deixa no lado do profissional.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function porEmpresa(int $empresaId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT ' . self::CAMPOS . '
+               FROM pro_experiencias
+              WHERE exp_emp_id = :emp AND exp_status = :ativo
+              ORDER BY exp_dt_inicio IS NULL, exp_dt_inicio DESC, exp_id DESC'
+        );
+
+        $stmt->execute([':emp' => $empresaId, ':ativo' => STATUS_ATIVO]);
+
+        return $stmt->fetchAll();
+    }
+
     public function porId(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
@@ -63,20 +86,28 @@ final class ExperienciaRepository extends Repositorio
     }
 
     /**
-     * @param array{profissional_id: int, titulo: string, descricao: ?string, art_id: ?int,
-     *              dt_inicio: ?string, dt_fim: ?string} $dados
+     * Cria a experiência de um profissional **ou** de uma empresa.
+     *
+     * Exatamente um dos dois donos vem preenchido, e quem garante isso é a `ck_exp_dono` no banco:
+     * o Anexo I item 3 dá "publicar experiência" aos dois perfis, e uma linha sem dono, ou com
+     * dois, não significaria nada.
+     *
+     * @param array{profissional_id?: ?int, empresa_id?: ?int, titulo: string, descricao: ?string,
+     *              art_id: ?int, dt_inicio: ?string, dt_fim: ?string} $dados
      */
     public function criar(array $dados): int
     {
         $stmt = $this->pdo->prepare(
             'INSERT INTO pro_experiencias
-                (exp_prf_id, exp_titulo, exp_descricao, exp_art_id, exp_dt_inicio, exp_dt_fim, exp_status)
+                (exp_prf_id, exp_emp_id, exp_titulo, exp_descricao, exp_art_id,
+                 exp_dt_inicio, exp_dt_fim, exp_status)
              VALUES
-                (:prf, :titulo, :descricao, :art, :inicio, :fim, :ativo)'
+                (:prf, :emp, :titulo, :descricao, :art, :inicio, :fim, :ativo)'
         );
 
         $stmt->execute([
-            ':prf'       => $dados['profissional_id'],
+            ':prf'       => $dados['profissional_id'] ?? null,
+            ':emp'       => $dados['empresa_id'] ?? null,
             ':titulo'    => $dados['titulo'],
             ':descricao' => $dados['descricao'],
             ':art'       => $dados['art_id'],

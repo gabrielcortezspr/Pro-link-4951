@@ -380,9 +380,61 @@ admin vê a trilha, trata a denúncia e bloqueia.
 > `'self'`, zero origens externas em qualquer tela. `dependencias.md` atualizado com as versões
 > travadas do lock e as seis transitivas.
 >
-> **Falta, em ordem de obrigatoriedade:** MER em `_arq/mer/` (8.3.2b, o único item obrigatório que
-> ainda não existe); texto real de `sis_termos`, hoje espaço reservado (11.3); README testado em
-> clone limpo; roteiro dos seis cenários e ensaio; tag, zip e upload antes das 18h de 17/09.
+> **Sessão de 17/09 (madrugada), branch `claude/e7-lacunas`.** Fechou o que estava sem dono:
+>
+> · **MER** em `_arq/mer/` (8.3.2b), gerado do banco ao vivo, cinco diagramas no design system do
+>   projeto. Ele levantou dois desvios de nomenclatura em `sis_auditoria`, declarados na D65.
+> · **Texto real dos termos** (11.3), com a D03 e a D05 escritas em linguagem de titular, na carga
+>   inicial e não só no banco daqui.
+> · **Três buracos do painel**: indicadores da visão geral, que anunciava por escrito "os
+>   indicadores entram em 15/09"; editor de `sis_parametros` (12.3, supervisão humana); e a
+>   lixeira do 8.6j. Backend pronto e coberto, telas pelo `designer-ui`.
+> · **`sincronizar-status.php`** (RF02), promessa do backlog da E2 desde 10/09.
+> · **`prf_em_construcao`** volta a seguir a contagem de ARTs (defeito latente da E2, D63).
+> · **Suíte de ponta a ponta** em `e2e/`: os seis cenários pelo navegador, mais a jornada completa
+>   gravada em vídeo com legenda. D66.
+> · **Definição de pronto** (`docs/definicao-de-pronto.md`) e **roteiro da demo**
+>   (`docs/roteiro-demo.md`), que não existiam.
+>
+> Verificado: `verificar-e2` de 138 para 151 conferências, `verificar-e6` de 19 para 50, 188 testes
+> de unidade, seis cenários verdes no navegador. Carga inicial conferida num MariaDB limpo.
+>
+> **Fechado ainda na mesma sessão: as catorze telas cabem em 390px.** Seis rolavam de lado, as
+> duas de log do painel por quase 800px. A decisão de desenho: tabela de log rola dentro do próprio
+> contêiner em vez de esconder coluna, porque trilha de auditoria é leitura densa, e a affordance
+> de que há mais conteúdo à direita é explícita. No celular a sidebar do painel vira navegação
+> horizontal. O item 10 do Anexo VI saiu de parcial para sim.
+>
+> **Bateria completa (`scripts/verificar-tudo.sh`): 9 de 9 no verde.**
+
+> **Sessão de 17/09 (manhã): auditoria de requisitos por entidade, e o refino visual.**
+>
+> A autora pediu duas coisas. A primeira foi cruzar o Anexo I item 3 com o que existe, perfil por
+> perfil. Quatro linhas não tinham caminho, e as quatro foram fechadas no backend:
+>
+> | Perfil | Linha do Anexo I | Como fechou |
+> |---|---|---|
+> | Público | pesquisar sem conta | a busca entrou na landing (a rota já era pública) |
+> | Empresa | publicar experiência | `exp_emp_id` e a `CHECK` de dono único (D71) |
+> | Terceiro | registrar interesse em profissional ou empresa | `man_origem` e o caminho inverso (D70) |
+> | Administrador | gerir perfis | `ContaService` e `/admin/contas` (D69) |
+>
+> Junto: o painel de **Início** dos dois perfis logados, que os mockups desenham e a implementação
+> não tinha (D72), e a métrica "visualizações do perfil" **não foi inventada**.
+>
+> E2 de 151 para 159 · E4 de 32 para 41 · E6 de 53 para 65.
+>
+> A segunda foi o refino visual, e ela veio com uma correção de rumo que virou regra (D73):
+> **os mockups em `docs/mockups/` são o design final**, não referência a interpretar. Quem
+> implementa porta o mockup e liga o dado; não redesenha nem reescreve texto.
+>
+> **Telas a portar, ~18 no total.** Prontas: landing. Em curso: busca. Faltam: os dois Início, o
+> portfólio, a visibilidade, o feed de demandas do profissional, publicar demanda, minhas demandas,
+> o feed de compatíveis, o perfil público, o acervo da empresa, manifestação, denúncia, as telas do
+> admin e a **barra lateral navy**, que atravessa todas as logadas e hoje só existe no painel.
+
+> **Falta:** terminar o porte das telas; decidir o merge de `claude/e7-lacunas` na `main`; ensaiar
+> o roteiro duas vezes; tag, zip e upload antes das 18h de 17/09.
 
 > **Parte do checklist de segurança saiu adiantada em 15/09** (`e0ada5a`, `0c417a6`), por ter
 > aparecido numa revisão de código: CSP conferida por máquina contra o layout (D50), `try_files`
@@ -403,10 +455,11 @@ Metade da nota depende disto. Não é "se sobrar tempo".
   que escreve nele usa `ON DUPLICATE KEY UPDATE` — se usar, está quebrado.
 - **Melhoria pós-entrega anotada na D28**: fazer o banco garantir a unicidade do alvo de
   visibilidade com coluna gerada, em vez de depender de todo mundo passar pelo repositório.
-- **`Sessao` guarda o perfil em `$_SESSION` e nunca o reconfere contra o banco.** O
-  `sessaoTemRespaldo()` derruba sessão revogada, mas mudança de papel — o rebaixamento para
-  Terceiro da D20/D26, e principalmente o bloqueio pelo administrador da E6 — só vale no próximo
-  login. Decidir junto com a operação atômica 5, que é quem depende disso.
+- ~~**`Sessao` guarda o perfil em `$_SESSION` e nunca o reconfere contra o banco.**~~ **Fechado em
+  17/09 (D68).** O bloqueio já valia na hora desde a D39, porque a operação atômica 5 revoga as
+  sessões. O que faltava era a mudança de papel, e ela não era teórica: o rebaixamento da D20 e da
+  D26 acontece quando a própria pessoa manda revalidar o registro, com sessão aberta. Medido com
+  requisição forjada (303 antes, 403 depois) e travado por cinco conferências em `verificar-e1.php`.
 - Rodar o Anexo VI do edital como autoavaliação. Todos os doze itens.
 - `grep` por segredo no repositório antes do push final.
 
@@ -456,4 +509,10 @@ o `_arq/` completo, o Docker subindo limpo.
 
 Declarar em `arquitetura.md` como evolução, não esconder: aviso proativo de registro próximo do
 vencimento; preview do pool antes de publicar a demanda; sincronização de status agendada
-(entregue como script executável); chat completo (entregue como mensagens simples).
+(entregue como script executável em 17/09); chat completo (entregue como mensagens simples).
+
+**Certidão de Acervo Técnico (CAT)**, acrescentada em 17/09 (D67). A estrutura está inteira
+(`crea_cats`, `crea_cat_arts`, os dois métodos do cliente da API, e a view `crea_evidencias` já
+lendo as duas tabelas) e **nenhum serviço a alimenta**: as tabelas têm zero linhas. Implementar é
+curto e foi recusado por onde o efeito cai, que é a evidência de cada candidato e o pool de toda
+demanda. O portfólio da entrega é ART e acervo operacional.

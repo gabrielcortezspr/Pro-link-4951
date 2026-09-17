@@ -37,6 +37,7 @@ use ProLink\Service\ExperienciaService;
 use ProLink\Service\PerfilCreaService;
 use ProLink\Service\PerfilService;
 use ProLink\Service\PortfolioService;
+use ProLink\Service\SincronizacaoService;
 use ProLink\Service\ValidacaoException;
 use ProLink\Service\VisibilidadeService;
 use ProLink\Support\Crypto;
@@ -75,6 +76,18 @@ function conferir(string $descricao, bool $condicao, string $detalhe = ''): void
 
     $falhou++;
     printf("  \e[31mFALHOU\e[0m %s%s\n", $descricao, $detalhe !== '' ? "  ({$detalhe})" : '');
+}
+
+/** Recusa esperada: devolve true quando a chamada lança ValidacaoException. */
+function recusa(callable $chamada): bool
+{
+    try {
+        $chamada();
+    } catch (ValidacaoException) {
+        return true;
+    }
+
+    return false;
 }
 
 function secao(string $titulo): void
@@ -921,6 +934,233 @@ conferir('a tentativa de assumir registro alheio fica em sis_auditoria',
     (int) $negado->fetchColumn() >= 1);
 
 // ---------------------------------------------------------------- limpeza
+secao('A empresa também publica experiência (Anexo I item 3)');
+
+// O Anexo I dá "publicar experiência" ao profissional **e** à empresa, e até 17/09 só o
+// profissional tinha caminho: as três rotas eram PERFIL_PROFISSIONAL e `exp_prf_id` era NOT NULL
+// com chave estrangeira para pro_profissionais.
+$experienciasDeEmpresa = new ExperienciaService();
+
+$idExpEmpresa = $experienciasDeEmpresa->criar($daEmpresa, [
+    'titulo'    => 'Execução de reforço estrutural, verificação automática',
+    'descricao' => 'Relato declarado pela empresa, criado pelo verificador da E2.',
+]);
+
+$linhaExp = $pdo->query(
+    "SELECT exp_prf_id, exp_emp_id FROM pro_experiencias WHERE exp_id = {$idExpEmpresa}"
+)->fetch();
+
+conferir('a empresa cria experiência', $idExpEmpresa > 0);
+conferir('a linha nasce sem dono profissional', $linhaExp['exp_prf_id'] === null);
+conferir('e com o dono empresa preenchido', $linhaExp['exp_emp_id'] !== null);
+
+// O acervo verificado da empresa é o operacional, herdado do quadro técnico pelo CAO. Vincular
+// ART aqui seria afirmar que a empresa registrou a ART, que é o oposto da D24.
+conferir(
+    'experiência de empresa não vincula ART',
+    recusa(fn () => $experienciasDeEmpresa->criar($daEmpresa, [
+        'titulo' => 'Com ART', 'art_id' => (string) ($gravada['art']['art_id'] ?? 1),
+    ])),
+);
+
+conferir(
+    'o profissional não mexe em experiência da empresa',
+    recusa(fn () => $experienciasDeEmpresa->excluir($usuario, $idExpEmpresa)),
+);
+
+$experienciasDeEmpresa->editar($daEmpresa, $idExpEmpresa, [
+    'titulo' => 'Execução de reforço estrutural, título editado',
+]);
+
+conferir(
+    'a empresa edita a própria experiência',
+    $pdo->query("SELECT exp_titulo FROM pro_experiencias WHERE exp_id = {$idExpEmpresa}")->fetchColumn()
+        === 'Execução de reforço estrutural, título editado',
+);
+
+$perfilDaEmpresa = (new PerfilService())->montar($daEmpresa, $daEmpresa);
+
+conferir(
+    'a experiência aparece no perfil da empresa',
+    count($perfilDaEmpresa['experiencias'] ?? []) > 0,
+);
+
+$experienciasDeEmpresa->excluir($daEmpresa, $idExpEmpresa);
+
+conferir(
+    'a exclusão é lógica, como no lado do profissional',
+    $pdo->query("SELECT exp_status FROM pro_experiencias WHERE exp_id = {$idExpEmpresa}")->fetchColumn()
+        === STATUS_EXCLUIDO,
+);
+
+secao('Perfil em construção segue a contagem de ARTs');
+
+// O defeito que este bloco fecha: `associarArt` mudava a contagem de ARTs e não recalculava
+// `prf_em_construcao`, então quem passasse do limiar associando ARTs à mão continuava sinalizado
+// como iniciante para sempre. Ninguém tinha visto porque nenhuma rota chamava o método ainda.
+$perfilAtual = (new ProfissionalRepository($pdo))->porUsuario($usuario);
+$minimoArts  = (new ParametroRepository($pdo))->inteiro('match.early_career.min_arts', 3);
+$artsDoRnp   = $acervo->contarPorRnp(RNP);
+
+conferir('o titular do RNP de verificação está acima do limiar de início de carreira',
+    $artsDoRnp >= $minimoArts, "ARTs: {$artsDoRnp} · limiar: {$minimoArts}");
+
+// Força o estado errado, que é exatamente o que o defeito produzia.
+$pdo->prepare('UPDATE pro_profissionais SET prf_em_construcao = 1 WHERE prf_id = :id')
+    ->execute([':id' => (int) $perfilAtual['prf_id']]);
+
+$portfolio->associarArt($usuario, RNP, ART);
+
+$depoisDaAssociacao = (new ProfissionalRepository($pdo))->porUsuario($usuario);
+
+conferir('associar uma ART recalcula a marca de perfil em construção',
+    (int) $depoisDaAssociacao['prf_em_construcao'] === 0,
+    'marca: ' . (string) $depoisDaAssociacao['prf_em_construcao']);
+
+$pdo->prepare('UPDATE pro_profissionais SET prf_em_construcao = 1 WHERE prf_id = :id')
+    ->execute([':id' => (int) $perfilAtual['prf_id']]);
+
+$portfolio->importarArts($usuario, RNP);
+
+conferir('importar o acervo também recalcula a marca',
+    (int) ((new ProfissionalRepository($pdo))->porUsuario($usuario))['prf_em_construcao'] === 0);
+
+secao('Sincronização de situação no CREA (RF02)');
+
+// O `sincronizar-status.php` reconsulta quem venceu o intervalo e fecha a visibilidade de quem
+// deixou de estar ativo no conselho. O caminho da suspensão não pode ser exercitado contra a API
+// real: a massa fictícia devolve todo mundo ativo, e não há como pedir que ela mude. O transporte
+// abaixo responde no formato real do endpoint — lista pura, sem envelope, como em
+// `fixtures/profissional_cpf.json` — com `pro_status` sob controle do teste.
+$respostaDoCrea = new class implements ProLink\Support\Transporte {
+    public string $situacao = 'S';
+
+    public function get(array $params): ProLink\Support\RespostaHttp
+    {
+        $corpo = json_encode([[
+            'pro_nome'          => 'ANA CLARA COSTA',
+            'pro_rnp'           => RNP,
+            'pro_registro_crea' => '61657',
+            'pro_status'        => $this->situacao,
+            'modalidades'       => [],
+        ]], JSON_UNESCAPED_UNICODE);
+
+        return new ProLink\Support\RespostaHttp(200, (string) $corpo);
+    }
+};
+
+$profissionais = new ProfissionalRepository($pdo);
+$visibilidade  = new VisibilidadeService();
+$perfilDoTeste = $profissionais->porUsuario($usuario);
+$perfilId      = (int) $perfilDoTeste['prf_id'];
+
+// A conta de verificação nasceu sem documento, e sem CPF cifrado a sincronização a pula — foi o
+// que aconteceu na primeira escrita deste bloco, e o efeito foi a fila inteira ser processada no
+// lugar dela. O CPF abaixo é o de fora da massa: o transporte é controlado, então o valor só
+// precisa existir para ser decifrado.
+$pdo->prepare('UPDATE sis_usuarios SET usu_documento_cif = :cif, usu_documento_hash = :hash WHERE usu_id = :id')
+    ->execute([
+        ':cif'  => Crypto::cifrar(CPF_SEM_REGISTRO),
+        ':hash' => Crypto::hashBusca(CPF_SEM_REGISTRO),
+        ':id'   => $usuario,
+    ]);
+
+// Isola a fila: todo mundo carimbado como sincronizado agora, menos o perfil do teste. Sem isto a
+// execução percorreria o cadastro inteiro e aplicaria a resposta forjada a perfis da
+// demonstração. Os carimbos originais voltam ao fim da seção.
+$carimbosOriginais = $pdo->query(
+    'SELECT prf_id, prf_dt_sincronizacao FROM pro_profissionais'
+)->fetchAll();
+
+$pdo->prepare('UPDATE pro_profissionais SET prf_dt_sincronizacao = NOW() WHERE prf_id <> :id')
+    ->execute([':id' => $perfilId]);
+$pdo->prepare('UPDATE pro_profissionais SET prf_dt_sincronizacao = NULL WHERE prf_id = :id')
+    ->execute([':id' => $perfilId]);
+
+$visibilidade->definir($usuario, ProLink\Support\Visibilidade::PERFIL, null, 'RESUMO', VISIBILIDADE_PUBLICO);
+
+$abertos = static function () use ($pdo, $usuario): int {
+    $stmt = $pdo->prepare(
+        'SELECT COUNT(*) FROM pro_visibilidade
+          WHERE vis_usu_id = :id AND vis_nivel <> :privado AND vis_status = :ativo'
+    );
+    $stmt->execute([':id' => $usuario, ':privado' => VISIBILIDADE_PRIVADO, ':ativo' => STATUS_ATIVO]);
+
+    return (int) $stmt->fetchColumn();
+};
+
+conferir('o perfil de verificação tem visibilidade aberta antes da sincronização', $abertos() > 0);
+
+$sincronizacao = new ProLink\Service\SincronizacaoService(
+    $profissionais,
+    new CreaApiClient($respostaDoCrea),
+    $visibilidade,
+);
+
+$relatorio = $sincronizacao->executar(SincronizacaoService::LIMITE_MAXIMO);
+
+conferir('só o perfil vencido entra na fila', $relatorio['candidatos'] === 1,
+    "candidatos: {$relatorio['candidatos']}");
+conferir('a sincronização consultou o registro', $relatorio['consultados'] === 1);
+conferir('registro suspenso no CREA fecha a visibilidade do perfil', $relatorio['suspensos'] === 1);
+conferir('nenhuma escolha de visibilidade sobra aberta depois da suspensão', $abertos() === 0,
+    'abertos: ' . $abertos());
+
+$situacaoGravada = $pdo->query(
+    'SELECT prf_status_api FROM pro_profissionais WHERE prf_id = ' . $perfilId
+)->fetchColumn();
+
+conferir('a situação devolvida pela API fica gravada', $situacaoGravada === 'S',
+    'gravado: ' . (string) $situacaoGravada);
+
+$trilha = $pdo->prepare(
+    "SELECT aud_valor_novo FROM sis_auditoria
+      WHERE aud_acao = 'CONSULTA_API' AND aud_entidade = 'pro_profissionais'
+        AND aud_entidade_id = :id ORDER BY aud_id DESC LIMIT 1"
+);
+$trilha->execute([':id' => $perfilId]);
+$linhaTrilha = (string) ($trilha->fetchColumn() ?: '');
+
+conferir('a trilha registra o efeito da suspensão sobre a visibilidade',
+    str_contains($linhaTrilha, 'visibilidade fechada'), $linhaTrilha);
+
+// Sem consentimento de consulta à API, a sincronização não gasta chamada nem toca o perfil.
+(new ConsentimentoRepository($pdo))->definir($usuario, FINALIDADE_CONSULTA_API, false, 'cli');
+$pdo->prepare('UPDATE pro_profissionais SET prf_dt_sincronizacao = NULL WHERE prf_id = :id')
+    ->execute([':id' => $perfilId]);
+
+$semConsentimento = $sincronizacao->executar(SincronizacaoService::LIMITE_MAXIMO);
+
+conferir('consentimento revogado tira o perfil da consulta, sem gastar chamada',
+    $semConsentimento['sem_consentimento'] === 1 && $semConsentimento['consultados'] === 0,
+    "pulados: {$semConsentimento['sem_consentimento']} · consultados: {$semConsentimento['consultados']}");
+
+(new ConsentimentoRepository($pdo))->definir($usuario, FINALIDADE_CONSULTA_API, true, 'cli');
+
+// A situação volta a ativa. A visibilidade **não** volta sozinha, e é assim de propósito: quem
+// fechou foi uma regra, e reabrir escolha de privacidade sem o titular pedir seria decidir por ele.
+$respostaDoCrea->situacao = STATUS_ATIVO;
+$pdo->prepare('UPDATE pro_profissionais SET prf_dt_sincronizacao = NULL WHERE prf_id = :id')
+    ->execute([':id' => $perfilId]);
+$sincronizacao->executar(SincronizacaoService::LIMITE_MAXIMO);
+
+conferir('o registro volta a ativo quando a API diz que voltou',
+    $pdo->query('SELECT prf_status_api FROM pro_profissionais WHERE prf_id = ' . $perfilId)
+        ->fetchColumn() === STATUS_ATIVO);
+conferir('a visibilidade não se reabre sozinha quando a situação volta', $abertos() === 0);
+
+// Devolve os carimbos de sincronização de todo mundo: o banco é insumo da demonstração.
+$devolver = $pdo->prepare('UPDATE pro_profissionais SET prf_dt_sincronizacao = :quando WHERE prf_id = :id');
+
+foreach ($carimbosOriginais as $carimbo) {
+    $devolver->execute([
+        ':quando' => $carimbo['prf_dt_sincronizacao'],
+        ':id'     => (int) $carimbo['prf_id'],
+    ]);
+}
+
+printf("  carimbos de sincronização devolvidos: %d\n", count($carimbosOriginais));
+
 secao('Limpeza');
 
 $descartaveis = [

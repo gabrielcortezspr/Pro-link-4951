@@ -4,6 +4,39 @@
 
 {% block titulo %}Manifestar interesse · Pro-Link{% endblock %}
 
+{#
+    A confirmação de manifestação de interesse, portada da tela "01 Manifestação de Interesse
+    (confirmação)" de docs/mockups/prolink-interacoes.html.
+
+    A composição é a de lá: o cartão da demanda com a situação à direita do título, a fileira de
+    fatos rotulados, o retrato do que vai sair do perfil, as notas neutras do que a plataforma faz
+    no instante do clique, e as duas ações com a preenchida à direita. O que mudou, e só o que
+    tinha de mudar:
+
+    1. O mockup é um modal sobre a vitrine. Aqui é rota própria (GET /demandas/{id}/manifestar),
+       porque a confirmação depende da prévia do snapshot, que é consulta ao banco: um modal
+       pediria busca assíncrona, e a CSP desta aplicação recusa script embutido. O aviso antes de
+       agir, que é o que o modal garantia, é o `data-confirmar` do formulário.
+    2. O título do cartão no mockup é a razão social de quem publicou ("Construtora Rio Negro
+       Ltda"). Esta rota carrega a demanda, não o demandante: `pro_demandas` tem `dem_usu_id` e
+       mais nada sobre ele. Fica o título da demanda, que é o que identifica o que se confirma.
+    3. "Área técnica" sai da fileira de fatos: ela vem das atividades da Tabela de Obras e
+       Serviços da demanda, que esta rota não carrega. Sobram os fatos que ela carrega de verdade,
+       e o caminho para o resto é o botão que abre a demanda inteira.
+    4. O cartão "Aderência à demanda, por dimensão" do mockup não entra: o motor mede o pool de
+       uma demanda a partir do demandante, e aqui quem olha é o candidato. Aderência própria nesta
+       tela pediria dado que o controller não busca.
+    5. A mensagem do mockup é uma frase pronta e fixa. A da casa é campo livre de até 1000
+       caracteres, que já existia: frase pronta igual para todo mundo não diz nada ao demandante.
+#}
+
+{#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
+{% set shell = 'app' %}
+{% set ativo = 'abertas' %}
+{% set medida = 'leitura' %}
+
+{% block titulo_tela %}Manifestar interesse{% endblock %}
+
 {#  Medida de leitura: esta tela é uma decisão, não um registro nem uma lista. O que ela pede é
     que a pessoa leia o que vai sair do perfil dela antes de apertar o botão. #}
 {% block classe_main %}pl-wrap leitura{% endblock %}
@@ -25,31 +58,44 @@
 <div class="pl-head">
     <div class="tit">
         <h1>Manifestar interesse</h1>
-        <p class="sub">
+        {#  <div> e não <p>: o "i" é um <details>, que não pode viver dentro de parágrafo. O
+            próprio analisador do navegador fecharia o <p> antes dele, e ele cairia numa linha
+            solta embaixo do texto que explica. Mesmo caso já corrigido em busca/profissionais. #}
+        <div class="sub">
             <span>O demandante recebe um retrato do seu perfil, com o que você abriu para ele</span>
             {{ ui.info('Por que um retrato, e não o perfil',
                 'A plataforma congela no envio o que o demandante podia ver naquele instante, e é esse retrato que ele lê depois. Alterações posteriores no seu perfil não mudam o que ele já recebeu, e manifestar interesse não abre nada que você tinha fechado.') }}
-        </p>
+        </div>
     </div>
 </div>
 
 <section class="pl-card">
-    <div class="pl-alvo">
-        <p class="rot">Demanda</p>
-        <p class="vl">{{ demanda.dem_titulo }}</p>
+    {#  O `.rowhead` do mockup: o assunto do cartão à esquerda e a situação da demanda à direita,
+        no vocabulário e na cor fixos de `ui.situacao`. A rota só monta esta tela para demanda
+        publicada e não encerrada, então a pílula aqui é sempre verde; ela continua vindo do
+        gravado, e não escrita à mão, para não divergir da mesma demanda em outra tela. #}
+    <div class="pl-linha-titulo">
+        <h2 class="pl-secao">{{ demanda.dem_titulo }}</h2>
+        <span class="dir">{{ ui.situacao(demanda.dem_situacao, demanda.dem_dt_publicacao is not null) }}</span>
     </div>
 
-    <p class="pl-nota mb-2">
-        {% if demanda.dem_local_municipio %}
-            {{ demanda.dem_local_municipio }}{% if demanda.dem_local_uf %}/{{ demanda.dem_local_uf }}{% endif %}
-            <span class="pl-sep" aria-hidden="true"></span>
-        {% endif %}
+    {#  A fileira de fatos rotulados do mockup. Rótulo em tinta cheia, valor em cinza: "Manaus/AM"
+        e "Prestação de serviço" não se explicam pela posição. #}
+    <p class="pl-fatos">
+        <span>
+            <b>Localização:</b>
+            {%- if demanda.dem_local_municipio %}
+                {{ demanda.dem_local_municipio }}{% if demanda.dem_local_uf %}/{{ demanda.dem_local_uf }}{% endif %}
+            {%- else %} Não informada
+            {%- endif %}
+        </span>
         {#  O gravado é a chave da lista fechada (OBRA_CERTA): o rótulo é obrigação da tela e o
             valor cru fica no title, como no resto das telas de demanda. #}
-        <span{% if demanda.dem_tipo_contrato %} title="{{ demanda.dem_tipo_contrato }}"{% endif %}>{{ demanda.dem_tipo_contrato|rotulo_contrato ?: 'Contrato a combinar' }}</span>
+        <span{% if demanda.dem_tipo_contrato %} title="{{ demanda.dem_tipo_contrato }}"{% endif %}>
+            <b>Contrato:</b> {{ demanda.dem_tipo_contrato|rotulo_contrato ?: 'A combinar' }}
+        </span>
         {% if demanda.dem_dt_publicacao %}
-            <span class="pl-sep" aria-hidden="true"></span>
-            Publicada em {{ demanda.dem_dt_publicacao|date('d/m/Y') }}
+            <span><b>Publicada em:</b> {{ demanda.dem_dt_publicacao|date('d/m/Y') }}</span>
         {% endif %}
     </p>
 
@@ -185,6 +231,19 @@
             {% endif %}
         </div>
 
+        {#  As notas neutras do mockup (`.miniinfo`), que dizem na tela o que a plataforma faz no
+            instante do clique. A primeira estava só atrás do "i" do cabeçalho, e é justamente a
+            promessa que o produto vende: o retrato é tirado agora, e manifestar não abre nada.
+            Promessa que ninguém lê não é promessa. #}
+        <p class="pl-miniinfo mt-3">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.5" r="0.6" fill="currentColor"/></svg>
+            <span>
+                O retrato acima é capturado no momento do envio, com o que você já tinha aberto
+                para este demandante. <b>Manifestar interesse não abre nada que estava fechado</b>,
+                e mudar o seu perfil depois não muda o que ele já recebeu.
+            </span>
+        </p>
+
         <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/manifestar"
               class="pl-form-embutido"
               data-confirmar="Manifestar interesse nesta demanda? O envio não pode ser desfeito e só acontece uma vez por demanda.">
@@ -200,7 +259,8 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.2v.2"/></svg>
                 <span>
                     O envio não pode ser desfeito, e é um por demanda. O demandante é avisado por
-                    e-mail e passa a poder responder você aqui dentro.
+                    e-mail, a manifestação fica registrada no histórico das duas partes, e ele
+                    passa a poder responder você aqui dentro.
                 </span>
             </p>
 

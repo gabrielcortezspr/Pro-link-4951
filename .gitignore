@@ -6,6 +6,13 @@
 # dependências
 /vendor/
 /node_modules/
+/e2e/node_modules/
+
+# saída da suíte de ponta a ponta: vídeo, rastro e relatório são reproduzíveis rodando de novo,
+# e binário de megabytes no histórico só engorda o .zip que a entrega manda subir (8.7).
+/e2e/resultados/
+/e2e/relatorio/
+/e2e/videos/
 
 # ambiente
 .DS_Store
@@ -22,3 +29,13 @@ venv/
 /storage/cache/*
 /storage/logs/*
 !/storage/*/.gitkeep
+
+# O pacote da entrega é gerado por scripts/empacotar-entrega.sh, e não se versiona.
+entrega/
+
+# Credencial local da suíte de ponta a ponta. Nunca versionada (Anexo VI, item 5).
+e2e/.env.local
+
+# Os vídeos são gerados pela suíte (e2e/rodar.sh) e pesam dezenas de MB: ficam fora do
+# repositório, e o README da pasta diz como refazê-los.
+e2e/videos/

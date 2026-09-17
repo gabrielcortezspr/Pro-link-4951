@@ -3,6 +3,12 @@
 
 {% block titulo %}Demandas abertas · Pro-Link{% endblock %}
 
+{#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
+{% set shell = 'app' %}
+{% set ativo = 'abertas' %}
+
+{% block titulo_tela %}Demandas abertas{% endblock %}
+
 {#  Vitrine: muitos itens curtos e independentes. Em grade, a tela de 1600px mostra quatro
     demandas por fileira; empilhadas em coluna única, cada uma ocupava uma faixa inteira para
     dizer três linhas. #}

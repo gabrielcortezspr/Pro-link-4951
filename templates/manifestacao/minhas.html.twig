@@ -3,6 +3,22 @@
 
 {% block titulo %}Meus interesses · Pro-Link{% endblock %}
 
+{#
+    A lista de quem manifestou, irmã da confirmação no cenário 4.
+
+    docs/mockups/prolink-interacoes.html não desenha esta tela: das duas que ele traz, a primeira
+    é a confirmação (portada em confirmar.html.twig) e a segunda é a denúncia. O que vem de lá são
+    as peças, não a composição: a nota neutra `.miniinfo` (aqui `.pl-miniinfo`), o vocabulário de
+    situação em pílula e a entrada "Minhas manifestações" da barra lateral, que nesta aplicação se
+    chama "Meus interesses" porque a lista também recebe a linha aberta pelo demandante.
+#}
+
+{#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
+{% set shell = 'app' %}
+{% set ativo = 'manifestacoes' %}
+
+{% block titulo_tela %}Meus interesses{% endblock %}
+
 {#  Lista de registros comparáveis entre si: a pergunta de quem abre é "o que aconteceu com o que
     eu mandei", e comparar quatro linhas pede colunas alinhadas. #}
 {% block classe_main %}pl-wrap densa{% endblock %}
@@ -43,14 +59,15 @@
     </div>
 {% else %}
     <div class="pl-card">
-        <div class="table-responsive">
+        <div class="table-responsive" tabindex="0" role="region"
+             aria-label="Manifestações de interesse que você enviou">
             <table class="pl-table">
                 <caption class="visually-hidden">
                     Demandas em que você manifestou interesse, com a situação de cada envio e o retorno do demandante
                 </caption>
                 <thead>
                     <tr>
-                        <th scope="col">Demanda</th>
+                        <th scope="col" class="assunto">Demanda</th>
                         <th scope="col">Situação</th>
                         <th scope="col">Retorno do demandante</th>
                         <th scope="col">Enviada</th>
@@ -60,7 +77,7 @@
                 <tbody>
                     {% for m in manifestacoes %}
                         <tr>
-                            <td>
+                            <td class="assunto">
                                 <a class="lin-tt" href="{{ app_url }}/manifestacoes/{{ m.man_id }}">{{ m.dem_titulo }}</a>
                                 {#  A demanda encerrada muda o que a pessoa pode esperar daqui, e é
                                     a única situação da demanda que vale ocupar espaço na linha. #}
@@ -96,9 +113,14 @@
         </div>
     </div>
 
-    <p class="pl-nota mt-3 mb-0">
-        O retrato enviado em cada manifestação continua como estava no dia do envio. Mudar o seu
-        perfil hoje não muda o que já foi entregue.
+    {#  A nota neutra do mockup, e não `.pl-nota` em texto corrido: é a mesma promessa que a
+        confirmação faz antes do clique, e as duas telas passaram a dizê-la na mesma caixa. #}
+    <p class="pl-miniinfo mt-3">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></svg>
+        <span>
+            O retrato enviado em cada manifestação continua como estava no dia do envio. Mudar o
+            seu perfil hoje não muda o que já foi entregue.
+        </span>
     </p>
 {% endif %}
 {% endblock %}

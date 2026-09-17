@@ -29,6 +29,130 @@
         feed.classList.add('is-js');
     }
 
+    // ------------------------------------------------------------ o fundo do palco
+    /*
+     * A malha em perspectiva que ganha volume: o plano XY dos mockups com os prismas do eixo Z
+     * por cima. Vem de docs/mockups/prolink-feed-imersivo-v3.html e é o que sustenta a sangria
+     * total do palco: sem ela sobram duas faixas vazias ao lado do card.
+     *
+     * Desenho único por medida, sem animação: não há laço de quadro, e trocar de candidato não
+     * redesenha nada. Redesenha ao redimensionar e ao recolher a barra lateral, que são as duas
+     * coisas que mudam o tamanho do palco.
+     */
+    var motivo = raiz.querySelector('[data-motivo]');
+
+    function desenharMotivo() {
+        if (!motivo || !motivo.getContext) {
+            return;
+        }
+
+        var largura = raiz.clientWidth;
+        var altura  = raiz.clientHeight;
+
+        // Escondida pela consulta de mídia em 390px: sem medida não há o que desenhar.
+        if (!largura || !altura || motivo.offsetParent === null) {
+            return;
+        }
+
+        var densidade = Math.min(window.devicePixelRatio || 1, 2);
+
+        motivo.width  = Math.round(largura * densidade);
+        motivo.height = Math.round(altura * densidade);
+
+        var g = motivo.getContext('2d');
+
+        g.setTransform(densidade, 0, 0, densidade, 0, 0);
+        g.clearRect(0, 0, largura, altura);
+
+        var fugaX = largura * 0.5;
+        var fugaY = altura * 0.24;
+        var base  = altura * 1.06;
+        var TINTA = '11,42,74';
+
+        // t é profundidade (0 no horizonte, 1 na frente), u é o afastamento lateral.
+        function ponto(t, u) {
+            var y = fugaY + (base - fugaY) * Math.pow(t, 2.5);
+            var s = (y - fugaY) / (base - fugaY);
+
+            return { x: fugaX + u * largura * 0.95 * s, y: y };
+        }
+
+        function linha(a, b) {
+            g.beginPath();
+            g.moveTo(a.x, a.y);
+            g.lineTo(b.x, b.y);
+            g.stroke();
+        }
+
+        function contorno(pontos) {
+            g.beginPath();
+            g.moveTo(pontos[0].x, pontos[0].y);
+            pontos.slice(1).forEach(function (p) { g.lineTo(p.x, p.y); });
+            g.closePath();
+        }
+
+        g.lineWidth = 1;
+
+        for (var r = 1; r <= 18; r += 1) {
+            var t = r / 18;
+
+            g.strokeStyle = 'rgba(' + TINTA + ',' + (0.010 + 0.038 * t).toFixed(3) + ')';
+            linha(ponto(t, -1.7), ponto(t, 1.7));
+        }
+
+        g.strokeStyle = 'rgba(' + TINTA + ',0.030)';
+
+        for (var c = -9; c <= 9; c += 1) {
+            linha(ponto(0.035, c / 5), ponto(1, c / 5));
+        }
+
+        // O plano vira volume: é a terceira dimensão que esta tela inteira defende.
+        [
+            { t1: 0.50, t2: 0.68, u1: -1.44, u2: -1.02 },
+            { t1: 0.62, t2: 0.84, u1: 1.06,  u2: 1.52 },
+            { t1: 0.30, t2: 0.40, u1: 0.74,  u2: 1.00 }
+        ].forEach(function (prisma) {
+            var chao = [
+                ponto(prisma.t1, prisma.u1),
+                ponto(prisma.t1, prisma.u2),
+                ponto(prisma.t2, prisma.u2),
+                ponto(prisma.t2, prisma.u1)
+            ];
+            var alto = (chao[3].y - chao[0].y) * 2.7;
+            var teto = chao.map(function (p) { return { x: p.x, y: p.y - alto }; });
+
+            g.strokeStyle = 'rgba(' + TINTA + ',0.058)';
+            contorno(chao);
+            g.stroke();
+
+            contorno(teto);
+            g.stroke();
+            g.fillStyle = 'rgba(' + TINTA + ',0.016)';
+            g.fill();
+
+            chao.forEach(function (p, k) { linha(p, teto[k]); });
+        });
+    }
+
+    desenharMotivo();
+    window.addEventListener('load', desenharMotivo);
+
+    // Recolher a barra lateral muda a largura do palco, e a transição do shell dura 220ms.
+    var colapsar = document.querySelector('[data-pl-colapsar]');
+
+    if (colapsar) {
+        colapsar.addEventListener('click', function () {
+            window.setTimeout(desenharMotivo, 260);
+        });
+    }
+
+    var remedirMotivo;
+
+    window.addEventListener('resize', function () {
+        window.clearTimeout(remedirMotivo);
+        remedirMotivo = window.setTimeout(desenharMotivo, 150);
+    });
+
     // ------------------------------------------------------------ revelação da evidência
     Array.prototype.forEach.call(raiz.querySelectorAll('.pl-toggle'), function (botao) {
         var alvo = document.getElementById(botao.getAttribute('aria-controls') || '');
@@ -213,14 +337,23 @@
     });
 
     /*
-     * A roda só percorre o pool quando não há mais nada para rolar na página. Sequestrar a
+     * A roda percorre o pool quando a página já chegou ao fim daquele sentido. Sequestrar a
      * rolagem enquanto o card ainda tem conteúdo abaixo da dobra prenderia quem está lendo a
-     * evidência — e numa demonstração ao vivo isso é pior do que não ter o gesto.
+     * evidência, e numa demonstração ao vivo isso é pior do que não ter o gesto.
+     *
+     * A primeira versão só ligava a roda se a página inteira coubesse na janela, e com o palco
+     * dentro do shell isso quase nunca acontece: o card real tem seis dimensões em dois grupos,
+     * não as quatro do mockup. A dica da tela promete "role para navegar", e o limite de
+     * rolagem é o ponto em que a promessa pode ser cumprida sem atrapalhar a leitura.
      */
     var travaDaRoda = 0;
 
     raiz.addEventListener('wheel', function (evento) {
-        if (document.documentElement.scrollHeight > window.innerHeight + 2) {
+        var documento = document.documentElement;
+        var doTopo    = window.scrollY || documento.scrollTop || 0;
+        var aSobrar   = documento.scrollHeight - window.innerHeight - doTopo;
+
+        if (evento.deltaY > 0 ? aSobrar > 2 : doTopo > 2) {
             return;
         }
 

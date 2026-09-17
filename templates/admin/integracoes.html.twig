@@ -1,0 +1,278 @@
+{% extends 'admin/_layout.html.twig' %}
+{% import 'layout/_ui.html.twig' as ui %}
+{% import 'layout/_form.html.twig' as form %}
+{% import 'admin/_parametro.html.twig' as par %}
+
+{#
+    Integrações (Anexo I, item 3: o administrador "configura integrações").
+
+    A capacidade estava na lista do edital e não tinha tela. O item da barra lateral já trazia um
+    comentário dizendo que entraria quando a tela existisse.
+
+    ## A pergunta que a tela responde
+
+    "A plataforma está falando com a API oficial do CREA-AM, e desde quando?" A resposta tem três
+    partes, e elas são a ordem de leitura:
+
+    Primário   a conexão: para onde a plataforma aponta, com que tempo limite, e se a credencial
+               está configurada.
+    Secundário o que já veio de lá e está em cache, com a data da última importação de cada coisa.
+    Terciário  a procedência: as últimas importações registradas na trilha de auditoria.
+
+    ## Duas coisas que esta tela recusa fazer, e o motivo
+
+    1. **Não chama a API.** O item 10.4 veda coleta automatizada, e a organização registra cada
+       chamada ao ambiente fictício. Uma tela que consultasse o serviço a cada carregamento
+       gastaria cota alheia para mostrar um número, e bastaria alguém deixar a página aberta para
+       virar exatamente o que o edital proíbe. A conferência ao vivo existe, é explícita, e mora
+       fora da interface, em `scripts/verificar-api.php`.
+
+    2. **Não mostra o token.** Ela diz se ele existe e o tamanho, que é o que responde "está
+       configurado?" sem colocar uma credencial na tela de alguém. O Anexo VI reprova na triagem
+       quem entrega segredo à mostra, e uma tela de administração é um lugar tão bom quanto um
+       arquivo para vazar um.
+
+    ## Por que a configuração não é editável aqui
+
+    Endpoint, credencial e tempo limite vêm do ambiente (`.env`, lido pelo `_config.php`, item
+    8.3.1), e é assim que o edital pede. Um formulário que gravasse isso no banco criaria duas
+    fontes de verdade para a mesma coisa, e a que vale na hora da requisição continuaria sendo a
+    do ambiente. O que é configurável em tempo de execução são os pesos do motor, e esses têm a
+    própria tela, com faixa declarada e trilha.
+#}
+
+{% block titulo %}Integrações · Pro-Link{% endblock %}
+{% block titulo_painel %}Integrações{% endblock %}
+
+{% block topbar_acoes %}
+    <span class="pl-momento">Estado lido do que já foi importado, sem consultar a API</span>
+{% endblock %}
+
+{% block painel %}
+
+    <section class="pl-card" aria-labelledby="h-conexao">
+        <div class="pl-linha-titulo">
+            <h2 class="pl-grp" id="h-conexao">A conexão</h2>
+            {{ ui.info('De onde vem esta configuração', 'Do ambiente, pelo _config.php, e não do banco. Alterá-la é editar o arquivo de ambiente e subir a aplicação de novo, que é como o item 8.3.1 do edital pede.') }}
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-6 col-xl-3">
+                <div class="pl-kpi">
+                    <div class="lab">Serviço</div>
+                    <div class="val vazio"><code>{{ conexao.base }}</code></div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="pl-kpi">
+                    <div class="lab">Tempo limite</div>
+                    <div class="val">{{ conexao.tempo_limite }}s</div>
+                    <p class="sub">por requisição</p>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="pl-kpi">
+                    <div class="lab">Credencial</div>
+                    <div class="val vazio">
+                        {% if conexao.token_presente %}
+                            <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Configurada</span>
+                        {% else %}
+                            <span class="pl-pill warn"><span class="pd" aria-hidden="true"></span>Ausente</span>
+                        {% endif %}
+                    </div>
+                    <p class="sub">
+                        {% if conexao.token_presente %}
+                            {{ conexao.token_tamanho }} caracteres, não exibidos
+                        {% else %}
+                            A importação de acervo não funciona sem ela
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="pl-kpi">
+                    <div class="lab">Ambiente</div>
+                    <div class="val vazio">{{ conexao.ambiente }}</div>
+                </div>
+            </div>
+        </div>
+
+        <p class="pl-nota">
+            A plataforma não consulta a API para montar esta tela. O item 10.4 do edital veda
+            coleta automatizada, e cada chamada ao ambiente fictício é registrada pela organização
+            do desafio. Para conferir a conexão ao vivo, e gastando uma chamada de propósito:
+            <code>php scripts/verificar-api.php</code>.
+        </p>
+    </section>
+
+    <section class="pl-card" aria-labelledby="h-cache">
+        <div class="pl-linha-titulo">
+            <h2 class="pl-grp" id="h-cache">O que veio da API</h2>
+            {{ ui.info('O que é este cache', 'Cópia datada da resposta oficial, reconstruível a partir dela. O item 8.4 proíbe base própria que simule a API, e nada aqui é inventado: o que não foi importado aparece zerado.') }}
+        </div>
+
+        <div class="table-responsive">
+            <table class="pl-table pl-log">
+                <caption class="visually-hidden">Coleções importadas da API oficial, com a contagem e a data da última importação</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Coleção</th>
+                        <th scope="col" class="text-end">Registros</th>
+                        <th scope="col">Última importação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in colecoes %}
+                        <tr>
+                            <th scope="row" class="fw-normal">{{ c.rotulo }}</th>
+                            <td class="text-end">
+                                {% if c.total > 0 %}
+                                    {{ c.total }}
+                                {% else %}
+                                    <span class="text-body-secondary">nada importado</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if c.ultima %}
+                                    {{ c.ultima|date('d/m/Y, H:i') }}
+                                {% else %}
+                                    <span class="text-body-secondary">a coleção não guarda data por registro</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="pl-card" aria-labelledby="h-situacao">
+        <div class="pl-linha-titulo">
+            <h2 class="pl-grp" id="h-situacao">Situação cadastral dos perfis</h2>
+            {{ ui.info('Por que isto importa', 'Perfil que nunca foi conferido contra a API é perfil cuja situação no conselho a plataforma não sabe. A sincronização é um comando, e não um processo automático, pelo mesmo motivo do item 10.4.') }}
+        </div>
+
+        <div class="row g-3">
+            <div class="col-sm-6 col-xl-4">
+                <div class="pl-kpi">
+                    <div class="lab">Com situação conferida</div>
+                    <div class="val">{{ situacao.com_situacao }}</div>
+                    <p class="sub">A plataforma sabe como o conselho os classifica hoje</p>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-4">
+                <div class="pl-kpi">
+                    <div class="lab">Nunca conferidos</div>
+                    <div class="val">{{ situacao.sem_situacao }}</div>
+                    <p class="sub">
+                        {% if situacao.sem_situacao > 0 %}
+                            <span class="pl-pill warn"><span class="pd" aria-hidden="true"></span>Pendente</span>
+                        {% else %}
+                            Nenhum perfil sem conferência
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <div class="col-xl-4">
+                <div class="pl-kpi">
+                    <div class="lab">Última sincronização</div>
+                    <div class="val vazio">
+                        {% if situacao.ultima %}
+                            {{ situacao.ultima|date('d/m/Y, H:i') }}
+                        {% else %}
+                            nunca executada
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <p class="pl-nota">
+            Para rodar: <code>php scripts/sincronizar-status.php --limite=25</code>. Com
+            <code>--simular</code> ele mostra o que faria sem gastar chamada nenhuma, e sem
+            exigir credencial. Perfil cuja situação no conselho deixou de estar regular tem a
+            visibilidade fechada no mesmo ato, e a mudança vai para a trilha.
+        </p>
+    </section>
+
+    <section class="pl-card" aria-labelledby="h-ajustes">
+        <div class="pl-linha-titulo">
+            <h2 class="pl-grp" id="h-ajustes">Ajustes da sincronização</h2>
+            {{ ui.info('O que é configurável aqui', 'Os dois limites que a administração pode mexer sem tocar no ambiente. Endpoint e credencial não entram: eles vêm do arquivo de ambiente, como o item 8.3.1 do edital pede, e um formulário que os gravasse no banco criaria duas fontes de verdade para a mesma coisa.') }}
+        </div>
+
+        <p class="pl-nota">
+            Os dois existem por causa do item 10.4, que veda coleta automatizada. O piso de uma
+            hora entre reconsultas e o teto de cem perfis por execução são o que impede a
+            sincronização de virar varredura, e por isso a faixa aceitável aparece ao lado de cada
+            campo em vez de ficar só na validação.
+        </p>
+
+        {% if aviso|default('') %}
+            <div class="alert alert-danger" role="alert">{{ aviso }}</div>
+        {% endif %}
+
+        <form method="post" action="{{ app_url }}/admin/integracoes" novalidate>
+            {{ form.csrf() }}
+
+            <div class="pl-par">
+                {% for p in ajustes %}
+                    {{ par.campo(p, erros|default({}), valores|default({}),
+                        p.par_chave == 'api.sincronizacao.horas' ? 'horas' : 'perfis') }}
+                {% endfor %}
+            </div>
+
+            <div class="pl-acoes">
+                {{ form.botao('Salvar ajustes') }}
+            </div>
+        </form>
+    </section>
+
+    <section class="pl-card" aria-labelledby="h-trilha">
+        <div class="pl-linha-titulo">
+            <h2 class="pl-grp" id="h-trilha">Últimas importações registradas</h2>
+            {{ ui.info('De onde sai esta lista', 'Da trilha de auditoria, que é insert-only por gatilho no banco. Se a data viesse de um campo comum, bastaria uma escrita para a afirmação deixar de valer.') }}
+        </div>
+
+        {% if importacoes is empty %}
+            <div class="pl-vazio">
+                <p class="t">Nenhuma importação registrada</p>
+                <p>
+                    A trilha não tem importação desta origem ainda. O acervo em cache pode ter
+                    vindo da carga inicial, que não passa por aqui.
+                </p>
+            </div>
+        {% else %}
+            <div class="table-responsive">
+                <table class="pl-table pl-log">
+                    <caption class="visually-hidden">Importações registradas na trilha de auditoria</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Quando</th>
+                            <th scope="col">Ação</th>
+                            <th scope="col">Coleção</th>
+                            <th scope="col">Por</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in importacoes %}
+                            <tr>
+                                <td>{{ i.aud_dt_registro|date('d/m/Y, H:i') }}</td>
+                                <td>{{ i.aud_acao|rotulo_acao }}</td>
+                                <td>{{ i.aud_entidade|rotulo_entidade }}</td>
+                                <td>
+                                    {% if i.usu_nome %}
+                                        {{ i.usu_nome|nome_proprio }}
+                                    {% else %}
+                                        <span class="text-body-secondary">execução de linha de comando</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </section>
+
+{% endblock %}

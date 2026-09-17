@@ -1,0 +1,256 @@
+{% extends 'layout/base.html.twig' %}
+{% import 'layout/_ui.html.twig' as ui %}
+
+{#
+    O início do profissional, portado do bloco "01 Dashboard Profissional" de
+    docs/mockups/prolink-profissional.html.
+
+    A composição é a de lá: barra de busca, fileira de quatro indicadores e os quadros de lista
+    embaixo. O que mudou, e só o que tinha de mudar para a tela viver sobre o dado real:
+
+    1. O tile "Visualizações do perfil" do mockup não existe (D72). Não há registro de quem viu o
+       perfil de quem, e criar um seria rastrear visita por titular, que é dado novo de
+       comportamento com implicação de privacidade que a Política não declara. No lugar dele vai
+       o número que existe e diz mais: quantos demandantes registraram interesse neste perfil,
+       com o rótulo dizendo exatamente isso.
+    2. As linhas verdes de variação do mockup ("+3 esta semana", "+9 nos últimos 7 dias") medem
+       movimento, e nada aqui guarda série histórica. A linha de apoio de cada tile diz de onde o
+       número vem, que é fato, em vez de inventar uma tendência.
+    3. A tabela do mockup traz "Empresa" e "Atividade TOS requerida"; o controller entrega as
+       demandas abertas mais recentes, sem o nome de quem publicou e sem as atividades. As
+       colunas viraram as que o dado sustenta, e o título do quadro é "Demandas abertas
+       recentes", não "compatíveis": estas cinco são as últimas publicadas, não um pool do motor,
+       e chamá-las de compatíveis diria que houve cálculo onde não houve.
+    4. O quadro "Seu perfil" do mockup precisa de RNP, modalidade e nível de visibilidade, que
+       esta rota não carrega. No lugar dele fica o que o controller entrega e não tinha onde
+       morar: os interesses recentes desta conta.
+#}
+
+{% set shell = 'app' %}
+{% set ativo = 'inicio' %}
+
+{% block titulo %}Início · Pro-Link{% endblock %}
+{% block titulo_tela %}Início{% endblock %}
+
+{% block conteudo %}
+{% set u = usuario() %}
+
+<div class="pl-head">
+    <div class="tit">
+        <h1>Visão geral</h1>
+        <p class="sub">
+            {% if u %}
+                <span>{{ u.nome|nome_proprio }}</span>
+                <span class="pl-sep" aria-hidden="true"></span>
+            {% endif %}
+            <span>Profissional com registro no Sistema Confea/CREA</span>
+        </p>
+    </div>
+    <div class="pl-head-acoes">
+        <a class="pl-cta" href="{{ app_url }}/demandas/abertas">Ver demandas abertas</a>
+    </div>
+</div>
+
+{#  A barra de busca do mockup, ligada à busca de verdade: GET para /profissionais, sem
+    JavaScript. O rótulo existe e fica escondido só aos olhos, porque o texto de exemplo dentro
+    da caixa já diz o que ela procura. #}
+<form class="pl-busca-row mb-0" method="get" action="{{ app_url }}/profissionais" role="search">
+    <div class="cx">
+        <span class="lupa" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.6-3.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+        <label class="visually-hidden" for="q">Nome, especialidade ou experiência</label>
+        <input type="search" id="q" name="q" maxlength="80" autocomplete="off"
+               placeholder="Nome, especialidade ou experiência. Ex.: Construção Civil, estruturas, Ana">
+    </div>
+    <button type="submit" class="pl-btn">Buscar</button>
+</form>
+
+{# ------------------------------------------------------------------ os quatro indicadores #}
+<div class="pl-kpis">
+    <div class="pl-kpi">
+        <div class="lab">Demandas em que você apareceu</div>
+        <div class="val">{{ numeros.compativeis }}</div>
+        <p class="sub">
+            {%- if numeros.compativeis == 0 -%}
+                O motor ainda não montou um pool com este perfil
+            {%- else -%}
+                Entrada no pool do motor, sem posição e sem nota
+            {%- endif -%}
+        </p>
+    </div>
+
+    <a class="pl-kpi" href="{{ app_url }}/manifestacoes">
+        <div class="lab">Interesses que você enviou</div>
+        <div class="val">{{ numeros.manifestacoes }}</div>
+        <div class="sub">
+            <span>
+                {%- if numeros.manifestacoes == 0 -%}
+                    Nenhum enviado até agora
+                {%- else -%}
+                    Acompanhar o que foi respondido
+                {%- endif -%}
+            </span>
+            <svg class="ch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </div>
+    </a>
+
+    <a class="pl-kpi" href="{{ app_url }}/perfil">
+        <div class="lab">ARTs no seu acervo</div>
+        <div class="val">
+            {{ numeros.arts }}
+            {% if numeros.arts > 0 %}
+                <svg class="pl-mark" role="img" aria-label="Conferidas na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+            {% endif %}
+        </div>
+        <div class="sub">
+            <span>
+                {%- if numeros.arts == 0 -%}
+                    Valide o registro para trazer o acervo
+                {%- else -%}
+                    Conferidas na API do CREA-AM
+                {%- endif -%}
+            </span>
+            <svg class="ch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </div>
+    </a>
+
+    {#  O substituto de "Visualizações do perfil" (D72): interesse registrado é ato, e passagem de
+        olho não é medida por ninguém aqui. O rótulo diz o que o número é, para não sobrar a
+        leitura de audiência que o mockup sugeria. #}
+    <a class="pl-kpi" href="{{ app_url }}/manifestacoes">
+        <div class="lab">Demandantes que registraram interesse em você</div>
+        <div class="val">{{ numeros.interesses }}</div>
+        <div class="sub">
+            <span>
+                {%- if numeros.interesses == 0 -%}
+                    Nenhum registro até agora
+                {%- else -%}
+                    Não é contagem de visitas ao perfil
+                {%- endif -%}
+            </span>
+            <svg class="ch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </div>
+    </a>
+</div>
+
+{# ------------------------------------------------------------------ demandas abertas recentes #}
+<section class="pl-card">
+    <div class="pl-linha-titulo">
+        <h2 class="pl-secao">Demandas abertas recentes</h2>
+        {{ ui.info('Por que não é uma lista de compatíveis',
+            'Estas são as últimas demandas publicadas na plataforma, na ordem em que entraram. A compatibilização por dimensão acontece dentro de cada demanda e não ordena pessoas nem demandas.') }}
+        <div class="dir">
+            <a class="pl-btn sm" href="{{ app_url }}/demandas/abertas">Ver todas</a>
+        </div>
+    </div>
+
+    {% if demandas is empty %}
+        <div class="pl-vazio">
+            <p class="t">Nenhuma demanda publicada no momento</p>
+            <p class="s">
+                Quando uma empresa ou contratante publicar, a demanda aparece aqui com o escopo e
+                o local do serviço.
+            </p>
+        </div>
+    {% else %}
+        <div class="table-responsive" tabindex="0" role="region" aria-label="Demandas abertas recentes">
+            <table class="pl-table">
+                <caption class="visually-hidden">
+                    As demandas publicadas mais recentes, com local, situação e data de publicação
+                </caption>
+                <thead>
+                    <tr>
+                        <th scope="col" class="assunto">Demanda</th>
+                        <th scope="col">Local</th>
+                        <th scope="col">Situação</th>
+                        <th scope="col">Publicada</th>
+                        <th scope="col"><span class="visually-hidden">Ação</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in demandas %}
+                        <tr>
+                            <td class="assunto">
+                                <a class="lin-tt" href="{{ app_url }}/demandas/{{ d.dem_id }}">{{ d.dem_titulo }}</a>
+                                <span class="lin-sub"{% if d.dem_tipo_contrato %} title="{{ d.dem_tipo_contrato }}"{% endif %}>
+                                    {{ d.dem_tipo_contrato|rotulo_contrato ?: 'Contrato a combinar' }}
+                                </span>
+                            </td>
+                            <td>
+                                {%- if d.dem_local_municipio -%}
+                                    {{ d.dem_local_municipio }}{% if d.dem_local_uf %}/{{ d.dem_local_uf }}{% endif %}
+                                {%- else -%}
+                                    <span class="lin-sub">Não informado</span>
+                                {%- endif -%}
+                            </td>
+                            <td>{{ ui.situacao(d.dem_situacao, d.dem_dt_publicacao is not null) }}</td>
+                            <td><span class="pl-mono">{{ d.dem_dt_publicacao|date('d/m/Y') }}</span></td>
+                            <td class="text-end">
+                                <a class="pl-btn sm" href="{{ app_url }}/demandas/{{ d.dem_id }}">Abrir</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</section>
+
+{# ------------------------------------------------------------------ o que passou por esta conta #}
+<section class="pl-card">
+    <div class="pl-linha-titulo">
+        <h2 class="pl-secao">Interesses recentes</h2>
+        <div class="dir">
+            <a class="pl-btn sm" href="{{ app_url }}/manifestacoes">Ver todos</a>
+        </div>
+    </div>
+
+    {% if enviadas is empty %}
+        <div class="pl-vazio">
+            <p class="t">Nenhum interesse registrado ainda</p>
+            <p class="s">
+                Ao manifestar interesse numa demanda, a plataforma envia ao demandante um retrato
+                do seu perfil com o que estiver aberto para ele, e abre aqui um canal entre os
+                dois.
+            </p>
+            <div class="a">
+                <a class="pl-cta" href="{{ app_url }}/demandas/abertas">Ver demandas abertas</a>
+            </div>
+        </div>
+    {% else %}
+        <div class="table-responsive" tabindex="0" role="region" aria-label="Interesses recentes desta conta">
+            <table class="pl-table">
+                <caption class="visually-hidden">
+                    Os interesses mais recentes ligados a esta conta, com a situação de cada um
+                </caption>
+                <thead>
+                    <tr>
+                        <th scope="col" class="assunto">Demanda</th>
+                        <th scope="col">Situação</th>
+                        <th scope="col">Registrado</th>
+                        <th scope="col"><span class="visually-hidden">Ação</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in enviadas %}
+                        <tr>
+                            <td class="assunto">
+                                <a class="lin-tt" href="{{ app_url }}/manifestacoes/{{ m.man_id }}">{{ m.dem_titulo }}</a>
+                                {% if m.dem_situacao == 'ENCERRADA' %}
+                                    <span class="lin-sub">Demanda encerrada pelo demandante</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ ui.situacao_manifestacao(m.man_situacao) }}</td>
+                            <td><span class="pl-mono">{{ m.man_dt_registro|date('d/m/Y') }}</span></td>
+                            <td class="text-end">
+                                <a class="pl-btn sm" href="{{ app_url }}/manifestacoes/{{ m.man_id }}">Abrir</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

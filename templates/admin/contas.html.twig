@@ -1,0 +1,393 @@
+{% extends 'admin/_layout.html.twig' %}
+{% import 'layout/_ui.html.twig' as ui %}
+
+{#
+    Gestão de contas (Anexo I, item 3: "gerir perfis").
+
+    O controller, o serviço e o repositório existiam e funcionavam; esta tela nunca foi escrita, e
+    /admin/contas era a única rota da plataforma que devolvia 500.
+
+    A unidade de leitura é UMA conta, e a pergunta que a linha responde é "esta conta entra hoje, e
+    o que a administração pode fazer com ela":
+
+    Primário   quem é a conta (nome) e em que situação ela está.
+    Secundário o e-mail, o perfil de acesso, quantas sessões ela tem abertas agora e quando ela
+               entrou pela última vez. As sessões abertas não são enfeite: bloquear derruba todas,
+               e este é o número que diz o tamanho do efeito antes de alguém clicar.
+    Terciário  o número da conta, que é por onde ela é achada na trilha de auditoria.
+
+    ## As três recusas ficam na tela, não atrás de um clique
+
+    O ContaService recusa três coisas: não gere conta de administração, não deixa ninguém agir
+    sobre a própria conta, e não desfaz a exclusão pedida pelo titular. Oferecer o botão e mostrar
+    o erro depois seria fazer a pessoa descobrir a regra batendo nela.
+
+    As três regras estão escritas uma vez, acima da tabela, e cada linha impedida aponta para a
+    sua com `aria-describedby`. Uma frase por linha, como a lixeira faz, não serve aqui: lá o caso
+    é raro e aqui a base de demonstração tem centenas de contas excluídas, e a mesma frase repetida
+    em cada uma viraria ruído do tamanho da tabela.
+
+    ## Vocabulário de situação
+
+    `A` é Ativa, `I` é Bloqueada e `X` é Excluída. "Bloqueada" e não "Inativa" (que é como a trilha
+    de auditoria lê o valor cru da coluna) porque é a palavra que o serviço usa em toda mensagem
+    que esta tela pode produzir, e uma pílula "Inativa" ao lado de um botão "Desbloquear" seriam
+    dois nomes para o mesmo estado. A cor por estado é fixa: ativa em verde, bloqueada em âmbar,
+    que é como a trilha já classifica o evento BLOQUEAR, e excluída em cinza, porque exclusão a
+    pedido do titular não é alarme, é direito atendido.
+
+    Escala: 25 contas por página, e a base de demonstração tem centenas. Com este volume o que
+    ainda falta é ordenação por coluna e filtro por data de registro, que esta tela não tem: os
+    três filtros do serviço (termo, perfil e situação) são o que existe, e são o que ela oferece.
+#}
+
+{% block titulo %}Contas · Pro-Link{% endblock %}
+{% block titulo_painel %}Contas{% endblock %}
+
+{% block topbar_acoes %}
+    <span class="pl-momento">
+        {{ lista.total }} {{ lista.total == 1 ? 'conta encontrada' : 'contas encontradas' }}
+    </span>
+    {{ ui.info('O que esta tela governa',
+        'Bloquear tira a conta de operação na mesma transação em que derruba todas as sessões dela: a pessoa para de entrar na hora, não no próximo login. Desbloquear devolve a conta, e não devolve sessão nenhuma, porque quem volta precisa provar que ainda tem a credencial. As duas ações exigem motivo escrito, e o motivo fica na trilha de auditoria junto com o seu nome e a data.', 'fim') }}
+{% endblock %}
+
+{% block painel %}
+
+    {% set eu = usuario() ? usuario().id : null %}
+
+    {#  Vocabulário fechado, com cor fixa por estado. Nunca inventar pílula caso a caso. #}
+    {% set estado = {'A': 'Ativa',   'I': 'Bloqueada', 'X': 'Excluída'} %}
+    {% set cores  = {'A': 'ok',      'I': 'warn',      'X': 'neutral'} %}
+    {% set papel  = {
+        'PROFISSIONAL': 'Profissional', 'EMPRESA': 'Empresa',
+        'TERCEIRO': 'Terceiro', 'ADMIN': 'Administração'
+    } %}
+
+    {% set filtrado = filtros.termo is not empty or filtros.perfil is not empty or filtros.situacao is not empty %}
+
+    {#  A base das páginas carrega os filtros: sem isso, ir para a página 2 de uma busca por termo
+        devolvia a plataforma inteira. #}
+    {% set base = app_url ~ '/admin/contas?q=' ~ filtros.termo|url_encode
+        ~ '&amp;perfil=' ~ filtros.perfil|url_encode
+        ~ '&amp;situacao=' ~ filtros.situacao|url_encode %}
+
+    {# ------------------------------------------------------------------ os três filtros #}
+    <form method="get" action="{{ app_url }}/admin/contas" class="pl-toolbar">
+        <div class="pl-filtros">
+            <div class="campo-termo">
+                <label class="form-label" for="f-q">Nome ou e-mail</label>
+                <input class="form-control" type="search" name="q" id="f-q" maxlength="80"
+                       value="{{ filtros.termo }}" placeholder="Todas as contas">
+            </div>
+
+            <div class="campo-perfil">
+                <label class="form-label" for="f-perfil">Perfil de acesso</label>
+                <select class="form-select" name="perfil" id="f-perfil">
+                    <option value="">Todos os perfis</option>
+                    {% for p in perfis %}
+                        {# value cru porque é ele que o repositório compara; texto em português. #}
+                        <option value="{{ p }}"{% if filtros.perfil == p %} selected{% endif %}>{{ papel[p]|default(p|capitalize) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="campo-situacao">
+                <label class="form-label" for="f-situacao">Situação</label>
+                <select class="form-select" name="situacao" id="f-situacao">
+                    <option value="">Todas as situações</option>
+                    {% for chave, texto in estado %}
+                        <option value="{{ chave }}"{% if filtros.situacao == chave %} selected{% endif %}>{{ texto }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="pl-filtros-acoes">
+                <button type="submit" class="pl-btn">Filtrar</button>
+                {# "Limpar" só existe quando há o que limpar: link morto em barra de filtro é
+                   affordance falsa. Mesma regra da trilha de auditoria. #}
+                {% if filtrado %}
+                    <a class="pl-btn ghost" href="{{ app_url }}/admin/contas">Limpar</a>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+
+    <section class="pl-card pl-log-card">
+
+        <div class="pl-log-topo">
+            <div>
+                <h2 class="pl-card-titulo">Contas da plataforma</h2>
+                <p class="pl-log-resumo">
+                    <span><b>{{ lista.total }}</b> {{ lista.total == 1 ? 'conta' : 'contas' }}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>bloquear e desbloquear exigem motivo escrito, e o motivo fica na trilha de auditoria</span>
+                </p>
+            </div>
+            {% if lista.contas|length %}
+                <p class="pl-pag mb-0">
+                    <span class="pos">Página <b>{{ lista.pagina }}</b> de <b>{{ lista.paginas }}</b></span>
+                </p>
+            {% endif %}
+        </div>
+
+        {#  As três recusas do serviço, escritas uma vez. Cada linha impedida da tabela aponta para
+            o item que a impede, pelo id, em vez de repetir a frase dentro da linha. #}
+        <ul class="pl-recusas">
+            <li id="regra-admin">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8.5 11V7.5a3.5 3.5 0 017 0V11"/></svg>
+                <span><b>Conta de administração não é gerida por aqui.</b> Um administrador bloqueando o outro é como o acesso ao painel se perde.</span>
+            </li>
+            <li id="regra-eu">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c0-3.6 3.4-6.5 7.5-6.5s7.5 2.9 7.5 6.5"/></svg>
+                <span><b>Ninguém age sobre a própria conta.</b> A sua aparece na lista, como qualquer outra, e sem ação.</span>
+            </li>
+            <li id="regra-excluida">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3.6V12c0 4.4-3.2 7.6-8 9-4.8-1.4-8-4.6-8-9V6.6z"/><path d="M9.2 12.2l2 2 3.6-4"/></svg>
+                <span><b>Conta excluída pelo titular não volta por ato administrativo.</b> É a mesma regra da lixeira, e o motivo está na Política de Privacidade.</span>
+            </li>
+        </ul>
+
+        {#  Alcance de teclado e nome no quadro rolável: o Chrome não dá foco a contêiner de
+            rolagem sozinho, e sem os três atributos quem navega por teclado não chega às colunas
+            da direita. Mesmo padrão da trilha de auditoria. #}
+        <div class="table-responsive" tabindex="0" role="region" aria-label="Contas da plataforma">
+            <table class="pl-table pl-log pl-contas">
+                <caption class="visually-hidden">
+                    Contas da plataforma, da mais recente para a mais antiga. Uma conta por linha,
+                    com a situação, as sessões abertas e a ação que a administração pode praticar
+                    sobre ela.
+                </caption>
+                <colgroup>
+                    <col>
+                    <col class="c-papel"><col class="c-situacao"><col class="c-sessoes">
+                    <col class="c-acesso"><col class="c-acao"><col class="c-ref">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th scope="col">Conta</th>
+                        <th scope="col">Perfil de acesso</th>
+                        <th scope="col">Situação</th>
+                        <th scope="col" class="num">Sessões abertas</th>
+                        <th scope="col">Último acesso</th>
+                        <th scope="col" class="acao">Ação</th>
+                        <th scope="col" class="num">Nº</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for c in lista.contas %}
+
+                    {#  Quem pode o quê, decidido uma vez por linha e nas mesmas condições do
+                        ContaService: a tela não pode oferecer o botão que o servidor vai recusar,
+                        e também não pode esconder a conta que ela não gere. #}
+                    {% set eh_admin    = c.per_codigo == 'ADMIN' %}
+                    {% set sou_eu      = eu is not null and c.usu_id == eu %}
+                    {% set excluida    = c.usu_status == 'X' %}
+                    {% set gerenciavel = not eh_admin and not sou_eu and not excluida %}
+                    {% set regra       = eh_admin ? 'regra-admin' : (sou_eu ? 'regra-eu' : 'regra-excluida') %}
+
+                    <tr class="lin{% if not gerenciavel %} fechada{% endif %}">
+
+                        <td>
+                            <span class="tt">{{ c.usu_nome|nome_proprio }}</span>
+                            <span class="sub" title="{{ c.usu_email }}">{{ c.usu_email }}</span>
+                        </td>
+
+                        <td>
+                            <span class="papel">{{ papel[c.per_codigo]|default(c.per_codigo|lower|capitalize) }}</span>
+                            <span class="sub">{{ c.usu_tipo_pessoa == 'J' ? 'Pessoa jurídica' : 'Pessoa física' }}</span>
+                        </td>
+
+                        <td>
+                            <span class="pl-pill {{ cores[c.usu_status]|default('neutral') }}" title="{{ c.usu_status }}">
+                                <span class="pd" aria-hidden="true"></span>
+                                {{ estado[c.usu_status]|default('Situação não prevista') }}
+                            </span>
+                            {#  A trava por tentativa de entrada é outro estado, e ele não aparecia
+                                em tela nenhuma: é a defesa contra força bruta funcionando, e numa
+                                conta ativa é a única explicação para "não consigo entrar". #}
+                            {% if c.usu_bloqueado_ate and date(c.usu_bloqueado_ate) > date() %}
+                                <span class="sub">Entrada travada até {{ c.usu_bloqueado_ate|date('d/m H:i') }}</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="num">
+                            {% if c.sessoes_abertas > 0 %}
+                                {{ c.sessoes_abertas }}
+                            {% else %}
+                                <span class="nulo" aria-hidden="true"></span>
+                                <span class="visually-hidden">Nenhuma</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if c.usu_dt_ultimo_login %}
+                                <span class="hora">{{ c.usu_dt_ultimo_login|date('d/m/Y H:i') }}</span>
+                            {% else %}
+                                <span class="hora vaga">Nunca entrou</span>
+                            {% endif %}
+                            <span class="sub">Conta criada em {{ c.usu_dt_registro|date('d/m/Y') }}</span>
+                        </td>
+
+                        <td class="acao">
+                            {% if gerenciavel %}
+                                <button type="button" class="pl-btn sm"
+                                        data-bs-toggle="modal" data-bs-target="#conta-{{ c.usu_id }}">
+                                    {{ c.usu_status == 'I' ? 'Desbloquear' : 'Bloquear' }}
+                                </button>
+                            {% else %}
+                                {#  aria-describedby amarra o rótulo à regra escrita acima da
+                                    tabela: quem lê com leitor de tela ouve "Sem ação" e, junto, o
+                                    motivo, em vez de ouvir só a palavra e seguir. #}
+                                <span class="fechado" aria-describedby="{{ regra }}">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8.5 11V7.5a3.5 3.5 0 017 0V11"/></svg>
+                                    {% if eh_admin %}Administração{% elseif sou_eu %}Sua conta{% else %}Pedido do titular{% endif %}
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td class="ref">{{ c.usu_id }}</td>
+                    </tr>
+
+                {% else %}
+
+                    <tr class="vazio">
+                        <td colspan="7">
+                            <p class="t">{% if filtrado %}Nenhuma conta com esses filtros{% else %}Nenhuma conta cadastrada{% endif %}</p>
+                            <p class="s">
+                                {% if filtrado %}
+                                    O termo procura em nome e e-mail, por pedaço de palavra. Perfil
+                                    e situação são listas fechadas, e valem em conjunto.
+                                {% else %}
+                                    Assim que alguém criar conta na plataforma, ela aparece aqui,
+                                    com a situação e as sessões abertas.
+                                {% endif %}
+                            </p>
+                            {% if filtrado %}
+                                <a class="pl-btn sm" href="{{ app_url }}/admin/contas">Ver todas as contas</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if lista.paginas > 1 %}
+            <div class="pl-log-rodape">
+                <nav class="pl-pag" aria-label="Páginas da lista de contas">
+                    {% if lista.pagina > 1 %}
+                        <a class="pl-btn sm" href="{{ base }}&amp;pagina={{ lista.pagina - 1 }}">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+                            Anterior
+                        </a>
+                    {% else %}
+                        <span class="pl-btn sm" aria-disabled="true">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+                            Anterior
+                        </span>
+                    {% endif %}
+
+                    <span class="pos">Página <b>{{ lista.pagina }}</b> de <b>{{ lista.paginas }}</b></span>
+
+                    {% if lista.pagina < lista.paginas %}
+                        <a class="pl-btn sm" href="{{ base }}&amp;pagina={{ lista.pagina + 1 }}">
+                            Próxima
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                        </a>
+                    {% else %}
+                        <span class="pl-btn sm" aria-disabled="true">
+                            Próxima
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                        </span>
+                    {% endif %}
+                </nav>
+            </div>
+        {% endif %}
+
+    </section>
+
+    {#  ------------------------------------------------------------ o motivo de cada ação
+
+        Uma caixa de diálogo por conta administrável da página, fora da tabela. Dentro da célula
+        seriam vinte e cinco campos de texto abertos no meio das linhas, para uma ação que acontece
+        uma vez.
+
+        `minlength` e `maxlength` repetem no navegador a regra do ContaService (10 a 500). Não
+        substituem a validação do servidor: economizam a viagem em que a pessoa perde o que
+        escreveu, porque a recusa do servidor volta como mensagem no topo da página seguinte.
+
+        `data-confirmar` só no bloqueio, e não nos dois: derrubar as sessões de alguém não se
+        desfaz, e devolver a conta à operação se desfaz bloqueando de novo. Perguntar nas duas
+        ensinaria a clicar em "ok" sem ler. #}
+    {% for c in lista.contas|filter(c => c.per_codigo != 'ADMIN' and c.usu_status != 'X' and not (eu is not null and c.usu_id == eu)) %}
+        {% set bloquear = c.usu_status != 'I' %}
+        <div class="modal fade" id="conta-{{ c.usu_id }}" tabindex="-1"
+             aria-labelledby="conta-{{ c.usu_id }}-titulo" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <form class="modal-content pl-dialogo" method="post"
+                      action="{{ app_url }}/admin/contas/{{ c.usu_id }}/{{ bloquear ? 'bloquear' : 'desbloquear' }}"
+                      {% if bloquear %}data-confirmar="Bloquear esta conta agora? Ela para de entrar na hora e todas as sessões abertas dela são encerradas."{% endif %}>
+                    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+
+                    <div class="modal-header">
+                        <h2 class="modal-title" id="conta-{{ c.usu_id }}-titulo">
+                            {{ bloquear ? 'Bloquear a conta' : 'Devolver a conta à operação' }}
+                        </h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <p class="alvo">
+                            <span class="tt">{{ c.usu_nome|nome_proprio }}</span>
+                            <span class="sub">{{ papel[c.per_codigo]|default('Conta') }} nº {{ c.usu_id }} <span aria-hidden="true">·</span> {{ c.usu_email }}</span>
+                        </p>
+
+                        <p class="pl-nota">
+                            {% if bloquear %}
+                                {#  O número de sessões é o tamanho do efeito, e por isso está na
+                                    frase. Com zero a frase muda de forma em vez de imprimir o
+                                    número: "as 0 sessões abertas são encerradas" é uma ameaça que
+                                    não acontece, e some a confiança na próxima que acontecer. #}
+                                {% if c.sessoes_abertas == 0 %}
+                                    A conta sai de operação agora. Ela não tem nenhuma sessão aberta
+                                    neste momento, então ninguém é desconectado por este ato.
+                                {% elseif c.sessoes_abertas == 1 %}
+                                    A conta sai de operação e a sessão aberta dela é encerrada na
+                                    mesma transação.
+                                {% else %}
+                                    A conta sai de operação e as {{ c.sessoes_abertas }} sessões
+                                    abertas dela são encerradas na mesma transação.
+                                {% endif %}
+                                O bloqueio fica na trilha de auditoria com o seu nome, a data e o motivo abaixo.
+                            {% else %}
+                                A conta volta a entrar pelo login, e nenhuma sessão antiga é
+                                restaurada. O desbloqueio fica na trilha de auditoria com o seu
+                                nome, a data e o motivo abaixo.
+                            {% endif %}
+                        </p>
+
+                        <label class="form-label" for="motivo-{{ c.usu_id }}">
+                            Motivo {{ bloquear ? 'do bloqueio' : 'do desbloqueio' }} <span class="text-danger" aria-hidden="true">*</span>
+                        </label>
+                        <textarea class="form-control" id="motivo-{{ c.usu_id }}" name="motivo" rows="3"
+                                  minlength="10" maxlength="500" required
+                                  aria-describedby="motivo-{{ c.usu_id }}-ajuda"
+                                  placeholder="{{ bloquear ? 'Por que esta conta precisa sair de operação' : 'Por que esta conta pode voltar' }}"></textarea>
+                        <p class="form-text" id="motivo-{{ c.usu_id }}-ajuda">
+                            De 10 a 500 caracteres. É o texto que a auditoria vai mostrar como
+                            justificativa desta decisão.
+                        </p>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="pl-btn ghost" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="pl-cta">{{ bloquear ? 'Bloquear conta' : 'Desbloquear conta' }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+
+{% endblock %}

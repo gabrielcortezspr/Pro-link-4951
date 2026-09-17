@@ -303,7 +303,7 @@ final class VisibilidadeService
             if ($fechados > 0) {
                 Auditoria::registrar(
                     Auditoria::EDITAR, 'pro_visibilidade', null, 'todos',
-                    $fechados . ' aberto(s)', 'PRIVADO — ' . $motivo, $usuarioId, $pdo,
+                    $fechados . ' aberto(s)', 'PRIVADO: ' . $motivo, $usuarioId, $pdo,
                 );
             }
 

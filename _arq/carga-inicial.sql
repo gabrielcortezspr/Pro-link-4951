@@ -38,13 +38,194 @@ INSERT INTO sis_parametros (par_chave, par_valor, par_tipo, par_grupo, par_descr
   ('match.peso.disponibilidade',    '0.10',  'NUMERO', 'MATCHING',  'Peso da disponibilidade geográfica (autodeclarada)', 0),
   ('match.afinidade.niveis',        '[0.00,0.15,0.40,0.75,1.00]', 'JSON', 'MATCHING', 'Peso por número de componentes iniciais iguais do código TOS', 0),
   ('match.early_career.min_arts',   '3',     'NUMERO', 'MATCHING',  'Abaixo disso o perfil é sinalizado como em construção, sem sair do pool', 0),
-  ('api.sincronizacao.horas',       '24',    'NUMERO', 'GERAL',     'Intervalo mínimo entre sincronizações de status do profissional', 0),
+  ('api.sincronizacao.horas',       '24',    'NUMERO', 'INTEGRACAO','Intervalo mínimo entre sincronizações de status do profissional', 0),
+  ('api.sincronizacao.lote',        '25',    'NUMERO', 'INTEGRACAO','Quantos perfis uma execução de sincronização confere', 0),
   ('manifestacao.limite_hora',      '10',    'NUMERO', 'GERAL',     'Manifestações de interesse por usuário por hora; 0 desliga o limite', 0);
 
--- ------------------------------------------------------------------ termos (placeholder)
+-- ------------------------------------------------------------------ termos
+-- O texto real exigido pelo item 11.3 do edital. A Política de Privacidade
+-- precisa citar duas decisões registradas em docs/decisoes.md: a D03, que
+-- guarda o CPF cifrado, e a D05, que faz da exclusão lógica uma revogação de
+-- acesso efetiva. Ambas estão escritas por extenso, em linguagem de titular.
 INSERT INTO sis_termos (ter_tipo, ter_versao, ter_conteudo, ter_dt_vigencia) VALUES
-  ('USO',         '1.0', 'Conteúdo dos Termos de Uso — substituir antes da entrega.', '2026-09-01'),
-  ('PRIVACIDADE', '1.0', 'Conteúdo da Política de Privacidade — substituir antes da entrega.', '2026-09-01');
+  ('USO',         '1.0', '1. O que é o Pro-Link
+
+O Pro-Link é uma plataforma que liga demandas técnicas a profissionais e empresas registrados no Sistema Confea/Crea usando evidência documental: Anotações de Responsabilidade Técnica (ART), Certidões de Acervo Técnico (CAT) e o Acervo Operacional (CAO) consultados na API oficial do CREA-AM.
+
+Esta é a entrega da Equipe 49/51 para o Desafio CREA Pro-Link, do II CENATEC 2026. É um protótipo de avaliação, não um serviço em operação comercial.
+
+2. Os dados exibidos são fictícios
+
+Todo dado de registro profissional, ART, CAT e acervo vem da massa fictícia fornecida pela organização do desafio. Nada aqui tem validade legal, não comprova registro no CREA e não substitui consulta ao conselho.
+
+3. Quem pode usar
+
+3.1. Profissional registrado no Sistema Confea/Crea, que valida o registro na API oficial e constrói o portfólio a partir do próprio acervo.
+3.2. Empresa registrada, que publica demandas e herda o acervo operacional do quadro técnico.
+3.3. Terceiro, pessoa física ou jurídica sem registro no CREA, que publica demandas, pesquisa e registra interesse.
+3.4. Administrador, que modera, audita e mantém os parâmetros da plataforma.
+
+4. O que a plataforma faz, e o que ela não faz
+
+A correspondência entre perfil e demanda é apenas indicativa. A plataforma apresenta aderência a uma demanda específica e explica os critérios que usou.
+
+A plataforma não faz, em nenhuma hipótese:
+4.1. contratação automática ou intermediação de contrato;
+4.2. intermediação financeira ou garantia de preço;
+4.3. certificação de qualidade técnica de qualquer pessoa ou empresa;
+4.4. recomendação institucional do CREA-AM ou de qualquer conselho;
+4.5. ranking, nota, classificação ou ordenação de profissionais por mérito;
+4.6. reserva de mercado.
+
+Aparecer ou não aparecer em uma lista de compatíveis não diz nada sobre a competência de ninguém. A ordem em que os perfis compatíveis aparecem é sorteada por uma semente registrada, justamente para que a posição na lista não seja lida como classificação.
+
+5. Sua conta
+
+5.1. Você é responsável pela veracidade do que declara e pela guarda da sua senha.
+5.2. A senha é guardada com algoritmo de derivação lenta e nunca em texto legível. Ninguém da equipe consegue lê-la.
+5.3. Cinco tentativas de entrada malsucedidas bloqueiam o acesso temporariamente.
+5.4. Cada acesso e cada operação que altera dado ficam registrados em trilha de auditoria.
+
+6. O que você publica
+
+6.1. Dado verificado é o que a API oficial do CREA confirmou. Ele recebe selo de verificação e você não o edita: a fonte é o conselho.
+6.2. Dado autodeclarado é o que você escreve. Ele aparece sempre distinguido do verificado, com marca visual própria, e é de sua responsabilidade.
+6.3. Você controla, campo a campo e documento a documento, o que fica visível para quem. Nada é público por padrão.
+
+7. Conduta
+
+É vedado usar a plataforma para assediar, discriminar, se passar por outra pessoa, coletar dados de terceiros de forma automatizada, ou publicar informação que você sabe ser falsa.
+
+Qualquer conta autenticada pode denunciar perfil, demanda, mensagem ou experiência. A denúncia é analisada pela administração, que pode advertir, bloquear a conta ou remover o conteúdo, sempre com registro em auditoria.
+
+8. Disponibilidade
+
+A plataforma depende da API oficial do CREA-AM para validar registros e importar acervo. Quando a API não responde, o cadastro continua funcionando e a validação fica pendente, sinalizada na sua tela, com a opção de tentar de novo. Nenhum dado é inventado para preencher o que a API não respondeu.
+
+9. Encerramento
+
+Você pode excluir sua conta a qualquer momento pelo painel de privacidade. O efeito é imediato: as sessões são encerradas, o perfil sai das buscas e das listas de compatíveis, e os consentimentos são revogados. A Política de Privacidade explica o que acontece com o registro depois disso.
+
+10. Mudanças nestes termos
+
+Cada versão destes termos é guardada com número e data de vigência, e o aceite fica vinculado à versão aceita. Mudança relevante exige novo aceite.
+
+11. Foro e contato
+
+Protótipo acadêmico submetido ao II CENATEC 2026. O contato é a própria equipe responsável pela submissão, pelos canais informados na plataforma do desafio.
+
+Versão 1.0, em vigor desde 01/09/2026.', '2026-09-01'),
+  ('PRIVACIDADE', '1.0', '1. Quem trata seus dados
+
+A Equipe 49/51, autora do Pro-Link, entrega deste protótipo ao Desafio CREA Pro-Link do II CENATEC 2026. Não há operação comercial e não há compartilhamento de dados com terceiros.
+
+Esta política descreve o tratamento real implementado no sistema. Onde o texto diz que algo acontece, existe código que faz aquilo, e trilha de auditoria que registra.
+
+2. Que dados tratamos, e por quê
+
+2.1. Dados que você informa
+
+Nome, endereço de e-mail, senha, telefone quando você escolhe informar, e o número do seu CPF ou CNPJ. Finalidade: identificar você, permitir entrada na plataforma e falar com você.
+
+2.2. Seu CPF ou CNPJ, e por que ele fica guardado
+
+Este é o ponto que merece explicação, e não vamos escondê-lo em letra miúda.
+
+A situação do seu registro no CREA muda com o tempo, e a plataforma inteira se apoia nela: um registro suspenso não pode continuar aparecendo com selo de verificação. Essa situação só é devolvida pela consulta por CPF na API oficial. Sem o documento guardado, não haveria como reconsultar, e o seu perfil circularia com uma informação desatualizada.
+
+Por isso o documento é guardado, e guardado assim:
+a) cifrado em repouso, com AES-256-GCM, e a chave fica fora do repositório de código;
+b) acompanhado de um resumo criptográfico separado, que permite localizar a conta em uma busca exata sem decifrar o documento;
+c) exibido sempre mascarado na interface, inclusive para você;
+d) decifrado apenas no momento de reconsultar a sua situação na API oficial, uma consulta por vez.
+
+A alternativa, descartar o documento depois do cadastro, é a postura mais limpa em proteção de dados: o dado que não existe não vaza. Ela foi recusada de propósito, porque custaria a atualização da sua situação, e um perfil suspenso continuar visível é pior para você e para quem contrata do que o documento guardado sob cifragem.
+
+2.3. Dados que vêm da API oficial do CREA
+
+Registro Nacional do Profissional (RNP), número de registro, situação, modalidades, ARTs, CATs e acervo operacional. São consultados apenas com o seu consentimento, apenas a partir do seu próprio cadastro, e ficam guardados como cache datado da resposta recebida. A plataforma não cria base própria simulando esses dados e não faz coleta automatizada.
+
+2.4. Dados que você declara
+
+Resumo profissional, tipo de contrato, abrangência geográfica e experiências. São autodeclarados, aparecem sempre distinguidos do que foi verificado, e você edita ou apaga quando quiser.
+
+2.5. Registros de uso
+
+Endereço IP, identificação do navegador, data e hora de cada entrada e de cada operação que altera dado. Finalidade: segurança, auditoria e prova de que a plataforma agiu corretamente. É exigência do edital e é o que permite a você contestar qualquer alteração.
+
+3. Consentimento, e o que você pode revogar
+
+O aceite dos Termos de Uso e desta Política é registrado com data, hora, endereço IP e versão aceita, separadamente um do outro.
+
+Três finalidades dependem de consentimento seu e podem ser revogadas a qualquer momento, no painel de privacidade, sem afetar a sua conta:
+3.1. Consultar a API oficial do CREA para validar seu registro e importar suas ARTs.
+3.2. Exibir seu perfil para demandantes e na busca pública.
+3.3. Receber notificações por e-mail sobre demandas e manifestações.
+
+Revogar a primeira interrompe a atualização da sua situação no conselho. Revogar a segunda fecha o seu perfil por completo: ele sai da busca e das listas de compatíveis.
+
+A revogação é registrada com data e hora, e o registro de que o consentimento existiu é mantido. Sem isso, nem você nem a plataforma conseguiriam provar o que foi autorizado, e quando.
+
+4. Visibilidade: nada é público por padrão
+
+Você decide, campo a campo e documento a documento, entre três níveis: privado, visível apenas para quem tem conta, ou público. O padrão de tudo é privado.
+
+Não existe superusuário que enxergue perfil fechado. A administração modera denúncia e conteúdo publicado, e não abre o que você fechou.
+
+5. Seus direitos, e onde exercer cada um
+
+5.1. Acesso e portabilidade. O painel de privacidade exporta, em arquivo JSON, tudo o que a plataforma guarda sobre você: conta, consentimentos com datas, sessões, perfil, acervo e experiências.
+5.2. Correção. Dado autodeclarado é editável por você a qualquer momento, e cada edição guarda o valor anterior e o novo na trilha de auditoria. Dado verificado vem do conselho e é corrigido lá, não aqui.
+5.3. Restrição de uso. Pelos controles de visibilidade e pela revogação de consentimento.
+5.4. Eliminação. Descrita no item 6.
+5.5. Informação sobre compartilhamento. Não compartilhamos seus dados com nenhum terceiro. A única comunicação externa é a consulta à API oficial do CREA-AM, feita com o seu consentimento.
+
+6. Exclusão da conta: o que acontece, exatamente
+
+Quando você exclui sua conta, imediatamente:
+a) todas as suas sessões são encerradas;
+b) todos os consentimentos revogáveis são revogados;
+c) a conta sai de toda consulta operacional: você deixa de aparecer na busca, nas listas de compatíveis e em qualquer tela da plataforma;
+d) o acesso é revogado de forma efetiva, e a conta não entra mais.
+
+O registro não é apagado fisicamente do banco no mesmo ato. O motivo está escrito aqui porque você tem o direito de saber: apagar a linha destruiria junto a trilha de auditoria que prova o que aconteceu com os seus dados, inclusive a prova de que você pediu a exclusão e de que ela foi atendida. O edital do desafio também exige, no item 8.6j, que nada seja apagado fisicamente e que o registro excluído permaneça acessível apenas por mecanismo administrativo.
+
+Por decisão nossa, e você deveria poder cobrar isso de qualquer plataforma: conta que o próprio titular mandou excluir não é reativada por ato administrativo. Ela aparece para a administração como excluída, com a data e o autor do pedido, e o sistema recusa restaurá-la. A eliminação física do registro, quando cabível, é procedimento administrativo com registro próprio, nunca efeito colateral de um clique de outra pessoa.
+
+7. Segurança
+
+7.1. Senhas com algoritmo de derivação lenta e resistente a hardware dedicado.
+7.2. CPF e CNPJ cifrados em repouso com AES-256-GCM.
+7.3. Toda consulta ao banco por instrução preparada, contra injeção de SQL.
+7.4. Proteção contra falsificação de requisição em toda operação de escrita.
+7.5. Escape automático de tudo que é exibido, contra injeção de conteúdo.
+7.6. Controle de acesso conferido por operação, não apenas por tela.
+7.7. Trilha de auditoria protegida contra alteração e remoção no próprio banco de dados.
+7.8. Sessão encerrada por inatividade e revogável a qualquer momento.
+
+Nenhuma medida elimina risco por completo. Se um incidente de segurança afetar seus dados, a plataforma comunicará o ocorrido e o que foi feito.
+
+8. A compatibilização, e por que ela não é inteligência artificial
+
+O motor que aproxima demanda e perfil é determinístico e explicável. Ele compara os códigos da Tabela de Obras e Serviços exigidos pela demanda com os códigos das suas ARTs e do seu acervo, e soma seis dimensões com pesos declarados, visíveis e auditáveis.
+
+Não há modelo de aprendizado de máquina, não há treinamento sobre seus dados, e nenhum dado seu alimenta sistema de terceiros. Toda execução guarda a semente que ordenou a lista, e a administração pode reproduzi-la depois para conferir que o resultado foi o mesmo.
+
+Perfil com poucos documentos é sinalizado como em construção e nunca é excluído das listas: quem está começando é justamente quem mais precisa aparecer. Essa sinalização e seus limites estão declarados na documentação técnica da entrega.
+
+9. Retenção
+
+Enquanto a conta existir, os dados ficam guardados. O cache das respostas da API é datado e reconstruível. A trilha de auditoria é mantida pelo tempo necessário para comprovar as operações, inclusive depois da exclusão da conta, exatamente porque é ela que prova o atendimento dos seus pedidos.
+
+10. Alterações nesta política
+
+Cada versão é guardada com número e data de vigência, e o seu aceite fica vinculado à versão aceita. Mudança relevante exige novo aceite.
+
+11. Contato
+
+Protótipo acadêmico submetido ao II CENATEC 2026. O contato é a própria equipe responsável pela submissão, pelos canais informados na plataforma do desafio.
+
+Versão 1.0, em vigor desde 01/09/2026.', '2026-09-01');
 
 
 -- ------------------------------------------------------------------ modalidades (25)

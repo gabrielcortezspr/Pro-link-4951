@@ -4,6 +4,27 @@
 
 {% block titulo %}{{ manifestacao.dem_titulo }} · Pro-Link{% endblock %}
 
+{#
+    O registro de um interesse, servindo às duas partes. É o fecho do cenário 4.
+
+    docs/mockups/prolink-interacoes.html não desenha esta tela, e o que veio de lá é a promessa
+    que a confirmação faz: o perfil que a outra parte lê é o congelado no instante do envio, com o
+    resumo criptográfico ao lado provando que é ele. `.pl-retrato` já era a caixa neutra do mockup
+    (`.miniinfo`) aplicada a esse fato, e continua sendo.
+
+    O mockup tem um painel de conversa em bolhas, com lista de conversas à esquerda. Ele não entra:
+    aquele painel é de uma caixa de entrada entre duas pessoas, e este canal é de uma manifestação.
+    A conversa aqui é cronológica e sem JavaScript, porque a CSP recusa script embutido e um canal
+    que só funciona com script não é canal.
+#}
+
+{#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
+{% set shell = 'app' %}
+{% set ativo = 'manifestacoes' %}
+{% set medida = 'registro' %}
+
+{% block titulo_tela %}Interesse{% endblock %}
+
 {#  Um registro com painel de ação ao lado: à esquerda a conversa e o retrato, à direita o que
     identifica esta manifestação. #}
 {% block classe_main %}pl-wrap registro{% endblock %}
@@ -15,6 +36,16 @@
 {#  De quem é cada mensagem sem depender da sessão no template: quem manifestou é `man_usu_id` e
     quem publicou a demanda é `dem_usu_id`, e quem abre a tela é sempre um dos dois. #}
 {% set eu_id = eh_demandante ? m.dem_usu_id : m.man_usu_id %}
+{#  As duas origens da mesma linha: manifestar interesse parte do titular do perfil, que se
+    candidata a uma demanda; registrar interesse parte do demandante, que procura um candidato.
+    `man_origem` grava qual foi ('C' e 'D'), e quem escreveu a mensagem do envio é justamente quem
+    começou. Enquanto a coluna não estiver na consulta o padrão é 'C', que é o comportamento de
+    hoje e a origem de 36 das 38 linhas da base de demonstração; no dia em que ela chegar, a tela
+    passa a dizer a verdade nas duas sem outra mudança aqui. #}
+{% set do_demandante = (m.man_origem|default('C')) == 'D' %}
+{#  Quem escreveu a mensagem do envio sou eu quando a origem é minha: o demandante escreveu na
+    linha 'D', o candidato escreveu na linha 'C'. #}
+{% set envio_meu = eh_demandante ? do_demandante : not do_demandante %}
 {% set resumo = p is null ? null : p.campos.RESUMO|default(null) %}
 {#  Um nome só para a mesma pessoa na tela inteira. O nome da conta e o nome que veio da API do
     CREA podem divergir (a conta se chama de um jeito, o registro de outro), e o retrato é a fonte
@@ -45,8 +76,8 @@
                     <a href="{{ app_url }}/demandas/{{ m.man_dem_id }}">{{ m.dem_titulo }}</a></span>
             {% else %}
                 {#  Sem repetir o título da demanda, que já é o <h1> logo acima: o que falta dizer
-                    aqui é de quem é a manifestação, não qual é a demanda. #}
-                <span>Manifestação enviada por você</span>
+                    aqui é de quem partiu o interesse, não qual é a demanda. #}
+                <span>{{ do_demandante ? 'Interesse registrado pelo demandante' : 'Manifestação enviada por você' }}</span>
             {% endif %}
             <span class="pl-sep" aria-hidden="true"></span>
             <span>Enviada em {{ m.man_dt_registro|date('d/m/Y') }} às {{ m.man_dt_registro|date('H\\hi') }}</span>
@@ -96,10 +127,14 @@
                         do registro: ela foi escrita pela mesma pessoa, sobre o mesmo assunto, e
                         lida como cabeçalho ficaria fora da ordem cronológica. #}
                     {% if m.man_mensagem %}
-                        <li class="{{ eh_demandante ? 'deles' : '' }}">
+                        <li class="{{ envio_meu ? '' : 'deles' }}">
                             <p class="qm">
-                                <span class="nm">{{ eh_demandante ? nome_candidato : 'Você' }}</span>
-                                <span class="papel">Enviada com a manifestação</span>
+                                {#  `m.usu_nome` é o nome de `man_usu_id`, que é sempre o candidato:
+                                    do lado do candidato lendo uma linha aberta pelo demandante não
+                                    há nome do outro na consulta, e o papel é o que resta de
+                                    verdadeiro. #}
+                                <span class="nm">{{ envio_meu ? 'Você' : (eh_demandante ? nome_candidato : 'Quem publicou a demanda') }}</span>
+                                <span class="papel">{{ do_demandante ? 'Enviada com o interesse registrado' : 'Enviada com a manifestação' }}</span>
                                 <span class="qd">{{ m.man_dt_registro|date('d/m/Y') }} às {{ m.man_dt_registro|date('H\\hi') }}</span>
                             </p>
                             <p class="tx">{{ m.man_mensagem }}</p>
@@ -144,7 +179,7 @@
 
         <section class="pl-card pl-snap">
             <div class="pl-linha-titulo">
-                <h2 class="pl-secao">{{ eh_demandante ? 'Perfil no momento do envio' : 'O que você enviou' }}</h2>
+                <h2 class="pl-secao">{{ eh_demandante ? 'Perfil no momento do envio' : (do_demandante ? 'Seu perfil no momento do registro' : 'O que você enviou') }}</h2>
                 {{ ui.info('Por que um retrato, e não o perfil de hoje',
                     'A plataforma congela no envio o que o candidato tinha aberto para o demandante, e guarda o sha256 desse conteúdo junto. É isso que sustenta a promessa de que alteração posterior no perfil não muda o que a outra parte já recebeu, nos dois sentidos.') }}
             </div>
@@ -336,7 +371,7 @@
                 <dt>Demanda</dt>
                 <dd><a href="{{ app_url }}/demandas/{{ m.man_dem_id }}">{{ m.dem_titulo }}</a></dd>
 
-                <dt>{{ eh_demandante ? 'Interessado' : 'Enviada por' }}</dt>
+                <dt>{{ eh_demandante ? 'Interessado' : (do_demandante ? 'Perfil procurado' : 'Enviada por') }}</dt>
                 <dd>{{ eh_demandante ? nome_candidato : 'Você' }}
                     <span class="lin-sub">{{ ui.tipo_candidato(m.man_candidato_tipo) }} registrado no CREA</span></dd>
 

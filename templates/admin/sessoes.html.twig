@@ -51,18 +51,43 @@
                        clique do "i". O detalhe de COMO é que vai para a explicação sob demanda. #}
                     <span>a ordem de cada pool é sorteada pela semente da sessão, sem ranking</span>
                 </p>
+                {#  Afinidade com a borda: a coluna do meio corta com reticências exatamente no fim
+                    do quadro, e reticências leem como "o texto foi cortado", não como "a tabela
+                    continua". A linha desfaz a ambiguidade, e some no desktop. #}
+                <p class="pl-log-lado">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"/><path d="M14 6l6 6-6 6"/></svg>
+                    A tabela continua para o lado
+                </p>
             </div>
+            {#  A faixa exibida, no mesmo canto e na mesma forma da trilha de auditoria, da lixeira
+                e de contas. Esta lista não pagina, então a faixa começa sempre em 1: o que ela
+                acrescenta é o recorte, e o recorte é o assunto do rodapé. #}
+            {% if sessoes|length %}
+                <p class="pl-pag mb-0">
+                    <span class="pos">Exibindo <b>1</b> a <b>{{ sessoes|length }}</b></span>
+                </p>
+            {% endif %}
         </div>
 
-        <div class="table-responsive">
+        {#  A tabela é mais larga que um aparelho estreito e rola dentro do próprio quadro, sem
+            empurrar a página. O quadro precisa dos três atributos: `tabindex` porque o Chrome não
+            dá foco a contêiner de rolagem sozinho, e sem foco quem navega por teclado não alcança
+            as colunas da direita; `role` e `aria-label` para o quadro ser anunciado com nome em
+            vez de virar uma parada de tabulação muda. #}
+        <div class="table-responsive" tabindex="0" role="region"
+             aria-label="Execuções registradas do motor">
             <table class="pl-table pl-log pl-sess">
                 <caption class="visually-hidden">
                     Sessões do motor de compatibilização, da mais recente para a mais antiga,
                     agrupadas por dia. Uma execução por linha.
                 </caption>
+                {#  A coluna do número fecha a linha à direita, como na trilha, na fila de
+                    denúncias, em contas e na lixeira: é por ele que a sessão é achada na trilha
+                    de auditoria, e ele estava escondido no meio da segunda coluna enquanto as
+                    quatro tabelas irmãs o traziam na borda. #}
                 <colgroup>
                     <col class="c-hora"><col><col class="c-quem">
-                    <col class="c-pool"><col class="c-proc"><col class="c-abrir">
+                    <col class="c-pool"><col class="c-proc"><col class="c-abrir"><col class="c-ref">
                 </colgroup>
                 <thead>
                     <tr>
@@ -71,7 +96,8 @@
                         <th scope="col">Executada por</th>
                         <th scope="col" class="num">Pool</th>
                         <th scope="col">Procedência</th>
-                        <th scope="col"><span class="visually-hidden">Reprodução</span></th>
+                        <th scope="col" class="acao">Reprodução</th>
+                        <th scope="col" class="num">Nº</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -82,7 +108,7 @@
                        discriminante da tela. #}
                     {% if loop.first or s.mts_dt_registro|date('Y-m-d') != sessoes[loop.index0 - 1].mts_dt_registro|date('Y-m-d') %}
                         <tr class="dia">
-                            <td colspan="6">
+                            <td colspan="7">
                                 <div class="w">
                                     <span class="d">{{ s.mts_dt_registro|date('j') }} de {{ meses[s.mts_dt_registro|date('n')] }} de {{ s.mts_dt_registro|date('Y') }}</span>
                                 </div>
@@ -100,13 +126,16 @@
                                código continua legível, e nenhum identificador sai cru na tela. #}
                             <a class="as" href="{{ app_url }}/admin/sessoes/{{ s.mts_id }}"
                                title="{{ s.dem_titulo }}">{{ s.dem_titulo|replace({'TOS_': 'TOS '}) }}</a>
-                            <span class="sub">Sessão nº {{ s.mts_id }} <span aria-hidden="true">·</span> Demanda nº {{ s.mts_dem_id }}</span>
+                            {#  O número da sessão saiu daqui e foi para a coluna da borda: ele
+                                estava dito duas vezes na mesma linha, e a segunda coluna é a do
+                                assunto, não a dos identificadores. #}
+                            <span class="sub">Demanda nº {{ s.mts_dem_id }}</span>
                         </td>
 
                         <td>
                             {# mts_usu_id é obrigatório e tem chave estrangeira: nome ausente aqui
                                significa cadastro sem a linha, não execução anônima. #}
-                            <span class="autor{% if not s.usu_nome %} anon{% endif %}">{{ s.usu_nome|default('Conta não localizada') }}</span>
+                            <span class="autor{% if not s.usu_nome %} anon{% endif %}">{{ (s.usu_nome|default('Conta não localizada'))|nome_proprio }}</span>
                         </td>
 
                         <td class="qt{% if s.mts_total_pool == 0 %} zero{% endif %}">{{ s.mts_total_pool }}</td>
@@ -127,12 +156,14 @@
                                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="M13 6l6 6-6 6"/></svg>
                             </a>
                         </td>
+
+                        <td class="ref">{{ s.mts_id }}</td>
                     </tr>
 
                 {% else %}
 
                     <tr class="vazio">
-                        <td colspan="6">
+                        <td colspan="7">
                             <p class="t">O motor ainda não rodou</p>
                             <p class="s">
                                 A primeira sessão é gravada quando alguém abre a lista de compatíveis
@@ -146,9 +177,12 @@
             </table>
         </div>
 
+        {#  O rodapé do quadro é o mesmo `.pl-log-rodape` da trilha, da lixeira, de contas e da
+            fila de denúncias. Havia um segundo rodapé só para esta tela, com o mesmo desenho e
+            outro nome, e as duas telas de sessão eram as únicas do painel a usá-lo. #}
         {% if sessoes|length >= teto %}
-            <div class="pl-sess-rodape">
-                <p class="pl-nota mb-0">
+            <div class="pl-log-rodape">
+                <p class="pl-nota">
                     A lista mostra as {{ teto }} execuções mais recentes. As anteriores continuam
                     gravadas e continuam reproduzíveis pelo número da sessão.
                 </p>

@@ -1,25 +1,377 @@
 {% extends 'layout/base.html.twig' %}
 
-{% block titulo %}Pro-Link · capacidade técnica comprovada{% endblock %}
+{#
+    A landing, portada de docs/mockups/prolink-landing.html.
 
-{% block classe_main %}pl-wrap leitura{% endblock %}
+    A composição é a do mockup: hero azul de ponta a ponta com a barra de navegação dentro dele,
+    "Como funciona" em faixa clara, "Tridimensionalidade" em faixa escura, "Para quem" em faixa
+    clara e o rodapé próprio. Nada foi acrescentado, nada foi cortado e o texto é o de lá.
+
+    O que mudou, e só o que tinha de mudar para a tela viver dentro da aplicação:
+
+    1. A busca é um GET de verdade para /profissionais, com name="q". No mockup ela é enfeite;
+       aqui é a única coisa que qualquer pessoa faz sem ter conta, e é a razão da tela existir.
+       Sem rota nova, sem JavaScript: o formulário inteiro é HTML.
+    2. As quatro animações em <canvas> são as do mockup, com a mesma geometria e os mesmos
+       tempos. O código saiu do <script> embutido e foi para public/assets/js/landing.js: a CSP
+       é `script-src 'self'`, que recusa script inline e aceita arquivo servido pela própria
+       aplicação, como os outros quatro de public/assets/js. Ao lado de cada <canvas> fica o
+       SVG do quadro final daquela cena, que é o que a página mostra sem JavaScript; o par
+       troca de lado pela marca `is-js`, e nenhuma <canvas> vazia sobra na tela. Quem pediu
+       `prefers-reduced-motion: reduce` recebe o quadro final desenhado uma vez, sem laço.
+    3. A paleta é a dos tokens da seção 1 do prolink.css. Três cores do mockup não existem lá e
+       foram traduzidas para o equivalente mais próximo: ver o comentário da seção 26.
+    4. Quem já tem conta não recebe o discurso de venda: o par de botões da barra vira a volta
+       para a aplicação, o parágrafo do hero vira uma linha operacional e a faixa "Para quem",
+       que é captação, não é servida. A busca serve aos dois, e é a mesma.
+    5. A barra de navegação do layout não aparece: ela pertence a quem já está dentro da
+       aplicação, e o mockup tem a própria barra dentro do hero. As entradas que ela dava a quem
+       tem sessão (perfil, sair) continuam aqui, na barra do hero.
+#}
+
+{% block titulo %}Pro-Link · identidade técnica verificada{% endblock %}
+
+{#  A landing é a página inteira, não uma coluna no meio dela. #}
+{% block classe_main %}pl-lp{% endblock %}
+
+{#  A barra do mockup mora dentro do hero, com o fundo do hero atrás dela. #}
+{% block cabecalho %}{% endblock %}
 
 {% block conteudo %}
+{% import _self as fig %}
 {% set u = usuario() %}
 
-<div class="pl-abertura">
-    <h1>Capacidade técnica comprovada, não autodeclarada</h1>
-    <p class="ld">
-        O Pro-Link liga quem precisa de um serviço técnico a quem já provou, em ART e CAT
-        registradas no CREA-AM, que sabe fazer aquilo.
-    </p>
-    <div class="ac">
-        <a class="pl-cta" href="{{ app_url }}/demandas/abertas">Ver demandas abertas</a>
-        {% if u %}
-            <a class="pl-btn lg" href="{{ app_url }}/perfil">Meu perfil</a>
-        {% else %}
-            <a class="pl-btn lg" href="{{ app_url }}/cadastro">Criar conta</a>
-        {% endif %}
+{# ------------------------------------------------------------------ HERO #}
+<section class="pl-lp-hero">
+    <div class="pl-lp-in">
+        <header class="pl-lp-nav">
+            <a class="pl-lp-marca" href="{{ app_url }}"><span class="m" aria-hidden="true"></span>Pro-Link</a>
+            <nav class="elos" aria-label="Seções da página">
+                <a href="#como">Como funciona</a>
+                {% if u %}
+                    <a href="{{ app_url }}/profissionais">Profissionais</a>
+                    <a href="{{ app_url }}/demandas/abertas">Demandas abertas</a>
+                {% else %}
+                    <a href="#quem">Para profissionais</a>
+                    <a href="#quem">Para empresas</a>
+                {% endif %}
+            </nav>
+            <div class="acoes">
+                {% if u %}
+                    <a class="pl-lp-ghost" href="{{ app_url }}/perfil">Meu perfil</a>
+                    {# Logout é POST com token: link GET seria escrita de estado sem CSRF (8.5e). #}
+                    <form method="post" action="{{ app_url }}/sair" class="d-inline">
+                        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                        <button type="submit" class="pl-lp-ghost">Sair</button>
+                    </form>
+                    <a class="pl-cta" href="{{ app_url }}/demandas/abertas">Ir para a plataforma</a>
+                {% else %}
+                    <a class="pl-lp-ghost" href="{{ app_url }}/login">Entrar</a>
+                    <a class="pl-cta" href="{{ app_url }}/cadastro">Usar a plataforma</a>
+                {% endif %}
+            </div>
+        </header>
+
+        <div class="grade">
+            <div>
+                <span class="pl-lp-olho">Sistema Confea/CREA-AM</span>
+                <h1>Identidade técnica <span class="v">verificada</span>. Não é banco de vagas.</h1>
+                {% if u %}
+                    <p class="sub">
+                        Busque um profissional pelo acervo que o CREA-AM confirmou, ou volte para
+                        o que ficou em andamento na sua conta.
+                    </p>
+                {% else %}
+                    <p class="sub">
+                        O Pro-Link conecta empresas a engenheiros pelo que eles já provaram fazer,
+                        com ARTs e CATs validadas pela API oficial do CREA-AM. Sem dado não
+                        verificado, sem ranking de pessoas.
+                    </p>
+                {% endif %}
+
+                {#  GET puro para a busca pública: sem conta, sem rota nova e sem JavaScript.
+                    O rótulo existe de verdade e fica escondido só aos olhos, porque aria-label
+                    não é rótulo para todo leitor de tela. #}
+                <form class="pl-lp-busca" method="get" action="{{ app_url }}/profissionais" role="search">
+                    <span class="lupa" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.6-3.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </span>
+                    <label class="visually-hidden" for="q">Buscar profissional</label>
+                    <input type="search" id="q" name="q" maxlength="80" autocomplete="off"
+                           placeholder="Busque por nome, especialidade ou atividade técnica">
+                    <button type="submit" class="pl-cta">Buscar</button>
+                </form>
+
+                <p class="pl-lp-selo">
+                    <svg class="pl-lp-escudo" viewBox="0 0 24 24" aria-hidden="true"><path class="corpo" d="M12 2l7 3v6c0 5-3.5 8-7 9-3.5-1-7-4-7-9V5z"/><path class="marca" d="M8.5 12l2.5 2.5 4.5-5"/></svg>
+                    Cada perfil é verificado pela API oficial do CREA-AM
+                </p>
+
+                {% if u %}
+                    <div class="pl-lp-atalhos">
+                        <a class="pl-btn" href="{{ app_url }}/perfil">Meu perfil</a>
+                        <a class="pl-btn" href="{{ app_url }}/demandas/abertas">Demandas abertas</a>
+                    </div>
+                {% endif %}
+            </div>
+
+            {#  A cena animada e, ao lado dela, o quadro final em SVG. Sem JavaScript o SVG é o
+                que fica; com JavaScript o landing.js marca este bloco com `is-js` e a <canvas>
+                toma o lugar. Só um dos dois está visível, e só um dos dois é anunciado. #}
+            <div class="pl-lp-fig">
+                <canvas data-scene="hero" role="img"
+                        aria-label="Visualização 3D: um plano azul que se ergue em volume, representando a terceira dimensão"></canvas>
+                <svg class="pl-lp-plano" viewBox="-130 -75 680 510" role="img"
+                     aria-label="O plano de dois eixos se erguendo em volume: a terceira dimensão">
+                    {{ fig.grade() }}
+                    <polygon class="face" points="210,288 360,230 210,172 60,230"/>
+                    {{ fig.base() }}
+                    {{ fig.volume() }}
+                </svg>
+            </div>
+        </div>
     </div>
-</div>
+</section>
+
+{# ------------------------------------------------------------------ COMO FUNCIONA #}
+<section class="pl-lp-clara pl-lp-stack clara" id="como">
+    <div class="pl-lp-in">
+        <div class="pl-lp-shead">
+            <span class="ey">Como funciona</span>
+            <h2>Do registro à conexão, em três passos</h2>
+            <p>O mesmo fluxo verificado atende os dois lados.</p>
+        </div>
+        <div class="pl-lp-steps">
+            <div class="pl-card">
+                <div class="num" aria-hidden="true">1</div>
+                <h3>Identidade verificada</h3>
+                <p>O profissional entra com o CPF e a plataforma importa ARTs e CATs direto da API do CREA-AM. O histórico já nasce comprovado.</p>
+            </div>
+            <div class="pl-card">
+                <div class="num" aria-hidden="true">2</div>
+                <h3>Demanda por atividade</h3>
+                <p>A empresa publica a demanda escolhendo as atividades técnicas (Tabela TOS). O motor cruza demanda e capacidade comprovada.</p>
+            </div>
+            <div class="pl-card">
+                <div class="num" aria-hidden="true">3</div>
+                <h3>Interesse e contato</h3>
+                <p>Os compatíveis aparecem por aderência. As partes manifestam interesse e conversam dentro da plataforma.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+{# ------------------------------------------------------------------ TRIDIMENSIONALIDADE #}
+<section class="pl-lp-axes pl-lp-stack escura" id="eixos">
+    <div class="pl-lp-in">
+        <div class="pl-lp-shead">
+            <span class="ey">Tridimensionalidade</span>
+            <h2>Três perspectivas. <span class="v">Uma dimensão a mais.</span></h2>
+            <p>Confiabilidade e compatibilidade formam o plano. O contato verificado é a profundidade que faltava. A mesma lógica governa a segurança, onde o terceiro eixo é a perspectiva do Atacante.</p>
+        </div>
+        <div class="pl-lp-cards3">
+            <article class="pl-lp-c3 x">
+                <canvas data-scene="x" aria-hidden="true"></canvas>
+                <svg class="pl-lp-plano" viewBox="30 45 360 265" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                    {{ fig.grade() }}
+                    <path class="ex" d="M135,259 L285,201"/>
+                    <circle class="halo" cx="285" cy="201" r="22"/>
+                    <circle class="no" cx="285" cy="201" r="4.5"/>
+                    <path class="ez" d="M277,201 L283,207 L294,190" stroke-width="2.6"/>
+                </svg>
+                <div class="tx">
+                    <span class="ax">Eixo X</span>
+                    <h3>Confiabilidade</h3>
+                    <p>Cada ART e CAT validada pela API oficial. Dado verificado, não apenas declarado.</p>
+                </div>
+            </article>
+            <article class="pl-lp-c3 y">
+                <canvas data-scene="y" aria-hidden="true"></canvas>
+                <svg class="pl-lp-plano" viewBox="30 45 360 265" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                    {{ fig.grade() }}
+                    <polygon class="face" points="210,288 360,230 210,172 60,230"/>
+                    {{ fig.base() }}
+                    <path class="liga" d="M247.5,273.5 L123.75,205.35 M285,259 L187.5,180.7 M322.5,244.5 L101.25,214.05"/>
+                    <circle class="no" cx="247.5" cy="273.5" r="2.6"/>
+                    <circle class="no" cx="285" cy="259" r="2.6"/>
+                    <circle class="no" cx="322.5" cy="244.5" r="2.6"/>
+                </svg>
+                <div class="tx">
+                    <span class="ax">Eixo Y</span>
+                    <h3>Compatibilidade</h3>
+                    <p>Aderência multidimensional entre demanda e perfil. Encaixe por dimensão, não ranking.</p>
+                </div>
+            </article>
+            <article class="pl-lp-c3 z">
+                <canvas data-scene="z" aria-hidden="true"></canvas>
+                <svg class="pl-lp-plano" viewBox="30 45 360 265" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                    {{ fig.grade() }}
+                    <polygon class="face" points="210,288 360,230 210,172 60,230"/>
+                    {{ fig.base() }}
+                    {{ fig.volume() }}
+                </svg>
+                <div class="tx">
+                    <span class="ax">Eixo Z · profundidade</span>
+                    <h3>Contato</h3>
+                    <p>A ponte que faltava entre profissional e empresa, a dimensão que vira volume.</p>
+                </div>
+            </article>
+        </div>
+        <div class="pl-lp-proof">
+            <div class="pl-lp-pf">
+                <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+                <div>
+                    <h4>Dado verificado, não declarado</h4>
+                    <p>ARTs e CATs vêm da API oficial. O que aparece no perfil, o profissional provou.</p>
+                </div>
+            </div>
+            <div class="pl-lp-pf">
+                <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg></span>
+                <div>
+                    <h4>Compatibilidade, não ranking</h4>
+                    <p>O engenheiro é encontrado pela aderência à demanda, nunca por uma nota de qualidade.</p>
+                </div>
+            </div>
+            <div class="pl-lp-pf">
+                <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span>
+                <div>
+                    <h4>Auditável de ponta a ponta</h4>
+                    <p>Cada recomendação é reproduzível e registrada. Transparência para todos os lados.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{# ------------------------------------------------------------------ PARA QUEM #}
+{% if not u %}
+<section class="pl-lp-clara pl-lp-stack clara" id="quem">
+    <div class="pl-lp-in">
+        <div class="pl-lp-shead">
+            <span class="ey">Para quem</span>
+            <h2>Um lado encontra o outro</h2>
+        </div>
+        <div class="pl-lp-who">
+            <div class="pl-lp-whocard">
+                <div class="pl-lp-whead">
+                    <span class="em" aria-hidden="true"><span class="m"></span></span>
+                    <div>
+                        <h3>Sou Profissional</h3>
+                        <span class="ws">Engenheiro com registro no CREA-AM</span>
+                    </div>
+                </div>
+                <ul class="pl-lp-checks">
+                    <li>{{ fig.check() }}Perfil com ARTs e CATs verificadas pelo CREA-AM.</li>
+                    <li>{{ fig.check() }}Você controla o que fica visível, campo por campo.</li>
+                    <li>{{ fig.check() }}Encontrado por demandas compatíveis, sem precisar se candidatar.</li>
+                </ul>
+                <div class="pe">
+                    <a class="pl-btn" href="{{ app_url }}/cadastro">Criar perfil verificado &rarr;</a>
+                </div>
+            </div>
+            <div class="pl-lp-whocard emp">
+                <div class="pl-lp-whead">
+                    <span class="em" aria-hidden="true"><span class="m"></span></span>
+                    <div>
+                        <h3>Sou Empresa</h3>
+                        <span class="ws">Contratante técnico registrado no CREA-AM</span>
+                    </div>
+                </div>
+                <ul class="pl-lp-checks">
+                    <li>{{ fig.check() }}Publique a demanda por atividade técnica (Tabela TOS).</li>
+                    <li>{{ fig.check() }}Receba profissionais compatíveis por aderência real.</li>
+                    <li>{{ fig.check() }}Veja o acervo operacional verificado de cada empresa.</li>
+                </ul>
+                <div class="pe">
+                    <a class="pl-btn" href="{{ app_url }}/cadastro">Publicar uma demanda &rarr;</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
 {% endblock %}
+
+{# ------------------------------------------------------------------ RODAPÉ #}
+{% block rodape %}
+{% set u = usuario() %}
+<footer class="pl-lp-rodape pl-lp-stack escura">
+    <div class="pl-lp-in">
+        <div class="pl-lp-fgrid">
+            <div>
+                <span class="pl-lp-marca"><span class="m" aria-hidden="true"></span>Pro-Link</span>
+                <p class="pl-lp-ia">Plataforma de identidade técnica verificada para o Sistema Confea/CREA-AM. Projeto do Desafio CREA Pro-Link, II CENATEC 2026.</p>
+                <p class="pl-lp-ia">Recomendações geradas por motor de compatibilização com pesos configuráveis e amostragem auditável. Uso de IA declarado conforme o edital.</p>
+            </div>
+            <div class="col">
+                <h4>Plataforma</h4>
+                <a href="#como">Como funciona</a>
+                <a href="#eixos">Diferenciais</a>
+                {% if u %}
+                    <a href="{{ app_url }}/perfil">Meu perfil</a>
+                    <a href="{{ app_url }}/profissionais">Buscar profissionais</a>
+                {% else %}
+                    <a href="{{ app_url }}/login">Entrar</a>
+                    <a href="{{ app_url }}/cadastro">Criar perfil</a>
+                {% endif %}
+            </div>
+            <div class="col">
+                <h4>Institucional</h4>
+                <a href="#eixos">Sobre o desafio</a>
+                <a href="#como">CREA-AM</a>
+                <a href="#quem">Contato</a>
+            </div>
+            <div class="col">
+                <h4>Privacidade</h4>
+                <a href="{{ app_url }}/termos/privacidade">Política de Privacidade</a>
+                <a href="{{ app_url }}/termos/uso">Termos de Uso</a>
+                <a href="{{ app_url }}/privacidade">Gestão de consentimento (LGPD)</a>
+            </div>
+        </div>
+        <div class="pl-lp-fbot">
+            <span>&copy; 2026 Pro-Link. Dados fictícios, uso restrito à competição.</span>
+            <span>Manaus, Amazonas</span>
+        </div>
+    </div>
+</footer>
+{% endblock %}
+
+{#  ------------------------------------------------------------------ As cenas animadas
+
+    Sem `defer`, e no fim do <body>: o arquivo troca o SVG pela <canvas> antes da primeira
+    pintura, então não há o piscar de um desenho virando o outro. Ele é a única coisa desta
+    tela que depende de JavaScript, e sem ele a página continua inteira. #}
+{% block scripts %}
+<script src="{{ url_assets }}/js/landing.js?v={{ assets_v }}"></script>
+{% endblock %}
+
+{#  ------------------------------------------------------------------ As figuras
+
+    O mesmo plano isométrico das quatro animações do mockup, no quadro final de cada uma. Fica em
+    macro porque a grade se repete nas quatro, e a geometria tem de ser idêntica entre elas: é a
+    mesma cena vista quatro vezes, não quatro desenhos parecidos.
+
+    Base do plano: F(210,288) R(360,230) B(210,172) L(60,230), erguida 105 para o topo. #}
+{% macro grade() %}
+<path class="gr" d="M210,288L360,230 M185,278.3L335,220.3 M160,268.7L310,210.7 M135,259L285,201 M110,249.3L260,191.3 M85,239.7L235,181.7 M60,230L210,172 M210,288L60,230 M235,278.3L85,220.3 M260,268.7L110,210.7 M285,259L135,201 M310,249.3L160,191.3 M335,239.7L185,181.7 M360,230L210,172"/>
+{% endmacro %}
+
+{% macro base() %}
+<path class="ex" d="M210,288 L360,230 M60,230 L210,172"/>
+<path class="ey" d="M210,288 L60,230 M360,230 L210,172"/>
+{% endmacro %}
+
+{% macro volume() %}
+<polygon class="topo" points="210,183 360,125 210,67 60,125"/>
+<path class="ez" d="M210,288 L210,183 M360,230 L360,125 M210,172 L210,67 M60,230 L60,125"/>
+<path class="ez" d="M210,183 L360,125 L210,67 L60,125 Z"/>
+<path class="ez" d="M210,230 L210,125" stroke-width="2.6"/>
+<circle class="no" cx="210" cy="183" r="2.8"/>
+<circle class="no" cx="360" cy="125" r="2.8"/>
+<circle class="no" cx="210" cy="67" r="2.8"/>
+<circle class="no" cx="60" cy="125" r="2.8"/>
+{% endmacro %}
+
+{% macro check() %}
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle class="fundo" cx="12" cy="12" r="10"/><path class="marca" d="M8 12l2.5 2.5L16 9"/></svg>
+{% endmacro %}

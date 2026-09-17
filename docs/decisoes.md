@@ -33,7 +33,8 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | Front — largura e divulgação progressiva | D53 |
 | E4 — busca ativa e auditoria de sessões | D54, D55, D56 |
 | E5 — manifestação, mensagens e notificações | D57, D58, D59 |
-| E7 — entrega | D60 |
+| E7 — entrega | D60 a D68 |
+| E7 — auditoria de RF por entidade e refino visual | D69, D70, D71, D72, D73 |
 
 ---
 
@@ -1923,3 +1924,469 @@ deliberado e está declarado em `_arq/dependencias.md` com versão e licença �
 e SIL OFL 1.1 para as duas famílias, todas permitindo redistribuição embutida. Atualizar o
 Bootstrap passa a ser um passo manual: baixar, substituir, conferir a aparência. Para um protótipo
 com data de entrega, é o lado certo da troca.
+
+---
+
+## D61 · A faixa aceitável de cada parâmetro mora no código, não numa coluna nova
+
+`17/09/2026` · E7 · `src/Support/Parametros.php`, `src/Service/ParametroService.php`
+
+**Contexto.** O item 12.3 do edital exige supervisão humana sobre os critérios de recomendação, e
+enquanto os pesos do motor só existiam em `sis_parametros` sem tela, a supervisão era uma frase na
+documentação e um `UPDATE` no banco. A tela de edição precisava saber o que é valor aceitável para
+cada parâmetro: peso vai de 0 a 1, limiar também, "mínimo de ARTs" é inteiro, intervalo de
+sincronização tem piso. A tabela guarda chave, valor, tipo, grupo, descrição e a marca de
+sensível, e não guarda faixa.
+
+**Decisão.** A faixa fica em `Support\Parametros::LIMITES`, uma lista fechada com `min`, `max`,
+`passo` e `inteiro` por chave. Ela também decide **o que é editável**: chave que não está ali não
+é aceita pelo formulário, mesmo existindo no banco.
+
+**Alternativa recusada.** Acrescentar `par_min` e `par_max` a `sis_parametros`. É o desenho que um
+avaliador imaginaria primeiro, e ele tem mérito: configuração junto do que configura. Foi recusado
+por duas razões. A primeira é de oportunidade: seria `ALTER TABLE` em banco carregado na véspera da
+entrega, e a estrutura é entregue como `estrutura.sql`, que a banca roda do zero. A segunda é de
+natureza: faixa válida de peso é **regra de negócio**, não configuração. Quem muda o intervalo
+aceitável do motor está mudando o motor, e isso deve passar por revisão de código, não por um
+formulário.
+
+**Consequência.** Parâmetro novo precisa de duas edições, a linha na carga inicial e a entrada em
+`LIMITES`, e esquecer a segunda faz o parâmetro aparecer na tela como não editável. Foi
+exatamente o que aconteceu com `manifestacao.limite_hora`, descoberto ao rodar a carga num banco
+limpo: ele existia em `carga-inicial.sql` e não no banco de desenvolvimento, que é anterior a ele.
+
+---
+
+## D62 · Conta excluída pelo titular aparece na lixeira e não é restaurada por ato administrativo
+
+`17/09/2026` · E7 · `src/Service/LixeiraService.php`
+
+**Contexto.** O item 8.6j manda que nada seja apagado fisicamente e que o registro excluído
+"continue acessível somente por mecanismo administrativo de lixeira". A primeira metade valia no
+código desde a fundação; a segunda não existia, e registro que some de todo lugar é, na prática,
+registro apagado. Ao construir a lixeira, uma pergunta apareceu: e a conta que o **próprio
+titular** mandou excluir?
+
+Essa exclusão é exercício do art. 18 da LGPD, e a D05 já registrou que a plataforma a atende por
+revogação efetiva de acesso. Um administrador que a reativasse não estaria restaurando um
+registro: estaria trazendo de volta dado pessoal que o dono mandou apagar, sem que ele peça e sem
+que ele saiba.
+
+**Decisão.** A conta **aparece** na lixeira, com a data e o autor do pedido, e a restauração é
+**recusada** pelo serviço, com o motivo escrito na tela. A distinção é feita comparando o autor da
+exclusão com o dono do registro, pela trilha de auditoria. Exclusão feita pela administração
+continua restaurável. Toda restauração, em qualquer caso, exige motivo de 10 a 500 caracteres, que
+vai para a trilha.
+
+A regra vale só para `sis_usuarios`: restaurar uma demanda devolve um registro à operação,
+restaurar uma conta devolve uma identidade inteira, com documento cifrado, consentimentos e
+histórico. São coisas de tamanho diferente.
+
+**Alternativa recusada.** Esconder essas contas da lixeira. Resolveria o risco de privacidade e
+quebraria o 8.6j, que manda o excluído continuar acessível ao mecanismo administrativo. A segunda
+alternativa recusada foi permitir a restauração com confirmação reforçada: confirmação protege
+contra engano, não contra decisão errada, e aqui a decisão de reativar não é de quem administra.
+
+**Consequência.** Existe um caminho que a plataforma declaradamente não oferece, e ele precisa
+estar escrito na Política de Privacidade, não só no código. Está, no item 6. Se um titular pedir a
+volta da própria conta, o procedimento é externo à tela e com registro próprio.
+
+---
+
+## D63 · A marca de início de carreira é recalculada na escrita, e não derivada na leitura
+
+`17/09/2026` · E7 · `src/Service/PortfolioService.php`
+
+**Contexto.** `prf_em_construcao` é derivado da contagem de ARTs do titular, e era escrito só pelo
+cadastro. `associarArt` mudava a contagem e não recalculava: quem passasse do limiar associando
+ARTs à mão continuaria sinalizado como iniciante para sempre. O backlog registrava isto como
+defeito latente desde a E2, e latente só porque nenhuma rota chamava o método.
+
+**Decisão.** O recálculo passa a acontecer dentro da própria transação que grava o acervo, no
+único serviço que escreve ARTs. Toda entrada de ART passa por `persistir()`, e toda chamada de
+`persistir()` está num dos dois caminhos que agora reavaliam. `PerfilCreaService::atualizarEmConstrucao`
+continua existindo para os dois desfechos em que o acervo **não** entrou, onde não há transação de
+acervo para carregar o recálculo.
+
+**Alternativa recusada.** Derivar a marca na leitura, como a **D01** fez com o índice de evidência.
+É o desenho melhor, e continua recusado por agora: `prf_em_construcao` é lido pelo motor em lote,
+dentro da montagem do pool, e trocá-lo por contagem na leitura mexeria no `CandidatoRepository` na
+véspera da entrega. Fica como melhoria pós-entrega.
+
+Também foi recusado chamar o recálculo de fora, a partir de quem chama `associarArt`. É o mesmo
+padrão frágil que produziu o defeito: a regra dependeria de cada chamador lembrar dela.
+
+**Consequência.** A regra do que é "perfil em construção" mora em dois lugares, o que é dívida
+declarada. O segundo lugar existe por um motivo estreito e está comentado como tal.
+
+---
+
+## D64 · Registro suspenso no CREA fecha a visibilidade, e não rebaixa a conta
+
+`17/09/2026` · E7 · `src/Service/SincronizacaoService.php`, `scripts/sincronizar-status.php`
+
+**Contexto.** `pro_status` é o único dado do conselho que muda sozinho depois do cadastro, e a
+plataforma inteira se apoia nele: registro suspenso não pode continuar aparecendo com selo de
+verificação. A reconsulta era promessa do backlog da E2 desde 10/09. Faltava decidir o que fazer
+quando a API responde que o registro deixou de estar ativo.
+
+**Decisão.** Fecha a visibilidade inteira do perfil e registra na trilha, com o motivo. A conta
+continua, o acervo continua, o vínculo continua.
+
+**Alternativa recusada.** Rebaixar a conta para Terceiro, que é o que o cadastro faz quando a API
+não conhece o CPF (D20). Recusada porque suspensão de registro pode ser temporária, e destruir o
+vínculo a partir de uma leitura que muda seria irreversível a partir de informação reversível.
+Fechar visibilidade é reversível e já resolve o problema real, que é o perfil circular enquanto a
+situação não se resolve.
+
+**A visibilidade não se reabre sozinha quando a situação volta.** Quem fechou foi uma regra, e
+reabrir escolha de privacidade sem o titular pedir seria decidir por ele. A assimetria é
+deliberada e está verificada em `scripts/verificar-e2.php`.
+
+**Consequência.** O titular que tiver o registro reativado precisa reabrir a visibilidade à mão, e
+a tela precisa explicar isso. Hoje a explicação está na trilha de auditoria dele, o que é o
+mínimo, não o ideal.
+
+---
+
+## D65 · `sis_auditoria` fica sem `_log`, sem `_status` e sem chave estrangeira, e isso é declarado
+
+`17/09/2026` · E7 · `_arq/estrutura.sql`, `_arq/mer/`
+
+**Contexto.** A geração do MER a partir do banco real levantou dois desvios da nomenclatura do item
+8.6, os dois na mesma tabela. `sis_auditoria` é a única sem `_log` e sem `_status`, e `aud_usu_id` é
+a única coluna `*_usu_id` do esquema sem chave estrangeira declarada para `sis_usuarios` — outras
+doze a têm.
+
+**Decisão.** Os dois ficam como estão, declarados por escrito aqui e sinalizados no próprio
+diagrama. A ausência de `_status` é o ponto: a tabela é insert-only, protegida por trigger, e uma
+coluna de status criaria a possibilidade de **exclusão lógica de linha de auditoria**, que é
+exatamente o que a imutabilidade da D04 existe para impedir. Cumprir a letra do 8.6 aqui
+enfraqueceria o 8.5g.
+
+**Alternativa recusada.** Acrescentar as colunas por conformidade literal e nunca usá-las. Cria a
+porta e confia em disciplina para não abri-la, que é o oposto da garantia que a trigger dá.
+
+Para a chave estrangeira, foi recusado acrescentá-la na véspera: a conferência feita agora mostra
+1494 linhas, **zero órfãs** e 6 sem autor, que são ações de sistema e onde `NULL` é legítimo. O
+ganho seria formal, e a mudança de esquema em banco carregado, no dia da entrega, não se paga.
+Entra como melhoria pós-entrega, com a ressalva de que a integridade precisa sobreviver à remoção
+física de usuário, que é ato administrativo previsto.
+
+**Consequência.** Se a banca perguntar, a resposta existe e está escrita. Sem esta entrada, o
+desvio pareceria descuido.
+
+---
+
+## D66 · A suíte de ponta a ponta usa o navegador e cria dado real, sem atalho por SQL
+
+`17/09/2026` · E7 · `e2e/`
+
+**Contexto.** Os seis cenários do Anexo I são a definição de pronto do MVP, e eram provados por
+`scripts/verificar-*.php`, que conversam com serviço e repositório. Isso prova a regra de negócio e
+não prova a tela: a de auditoria já subiu em 500 com dezesseis conferências no verde, porque
+nenhuma delas tocava o template.
+
+**Decisão.** Uma suíte em Playwright que percorre os seis cenários clicando onde uma pessoa
+clicaria, com sessão, CSRF e JavaScript reais, e que **cria dado de verdade**: cadastra
+experiência, publica demanda, manifesta interesse, denuncia e modera, tudo pela interface. Toda
+tela é conferida contra erro de servidor, rolagem horizontal e identificador de sistema visível.
+
+Um segundo arquivo grava a mesma jornada num vídeo só, com legenda sobreposta, como insumo do
+vídeo demonstrativo e ensaio da demo.
+
+**Alternativa recusada.** Preparar o estado por SQL antes de cada cenário, que é mais rápido e
+mais estável. Recusada porque provaria que o sistema funciona por um caminho que ninguém percorre:
+três defeitos do próprio teste só apareceram porque ele passou pela interface, e o primeiro deles
+era a confirmação de ação irreversível que o Playwright recusa por padrão, fazendo o POST nunca
+sair.
+
+**Consequência.** O banco acumula registro de verificação a cada execução, e a suíte precisa rodar
+**antes** do recarregamento para a demonstração, nunca depois. Está escrito no `README.md` do
+`e2e/` e no `estado.md`.
+
+---
+
+## D67 · A CAT fica fora do MVP, e a limitação é declarada em vez de silenciada
+
+`17/09/2026` · E7 · `src/Service/CreaApiClient.php`, `_arq/estrutura.sql`
+
+**Contexto.** O projeto se apresenta, no `README.md` e na proposta da fase 1, como compatibilização
+por evidência documental: "ARTs, **CATs** e acervo operacional". A Certidão de Acervo Técnico é o
+documento que o mercado pede em licitação, e a estrutura para ela existe inteira: `crea_cats` e
+`crea_cat_arts` estão em `estrutura.sql` desde a fundação, `CreaApiClient::catsDoProfissional` e
+`::validarCat` estão escritos e testados contra fixture, e a view `crea_evidencias` **já faz
+`JOIN`** com as duas tabelas, expondo `evi_cat_numero` e `evi_cat_dt_validade`.
+
+Falta uma coisa só: nenhum serviço chama aqueles dois métodos. As duas tabelas têm zero linhas, e
+as duas colunas da view são sempre nulas.
+
+**Decisão.** Não implementar na entrega de 17/09, e declarar a ausência em vez de deixar o leitor
+descobrir. O caminho está desenhado e é curto: importar as CATs no mesmo ponto em que as ARTs são
+importadas, e gravar os vínculos que `validarCat` devolve.
+
+**Alternativa recusada.** Implementar hoje, que é tentador justamente por ser curto. Recusada por
+onde o efeito cai: a view `crea_evidencias` é a única coisa que o motor lê, e popular `crea_cats`
+muda **a evidência de cada candidato**, e com ela o pool de toda demanda, na véspera da entrega e
+depois de os seis cenários já estarem verificados de ponta a ponta. Mexer no núcleo do produto
+para ganhar cobertura de um documento que a massa fictícia tem em quantidade mínima é trocar risco
+alto por ganho pequeno.
+
+Também foi recusado esconder a lacuna reescrevendo o `README.md` para não citar CAT. A proposta
+aprovada citou, a estrutura está lá, e a banca compara proposta com entrega: declarar o que ficou
+para depois é mais forte do que fingir que nunca foi prometido.
+
+**Consequência.** O portfólio da entrega é ART e acervo operacional. A CAT aparece no modelo de
+dados e no MER como estrutura pronta e não alimentada, o que é verdade e está escrito. Entra em
+`backlog.md`, junto dos outros itens que a proposta prometeu e o MVP não entrega.
+
+---
+
+## D68 · A sessão reconfere o perfil no banco, e a mudança de papel vale na hora
+
+`17/09/2026` · E7 · `public/index.php`, `src/Repository/SessaoRepository.php`, `src/Support/Sessao.php`
+
+**Contexto.** O backlog da E7 carregava esta linha desde 14/09: *"`Sessao` guarda o perfil em
+`$_SESSION` e nunca o reconfere contra o banco. O `sessaoTemRespaldo()` derruba sessão revogada,
+mas mudança de papel só vale no próximo login. Decidir junto com a operação atômica 5"*.
+
+A operação atômica 5 resolveu metade: bloquear uma conta revoga as sessões dela, e a D39 mediu que
+isso vale imediatamente. A outra metade ficou, e não era teórica. O rebaixamento para Terceiro da
+**D20** e da **D26** acontece quando a própria pessoa clica em "validar meu registro" e a API
+responde `200 []`, ou seja, **com sessão aberta**.
+
+Medido com requisição forjada em 17/09, e é OWASP A01: rebaixar a conta no banco e repetir o
+`POST /perfil/preferencias`, que é rota exclusiva de Profissional, devolvia 303 como antes.
+
+**Decisão.** A consulta que o front controller já fazia a cada requisição autenticada, para saber
+se a sessão vive, passa a trazer também o perfil, por `JOIN`. Se ele divergir do que está em
+`$_SESSION`, a sessão é atualizada e a troca entra na trilha de auditoria. Depois da correção, a
+mesma sonda devolve **403**.
+
+Custo: um `JOIN` numa consulta que já existia. Nenhuma consulta nova por requisição.
+
+**Alternativa recusada.** Derrubar a sessão quando o papel muda, que é a postura mais defensiva.
+Recusada pelo caso real: quem é rebaixado é justamente quem acabou de pedir para revalidar o
+próprio registro, e encerrar a sessão dele ali seria punir o ato de conferir, com uma mensagem que
+ele não teria como interpretar. A autorização passa a usar o perfil corrente, que é o que o
+problema exigia; o resto seria atrito sem ganho.
+
+Também foi recusado reconferir o perfil dentro de `Sessao::temPerfil()`, que é onde a autorização
+acontece. Aquele método é chamado várias vezes por requisição e não tem banco: colocá-lo lá
+transformaria uma consulta em várias, e acoplaria a camada de sessão ao repositório.
+
+**Consequência.** `SessaoRepository::ativa()` deixa de devolver só a sessão e passa a devolver o
+perfil e o nome. Quem "simplificar" aquela consulta no futuro reabre a falha, e é por isso que
+`verificar-e1.php` ganhou cinco conferências que a exercitam de ponta a ponta, incluindo o par
+positivo e negativo e a linha de auditoria.
+
+---
+
+## D69 · Gerir contas é ato próprio, e não providência de denúncia
+
+`17/09/2026` · E7 · `src/Service/ContaService.php`, `src/Repository/UsuarioRepository.php`
+
+**Contexto.** A auditoria de requisitos por entidade, feita a pedido da autora, cruzou o Anexo I
+item 3 com as rotas existentes. A linha "Administrador: moderar, **gerir perfis**, auditar, tratar
+denúncias, emitir relatórios" tinha um pedaço sem caminho: bloquear uma conta só era possível como
+**providência de uma denúncia**. Conta que precisa ser suspensa sem que ninguém a tenha denunciado
+não tinha por onde, e não havia listagem que respondesse "quem existe na plataforma".
+
+**Decisão.** `ContaService` com listagem filtrável por termo, perfil e situação, e bloqueio que usa
+a mesma operação atômica da E6: status, sessões revogadas e trilha, tudo ou nada. Motivo obrigatório
+de 10 a 500 caracteres, que vai para a auditoria.
+
+A listagem **não traz documento**. `usu_documento_cif` é cifrado e só o titular tem motivo para
+vê-lo decifrado; uma tela administrativa que mostrasse CPF de todo mundo seria o oposto do que a
+D03 se comprometeu a fazer ao guardá-lo.
+
+**Alternativa recusada.** Reusar o fluxo de denúncia, abrindo uma denúncia "de ofício" para poder
+bloquear. Seria menos código e produziria um registro falso: a trilha diria que houve denúncia
+onde houve decisão administrativa, e a diferença entre as duas é justamente o que a auditoria
+existe para preservar.
+
+**Consequência.** Três recusas explícitas: administrador, a própria conta, e desbloquear conta
+excluída pelo titular, que seria a D62 por outro nome. E um defeito que a implementação expôs:
+`UsuarioRepository::porId()` filtra por conta ativa, o que é correto no caminho operacional e
+tornava o **desbloqueio impossível**, porque a conta bloqueada não era encontrada para ser
+desbloqueada.
+
+---
+
+## D70 · O demandante registra interesse, e é a mesma manifestação com a origem gravada
+
+`17/09/2026` · E7 · `src/Service/ManifestacaoService.php`, `pro_manifestacoes.man_origem`
+
+**Contexto.** O Anexo I item 3 dá ao Terceiro "registrar interesse em profissional **ou** empresa",
+e a plataforma só tinha a direção contrária: o candidato manifestava interesse numa demanda, e o
+feed do demandante era declaradamente passivo. Quem publicava a demanda via o compatível na tela e
+não tinha o que fazer com ele além de esperar.
+
+**Decisão.** Uma coluna, `man_origem`, com `'C'` para candidato e `'D'` para demandante. O par
+(demanda, candidato) continua sendo o mesmo, `uq_man_dem_usu` continua garantindo um por par, e o
+que muda é quem começou e para quem vai o aviso: aqui o e-mail é para o candidato, com texto
+próprio, porque o fato é outro (lá alguém se candidatou, aqui alguém foi procurado).
+
+**Alternativa recusada.** Uma tabela `pro_interesses` separada. Duplicaria o snapshot, o limite por
+hora, a situação e o canal de mensagens, e criaria duas respostas possíveis para "existe interesse
+entre esta demanda e este perfil?" — que é exatamente a pergunta que a tela de interessados faz.
+
+**Consequência.** O teto de manifestações por hora passa a contar também o ato do demandante, o que
+é desejado: sem isso, um script registraria interesse no pool inteiro e o aviso viraria ruído para
+todo candidato. O snapshot congelado é o do candidato, na visão do demandante, que é o que ele viu
+quando decidiu.
+
+---
+
+## D71 · A experiência da empresa não vincula ART
+
+`17/09/2026` · E7 · `pro_experiencias.exp_emp_id`, `src/Service/ExperienciaService.php`
+
+**Contexto.** O Anexo I item 3 dá "publicar experiência" ao profissional **e** à empresa. Só o
+profissional tinha caminho: as três rotas eram `PERFIL_PROFISSIONAL`, e `exp_prf_id` era `NOT NULL`
+com chave estrangeira para `pro_profissionais`.
+
+**Decisão.** `exp_emp_id` entra ao lado, e uma `CHECK` garante exatamente um dono. A diferença que
+sobra entre os dois perfis é deliberada: o profissional amarra a experiência a uma ART do próprio
+acervo, e **a empresa não vincula ART nenhuma**.
+
+O motivo é a D24. A ART é sempre gravada sob o RNP de quem a registrou, nunca sob a empresa, e o
+acervo verificado da empresa é o operacional, herdado do quadro técnico pelo CAO e já exibido no
+perfil. Deixar a empresa apontar para uma ART afirmaria que ela a registrou.
+
+**Alternativa recusada.** Generalizar a coluna para `exp_usu_id` e deixar o dono ser o usuário.
+Mais limpo no papel, e exigiria migrar as linhas existentes e reescrever todas as leituras na
+véspera da entrega. Fica como melhoria pós-entrega.
+
+**Consequência.** A tentativa de vincular ART do lado da empresa é recusada inclusive por
+requisição forjada, e está coberta em `verificar-e2.php`.
+
+---
+
+## D72 · A métrica que o mockup pedia e que não foi inventada
+
+`17/09/2026` · E7 · `src/Repository/DashboardRepository.php`
+
+**Contexto.** Os mockups do profissional e da empresa abrem num painel de início que a
+implementação não tinha. Entre os quatro números do desenho está **"Visualizações do perfil"**.
+
+**Decisão.** Não existe registro de quem viu o perfil de quem, e o tile foi trocado por
+**"interesses recebidos"**, que existe desde a D70 e diz mais: é ato de um demandante, não
+passagem de olho. O mesmo raciocínio vale para o sino da topbar: `sis_notificacoes` é fila de
+e-mail, sem estado de leitura, e o número passou a contar manifestação recebida ainda não aberta,
+que é o que `man_dt_visualizacao` registra.
+
+**Alternativa recusada.** Criar a contagem de visualizações. Seria rastrear visita por titular:
+dado novo de comportamento, com implicação de privacidade que a Política não declara, acrescentado
+a horas da entrega. Inventar número para preencher um tile é o oposto da regra que o projeto
+seguiu em toda parte.
+
+**Consequência.** O painel entrega quatro números verdadeiros em vez de três verdadeiros e um
+inventado, e a diferença em relação ao desenho está escrita aqui e no código.
+
+---
+
+## D73 · Os mockups são o design final, e a implementação é que se ajusta
+
+`17/09/2026` · E7 · `docs/mockups/`, `templates/`
+
+**Contexto.** As telas foram construídas seguindo o `design.md`, que é o design system destilado
+dos mockups, e foram se afastando deles: a landing virou um título com dois botões numa coluna de
+980px, sem a barra de pesquisa que o fluxo público promete, e as telas logadas ficaram com a
+top-nav horizontal em vez da barra lateral que os mockups desenham. A autora reprovou, e a
+instrução foi literal: *"tudo que eu mandei refinar é pra ter fidelidade ao mockup, é basicamente
+só pra colocar o backend nas telas porque tá estático"*.
+
+**Decisão.** Os arquivos de `docs/mockups/` passam a ser tratados como **o design final**, e não
+como referência a ser interpretada. Quem implementa porta o mockup sobre o Bootstrap e liga o dado
+real; não redesenha, não reescreve texto, não acrescenta nem corta seção. Divergência só quando o
+mockup depende de dado que não existe ou quebra uma regra do projeto, e nesse caso ela é listada
+no relatório com o motivo.
+
+**Alternativa recusada.** Manter o `design.md` como fonte e tratar o mockup como inspiração. É o
+que vinha sendo feito, e produziu telas que respeitam a paleta e não se parecem com o que foi
+desenhado. O design system continua valendo para o que o mockup não decide (componente novo,
+estado de erro, responsividade), e não para sobrepor o que ele decide.
+
+**Consequência.** Duas divergências já registradas por essa régua: a landing não usa a top-nav do
+`base.html.twig`, porque o mockup tem a barra dentro do hero, e o `design.md` precisava dizer isso;
+e as animações em `<canvas>` do mockup voltaram, com o script movido para `public/assets/js/`,
+depois de terem sido convertidas em SVG estático por uma leitura errada da CSP.
+
+
+## D74 · O par excluído não pode ser recriado, e a limitação fica declarada
+
+`17/09/2026` · E4 · `_arq/estrutura.sql`, `src/Repository/ManifestacaoRepository.php`
+
+**Contexto.** `ManifestacaoRepository::idDoPar()` filtra por `man_status = 'A'`, então a aplicação
+entende que interesse excluído libera um novo registro do mesmo par demanda/pessoa. O índice
+`uq_man_dem_usu`, porém, é sobre `(man_dem_id, man_usu_id)` **sem o status**: o banco recusa a
+reinserção. A tentativa não produziria a mensagem tratada que o serviço escreveu; produziria erro
+de integridade.
+
+**Como apareceu.** Não por um caminho de usuário: apareceu ao consertar
+`scripts/verificar-e4.php`, que criava um interesse por execução e nunca o desfazia. A correção
+natural seria excluir logicamente o que o script criou, e ela não funciona por causa do índice.
+
+**Decisão.** Não alterar o índice a horas da entrega. Mexer em restrição de unicidade de uma
+tabela com dado de demonstração exige migração, recarga e uma nova rodada de verificação de tudo
+que toca manifestação, e o defeito **não tem caminho de usuário que o alcance**: nenhuma tela
+exclui manifestação, e a lixeira administrativa restaura em vez de recriar.
+
+O script passou a remover fisicamente a linha que ele mesmo inseriu, com o motivo escrito no
+código: é rastro de verificação criado segundos antes, pelo id que o próprio arquivo guardou, e
+não dado da aplicação. A trilha de auditoria da operação **fica**, porque é insert-only por
+gatilho, e é ela que prova que o registro aconteceu.
+
+**O que a correção evitou.** A verificação se degradava sozinha: cada execução consumia um
+candidato do pool, e depois de algumas rodadas o bloco inteiro passava a ser pulado, derrubando o
+placar de 42 para 34 sem nada ter quebrado. Verificação que enfraquece a cada execução é pior que
+verificação nenhuma, porque o número continua verde enquanto a cobertura desaparece. Três
+execuções seguidas agora dão 42.
+
+**Como corrigir depois.** Trocar o índice por um que inclua o status, ou por um índice parcial
+sobre as linhas ativas, e tratar a violação restante como mensagem de domínio.
+
+## D75 · A tela de integrações mostra o estado, e não chama a API
+
+`17/09/2026` · E7 · `src/Repository/IntegracaoRepository.php`, `templates/admin/integracoes.html.twig`
+
+**Contexto.** O Anexo I, item 3, lista cinco capacidades do administrador: moderar, gerir perfis,
+auditar, tratar denúncias, emitir relatórios e **configurar integrações**. A última não tinha
+tela, e o próprio `admin/_layout.html.twig` carregava um comentário dizendo que o item entraria
+"quando a tela existir". Era a maior lacuna por perfil quando a autora pediu uma última passada.
+
+**Decisão.** A tela existe e responde "a plataforma está falando com a API oficial, e desde
+quando", com quatro coisas: a conexão (para onde aponta, com que tempo limite, e se a credencial
+está configurada), o que já veio de lá e está em cache com a data de cada coleção, **os ajustes da
+sincronização, editáveis**, e as últimas importações lidas da trilha de auditoria.
+
+**A primeira versão só mostrava, e isso não bastava.** A autora perguntou se a tela estava certa
+do jeito que estava, e não estava: o verbo do edital é *configurar*, e uma tela de leitura obriga
+quem avalia a procurar o controle em outro lugar. Os dois parâmetros que a administração pode
+mexer sem tocar no ambiente passaram para cá: o intervalo mínimo entre reconsultas, que já
+existia e vivia escondido entre os pesos do motor, e o tamanho do lote, que era constante no
+serviço. Os dois usam o mesmo lote atômico dos pesos, com a faixa aceitável declarada por campo e
+o valor anterior indo para a trilha.
+
+A tela de parâmetros deixou de mostrá-los e passou a apontar para cá: um mesmo controle em duas
+telas seria duas verdades sobre a mesma coisa.
+
+**Duas recusas, que são o conteúdo da decisão.**
+
+**Ela não chama a API.** O item 10.4 veda coleta automatizada e a organização registra cada
+chamada ao ambiente fictício. Uma tela que consultasse o serviço a cada carregamento gastaria cota
+alheia para mostrar um número, e bastaria deixar a página aberta para virar exatamente o que o
+edital proíbe. O estado vem do cache e da trilha; a conferência ao vivo continua explícita e fora
+da interface, em `scripts/verificar-api.php`.
+
+**Ela não mostra o token.** Diz que ele existe e quantos caracteres tem, que é o que responde "a
+integração está configurada?" sem colocar uma credencial na tela de alguém. O Anexo VI reprova na
+triagem quem entrega segredo à mostra, e uma tela de administração é um lugar tão bom quanto um
+arquivo para vazar um. A amostra de `scripts/amostras.php` segue a mesma regra.
+
+**Alternativa recusada: formulário que grava a configuração no banco.** Endpoint, credencial e
+tempo limite vêm do ambiente, pelo `_config.php`, e é assim que o item 8.3.1 pede. Um formulário
+criaria duas fontes de verdade para a mesma coisa, e a que vale na hora da requisição continuaria
+sendo a do ambiente. O que é configurável em tempo de execução são os pesos do motor, e esses já
+têm tela própria, com faixa declarada por campo e trilha.

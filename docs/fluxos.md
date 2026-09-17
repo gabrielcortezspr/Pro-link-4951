@@ -28,7 +28,7 @@ flowchart TD
 
   subgraph PROF["PERFIL PROFISSIONAL"]
     CADP["Cadastro profissional<br/>+ consentimento LGPD<br/>API: profissionais?cpf, /arts, /cats"]
-    DASHP["Dashboard profissional"]
+    DASHP["Início /inicio<br/>onde apareço, o que enviei, o que o acervo sustenta"]
     PORT["Portfólio verificado + selo ART<br/>API: validação de art, art/atividades, validação de cat"]
     VISP["Visibilidade + dados complementares"]
     FEEDP["Demandas compatíveis"]
@@ -40,7 +40,7 @@ flowchart TD
 
   subgraph EMP["PERFIL EMPRESA"]
     CADE["Cadastro empresa<br/>+ consentimento LGPD<br/>API: empresas?cnpj, quadro-técnico, cao"]
-    DASHE["Dashboard empresa"]
+    DASHE["Início /inicio<br/>o que publiquei, quem chegou"]
     PERFE["Acervo operacional da empresa<br/>API: cao"]
     PUBD["Publicar demanda<br/>seleção de TOS. API: tos?search"]
     MIND["Minhas demandas"]
@@ -56,6 +56,7 @@ flowchart TD
 
   FEEDP -->|Manifestar interesse| MANIF
   PERFV -->|Manifestar interesse| MANIF
+  FEEDE -->|Registrar interesse no candidato| MANIF
 
   MANIF["Manifestar interesse<br/>grava snapshot do perfil"]
   COMM["Mensagens simples na plataforma<br/>sem expor contato, sem chat completo"]
@@ -66,15 +67,19 @@ flowchart TD
   NOTIF -.-> DASHE
 
   subgraph ADMG["ADMIN (RF06)"]
-    ADM["Painel admin"]
-    AUD["Trilha de auditoria<br/>log imutável"]
+    ADM["Visão geral<br/>contagem agregada, nunca lista de pessoas ordenada"]
+    AUD["Trilha de auditoria<br/>log imutável por trigger"]
     SESS["Sessões do motor<br/>replay pela semente: mesma semente, mesma ordem"]
     DEN["Fila de denúncias + moderação"]
-    USRG["Gestão de usuários"]
+    PARAM["Parâmetros do motor<br/>supervisão humana do item 12.3"]
+    LIX["Lixeira<br/>item 8.6j: o excluído continua acessível"]
+    CONTAS["Contas<br/>gerir perfis: bloquear e desbloquear com motivo"]
     ADM --> AUD
     AUD --> SESS
     ADM --> DEN
-    ADM --> USRG
+    ADM --> PARAM
+    ADM --> LIX
+    ADM --> CONTAS
   end
 ```
 
@@ -135,3 +140,12 @@ O `backlog.md` diz em que etapa cada um destrava; aqui, o caminho:
 4. **Manifestação e a empresa vê o perfil** — FEEDP/PERFV → MANIF → COMM/NOTIF (E5).
 5. **Correção e denúncia** — VISP + denúncia; ADM → AUD/DEN (E6).
 6. **Admin vê auditoria e modera** — ADM → AUD → DEN, bloqueio (E6).
+
+**A gestão de contas passou a existir em 17/09** (`/admin/contas`, D69): bloquear deixou de ser
+só providência de denúncia, e há listagem filtrável para responder quem existe na plataforma. O
+que ela recusa fazer está na decisão: administrador, a própria conta, e desbloquear conta excluída
+pelo titular.
+
+**O interesse passou a ter duas direções** (D70). O candidato manifesta interesse numa demanda, e o
+demandante registra interesse num candidato do pool: é a mesma manifestação, com `man_origem`
+dizendo quem começou, e o aviso indo para o outro lado.

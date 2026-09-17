@@ -84,8 +84,13 @@
         'MODERAR':         'warn',   'REVOGAR':      'warn', 'EXPORTAR_DADOS': 'warn'
     } %}
 
+    {#  'Bloqueada', e não 'Inativa'. É o mesmo valor cru da coluna, mas 'Bloqueada' é a palavra
+        que a tela de Contas usa na pílula, no botão e em toda mensagem que o ContaService
+        produz. A trilha lendo "de Ativa para Inativa" na linha cujo evento se chama "Bloqueio
+        de conta" dava dois nomes ao mesmo estado, em duas telas do mesmo painel. O valor cru
+        continua no title da célula, que é o que quem audita confere. #}
     {% set valores = {
-        'A': 'Ativa', 'I': 'Inativa', 'X': 'Excluída',
+        'A': 'Ativa', 'I': 'Bloqueada', 'X': 'Excluída',
         'F': 'Pessoa física', 'J': 'Pessoa jurídica',
         'PENDENTE': 'Pendente', 'EM_ANALISE': 'Em análise', 'RESOLVIDA': 'Resolvida',
         'ADVERTIR': 'Advertir', 'BLOQUEAR': 'Bloquear a conta', 'REMOVER': 'Remover o conteúdo',
@@ -189,11 +194,26 @@
         <div class="pl-log-topo">
             <div>
                 <h2 class="pl-card-titulo">Eventos registrados</h2>
+                {#  A regra que governa a tela fica ao lado da contagem, visível, como em contas
+                    ("bloquear exige motivo"), na lixeira ("restaurar exige motivo"), na fila
+                    ("nada sai de operação por ter sido denunciado") e nas sessões ("sem
+                    ranking"). Esta era a única das cinco em que a regra vivia só atrás do "i", e
+                    é justamente a frase que a tela existe para sustentar: a trilha não tem
+                    caminho de escrita que não seja inserção, e quem recusa é o banco. #}
                 <p class="pl-log-resumo">
-                    <span><b>{{ total }}</b> no recorte atual</span>
+                    <span><b>{{ total }}</b> {{ total == 1 ? 'evento' : 'eventos' }} no recorte</span>
                     {% if n_seg %}
                         <span class="seg"><i aria-hidden="true"></i><b>{{ n_seg }}</b>&nbsp;de segurança</span>
                     {% endif %}
+                    <span aria-hidden="true">·</span>
+                    <span>a trilha só aceita inserção, por gatilho no banco, e nem a Administração edita ou apaga</span>
+                </p>
+                {#  Afinidade com a borda: a coluna do meio corta com reticências exatamente no fim
+                    do quadro, e reticências leem como "o texto foi cortado", não como "a tabela
+                    continua". A linha desfaz a ambiguidade, e some no desktop. #}
+                <p class="pl-log-lado">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"/><path d="M14 6l6 6-6 6"/></svg>
+                    A tabela continua para o lado
                 </p>
             </div>
             {# Faixa exibida no topo, número da página no rodapé: informação diferente em cada
@@ -203,7 +223,11 @@
             {% endif %}
         </div>
 
-        <div class="table-responsive">
+        {#  Rola dentro do quadro, e nenhuma coluna sai do ar num aparelho estreito: numa trilha
+            de auditoria toda coluna é prova, e esconder uma delas no celular é editar a prova.
+            Os três atributos põem o quadro ao alcance do teclado, com nome. #}
+        <div class="table-responsive" tabindex="0" role="region"
+             aria-label="Eventos registrados na trilha de auditoria">
             <table class="pl-table pl-log">
                 <caption class="visually-hidden">
                     Trilha de auditoria, somente leitura. Um evento por linha, do mais recente
@@ -264,9 +288,9 @@
                         <td>
                             {% if l.aud_usu_id and filtro.usuario != l.aud_usu_id %}
                                 <a class="autor" href="{{ base }}{{ q_periodo }}&amp;usuario={{ l.aud_usu_id }}"
-                                   title="Filtrar a trilha por esta conta (nº {{ l.aud_usu_id }})">{{ l.usu_nome|default('Conta nº ' ~ l.aud_usu_id) }}</a>
+                                   title="Filtrar a trilha por esta conta (nº {{ l.aud_usu_id }})">{{ (l.usu_nome|default('Conta nº ' ~ l.aud_usu_id))|nome_proprio }}</a>
                             {% elseif l.aud_usu_id %}
-                                <span class="autor">{{ l.usu_nome|default('Conta nº ' ~ l.aud_usu_id) }}</span>
+                                <span class="autor">{{ (l.usu_nome|default('Conta nº ' ~ l.aud_usu_id))|nome_proprio }}</span>
                             {% else %}
                                 {# aud_usu_id nulo é tentativa sem sessão, e é justamente o que a
                                    trilha existe para guardar. Não é "anônimo" no sentido de oculto. #}
@@ -303,7 +327,14 @@
                                     <span class="para">{{ r.rotulo_valor(bruto_novo, valores) }}</span>
                                 </span>
                             {% elseif bruto_novo %}
-                                <span class="det" title="{{ bruto_novo }}">{{ r.rotulo_valor(bruto_novo, valores) }}</span>
+                                {#  Acesso negado grava a rota tentada, e a rota carrega a linha de
+                                    consulta: a lixeira filtra por ?entidade=sis_usuarios, e era assim
+                                    que um nome de tabela aparecia na tela, contra a regra que vale
+                                    para todas as outras colunas do painel. Lê-se o caminho; a rota
+                                    inteira, com a consulta, continua no title, que é onde o resto
+                                    desta tela guarda o valor exato. #}
+                                {% set visivel = l.aud_entidade == 'rota' ? bruto_novo|split('?')|first : bruto_novo %}
+                                <span class="det" title="{{ bruto_novo }}">{{ r.rotulo_valor(visivel, valores) }}</span>
                             {% else %}
                                 {# Evento sem alteração de campo (entrada, saída, consulta). Um traço
                                    curto fecha a coluna sem repetir texto em dezenas de linhas; a

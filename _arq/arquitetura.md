@@ -67,7 +67,9 @@ serviço não monta HTML. Dependência externa entra por construtor.
 | `pro_` | domínio: perfis, demandas, manifestações, moderação | 10 |
 | `mat_` | sessões do motor, com semente e pool auditáveis | 2 |
 
-O script completo, com índices, chaves, a view e os triggers, está em `estrutura.sql`. O MER entra em `mer/` quando for gerado.
+O script completo, com índices, chaves, a view e os triggers, está em `estrutura.sql`. O MER está
+em `mer/`: um diagrama por módulo, o diagrama completo e o PDF, gerados por
+`../scripts/gerar-mer.py` a partir do próprio schema.
 
 ## Integração com a API oficial (RF02)
 
@@ -145,7 +147,7 @@ inconsistente. Todas as cinco estão implementadas, via `Database::transacao()`:
 5. **bloqueio de usuário** — bloqueia, encerra as sessões e registra a moderação
    (`DenunciaService`).
 
-O uso cresceu além dessas cinco: há 30 blocos transacionais em 13 serviços, porque a regra "trilha
+O uso cresceu além dessas cinco: há 35 blocos transacionais em 16 serviços, porque a regra "trilha
 de auditoria desfaz junto com o fato que ela registra" vale para toda escrita, não só para as
 operações destacadas.
 
@@ -153,7 +155,7 @@ operações destacadas.
 
 Exigida pelo item 12.3 do edital e pelo Anexo VI ("documenta riscos, limitações e uso de
 inteligência artificial"). O raciocínio por trás de cada escolha citada aqui está em
-`../docs/decisoes.md`, que tem 59 entradas com o campo *Alternativa recusada* preenchido.
+`../docs/decisoes.md`, que tem 75 entradas com o campo *Alternativa recusada* preenchido.
 
 ### 1. Não há inteligência artificial no produto
 
@@ -204,9 +206,10 @@ evidência documental vira uma máquina de concentrar trabalho em quem já tem t
   candidato. Zero é uma medida; ausência não é;
 - **"perfil em construção" sinaliza, nunca exclui.** Abaixo de `match.early_career.min_arts` ARTs
   o perfil recebe uma marca de contexto e **continua no pool**. O limiar vale 3, e o número foi
-  escolhido por medição, não por intuição: na base de demonstração os profissionais têm de 2 a 4
-  ARTs, média 3,0. O limiar 3 marca 4 de 12 (33%); o limiar 4 marcaria 8 de 12 (67%), e rótulo que
-  vale para dois terços da plataforma não informa nada. **Este é um valor calibrado contra uma
+  escolhido por medição, não por intuição: na base de demonstração os doze profissionais têm de 2 a
+  4 ARTs, média 3,1: três com duas, cinco com três e quatro com quatro. O limiar 3 marca 3 de 12
+  (25%); o limiar 4 marcaria 8 de 12 (67%), e rótulo que vale para dois terços da plataforma não
+  informa nada. **Este é um valor calibrado contra uma
   massa fictícia de 12 profissionais**, e é dos primeiros que precisariam ser recalibrados com
   volume real.
 
@@ -270,11 +273,20 @@ Os controles de supervisão, todos exercitáveis pelo painel:
 
 | O quê | Onde |
 |---|---|
-| Pesos das seis dimensões e limiar de entrada | `sis_parametros`, editável sem deploy |
-| Limiar de "perfil em construção" | `match.early_career.min_arts` |
-| Limite de manifestações por hora | `manifestacao.limite_hora` |
-| Reprodução de qualquer sessão passada | `/admin/sessoes/{id}` — refaz o sorteio pela semente gravada e compara com a ordem registrada |
+| Pesos das seis dimensões e limiar de entrada | **`/admin/parametros`**, com a faixa aceitável declarada por campo, lote atômico e o valor anterior e o novo indo para a trilha |
+| Limiar de "perfil em construção" | `match.early_career.min_arts`, na mesma tela |
+| Limite de manifestações por hora | `manifestacao.limite_hora`, na mesma tela |
+| Quem mudou cada parâmetro, e quando | a própria tela, ao lado do campo, lido de `sis_auditoria` |
+| Reprodução de qualquer sessão passada | `/admin/sessoes/{id}`, que refaz o sorteio pela semente gravada e compara com a ordem registrada |
 | Trilha imutável de toda escrita | `sis_auditoria`, insert-only por trigger |
+| O que foi excluído, e por ordem de quem | `/admin/lixeira` (item 8.6j) |
+| Contas da plataforma, com bloqueio e desbloqueio registrados na trilha | `/admin/contas` |
+| Estado das integrações: a API oficial, o SMTP e os parâmetros de sincronização | `/admin/integracoes` (item 3 do Anexo I, "configurar integrações"). A tela **lê e configura, e não dispara chamada à API**, porque cada chamada consome cota registrada pela organização (D75) |
+
+Até 16/09 os pesos só existiam como linha no banco, e a supervisão do 12.3 era uma frase nesta
+documentação mais um `UPDATE` de quem tivesse acesso ao servidor. A tela mudou a natureza disso:
+quem altera um critério de recomendação é uma pessoa identificada, o valor anterior e o novo ficam
+na trilha, e a alteração aparece ao lado do campo na próxima vez que alguém abrir a tela.
 
 ### 7. Uso de IA na construção deste sistema
 
@@ -292,10 +304,20 @@ campo *Alternativa recusada* existe em cada entrada do registro de decisões: el
 considerado e descartado, por quem decidiu.
 
 **Com que supervisão.** Todo código gerado passou por revisão humana e pelo conjunto de
-verificação do repositório: 188 testes automatizados, verificadores por etapa que rodam contra o
-banco, e um verificador de padrão visual. Vários defeitos encontrados nesta construção — e
-registrados no histórico de commits — foram achados exatamente porque a verificação não confiou no
-que o código dizia de si mesmo.
+verificação do repositório, que `scripts/verificar-tudo.sh` roda em nove passos: 193 testes
+automatizados de unidade, a compilação das 42 telas, 72 conferências de padrão visual, quatro
+verificadores por etapa que rodam contra o banco (E1 com 80 conferências, E2 com 159, E4 com 42 e
+E6 com 70) e, desde 17/09, uma suíte de ponta a ponta que percorre os seis cenários mínimos pelo
+navegador, mais sondas de autorização com requisição forjada, uma régua de fidelidade ao desenho e
+as mesmas telas em 390px. Vários defeitos encontrados nesta construção, e registrados no histórico
+de commits, foram achados exatamente porque a verificação não confiou no que o código dizia de si
+mesmo.
+
+Dois exemplos do que só apareceu por essa desconfiança, ambos de 17/09: a marca de "perfil em
+construção" não era recalculada ao associar uma ART à mão, e ninguém tinha visto porque nenhuma
+rota chamava o método; e a evidência do art. 18 da LGPD na lixeira era desfeita pelo próprio
+script que a criava, porque ele terminava gravando a exclusão administrativa depois da exclusão do
+titular.
 
 **O que isso implica como limitação.** Código escrito com assistência de modelo de linguagem pode
 conter erros sutis que passam por revisão, como qualquer código. A mitigação adotada foi

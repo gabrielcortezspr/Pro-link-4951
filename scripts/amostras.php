@@ -15,18 +15,25 @@ declare(strict_types=1);
  * @return array<string, array<string, mixed>>  template => variáveis
  */
 
+use ProLink\Repository\IntegracaoRepository;
 use ProLink\Repository\AuditoriaRepository;
 use ProLink\Repository\CompatibilizacaoRepository;
+use ProLink\Repository\DashboardRepository;
 use ProLink\Repository\DemandaRepository;
+use ProLink\Repository\IndicadorRepository;
+use ProLink\Repository\LixeiraRepository;
 use ProLink\Repository\ManifestacaoRepository;
 use ProLink\Repository\MensagemRepository;
 use ProLink\Repository\TermoRepository;
 use ProLink\Service\BuscaService;
 use ProLink\Service\CompatibilizacaoService;
+use ProLink\Service\ContaService;
 use ProLink\Service\DemandaService;
 use ProLink\Service\DenunciaService;
 use ProLink\Service\InteressadoService;
+use ProLink\Service\LixeiraService;
 use ProLink\Service\ManifestacaoService;
+use ProLink\Service\ParametroService;
 use ProLink\Service\PerfilEmpresaService;
 use ProLink\Service\PerfilService;
 use ProLink\Service\PrivacidadeService;
@@ -55,7 +62,19 @@ return (static function (): array {
     ];
 
     $telas = [
-        'admin/index.html.twig' => ['ativo' => 'visao'],
+        // A landing não recebe variável nenhuma do controller: o que ela mostra é texto e figura.
+        // Entra aqui mesmo assim porque é a porta da aplicação, e porque o verificador só lê o
+        // HTML final das telas que estão nesta lista.
+        'home.html.twig' => [],
+
+        // A visão geral só vira tela com os indicadores: até 17/09 ela era um espaço reservado sem
+        // variável nenhuma, e por isso a entrada aqui não precisava de dado. Agora precisa, e é
+        // justamente esta tela que a parte renderizada do verificador tem de ver, porque ela
+        // imprime código de perfil e de situação, que é o que só aparece no HTML final.
+        'admin/index.html.twig' => [
+            'ativo'       => 'visao',
+            'indicadores' => (new IndicadorRepository())->resumo(),
+        ],
 
         'admin/auditoria.html.twig' => [
             'ativo'  => 'auditoria',
@@ -71,6 +90,87 @@ return (static function (): array {
             'situacao'  => null,
             'situacoes' => DenunciaService::SITUACOES,
             'tipos'     => DenunciaService::TIPOS,
+        ],
+
+        // O formulário de denúncia. Entra com o alvo já resolvido para nome, que é o estado em que
+        // o DenunciaController o renderiza: é a resolução do alvo que impede a tela de imprimir o
+        // nome da entidade, e é exatamente isso que a conferência do HTML final procura.
+        'denuncia/nova.html.twig' => [
+            'entidade'    => 'USUARIO',
+            'alvo_id'     => 10,
+            'alvo_rotulo' => 'Pedro Henrique Alves',
+            'tipos'       => DenunciaService::TIPOS,
+            'valores'     => [],
+            'erros'       => [],
+            'aviso'       => null,
+        ],
+
+        // A tela de exceção serve cinco códigos com a mesma moldura, e o catálogo monta uma tela
+        // por entrada. O caso escolhido é o 404 com mensagem específica, porque é o único que
+        // imprime texto que não está escrito no template: a frase vem do controller, e é o único
+        // ponto desta tela por onde conteúdo dinâmico chega ao HTML. O resto da tela é cópia fixa.
+        // O 500 é justamente o caso em que a mensagem recebida NÃO é impressa, então não há o que
+        // conferir nele.
+        'erro.html.twig' => [
+            'codigo'   => 404,
+            'mensagem' => 'Denúncia não encontrada.',
+        ],
+
+        // Os parâmetros do motor. Das telas do painel, é uma das que mais precisam da conferência
+        // renderizada: ela imprime a chave de sistema de propósito (quem audita quer o
+        // identificador exato) e o valor gravado de onze parâmetros, e valor só existe no HTML
+        // final. O estado de erro por campo não entra aqui: ele depende de um POST recusado, e
+        // este catálogo monta tela de leitura.
+        'admin/parametros.html.twig' => [
+            'ativo'      => 'parametros',
+            'parametros' => (new ParametroService())->listar(),
+            'erros'      => [],
+            'valores'    => [],
+            'aviso'      => '',
+        ],
+
+        // A gestão de contas. Entra aqui porque é a tela que mais imprime valor cru vindo do
+        // banco: situação (`A`/`I`/`X`), perfil de acesso e tipo de pessoa, todos de lista
+        // fechada, e todos traduzidos no template. Valor fora do mapa só aparece no HTML final.
+        'admin/contas.html.twig' => [
+            'ativo'   => 'contas',
+            'lista'   => (new ContaService())->listar(['termo' => '', 'perfil' => '', 'situacao' => ''], 1),
+            'filtros' => ['termo' => '', 'perfil' => '', 'situacao' => ''],
+            'perfis'  => PERFIS_AUTENTICADOS,
+        ],
+
+        //  Integrações: tudo vem do cache e da trilha, e nada chama a API (item 10.4). O token é
+        //  lido do ambiente e **não** entra na amostra com valor: a conferência de padrão
+        //  renderiza este HTML, e amostra com credencial dentro seria credencial num arquivo.
+        'admin/integracoes.html.twig' => [
+            'ativo'   => 'integracoes',
+            'conexao' => [
+                'base'           => API_BASE,
+                'tempo_limite'   => API_TIMEOUT,
+                'token_presente' => API_TOKEN !== '',
+                'token_tamanho'  => mb_strlen((string) API_TOKEN),
+                'ambiente'       => APP_ENV,
+            ],
+            'colecoes'    => (new IntegracaoRepository())->colecoes(),
+            'situacao'    => (new IntegracaoRepository())->situacaoDosPerfis(),
+            'importacoes' => (new IntegracaoRepository())->ultimasImportacoes(),
+            'ajustes'     => array_values(array_filter(
+                (new ParametroService())->listar(),
+                static fn (array $p): bool => str_starts_with((string) $p['par_chave'], 'api.'),
+            )),
+            'erros'   => [],
+            'valores' => [],
+            'aviso'   => '',
+        ],
+
+        // A lixeira, na entidade que sempre tem o que mostrar. As outras quatro abas renderizam o
+        // mesmo template: o que muda entre elas é a coluna de classificação, que some quando a
+        // entidade não tem uma, e quem decide isso é o template, não o dado.
+        'admin/lixeira.html.twig' => [
+            'ativo'     => 'lixeira',
+            'lixeira'   => (new LixeiraService())->visao('sis_usuarios', 1),
+            'entidades' => LixeiraRepository::ENTIDADES,
+            'erros'     => [],
         ],
     ];
 
@@ -180,6 +280,51 @@ return (static function (): array {
         'titulo'   => 'Demandas abertas',
         'demandas' => (new DemandaRepository())->abertas(),
     ];
+
+    // As duas telas de Início. Sem sessão HTTP o `usuario()` do Twig devolve nulo e o shell de
+    // barra lateral não chega a ser montado: o que esta entrada confere é o corpo da tela, que é
+    // onde mora o dado. A barra em si é conferida no navegador, logado.
+    //
+    // O profissional e o demandante escolhidos são os que têm dado: conta vazia renderiza os
+    // mesmos blocos com zero, e o estado vazio já é exercitado pelas outras telas.
+    $umProfissional = $pdo->query(
+        'SELECT p.prf_usu_id
+           FROM pro_profissionais p
+           JOIN pro_manifestacoes m ON m.man_usu_id = p.prf_usu_id AND m.man_status = \'A\'
+       GROUP BY p.prf_usu_id
+       ORDER BY COUNT(m.man_id) DESC
+          LIMIT 1'
+    )->fetchColumn();
+
+    $umDemandante = $pdo->query(
+        'SELECT dem_usu_id FROM pro_demandas
+          WHERE dem_status = \'A\'
+       GROUP BY dem_usu_id
+       ORDER BY COUNT(dem_id) DESC
+          LIMIT 1'
+    )->fetchColumn();
+
+    $dashboard     = new DashboardRepository();
+    $demandaRepo   = new DemandaRepository();
+    $manifestaRepo = new ManifestacaoRepository();
+
+    if ($umProfissional !== false) {
+        $telas['inicio/profissional.html.twig'] = [
+            'titulo'   => 'Início',
+            'numeros'  => $dashboard->doProfissional((int) $umProfissional),
+            'demandas' => array_slice($demandaRepo->abertas(10), 0, 5),
+            'enviadas' => array_slice($manifestaRepo->doUsuario((int) $umProfissional), 0, 5),
+        ];
+    }
+
+    if ($umDemandante !== false) {
+        $telas['inicio/demandante.html.twig'] = [
+            'titulo'       => 'Início',
+            'numeros'      => $dashboard->daEmpresa((int) $umDemandante),
+            'demandas'     => array_slice($demandaRepo->doUsuario((int) $umDemandante), 0, 5),
+            'tem_registro' => true,
+        ];
+    }
 
     // A busca ativa, do ponto de vista de quem não tem conta: é o alcance mais restrito e o mais
     // exposto, já que esta é a única tela aberta ao perfil Público. Espectador nulo é o anônimo,

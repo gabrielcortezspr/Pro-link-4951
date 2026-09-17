@@ -21,6 +21,7 @@ use ProLink\Controller\CompativelController;
 use ProLink\Controller\DemandaController;
 use ProLink\Controller\DenunciaController;
 use ProLink\Controller\HomeController;
+use ProLink\Controller\InicioController;
 use ProLink\Controller\ManifestacaoController;
 use ProLink\Controller\PerfilController;
 use ProLink\Controller\PrivacidadeController;
@@ -66,6 +67,10 @@ $router->post('/sair',                AuthController::class, 'sair', PERFIS_AUTE
 // campo a campo é a Visao, pelo alcance de Visibilidade::alcanceDe().
 $router->get('/profissionais', BuscaController::class, 'profissionais', PERFIL_PUBLICO);
 
+// O "Início" de quem está logado, primeira entrada da barra lateral nos mockups. A landing
+// em `/` continua pública: quem já entrou não precisa do discurso de venda.
+$router->get('/inicio',               InicioController::class, 'index', PERFIS_AUTENTICADOS);
+
 $router->get('/perfil',                       PerfilController::class, 'index', PERFIS_AUTENTICADOS);
 $router->post('/perfil/visibilidade',        PerfilController::class, 'definirVisibilidade', PERFIS_AUTENTICADOS);
 // Um caminho só para os dois perfis que têm registro no conselho: o controller despacha pelo
@@ -78,9 +83,9 @@ $router->post('/perfil/preferencias',        PerfilController::class, 'salvarPre
 
 // Experiência autodeclarada (RF03). Só o profissional tem: `exp_prf_id` referencia
 // pro_profissionais, porque quem tem trajetória é a pessoa — a empresa tem quadro técnico.
-$router->post('/perfil/experiencias',                 PerfilController::class, 'criarExperiencia', PERFIL_PROFISSIONAL);
-$router->post('/perfil/experiencias/{id}',            PerfilController::class, 'editarExperiencia', PERFIL_PROFISSIONAL);
-$router->post('/perfil/experiencias/{id}/excluir',    PerfilController::class, 'excluirExperiencia', PERFIL_PROFISSIONAL);
+$router->post('/perfil/experiencias',                 PerfilController::class, 'criarExperiencia', PERFIS_COM_REGISTRO_CREA);
+$router->post('/perfil/experiencias/{id}',            PerfilController::class, 'editarExperiencia', PERFIS_COM_REGISTRO_CREA);
+$router->post('/perfil/experiencias/{id}/excluir',    PerfilController::class, 'excluirExperiencia', PERFIS_COM_REGISTRO_CREA);
 
 // Perfil de outra pessoa. Depois das rotas literais acima, porque {id} casaria 'visibilidade'
 // antes delas. PerfilService::montar() já recebe o espectador e filtra pela Visao: quem não é o
@@ -109,6 +114,8 @@ $router->post('/demandas/{id}/encerrar', DemandaController::class, 'encerrar', P
 // POST manda calcular outra — ver CompativelController.
 $router->get('/demandas/{id}/compativeis',  CompativelController::class, 'index',     PERFIS_DEMANDANTES);
 $router->post('/demandas/{id}/compativeis', CompativelController::class, 'atualizar', PERFIS_DEMANDANTES);
+// O caminho inverso do Anexo I item 3: o demandante registra interesse num candidato.
+$router->post('/demandas/{id}/interesse',  CompativelController::class, 'registrarInteresse', PERFIS_DEMANDANTES);
 
 // ---------------------------------------------------------------- manifestação (RF05)
 // Quem manifesta é o candidato, e candidato sai de crea_evidencias, que deriva de ART: Terceiro
@@ -135,6 +142,18 @@ $router->get('/admin',                AdminController::class, 'index', PERFIL_AD
 $router->get('/admin/denuncias',      AdminController::class, 'denuncias', PERFIL_ADMIN);
 $router->get('/admin/auditoria',      AdminController::class, 'auditoria', PERFIL_ADMIN);
 $router->get('/admin/sessoes',        AdminController::class, 'sessoes', PERFIL_ADMIN);
+// Supervisão humana dos critérios do motor (edital 12.3): quem muda um peso fica na trilha.
+$router->get('/admin/parametros',     AdminController::class, 'parametros', PERFIL_ADMIN);
+$router->post('/admin/parametros',    AdminController::class, 'salvarParametros', PERFIL_ADMIN);
+// Lixeira do item 8.6j: o excluído continua acessível pelo mecanismo administrativo.
+$router->get('/admin/integracoes',    AdminController::class, 'integracoes', PERFIL_ADMIN);
+$router->post('/admin/integracoes',   AdminController::class, 'salvarIntegracoes', PERFIL_ADMIN);
+$router->get('/admin/lixeira',        AdminController::class, 'lixeira', PERFIL_ADMIN);
+$router->post('/admin/lixeira',       AdminController::class, 'restaurar', PERFIL_ADMIN);
+// Gestão de contas (Anexo I item 3, "gerir perfis"): bloquear fora do fluxo de denúncia.
+$router->get('/admin/contas',         AdminController::class, 'contas', PERFIL_ADMIN);
+$router->post('/admin/contas/{id}/bloquear',   AdminController::class, 'bloquearConta', PERFIL_ADMIN);
+$router->post('/admin/contas/{id}/desbloquear', AdminController::class, 'desbloquearConta', PERFIL_ADMIN);
 // Depois da rota sem parâmetro, pelo mesmo motivo das denúncias: o Router percorre na ordem de
 // registro e {id} casaria 'sessoes' antes.
 $router->get('/admin/sessoes/{id}',   AdminController::class, 'sessao', PERFIL_ADMIN);
@@ -201,9 +220,10 @@ try {
     // sete objetos, o serviço de notificação incluído, e o roteador não tem o que fazer com
     // nenhum deles para responder uma pergunta de uma linha.
     if (Sessao::autenticado()) {
-        $token = Sessao::tokenServidor();
+        $token  = Sessao::tokenServidor();
+        $viva   = $token === null ? null : (new SessaoRepository())->ativa($token);
 
-        if ($token === null || (new SessaoRepository())->ativa($token) === null) {
+        if ($viva === null) {
             Sessao::reiniciar();
             Flash::aviso('Sua sessão foi encerrada. Entre novamente.');
 
@@ -212,6 +232,29 @@ try {
             // monitoramento por um motivo que não é dele.
             if (!Router::ehPublica($rota['perfis'])) {
                 View::redirecionar('/login');
+            }
+        } else {
+            // O perfil também é reconferido, e não só a existência da sessão. `$_SESSION` guarda
+            // uma cópia feita no login, e enquanto ninguém a comparasse com o banco, mudança de
+            // papel só valia no login seguinte: uma conta rebaixada para Terceiro continuava
+            // alcançando rota de Profissional com a sessão que já tinha. Medido com requisição
+            // forjada em 17/09 (OWASP A01), e a consulta que descobre isso é a mesma de cima.
+            //
+            // A sessão é atualizada, e não derrubada: o rebaixamento acontece quando a própria
+            // pessoa manda revalidar o registro, e encerrar a sessão dela ali seria punir o ato de
+            // conferir. A autorização passa a usar o perfil corrente, que é o que importa.
+            $anterior = Sessao::trocarPerfil((string) $viva['per_codigo']);
+
+            if ($anterior !== null) {
+                Auditoria::registrar(
+                    Auditoria::EDITAR,
+                    'sis_usuarios',
+                    (int) $viva['ses_usu_id'],
+                    'usu_per_id',
+                    $anterior,
+                    (string) $viva['per_codigo'],
+                    (int) $viva['ses_usu_id'],
+                );
             }
         }
     }

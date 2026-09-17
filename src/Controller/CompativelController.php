@@ -6,6 +6,7 @@ namespace ProLink\Controller;
 
 use ProLink\Service\CompatibilizacaoService;
 use ProLink\Service\DemandaService;
+use ProLink\Service\ManifestacaoService;
 use ProLink\Service\ValidacaoException;
 use ProLink\Support\Flash;
 use ProLink\Support\Requisicao;
@@ -32,6 +33,7 @@ final class CompativelController
     public function __construct(
         private readonly DemandaService $demandas = new DemandaService(),
         private readonly CompatibilizacaoService $motor = new CompatibilizacaoService(),
+        private readonly ManifestacaoService $manifestacoes = new ManifestacaoService(),
     ) {
     }
 
@@ -77,5 +79,36 @@ final class CompativelController
 
         Flash::sucesso('Lista atualizada. A ordem é sorteada a cada consulta.');
         View::redirecionar('/demandas/' . (int) $id . '/compativeis');
+    }
+
+    /**
+     * O demandante registra interesse num candidato do pool (Anexo I, item 3).
+     *
+     * O feed era declaradamente passivo: quem publicava a demanda via o compatível e não tinha o
+     * que fazer com ele além de esperar. O Anexo I dá ao Terceiro, e por consequência a todo
+     * demandante, o direito de "registrar interesse em profissional ou empresa", e este é o
+     * caminho.
+     *
+     * As guardas moram no serviço, inclusive a de que a demanda é de quem age.
+     */
+    public function registrarInteresse(string $id): never
+    {
+        try {
+            $this->manifestacoes->registrarInteresse(
+                (int) Sessao::usuarioId(),
+                (int) $id,
+                (int) ($_POST['candidato'] ?? 0),
+                (string) ($_POST['mensagem'] ?? ''),
+            );
+        } catch (ValidacaoException $e) {
+            Flash::erro($e->getMessage());
+            View::redirecionar('/demandas/' . (int) $id . '/compativeis');
+        }
+
+        Flash::sucesso(
+            'Interesse registrado. A pessoa foi avisada por e-mail e pode responder por aqui. '
+            . 'O perfil dela ficou guardado como estava agora.'
+        );
+        View::redirecionar('/demandas/' . (int) $id . '/interessados');
     }
 }

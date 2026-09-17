@@ -1,0 +1,362 @@
+{% extends 'admin/_layout.html.twig' %}
+{% import 'layout/_ui.html.twig' as ui %}
+
+{#
+    Parâmetros do sistema (RF06; Anexo I, item 3; edital 12.3, supervisão humana).
+
+    Enquanto os pesos do motor só existiram como linha em sis_parametros, a supervisão humana era
+    uma frase na documentação e um UPDATE no banco. Esta tela é o que a transforma em ato: quem
+    muda um critério é uma pessoa identificada, o valor anterior e o novo ficam na trilha, e a
+    mudança aparece na próxima sessão do motor com a semente gravada ao lado.
+
+    A unidade de leitura NÃO é um parâmetro: são os seis pesos das dimensões, que só significam
+    alguma coisa lidos em conjunto. Por isso eles abrem a tela, agrupados pelo que os separa de
+    verdade (dado conferido na API contra dado que a pessoa declarou), com a composição gravada ao
+    lado em barras. O resto da tela é ajuste fino: a escada de afinidade do código da Tabela de
+    Obras e Serviços, os dois números que decidem quem entra no conjunto avaliado, e os dois de
+    operação da plataforma.
+
+    Primário   os seis pesos e a proporção entre eles.
+    Secundário os cinco demais parâmetros, cada um com a faixa que aceita.
+    Terciário  a chave de sistema de cada um, que é o que quem audita quer ver escrito.
+
+    Um formulário só, um botão só: o serviço grava o lote de forma atômica, e um valor fora da
+    faixa reprova todos. Onze formulários independentes prometeriam uma gravação parcial que o
+    servidor não faz.
+
+    O que esta tela não faz: não soma os pesos para chegar a 1, e não diz em lugar nenhum que eles
+    precisam somar. O motor divide pela soma dos pesos das dimensões presentes em cada candidato,
+    e é isso que faz dimensão ausente não penalizar ninguém.
+#}
+
+{% block titulo %}Parâmetros · Pro-Link{% endblock %}
+{% block titulo_painel %}Parâmetros{% endblock %}
+
+{% block topbar_acoes %}
+    {#  O tamanho da superfície aberta à Administração, que é o que o item 12.3 trata: parâmetro
+        fora desta lista fechada não é editável por tela nenhuma, nem por esta. #}
+    <span class="pl-momento">
+        {{ parametros|length }} {{ parametros|length == 1 ? 'parâmetro aberto' : 'parâmetros abertos' }} à Administração
+    </span>
+    {{ ui.info('Quem muda estes números, e o que fica registrado',
+        'Só o perfil de Administração alcança esta tela. Cada alteração entra na trilha de auditoria com o nome de quem fez, a data, o valor anterior e o valor novo, e passa a valer da próxima sessão de compatibilização em diante. É a supervisão humana sobre os critérios de recomendação que o item 12.3 do edital exige.', 'fim') }}
+{% endblock %}
+
+{#
+    Uma linha de parâmetro: o que ele faz, a chave de sistema, a faixa que aceita, e o campo.
+
+    O rótulo é a descrição escrita para gente (par_descricao), nunca a chave: "match.peso.
+    competencia" é identificador, e identificador não é nome de campo (Support\Rotulos). A chave
+    continua na tela, em texto terciário, porque quem audita quer o identificador exato e não uma
+    tradução dele.
+
+    Parâmetro fora da lista fechada de Support\Parametros chega com editavel = false: aqui ele
+    aparece como valor, não como campo. O formulário aceita de volta só o que ele mesmo desenhou.
+#}
+
+
+{% block painel %}
+
+    {% import 'admin/_parametro.html.twig' as par %}
+
+    {#  Índice por chave, para a tela montar os grupos na ordem que significa alguma coisa em vez
+        da ordem alfabética em que o repositório devolve. #}
+    {% set por_chave = parametros|reduce((mapa, p) => mapa|merge({(p.par_chave): p}), {}) %}
+
+    {#  As seis dimensões do item 3.2, na ordem de docs/matching.md: primeiro as três que saem de
+        documento conferido na API do CREA, depois as três que o próprio titular declara. A ordem é
+        fixa no template e nunca vem do tamanho do peso, que faria a tela remontar a cada
+        recalibração. #}
+    {% set verificadas    = ['competencia', 'area', 'localizacao'] %}
+    {% set autodeclaradas = ['experiencia', 'contrato', 'disponibilidade'] %}
+
+    {% set chave_niveis = 'match.afinidade.niveis' %}
+
+    {#  Somas por família. Não são "o total dos pesos" nem uma porcentagem do todo: são os dois
+        números que traduzem o compromisso de evidência da proposta, e é por isso que aparecem. #}
+    {% set soma_verificadas = verificadas|reduce((s, d) =>
+        s + por_chave['match.peso.' ~ d].par_valor|default(0), 0) %}
+    {% set soma_declaradas = autodeclaradas|reduce((s, d) =>
+        s + por_chave['match.peso.' ~ d].par_valor|default(0), 0) %}
+
+    {#  Tudo que os quatro grupos abaixo já mostram. Parâmetro novo no banco cai no grupo final em
+        vez de sumir da tela: sumir seria a Administração não saber que existe um critério que ela
+        não vê. #}
+    {% set conhecidas = [
+        'match.peso.competencia', 'match.peso.area', 'match.peso.localizacao',
+        'match.peso.experiencia', 'match.peso.contrato', 'match.peso.disponibilidade',
+        chave_niveis, 'match.limiar', 'match.early_career.min_arts',
+        'api.sincronizacao.horas', 'api.sincronizacao.lote', 'manifestacao.limite_hora'
+    ] %}
+    {% set restantes = parametros|filter(p => p.par_chave not in conhecidas) %}
+
+    {# ------------------------------------------------------------ o lote recusado #}
+    {% if aviso %}
+        <div class="alert alert-danger pl-lote" role="alert">
+            <p class="t">{{ aviso }}</p>
+            <ul>
+                {% for chave, mensagem in erros %}
+                    <li>
+                        {% if por_chave[chave] is defined %}
+                            <a href="#par-{{ chave|replace({'.': '-', '_': '-'}) }}">{{ por_chave[chave].par_descricao }}</a>
+                        {% else %}
+                            {#  Chave que não existe no banco só chega aqui por envio adulterado.
+                                O nome dela não vira texto de tela: ela não é parâmetro nenhum. #}
+                            <span>Um campo que não pertence a esta tela</span>
+                        {% endif %}
+                        <span aria-hidden="true">·</span> {{ mensagem }}
+                    </li>
+                {% endfor %}
+            </ul>
+            <p class="s">
+                Nada foi gravado. O lote é atômico: um valor fora do aceitável reprova os
+                {{ parametros|length }}, porque meia gravação deixaria o motor num estado que
+                ninguém pediu.
+            </p>
+        </div>
+    {% endif %}
+
+    <form method="post" action="{{ app_url }}/admin/parametros">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+
+        {#  As duas colunas dividem a altura: a esquerda tem seis campos e a direita, seis barras
+            e duas somas, e na altura natural elas terminavam com 200px de diferença. #}
+        <div class="pl-cols pl-par-topo">
+
+            {# ------------------------------------------------------ os seis pesos #}
+            <section class="pl-card" aria-labelledby="h-pesos">
+                <div class="pl-linha-titulo">
+                    <h2 class="pl-secao" id="h-pesos">Peso das seis dimensões</h2>
+                    {{ ui.info('Como o peso entra na conta',
+                        'Cada dimensão recebe uma nota de aderência entre 0 e 1 para aquele candidato naquela demanda, e o peso diz quanto ela conta na composição. Dimensão sem dado sai da média em vez de contar zero, e a soma dos pesos usada na conta é a das dimensões presentes, não a dos seis. Peso zero desliga a dimensão.') }}
+                </div>
+
+                <p class="pl-nota">
+                    A diferença entre os dois grupos é a tese do projeto: dado conferido na API do
+                    CREA pesa mais que dado que a própria pessoa declarou. Mexer aqui muda o
+                    critério de recomendação da plataforma inteira.
+                </p>
+
+                <div class="pl-par">
+                    <p class="pl-grp">Conferido na API do CREA</p>
+                    {% for d in verificadas %}
+                        {% set p = por_chave['match.peso.' ~ d]|default(null) %}
+                        {% if p %}{{ par.campo(p, erros, valores) }}{% endif %}
+                    {% endfor %}
+
+                    <p class="pl-grp">Declarado pelo próprio titular</p>
+                    {% for d in autodeclaradas %}
+                        {% set p = por_chave['match.peso.' ~ d]|default(null) %}
+                        {% if p %}{{ par.campo(p, erros, valores) }}{% endif %}
+                    {% endfor %}
+                </div>
+            </section>
+
+            {# ------------------------------------------------------ a composição gravada #}
+            {#  Mesma forma do quadro "Parâmetros desta execução" da tela de sessão, e de
+                propósito: é a mesma informação no presente. Se as duas telas desenhassem o mesmo
+                número de jeitos diferentes, o painel pareceria duas aplicações.
+
+                As barras mostram o valor GRAVADO, não o que está digitado ao lado: elas mudam
+                depois de salvar. Barra que seguisse o campo exigiria script, e script que desenha
+                número é mais uma coisa para divergir do que o servidor gravou. #}
+            <aside class="pl-card pl-param" aria-labelledby="h-vigente">
+                <div class="pl-linha-titulo">
+                    <h2 class="pl-secao" id="h-vigente">Como o motor está hoje</h2>
+                </div>
+
+                <div class="grupo">
+                    <p class="rot">Conferido na API do CREA</p>
+                    {% for d in verificadas %}
+                        {% set p = por_chave['match.peso.' ~ d]|default(null) %}
+                        {% if p %}
+                            <div class="pl-dim">
+                                <span class="dlab">{{ d|rotulo_dimensao }}</span>
+                                <span class="pl-bar"><span style="width: {{ (p.par_valor * 100)|round }}%"></span></span>
+                                <span class="pct">{{ (p.par_valor * 100)|round }}%</span>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                    <p class="tot">Somam <b>{{ soma_verificadas|number_format(2, ',', '.') }}</b></p>
+                </div>
+
+                <div class="grupo">
+                    <p class="rot">Declarado pelo próprio titular</p>
+                    {% for d in autodeclaradas %}
+                        {% set p = por_chave['match.peso.' ~ d]|default(null) %}
+                        {% if p %}
+                            <div class="pl-dim">
+                                <span class="dlab">{{ d|rotulo_dimensao }}</span>
+                                <span class="pl-bar"><span style="width: {{ (p.par_valor * 100)|round }}%"></span></span>
+                                <span class="pct">{{ (p.par_valor * 100)|round }}%</span>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                    <p class="tot">Somam <b>{{ soma_declaradas|number_format(2, ',', '.') }}</b></p>
+                </div>
+
+                <span class="sem">
+                    Os pesos não precisam somar nenhum valor em especial. O motor divide pela soma
+                    dos pesos das dimensões que aquele candidato tem, e é isso que faz um perfil
+                    sem dado declarado não ser penalizado por isso.
+                </span>
+            </aside>
+
+        </div>
+
+        {# ------------------------------------------------------------ a escada de afinidade #}
+        {% set niveis = por_chave[chave_niveis]|default(null) %}
+        {% if niveis %}
+            {% set erro_niveis = erros[chave_niveis]|default(null) %}
+            {% set enviados    = valores[chave_niveis]|default(null) %}
+            {#  O serviço aceita tanto os cinco campos quanto a forma gravada num campo só. São
+                cinco: cada posição é uma pergunta diferente, e um texto "[0.00,0.15,0.40,0.75,
+                1.00]" obrigaria a contar vírgula para saber qual é qual.
+
+                Do POST eles voltam como lista de 0 a 4; do banco, como texto entre colchetes.
+                Índice ausente cai em branco em vez de estourar, que é o que acontece quando chega
+                um envio com menos de cinco. #}
+            {% set atuais = enviados is iterable
+                ? enviados
+                : niveis.par_valor|trim('[]')|split(',') %}
+
+            {% set escada = [
+                {'t': 'Nenhum componente', 's': 'áreas distintas'},
+                {'t': 'Um componente',     's': 'só o grupo em comum'},
+                {'t': 'Dois componentes',  's': 'mesmo subgrupo, atividade diferente'},
+                {'t': 'Três componentes',  's': 'mesma obra ou serviço, material diferente'},
+                {'t': 'Código idêntico',   's': 'mesma atividade, mesmo material'}
+            ] %}
+
+            <section class="pl-card" aria-labelledby="h-niveis">
+                <div class="pl-linha-titulo">
+                    <h2 class="pl-secao" id="h-niveis">Afinidade do código da Tabela de Obras e Serviços</h2>
+                    {{ ui.info('O que é um componente do código',
+                        'O código da Tabela de Obras e Serviços é a própria hierarquia da atividade: grupo, subgrupo, obra ou serviço e, quando existe, o complemento. A afinidade entre a atividade da demanda e a do acervo é quantos desses componentes coincidem do começo do código para a frente, e é ela que alimenta a dimensão de competência técnica. Não há análise de texto nem tabela de sinônimos.') }}
+                </div>
+
+                <p class="pl-nota">
+                    Quanto vale cada grau de coincidência entre a atividade da demanda e a atividade
+                    registrada na ART. Cada valor vai de 0 a 1 e precisa valer pelo menos o mesmo
+                    que o anterior: mais coincidência de código valendo menos que menos
+                    coincidência inverteria o motor sem nada quebrar na tela.
+                </p>
+
+                <div class="pl-niveis">
+                    {% for i, degrau in escada %}
+                        {% set atual = atuais[i]|default('') %}
+                        <div class="nv">
+                            <label for="nivel-{{ i }}">
+                                <span class="t">{{ degrau.t }}</span>
+                                <span class="s">{{ degrau.s }}</span>
+                            </label>
+                            <input type="number" id="nivel-{{ i }}"
+                                   name="parametro[{{ chave_niveis }}][]"
+                                   class="form-control{% if erro_niveis %} is-invalid{% endif %}"
+                                   value="{{ (atual is iterable ? '' : atual)|trim|replace({',': '.'}) }}"
+                                   min="0" max="1" step="0.05" inputmode="decimal"
+                                   {% if erro_niveis %}aria-invalid="true" aria-describedby="niveis-erro"{% endif %}>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                {#  Mesma linha de apoio do campo de parâmetro, pela mesma razão: procedência e
+                    chave empilhadas repetiam a pilha de textos que a linha de cima já abandonou. #}
+                <div class="meta pl-niveis-meta">
+                    {{ par.procedencia(niveis.ultima_alteracao|default(null)) }}
+                    <p class="ch"><span class="k">{{ chave_niveis }}</span></p>
+                </div>
+
+                {% if erro_niveis %}
+                    <p class="msg" id="niveis-erro">{{ erro_niveis }}</p>
+                {% endif %}
+            </section>
+        {% endif %}
+
+        {# ------------------------------------------------------ o ajuste fino, numa lista só
+
+            Foram duas colunas, e a assimetria era do conteúdo, não do CSS: um assunto tem dois
+            campos e o outro tem um, então metade da fileira era vão, com um filete descendo pelo
+            meio do nada. Grade nenhuma conserta coluna que não tem o que pôr.
+
+            Aqui os três campos entram na MESMA lista do quadro dos pesos, que é a forma que esta
+            tela já usa duas telas acima: um rótulo de grupo, a nota daquele grupo, e os campos
+            dele, na largura inteira do quadro. É também a forma de /admin/integracoes, que é o
+            padrão mais recente do painel. Uma medida de linha só na tela, e nenhum vão. #}
+        <section class="pl-card" aria-labelledby="h-limites">
+
+            <div class="pl-linha-titulo">
+                <h2 class="pl-secao" id="h-limites">Limites do motor e da plataforma</h2>
+            </div>
+
+            <div class="pl-par">
+
+                <p class="pl-grp">Entrada no conjunto avaliado</p>
+                <p class="pl-nota grp">
+                    Os dois números que decidem quem o motor devolve, e como um perfil de início de
+                    carreira é sinalizado. Nenhum dos dois ordena pessoa: o primeiro é um corte, o
+                    segundo é uma marca no perfil, e quem recebe a marca continua no conjunto em
+                    igualdade com os demais.
+                </p>
+
+                {% set p = por_chave['match.limiar']|default(null) %}
+                {% if p %}{{ par.campo(p, erros, valores) }}{% endif %}
+
+                {% set p = por_chave['match.early_career.min_arts']|default(null) %}
+                {% if p %}{{ par.campo(p, erros, valores, 'ARTs') }}{% endif %}
+
+                <p class="pl-grp">Operação da plataforma</p>
+                <p class="pl-nota grp">
+                    O limite que protege o outro lado da manifestação de interesse. O que ajusta a
+                    conversa com a API oficial mora em
+                    <a href="{{ app_url }}/admin/integracoes">Integrações</a>, junto do estado da
+                    conexão: um mesmo controle em duas telas seria duas verdades sobre a mesma
+                    coisa.
+                </p>
+
+                {% set p = por_chave['manifestacao.limite_hora']|default(null) %}
+                {% if p %}{{ par.campo(p, erros, valores) }}{% endif %}
+
+            </div>
+
+        </section>
+
+        {# ------------------------------------------------------------ o que ainda não tem grupo #}
+        {% if restantes|length %}
+            <section class="pl-card" aria-labelledby="h-restantes">
+                <div class="pl-linha-titulo">
+                    <h2 class="pl-secao" id="h-restantes">Demais parâmetros</h2>
+                </div>
+                <p class="pl-nota">
+                    Registrados no banco e ainda sem lugar próprio nesta tela. Aparecem aqui para
+                    que nenhum critério da plataforma fique fora do alcance de quem a supervisiona.
+                </p>
+                <div class="pl-par">
+                    {% for p in restantes %}{{ par.campo(p, erros, valores) }}{% endfor %}
+                </div>
+            </section>
+        {% endif %}
+
+        {# ------------------------------------------------------------ salvar, e o que isso causa #}
+        {#  A consequência fica no momento da ação, visível e curta, nunca atrás do "i" (D53): é o
+            que prova que a supervisão do item 12.3 é um ato registrado, e não um campo de
+            configuração qualquer. A barra acompanha a rolagem porque o lote é um só: o botão
+            governa os onze campos, e ele não pode estar a três telas de distância do primeiro. #}
+        <div class="pl-card pl-salvar">
+            <p class="pl-consequencia">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.6v.2M12 11v5.4"/></svg>
+                <span>
+                    O valor novo vale da próxima sessão de compatibilização em diante. As sessões já
+                    gravadas continuam com os pesos que usaram, e cada alteração entra na trilha de
+                    auditoria com o valor anterior e o novo.
+                </span>
+            </p>
+            <div class="acoes">
+                <a class="pl-btn" href="{{ app_url }}/admin/auditoria?acao=EDITAR">Ver as alterações na trilha</a>
+                <button type="submit" class="pl-cta">Salvar parâmetros</button>
+            </div>
+        </div>
+
+    </form>
+
+{% endblock %}

@@ -933,7 +933,11 @@ textarea.form-control { min-height: 0; }
    preciso"; terciário o que ela mesma declarou.
 
    É também a única tela aberta a quem não tem conta, e é a que mais precisa funcionar sem
-   JavaScript: tudo aqui é um formulário GET. */
+   JavaScript: tudo aqui é um formulário GET.
+
+   O desenho do cartão e da barra de busca mudou para o do mockup e mora na seção 28. Aqui ficou
+   o que a seção 28 não redesenhou: a medida da grade, a resposta ao ponteiro, o aviso de corte e
+   o convite a quem não tem conta. */
 
 /* Cartão de pessoa é mais largo que cartão de demanda: o nome do grupo da Tabela de Obras e
    Serviços chega a 50 caracteres, e a 330px sobrava uma palavra por chip. */
@@ -948,77 +952,9 @@ textarea.form-control { min-height: 0; }
     .pl-grade.pessoas > .pl-card { transition: none; }
 }
 
-.pl-prof { display: flex; flex-direction: column; gap: 12px; flex: 1; min-width: 0; }
-.pl-prof .id { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
-.pl-prof .nm { min-width: 0; flex: 1; }
 /* A mesma marca de pessoa do feed, na escala de lista. */
 .pl-av.sm { width: 42px; height: 42px; border-radius: 13px; font-size: 14px;
     box-shadow: 0 6px 14px rgba(19,49,90,.18); }
-.pl-prof .tt { font-family: var(--pl-display); font-weight: 600; font-size: 15.5px;
-    line-height: 1.3; letter-spacing: -.01em; color: var(--pl-ink); text-decoration: none;
-    overflow-wrap: anywhere; }
-.pl-prof .tt:hover { color: var(--pl-blue); text-decoration: none; }
-.pl-prof .tt:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 3px;
-    border-radius: 6px; }
-.pl-prof .reg { margin: 3px 0 0; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 7px;
-    font-size: 12px; color: var(--pl-muted); }
-.pl-prof .reg .pl-mono { font-size: 11.5px; }
-/* O selo acompanha texto de 12px aqui, não de 14px: no tamanho cheio ele pesava mais que o
-   registro que qualifica. */
-.pl-prof .reg .pl-mark { width: 14px; height: 14px; vertical-align: -2px; }
-
-/* Acervo verificado: o selo cola no número que ele qualifica, nunca vira tarja nem coluna. */
-.pl-prof .ac { margin: 0; display: flex; align-items: center; gap: 7px; font-size: 13px;
-    color: var(--pl-ink); }
-.pl-prof .ac .sec { color: var(--pl-muted); }
-
-/* Áreas com acervo: chip com teto de largura e o nome inteiro no title. Sem o teto, um grupo de
-   50 caracteres definia sozinho a largura da coluna da grade. */
-.pl-prof .pl-chips { gap: 5px; }
-/* min-width: 0 no item: sem ele o item de flex nunca encolhe abaixo do próprio texto, e o chip
-   vazaria a largura do cartão em vez de cortar com reticências. */
-.pl-prof .pl-chips > li { min-width: 0; max-width: 100%; }
-.pl-prof .pl-tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    display: block; font-size: 11.5px; padding: 3px 9px; }
-.pl-prof .mais { display: inline-flex; align-items: center; font-size: 11.5px;
-    color: var(--pl-muted); }
-
-/* Informado pelo titular. Separado do acervo por um filete, nunca misturado com ele: é a mesma
-   distinção entre verificado e declarado que o resto da interface faz com o selo.
-
-   O bloco inteiro some quando nada foi aberto para quem está olhando. Campo nulo aqui não quer
-   dizer "não preencheu", quer dizer "não abriu para você", e escrever "Não informado" seria
-   afirmar na tela algo falso sobre a pessoa. */
-.pl-prof .dec { padding-top: 11px; border-top: 1px solid var(--pl-border-2); }
-.pl-prof .dec .rot { margin: 0 0 6px; display: flex; align-items: center; gap: 6px;
-    font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
-    color: var(--pl-faint); }
-.pl-prof .dec .rot .pl-mark { width: 13px; height: 13px; }
-/* Texto escrito pela própria pessoa: duas linhas e corta, senão um resumo longo define a altura
-   de toda a fileira da grade. */
-.pl-prof .dec .rs { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--pl-muted);
-    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.pl-prof .dec .pf { margin: 6px 0 0; display: flex; align-items: center; flex-wrap: wrap;
-    gap: 4px 7px; font-size: 12px; color: var(--pl-ink); }
-.pl-prof .dec .pf .k { color: var(--pl-muted); }
-.pl-prof .dec .rs + .pf { margin-top: 8px; }
-
-.pl-prof .pe { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--pl-border-2);
-    display: flex; align-items: center; gap: 10px; }
-
-/* Barra de busca: campo, ação e a opção que muda o recorte. Duas linhas porque a opção tem texto
-   de apoio, e apoio embaixo de caixa quebra o alinhamento pela linha de base da primeira. */
-.pl-busca-topo { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
-.pl-busca-topo .cx { flex: 1; min-width: 260px; }
-.pl-busca-topo .form-label { margin-bottom: 6px; }
-.pl-busca-topo .pl-btn { height: 44px; padding: 0 20px; }
-.pl-busca-op { display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap;
-    margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--pl-border-2); }
-.pl-busca-op .form-check { margin: 0; padding: 0; display: flex; align-items: center; gap: 8px;
-    min-height: 0; }
-.pl-busca-op .form-check-input { margin: 0; float: none; flex: none; }
-.pl-busca-op .form-check-label { font-size: 13px; font-weight: 600; }
-.pl-busca-op .nota { margin: 0; font-size: 12px; color: var(--pl-muted); }
 
 /* Lista cortada pelo teto. Cortar em silêncio é o jeito de alguém concluir que a plataforma não
    tem ninguém naquela busca, então o aviso tem peso de aviso e vem antes da grade. */
@@ -1036,11 +972,6 @@ textarea.form-control { min-height: 0; }
     color: var(--pl-muted); }
 .pl-convite a { font-weight: 600; }
 .pl-convite .pl-sep { margin: 0 5px; vertical-align: middle; }
-
-@media (max-width: 720px) {
-    .pl-busca-topo .pl-btn { flex: 1; }
-    .pl-convite { max-width: none; }
-}
 
 /* ---------- 21. Auditoria de sessões do motor: a lista e a reprodução ----------
    Duas telas do painel. Na lista, a unidade de leitura é UMA execução do motor: quando ela
@@ -1305,3 +1236,2937 @@ textarea.form-control { min-height: 0; }
    nenhuma cor de alerta. O que precisa saltar é o conteúdo do envio, não um aviso vermelho sobre
    uma escolha legítima de privacidade. */
 .pl-envio.vazio { border-color: var(--pl-faint); }
+
+/* ---------- 23. Visão geral do painel: o trabalho na mesa, e o tamanho da operação ----------
+   A tela tinha quatro tiles iguais dizendo "Não medido" e um aviso de prazo embaixo. Quatro caixas
+   de mesmo peso não são hierarquia, e aviso de prazo na primeira tela do painel é a plataforma
+   documentando o próprio atraso para quem abre.
+
+   O que decide o desenho daqui: de tudo que esta tela conta, uma coisa só pede ação de uma pessoa
+   (a fila de denúncias, o único lugar do painel onde alguém escreve). Ela vira o objeto primário,
+   com número em escala de manchete; a composição do cadastro fica ao lado, no painel estreito do
+   .pl-cols; as quatro contagens de operação ficam na fileira de tiles, que é leitura de varredura;
+   e a procedência dos números fecha a página, em texto.
+
+   Nada aqui vira barra, fatia ou porcentagem. Contagem tabular lê igual com 0 e com 9.999, e é a
+   única forma que aguenta a base de demonstração e a base recarregada da banca sem redesenho. */
+
+/* Momento da leitura, na topbar. Painel de indicador que não diz de quando é o número obriga quem
+   olha a supor, e supor é o contrário do que um painel serve para fazer. */
+.pl-momento { font-size: 12px; color: var(--pl-muted); font-variant-numeric: tabular-nums;
+    white-space: nowrap; }
+
+/* Os dois quadros de cima. Mais ar que o .pl-card padrão porque o da esquerda é o único lugar da
+   tela onde alguém decide alguma coisa, e o da direita precisa acompanhar a altura dele. */
+.pl-mod { padding: 20px 22px 18px; display: flex; flex-direction: column; }
+.pl-mod > .pl-linha-titulo { margin-bottom: 16px; }
+.pl-mod .pl-grp { font-family: var(--pl-body); margin: 0; }
+/* Escala de manchete, um degrau e meio acima do .pl-kpi .val (30px): a diferença entre primário e
+   secundário precisa ser visível de relance, não conferida. */
+.pl-mod .nm { font-family: var(--pl-display); font-weight: 700; font-size: 46px; line-height: 1;
+    letter-spacing: -.03em; color: var(--pl-ink); font-variant-numeric: tabular-nums; margin: 0; }
+.pl-mod .ds { margin: 10px 0 0; font-size: 14px; color: var(--pl-ink); max-width: 32ch; }
+.pl-mod .ds .sec { display: block; margin-top: 5px; font-size: 12.5px; line-height: 1.55;
+    color: var(--pl-muted); }
+/* Os dois quadros da fileira de cima dividem a altura dela. Na altura natural eles terminavam com
+   uns 20px de diferença, que é o degrau que faz uma fileira de cards parecer inacabada. */
+.pl-cols > .pl-mod { align-self: stretch; }
+/* A ação mora na coluna do número, não numa faixa embaixo do quadro inteiro. Como faixa, ela
+   esticava a altura do card sem esticar a coluna da direita, e toda a sobra virava um vão embaixo
+   da quebra: com as duas colunas carregando conteúdo, a altura passa a ser a da mais alta. */
+.pl-mod-topo { flex: 1 0 auto; display: flex; align-items: center; justify-content: space-between;
+    gap: 18px 36px; flex-wrap: wrap; }
+/* Quando o corpo do quadro é uma pilha (número em cima, quebra embaixo), a mesma caixa centra na
+   vertical em vez de distribuir na horizontal: é o que consome a sobra da altura compartilhada. */
+.pl-mod-topo.empilha { flex-direction: column; align-items: stretch; justify-content: center; }
+.pl-mod-topo .fila { min-width: 0; flex: 0 1 auto; }
+.pl-mod-topo .pl-quebra { min-width: 248px; flex: 1 1 300px; max-width: 460px; }
+/* Na pilha o eixo principal é vertical, e a base de 300px da regra acima viraria altura mínima:
+   a lista ficava 300px alta com quatro linhas dentro. */
+.pl-mod-topo.empilha .pl-quebra { flex: 0 0 auto; max-width: none; }
+.pl-mod .nm + .pl-quebra { margin-top: 14px; }
+.pl-mod .acoes { margin-top: 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pl-mod .acoes .pl-btn { height: 38px; }
+
+/* Quebra por categoria: rótulo à esquerda, contagem à direita, na mesma coluna de número. Serve à
+   fila de moderação e à composição do cadastro, que são a mesma forma de leitura.
+
+   A ordem vem fixa do template e nunca do tamanho. Ordenar categoria por contagem faz o quadro
+   remontar a cada carregamento e, num painel que fala de gente, desenha a silhueta de um ranking
+   onde não existe nenhum (item 10.1). A terceira coluna de 14px fica reservada mesmo na linha sem
+   link, para que a coluna do número não dance entre um quadro e o outro. */
+.pl-quebra { list-style: none; margin: 0; padding: 0; }
+.pl-quebra > li + li { border-top: 1px solid var(--pl-border-2); }
+.pl-quebra .ln { display: grid; grid-template-columns: minmax(0, 1fr) auto 14px;
+    align-items: center; gap: 12px; padding: 9px 0; font-size: 13px; text-decoration: none; }
+.pl-quebra .k { color: var(--pl-muted); overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; }
+.pl-quebra .v { color: var(--pl-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.pl-quebra .ch { width: 14px; height: 14px; color: var(--pl-border); }
+.pl-quebra a.ln:hover .k, .pl-quebra a.ln:hover .v,
+.pl-quebra a.ln:hover .ch { color: var(--pl-data); }
+.pl-quebra a.ln:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px;
+    border-radius: 8px; }
+/* A soma fecha a lista: filete mais firme que o das linhas e rótulo em tinta cheia, para ler como
+   total e não como mais uma categoria. */
+.pl-quebra > li.tot { border-top-color: var(--pl-border); }
+.pl-quebra > li.tot .k { color: var(--pl-ink); }
+
+/* Fileira de indicadores. O tile ganhou a linha secundária que faltava: número sozinho não diz se
+   o que ele conta chegou a algum lugar, e era nela que o estado vazio cabia. */
+.pl-kpi .sub { margin: 2px 0 0; font-size: 12px; line-height: 1.45; color: var(--pl-muted); }
+/* O selo acompanha o número, não compete com ele: 20px ao lado de um dígito de 30px. */
+.pl-kpi .val .pl-mark { width: 20px; height: 20px; vertical-align: 0; margin-left: 7px; }
+/* Tile que leva a uma tela. Borda e sombra no ponteiro, como no cartão de pessoa da busca: fundo
+   colorido numa fileira de quatro faria a linha inteira piscar. */
+a.pl-kpi { display: block; color: inherit; text-decoration: none;
+    transition: border-color .15s ease, box-shadow .15s ease; }
+a.pl-kpi:hover { border-color: var(--pl-blue-2); box-shadow: 0 10px 26px rgba(11,42,74,.10); }
+a.pl-kpi:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; }
+a.pl-kpi .sub { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+a.pl-kpi:hover .sub { color: var(--pl-data); }
+a.pl-kpi .ch { width: 13px; height: 13px; flex: none; color: var(--pl-faint); }
+a.pl-kpi:hover .ch { color: var(--pl-data); }
+@media (prefers-reduced-motion: reduce) { a.pl-kpi { transition: none; } }
+
+/* Procedência. Não é rodapé de página: é o que separa um painel de indicadores de uma vitrine de
+   números, e as duas notas daqui são a evidência visível de duas decisões do projeto (exclusão
+   lógica e viés declarado). Texto, sem número grande e sem cor de estado, porque nenhuma das duas
+   é alerta. */
+.pl-ressalvas .pl-grp { font-family: var(--pl-body); margin: 0 0 14px; }
+/* min() no piso da coluna: a sidebar do painel tem 232px fixos, e num aparelho estreito sobra
+   menos que 330px de conteúdo. Sem ele a coluna fica maior que a área e a página rola de lado. */
+.pl-ressalvas .itens { display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(330px, 100%), 1fr)); gap: 18px 34px; }
+.pl-ressalvas h3 { font-family: var(--pl-display); font-weight: 600; font-size: 13.5px;
+    letter-spacing: -.01em; color: var(--pl-ink); margin: 0 0 6px; }
+.pl-ressalvas p { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--pl-muted);
+    max-width: 68ch; }
+.pl-ressalvas .lk { display: inline-flex; align-items: center; gap: 5px; margin-top: 10px;
+    font-size: 12.5px; font-weight: 600; color: var(--pl-blue); text-decoration: none; }
+.pl-ressalvas .lk:hover { text-decoration: underline; }
+.pl-ressalvas .lk:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px;
+    border-radius: 6px; }
+.pl-ressalvas .lk svg { width: 12px; height: 12px; }
+
+@media (max-width: 720px) {
+    .pl-mod .nm { font-size: 38px; }
+    .pl-mod-topo .pl-quebra { min-width: 0; }
+    /* Reticências numa coluna de 100px deixavam "Receb… 106" na tela, que não é rótulo nenhum.
+       Aqui o rótulo quebra em duas linhas e a coluna do número continua alinhada. */
+    .pl-quebra .k { white-space: normal; }
+    /* A sidebar do painel tem 232px fixos em qualquer largura, então num aparelho de 430px sobram
+       menos de 200px de conteúdo e nenhum dos dois botões cabe em uma linha. Aqui eles viram caixa
+       de largura total com o texto quebrando, que é o que impede a página inteira de rolar de
+       lado. A regra de texto em uma linha do design system continua valendo acima deste ponto. */
+    .pl-mod .acoes { flex-direction: column; align-items: stretch; }
+    .pl-mod .acoes .pl-btn { width: 100%; height: auto; min-height: 38px; padding: 8px 12px;
+        white-space: normal; text-align: center; }
+    /* A topbar tem altura fixa de 60px e uma linha só, e com a sidebar de 232px ela fica com menos
+       de 200px para o título. O momento da leitura sai daí em vez de empurrar a barra para fora da
+       janela; o "i" ao lado continua dizendo que a contagem é feita quando a página abre. */
+    .pl-momento { display: none; }
+}
+
+/* ---------- 24. Lixeira e parâmetros: o que saiu de operação, e os números que o motor usa ----
+   Duas telas de administração com a mesma origem no edital: uma existe porque o 8.6j manda o
+   registro excluído continuar alcançável, a outra porque o 12.3 manda a supervisão dos critérios
+   de recomendação ser humana. As duas precisavam mostrar não só o dado, mas a REGRA que governa o
+   dado, e é isso que decide o desenho daqui.
+
+   Nenhuma das duas usa --pl-seal: verde água afirma "documento conferido na API do CREA", e nem
+   registro restaurado nem peso de motor é documento verificado. */
+
+/* A navegação do painel sempre teve um <svg> por item e nunca teve tamanho para ele: sem
+   width/height e dentro de um <span> vazio, os quatro ícones da barra mediam 0x0 e a lista era
+   texto com um recuo sem motivo. Com dois itens novos entrando, a régua passa a valer para os
+   seis de uma vez. */
+.pl-nav .ic { display: flex; align-items: center; justify-content: center; width: 18px; flex: none; }
+.pl-nav .ic svg { width: 17px; height: 17px; }
+
+/* Mensagem de POST no painel. O flash é escrito pelo base.html.twig antes do shell, e o shell é a
+   página inteira: solto ali em cima, com o <main> sem padding, ele virava uma caixa arredondada
+   encostada nas bordas da janela. Aqui ele assume o que já é, uma faixa de sistema no topo, com a
+   mesma margem lateral do conteúdo. Vale para todo o painel, não só para estas duas telas: é a
+   única resposta que a restauração e a gravação de parâmetros têm para dar. */
+main.p-0 > .alert { margin: 0; border-radius: 0; border-left: 0; border-right: 0;
+    padding: 13px clamp(18px, 1.8vw, 30px); font-size: 13.5px; }
+
+/* ---- Lixeira: as cinco entidades cobertas ---- */
+/* A contagem mora dentro da aba porque ela é o mapa da lixeira: sem ela, escolher a aba é abrir
+   uma por uma para descobrir onde há registro. Aba em zero continua clicável, e o estado vazio de
+   lá é uma afirmação ("nada deste tipo foi excluído"), não um beco. */
+.pl-abas { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; }
+.pl-abas .pl-btn { gap: 8px; }
+.pl-abas .n { font-variant-numeric: tabular-nums; color: var(--pl-faint); }
+.pl-abas .pl-btn:hover .n, .pl-abas .pl-btn.active .n { color: rgba(255, 255, 255, .72); }
+
+/* ---- Lixeira: a tabela ----
+   Mesma mecânica de log da trilha e das sessões (cabeçalho miúdo, hora monoespaçada, hover de
+   linha, número do registro à direita), sem o cabeçalho de dia: a lista vem na ordem do registro,
+   não na do relógio, e boa parte dela nem tem data de exclusão para agrupar. */
+.pl-lix { min-width: 940px; }
+.pl-lix col.c-tipo  { width: 158px; }
+.pl-lix col.c-saida { width: 174px; }
+.pl-lix col.c-quem  { width: 196px; }
+.pl-lix col.c-acao  { width: 152px; }
+.pl-lix col.c-ref   { width: 64px; }
+
+.pl-lix .tt { display: block; font-size: 13px; font-weight: 600; color: var(--pl-ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-lix .sub { display: block; margin-top: 2px; font-size: 11px; color: var(--pl-faint);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-lix .hora { display: block; }
+/* Ausência de data não é data: quando não há linha de EXCLUIR na trilha, o lugar do horário diz
+   isso com palavra, fora da fonte monoespaçada, para não ser lido como um valor. */
+.pl-lix .hora.vaga { font-family: var(--pl-body); font-size: 12px; color: var(--pl-faint); }
+.pl-lix td.acao { text-align: right; }
+
+/* Linha cuja restauração está fechada. Não é erro nem alerta: é a plataforma respeitando um
+   direito, então o trilho é azul escuro (a cor de dado e decisão) e não vermelho, e a linha se
+   descola do fundo em vez de gritar. */
+.pl-lix tbody tr.fechada td, .pl-lix tbody tr.fechada:hover td { background: var(--pl-app); }
+.pl-lix tbody tr.fechada td { border-bottom: 0; }
+.pl-lix tbody tr.fechada td:first-child { box-shadow: inset 2px 0 0 var(--pl-data); }
+/* Ausência de autor não é o autor: repetida em vinte linhas (carga inicial, escrita direta no
+   banco), em peso de nome ela lia como se "Origem não registrada" fosse gente. */
+.pl-lix .autor.anon { font-size: 12.5px; color: var(--pl-faint); }
+.pl-lix .fechado { display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+    font-weight: 600; color: var(--pl-muted); }
+.pl-lix .fechado svg { width: 13px; height: 13px; flex: none; }
+
+/* A regra, por extenso, na linha debaixo do registro a que ela pertence. Ocupa a largura toda
+   porque acontece em pouquíssimos registros e é a única coisa que esta tela tem a dizer sobre
+   eles. Explicação sob demanda não serve aqui: dentro de uma tabela rolável, ela seria recortada
+   pela barra de rolagem, e é justamente a frase que ninguém pode deixar de ler. */
+.pl-lix tbody tr.motivo td { background: var(--pl-app); padding-top: 0; padding-bottom: 14px;
+    box-shadow: inset 2px 0 0 var(--pl-data); }
+.pl-lix tr.motivo .w { display: flex; align-items: flex-start; gap: 10px; max-width: 96ch; }
+.pl-lix tr.motivo svg { width: 17px; height: 17px; flex: none; margin-top: 1px; color: var(--pl-data); }
+.pl-lix tr.motivo p { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--pl-ink); }
+.pl-lix tr.motivo .fonte { display: block; margin-top: 3px; font-size: 11.5px; color: var(--pl-muted); }
+
+/* ---- Lixeira: a caixa de diálogo do motivo ----
+   O motivo é a diferença entre um registro que voltou e um registro que voltou por um motivo que
+   alguém assinou. Ele não cabe na linha: vinte caixas de texto abertas numa tabela de vinte itens
+   são ruído permanente para uma ação que acontece uma vez. */
+/* Fundo branco explícito: o .modal-content do Bootstrap herda --bs-body-bg, que aqui é o off-white
+   de trás dos quadros. A caixa de diálogo é um quadro, e quadro desta aplicação é branco. */
+.pl-dialogo { background: var(--pl-card); border: 1px solid var(--pl-border); border-radius: 16px;
+    box-shadow: 0 30px 64px rgba(11, 42, 74, .24); }
+.pl-dialogo .modal-header { padding: 16px 20px 14px; border-bottom: 1px solid var(--pl-border-2); }
+.pl-dialogo .modal-title { font-family: var(--pl-display); font-weight: 600; font-size: 16px;
+    letter-spacing: -.01em; margin: 0; }
+.pl-dialogo .modal-body { padding: 16px 20px 18px; }
+.pl-dialogo .modal-footer { padding: 14px 20px; gap: 10px; border-top: 1px solid var(--pl-border-2); }
+/* O Bootstrap dá margem de .25rem a cada filho do rodapé; com gap explícito isso vira espaço
+   dobrado e desalinha o par de botões. */
+.pl-dialogo .modal-footer > * { margin: 0; }
+.pl-dialogo .modal-footer .pl-btn { height: 40px; }
+.pl-dialogo .alvo { margin: 0 0 14px; }
+.pl-dialogo .alvo .tt { display: block; font-family: var(--pl-display); font-weight: 600;
+    font-size: 17px; letter-spacing: -.01em; color: var(--pl-ink); overflow-wrap: anywhere; }
+.pl-dialogo .alvo .sub { display: block; margin-top: 3px; font-size: 12px; color: var(--pl-muted);
+    overflow-wrap: anywhere; }
+.pl-dialogo .form-text { margin-bottom: 0; }
+
+/* ---- Parâmetros: a linha de ajuste ----
+   Uma linha por parâmetro: o que ele faz à esquerda, o campo à direita, e a chave de sistema
+   embaixo do rótulo, em texto terciário. O campo tem a largura do dado que recebe (um peso é
+   "0.40", não um parágrafo), e por isso não acompanha a largura do card. */
+.pl-par .pl-grp { margin: 20px 0 0; }
+.pl-par > .pl-grp:first-child { margin-top: 2px; }
+.pl-par .campo { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+    gap: 4px 20px; padding: 13px 0; border-top: 1px solid var(--pl-border-2); }
+.pl-par .pl-grp + .campo { border-top: 0; }
+.pl-par .campo:first-child { border-top: 0; padding-top: 4px; }
+.pl-par .campo:last-child { padding-bottom: 2px; }
+.pl-par .campo .tx { min-width: 0; }
+.pl-par .campo label, .pl-par .campo .rot { display: block; font-size: 13.5px; font-weight: 500;
+    line-height: 1.45; color: var(--pl-ink); max-width: 64ch; }
+/* A chave é um identificador sem espaço ("match.early_career.min_arts") e mede mais que a área
+   útil de um aparelho estreito: sem quebra dentro da palavra, era ela que empurrava a página
+   inteira para o lado. Quebrar um identificador é pior de ler do que não quebrar, e é melhor do
+   que a tela rolar de lado. */
+.pl-par .campo .ch { margin: 3px 0 0; font-size: 11.5px; color: var(--pl-faint);
+    overflow-wrap: anywhere; }
+.pl-par .campo .ch .k { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+.pl-par .campo .ent { display: flex; align-items: center; gap: 8px; justify-self: end; }
+.pl-par .campo .ent .form-control { width: 106px; min-height: 40px; padding: 8px 10px;
+    font-size: 14px; font-variant-numeric: tabular-nums; }
+.pl-par .campo .un { font-size: 12px; color: var(--pl-muted); white-space: nowrap; }
+.pl-par .campo .fixo { font-size: 14px; font-weight: 600; color: var(--pl-muted);
+    font-variant-numeric: tabular-nums; }
+.pl-par .campo .msg { grid-column: 1 / -1; margin: 2px 0 0; font-size: 12px; color: #b23434; }
+.pl-par .campo .msg.neutra { color: var(--pl-muted); }
+/* O ícone de recusa do Bootstrap é desenhado no fundo do campo e reserva 2,25em à direita: num
+   campo de 106px ele empurra o número para fora. A borda vermelha e a mensagem embaixo já dizem
+   o mesmo, e continuam. */
+.pl-par .form-control.is-invalid, .pl-niveis .form-control.is-invalid {
+    background-image: none; padding-right: 10px; }
+
+/* ---- Parâmetros: a escada de afinidade ----
+   Cinco campos, um por grau de coincidência do código da Tabela de Obras e Serviços, na ordem em
+   que a escada sobe. Um campo só com "[0.00,0.15,0.40,0.75,1.00]" obrigaria a contar vírgula para
+   saber qual posição é qual, e é a posição que significa alguma coisa. */
+/* min() no piso da coluna, como na visão geral: com 232px fixos de barra lateral, um aparelho
+   estreito deixa menos de 166px de conteúdo, e sem isto a fileira ficava maior que a área e a
+   página inteira rolava de lado. */
+.pl-niveis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(166px, 100%), 1fr));
+    gap: 16px; margin-top: 2px; }
+.pl-niveis .nv { display: flex; flex-direction: column; min-width: 0; }
+/* O rótulo cresce e o campo encosta no fim da célula: os cinco rótulos têm uma e duas linhas, e
+   sem isto os cinco campos ficariam em cinco alturas diferentes. */
+.pl-niveis .nv label { flex: 1; margin-bottom: 8px; }
+.pl-niveis .nv .t { display: block; font-size: 12.5px; font-weight: 600; color: var(--pl-ink); }
+.pl-niveis .nv .s { display: block; margin-top: 2px; font-size: 11.5px; line-height: 1.45;
+    color: var(--pl-muted); }
+/* Mesma caixa do campo de peso: os dois recebem um número de 0 a 1, e campo do mesmo dado com
+   largura diferente em dois quadros da mesma tela é a inconsistência que se vê sem medir. */
+.pl-niveis .form-control { width: 106px; min-height: 40px; padding: 8px 10px; font-size: 14px;
+    font-variant-numeric: tabular-nums; }
+.pl-niveis-ch { margin: 14px 0 0; font-size: 11.5px; color: var(--pl-faint);
+    overflow-wrap: anywhere; }
+.pl-niveis-ch .k { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+.pl-card > .msg { margin: 10px 0 0; font-size: 12.5px; color: #b23434; }
+
+/* ---- Parâmetros: a composição gravada, e o lote recusado ---- */
+/* Soma de uma família de pesos. Fecha o grupo como total, sem virar mais uma linha de dimensão:
+   filete mais firme e rótulo em tinta cheia, a mesma gramática da soma da visão geral. */
+.pl-param .tot { margin: 10px 0 0; padding-top: 9px; border-top: 1px solid var(--pl-border);
+    font-size: 12.5px; color: var(--pl-muted); }
+.pl-param .tot b { color: var(--pl-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+/* A ressalva que fecha o quadro não é a continuação da última soma: ela vale para os dois grupos,
+   e por isso se descola deles. Dentro de .grupo, a nota continua colada ao seu grupo (tela de
+   sessão), e é por isso que a regra vale só para o filho direto. */
+.pl-param > .sem { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--pl-border-2); }
+
+.pl-lote { border-radius: var(--pl-r); }
+.pl-lote .t { margin: 0; font-size: 14px; font-weight: 600; }
+.pl-lote ul { margin: 9px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
+.pl-lote li + li { margin-top: 4px; }
+.pl-lote .s { margin: 11px 0 0; font-size: 12.5px; }
+
+/* ---- Parâmetros: a barra de gravação ----
+   Um lote, um botão. A barra acompanha a rolagem porque o botão governa os onze campos, e numa
+   tela de quatro quadros ele estaria sempre longe de metade deles. A consequência da gravação
+   viaja junto, do lado esquerdo: é ela que separa "mudei uma configuração" de "mudei o critério
+   de recomendação da plataforma, e isso ficou registrado". */
+.pl-salvar { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center;
+    justify-content: space-between; gap: 14px 24px; flex-wrap: wrap; padding: 14px 20px;
+    box-shadow: 0 -10px 24px rgba(11, 42, 74, .08); }
+.pl-salvar .pl-consequencia { margin: 0; max-width: 76ch; }
+.pl-salvar .acoes { display: flex; align-items: center; gap: 10px; margin-left: auto;
+    flex-wrap: wrap; }
+.pl-salvar .acoes .pl-btn { height: 40px; }
+
+@media (max-width: 720px) {
+    /* Com 232px fixos de barra lateral, sobra menos de 200px de conteúdo: rótulo e campo deixam de
+       caber lado a lado, e o campo passa a ocupar a linha inteira embaixo do que ele ajusta. */
+    .pl-par .campo { grid-template-columns: minmax(0, 1fr); }
+    .pl-par .campo .ent { justify-self: start; }
+    /* Barra fixa numa janela de 900px de altura comeria um décimo da tela o tempo todo, e o ganho
+       dela (o botão sempre à mão) é de tela larga. Aqui ela volta a ser o fim do formulário. */
+    .pl-salvar { position: static; }
+    /* Mesma regra da visão geral: "Ver as alterações na trilha" em uma linha mede mais que a
+       largura útil de um aparelho estreito, e era ela que fazia a página inteira rolar de lado. */
+    .pl-salvar .acoes { flex-direction: column; align-items: stretch; width: 100%; }
+    .pl-salvar .acoes .pl-btn, .pl-salvar .acoes .pl-cta { width: 100%; height: auto;
+        min-height: 40px; padding: 9px 12px; white-space: normal; text-align: center; }
+}
+
+/* ---------- 25. A aplicação em 390px: o painel sem barra lateral fixa, e a tabela que rola
+   dentro do próprio quadro ----------------------------------------------------------------
+   O Anexo I item 5 e o item 10 da triagem do Anexo VI cobram uso em dispositivo móvel, e seis
+   telas rolavam de lado. Duas causas, e nenhuma das duas é a tabela em si.
+
+   A primeira é estrutural: a barra lateral do painel tinha 232px em qualquer largura, então num
+   aparelho de 390px a navegação ficava com 60% da tela e o conteúdo com 158px. Foi contra esses
+   158px que as seções 23 e 24 escreveram remendo por componente ("sobra menos de 200px"). Aqui a
+   causa some: abaixo de 768px a barra deixa de ser coluna e vira faixa, o conteúdo recebe a
+   largura inteira, e os remendos das seções anteriores passam a ser o segundo estágio, não o
+   primeiro.
+
+   A segunda é de contenção: `.visually-hidden` do Bootstrap é `position: absolute`, e nenhum
+   antepassado da tabela era bloco de contenção. O rótulo de leitor de tela da última coluna
+   ficava ancorado no documento, escapava do quadro de rolagem e esticava a página inteira, mesmo
+   com a tabela devidamente clipada. É por isso que o excesso medido em `/demandas` (194px) não
+   batia com a largura da tabela (616px): quem vazava não era a tabela, era um <span> de 1px a
+   1170px da origem.
+
+   768px é onde a barra lateral deixa de ser navegação e vira obstáculo: abaixo disso ela come
+   mais de 30% da janela. Fica acima dos 720px das seções 23 e 24 de propósito, para a faixa
+   entrar em cena antes dos remendos que existiam para sobreviver sem ela. */
+
+/* ---- Toda tabela larga rola dentro do próprio quadro ---- */
+/* `position: relative` é a correção de raiz: o quadro passa a ser o bloco de contenção do que
+   está posicionado dentro dele, e o rótulo de leitor de tela volta a ser clipado junto com a
+   tabela. Vale para os dez quadros de tabela da aplicação de uma vez, e não só para os que
+   vazam hoje. */
+.table-responsive { position: relative; }
+
+/* A affordance: sombra de rolagem em CSS puro. As duas primeiras camadas são brancas e viajam
+   com o conteúdo (`local`); as duas de baixo são a sombra e ficam presas ao quadro (`scroll`).
+   No começo da rolagem a camada branca cobre a sombra da esquerda, e sobra a da direita. Rolou
+   até o fim, inverte. Tabela que cabe inteira não mostra sombra nenhuma, porque não há o que
+   cobrir: a dica aparece exatamente quando existe conteúdo escondido, sem uma linha de script. */
+.table-responsive {
+    background:
+        linear-gradient(to right, var(--pl-card) 34%, rgba(255, 255, 255, 0)) left center,
+        linear-gradient(to left,  var(--pl-card) 34%, rgba(255, 255, 255, 0)) right center,
+        linear-gradient(to right, rgba(11, 42, 74, .15), rgba(11, 42, 74, 0)) left center,
+        linear-gradient(to left,  rgba(11, 42, 74, .15), rgba(11, 42, 74, 0)) right center;
+    background-repeat: no-repeat;
+    background-size: 44px 100%, 44px 100%, 20px 100%, 20px 100%;
+    background-attachment: local, local, scroll, scroll;
+}
+/* Área rolável precisa ser alcançável por teclado: o Chrome não dá foco a contêiner de rolagem
+   sozinho, e sem isto quem não usa ponteiro não chega às colunas da direita. O contorno vai para
+   dentro porque o quadro de log tem `overflow: hidden` e cortaria um contorno externo. */
+.table-responsive:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: -2px; }
+
+/* ---- A coluna do assunto não colapsa ---- */
+/* A tabela de largura automática reparte o espaço que falta tirando de quem cede mais, e quem
+   cede mais é sempre a coluna de texto livre: o título da demanda virava uma tira de 65px com
+   uma palavra por linha, e a linha inteira ficava com 150px de altura. Um piso devolve à coluna
+   do assunto a largura de uma frase. Custa alguns pixels a mais de arrasto e devolve a leitura,
+   que é a troca certa: rolar de lado é um gesto, ler uma palavra por linha é um obstáculo. */
+.pl-table th.assunto, .pl-table td.assunto { min-width: 190px; }
+
+/* A dica de rolagem do quadro de log.
+   A sombra sozinha diz "há mais", mas não diz "há mais COLUNA": a coluna do meio corta com
+   reticências na borda, e reticências leem como texto truncado. A linha desfaz a ambiguidade para
+   quem abre a trilha pela primeira vez, que é exatamente quem a banca é.
+
+   O ponto onde ela aparece não é um palpite: a tabela de log tem 1040px de mínimo, a barra lateral
+   tem 232px e o conteúdo tem clamp(18px, 1.8vw, 30px) de cada lado, então a área útil é
+   0,964·L − 232 e ela fica menor que 1040 abaixo de 1320px de janela. Acima disso a tabela cabe
+   inteira e a frase seria ruído. */
+.pl-log-lado { display: none; align-items: center; gap: 6px; margin: 7px 0 0; font-size: 12px;
+    color: var(--pl-muted); }
+.pl-log-lado svg { width: 13px; height: 13px; flex: none; color: var(--pl-faint); }
+@media (max-width: 1319px) { .pl-log-lado { display: flex; } }
+
+/* ---- O "i" aberto, dentro da topbar do painel ---- */
+/* A seção 18 tirou o fundo do botão para ele não virar uma bolha branca sobre a topbar clara, e
+   junto levou o fundo do estado aberto: o "i" fica branco sobre branco e some justamente quando
+   está ativo. Aqui só o estado aberto volta ao azul escuro, que é o que a seção 15 já desenhou. */
+.pl-topbar .pl-info[open] > summary { background: var(--pl-data); border-color: var(--pl-data);
+    color: #fff; }
+
+/* ---- Grade de cartões em tela estreita ---- */
+/* `minmax(330px, 1fr)` é um piso absoluto: quando a área útil é menor que 330px, a coluna
+   continua com 330 e a página rola de lado. `min()` faz o piso ceder à largura disponível. É a
+   mesma correção já usada em `.pl-ressalvas .itens` e em `.pl-niveis`, agora onde ela nasceu. */
+.pl-grade         { grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); }
+.pl-grade.pessoas { grid-template-columns: repeat(auto-fill, minmax(min(376px, 100%), 1fr)); }
+
+/* ---- Parâmetros: a procedência de cada valor ----
+   Quem mudou, e quando. A linha entra entre o rótulo e a chave de sistema, e não depois dela,
+   para o peso da linha cair sem degrau: nome de gente em tinta cheia, depois o identificador em
+   cinza claro. Invertida, a linha do meio ficaria mais apagada que a de baixo.
+
+   Nunca alterado é o outro estado desenhado, não a falta de um: ele afirma que o valor continua
+   sendo o da carga inicial. Como é afirmação e não evidência de supervisão, fica no cinza claro
+   da chave; a linha com nome de pessoa sobe para o cinza de texto, com o nome em tinta cheia. É
+   o que permite varrer os onze parâmetros e ver de relance quais passaram por decisão humana. */
+.pl-hist { margin: 3px 0 0; font-size: 12px; line-height: 1.45; color: var(--pl-muted); }
+.pl-hist b { color: var(--pl-ink); font-weight: 600; }
+.pl-hist.inicial { color: var(--pl-faint); }
+/* A escada de afinidade é um parâmetro só, com os cinco campos numa grade: ali a procedência se
+   descola da grade do mesmo tanto que a chave se descolava antes dela. */
+.pl-niveis + .pl-hist { margin-top: 14px; }
+.pl-hist + .pl-niveis-ch { margin-top: 3px; }
+
+/* ---- A nota de apoio dentro de uma lista de rótulo e valor ---- */
+/* `.lin-sub` só tem estilo dentro de `.pl-table` (seção 16). Num <dd> ele voltava ao corpo de
+   14px em tinta cheia, e "Guardado cifrado. O valor completo sai apenas na sua exportação."
+   emendava no número do documento com o mesmo peso dele, no cartão que é a evidência de LGPD da
+   tela. Aqui a nota volta a ser nota: linha própria, um degrau menor, em cinza. */
+.pl-dl .lin-sub { display: block; margin-top: 2px; font-size: 12px; line-height: 1.5;
+    color: var(--pl-muted); }
+
+/* ---- Valor sem ponto de quebra dentro de uma lista de rótulo e valor ---- */
+/* Os 3px de `/privacidade` eram o e-mail do titular: 38 caracteres sem espaço numa coluna de
+   204px. A caixa do <dd> obedecia ao grid, e a linha de texto dentro dela é que passava por cima
+   da borda e esticava a página. `anywhere`, e não `break-word`: só o primeiro deixa a coluna
+   encolher abaixo do tamanho da palavra, que é o que uma grade estreita precisa. É a mesma regra
+   já aplicada ao nome do candidato, ao título da demanda e ao hash do retrato. */
+.pl-dl dd { overflow-wrap: anywhere; }
+
+@media (max-width: 768px) {
+
+    /* ---- A barra lateral vira faixa ---- */
+    /* Uma linha de identificação e a navegação em chips embaixo dela, quebrando em fileiras (duas
+       numa janela de 760px, três num aparelho de 390px) em vez de rolar de lado. Rolando, a faixa
+       mediria 97px de altura contra 182px, e por 85px de tela esconderia metade da navegação atrás
+       de um gesto que nada anuncia: em 390px sobram três chips visíveis, e Auditoria e Lixeira,
+       que são a evidência de segurança e a do item 8.6j, ficariam fora do ar. Com a quebra, as
+       seis seções estão na tela e a que está aberta é sempre visível. */
+    .pl-app, .pl-app.collapsed { grid-template-columns: minmax(0, 1fr); }
+    .pl-side { flex-flow: row wrap; align-items: center; gap: 0 10px; padding: 11px 14px 0;
+        white-space: normal; }
+    .pl-side .pl-brand { order: 0; margin: 0; font-size: 15px; }
+    .pl-side small { order: 1; margin: 0; }
+    /* A conta continua identificada, sem o cargo repetido: "Administração" já está escrito ao
+       lado da marca, a dois centímetros dali. */
+    .pl-side .foot { order: 2; margin: 0 0 0 auto; padding: 0; background: none; gap: 8px;
+        max-width: 46%; }
+    .pl-side .foot .txt { white-space: nowrap; }
+    .pl-side .foot .fn { display: none; }
+
+    .pl-nav { order: 3; width: 100%; display: flex; flex-wrap: wrap; gap: 7px;
+        margin: 11px 0 0; padding-bottom: 11px; }
+    .pl-nav a { flex: none; padding: 8px 13px; border-radius: 999px;
+        background: rgba(255, 255, 255, .07); font-size: 13px; }
+    .pl-nav a.active { background: #fff; }
+
+    /* ---- O cabeçalho de um registro ---- */
+    /* Título e selo de estado lado a lado numa fileira de flex: sem espaço, quem cede é o título,
+       e "Plano de intervenção urbana, área central de Manaus (062419)" virava cinco linhas de uma
+       palavra ao lado de uma pílula de 250px. Em coluna, o título fica com a largura inteira e o
+       selo assenta embaixo dele, que é onde um estado cabe. */
+    .pl-det-topo { flex-direction: column; gap: 10px; }
+
+    /* ---- A topbar em duas linhas ---- */
+    /* O título ocupa a primeira sozinho, e o que era "ação de página" desce para a segunda. Nada
+       daqui é ação: são estado (somente leitura, contagem do momento) e explicação, e estado
+       atrás de um menu é justamente esconder do celular a prova de que a trilha não se edita.
+       Duas linhas sempre, e não quando não couber: "Sessões do motor" cabe numa linha e "Trilha
+       de auditoria" não, e duas telas irmãs com alturas de cabeçalho diferentes leem como duas
+       aplicações. */
+    .pl-topbar { position: relative; height: auto; align-items: flex-start; flex-wrap: wrap;
+        gap: 9px 12px; padding: 13px 16px 14px; }
+    .pl-topbar h1, .pl-topbar h2, .pl-topbar h3 { flex: 1 0 100%; }
+    .pl-topbar-acoes { margin-left: 0; flex-wrap: wrap; gap: 9px 10px; }
+    /* A contagem volta ao celular. Ela saiu na seção 23 porque a topbar tinha 158px para o
+       título inteiro; com a faixa no lugar da coluna, ela cabe, e em duas destas telas ela não é
+       enfeite: é o tamanho da lixeira e o número de parâmetros abertos à Administração. */
+    .pl-momento { display: inline; white-space: normal; }
+
+    /* ---- Linha de contexto: texto corrido, não fileira de caixas ---- */
+    /* O ponto separador ficava pendurado no fim da linha, e o "i" descia sozinho para uma linha
+       só dele, porque numa fileira de flex cada pedaço é uma caixa que quebra inteira. Em tela
+       estreita a linha volta a ser texto: os pedaços fluem como frase, o ponto fica no meio dela
+       e o "i" encosta na última palavra, que é onde ele deve estar. */
+    .pl-log-resumo, .pl-head .sub, .pl-repro .meta { display: block; }
+    .pl-log-resumo > [aria-hidden="true"], .pl-head .sub > .pl-sep,
+    .pl-repro .meta > .pl-sep { margin: 0 5px; }
+    .pl-head .sub > .pl-info { margin-left: 5px; }
+
+    /* A caixa do "i" da topbar passa a se medir pela barra, e não pelo botão de 18px que a abre.
+       Presa ao botão, ela abria 330px para a esquerda a partir de onde ele estivesse, e na
+       segunda linha do cabeçalho isso a jogava para fora da tela pela esquerda. */
+    /* Três classes no seletor de propósito: `.pl-info.fim .pl-info-caixa` da seção 15 também
+       tem três, e sem empatar com ela o alinhamento pela direita continuaria valendo. */
+    .pl-topbar .pl-info { position: static; }
+    .pl-topbar .pl-info .pl-info-caixa { left: 16px; right: 16px; width: auto; transform: none;
+        top: calc(100% + 6px); }
+}
+
+/* ---------- 26. A landing: o porte de docs/mockups/prolink-landing.html ----------
+   Esta seção não desenha nada novo: traduz o mockup da landing para o tema do projeto. A
+   composição, a ordem das faixas, as proporções, os tamanhos e o texto são os de lá. O que muda
+   é só o que **tinha** de mudar para a tela viver dentro desta aplicação:
+
+   a) O mockup declara a própria paleta. Aqui valem os tokens da seção 1, e três cores do mockup
+      não existem neles: o quase-preto #060d1c (virou --pl-navy, o mesmo azul da barra lateral do
+      painel), o ciano #8FE3FF do eixo Z (virou o branco-azulado #dbe9ff, que é tinta sobre o
+      azul, não cor nova) e o verde água claro #39C0CB do escudo (virou o par --pl-seal-bg +
+      --pl-seal, que é o componente de selo da casa). Os tons de texto sobre o azul são os três
+      que a seção 5 já usa na sidebar: #fff, #ccdcf1, #aec2e0 e #8fa8cc.
+   b) As quatro animações em <canvas> do mockup viram SVG estático, no quadro final de cada uma:
+      script embutido é recusado pela CSP, e arquivo de JS novo está fora do escopo deste bloco.
+   c) A busca é um GET de verdade para /profissionais.
+
+   A unidade de leitura da primeira dobra é a promessa mais a busca. Primário é o campo de busca,
+   a única coisa que qualquer pessoa faz sem ter conta; secundário o título e o selo, que dizem de
+   onde vem o dado; terciário as faixas de baixo, que explicam o encadeamento. */
+
+/* A página inteira, não um quadro dentro dela: `main` perde a medida e o padding do .pl-wrap,
+   cada faixa pinta a largura cheia da janela e o respiro volta dentro de .pl-lp-in. */
+.pl-lp { width: 100%; max-width: none; padding: 0; }
+/* Aviso de sessão (o "sair", por exemplo) chega antes da primeira faixa e precisa de medida
+   própria, senão encosta nas duas bordas da janela. */
+.pl-lp > .alert { width: calc(100% - 2 * clamp(22px, 4.5vw, 72px)); margin: 18px auto 0; }
+.pl-lp-in { width: 100%; margin-inline: auto; padding-inline: clamp(22px, 4.5vw, 72px); }
+
+/* Faixa sobre faixa: a de baixo sobe e cobre a de cima com o canto arredondado. */
+.pl-lp-stack { position: relative; z-index: 1; border-radius: 40px 40px 0 0; margin-top: -40px; }
+.pl-lp-stack.clara { box-shadow: 0 -20px 50px rgba(11,42,74,.10); }
+.pl-lp-stack.escura { box-shadow: 0 -20px 50px rgba(0,0,0,.32); }
+@media (max-width: 640px) {
+    .pl-lp-stack { border-radius: 26px 26px 0 0; margin-top: -26px; }
+}
+
+/* ---- A barra do topo, dentro do hero ----
+   A landing não usa a navbar do layout: aquela barra pertence a quem já está dentro da
+   aplicação. Os tons são os da sidebar (seção 5). */
+.pl-lp-nav { display: flex; align-items: center; gap: 10px 22px; min-height: 72px;
+    flex-wrap: wrap; padding-block: 10px; }
+.pl-lp-marca { display: flex; align-items: center; gap: 9px; color: #fff;
+    font-family: var(--pl-display); font-weight: 700; font-size: 19px; text-decoration: none; }
+.pl-lp-marca:hover { color: #fff; }
+.pl-lp-marca .m { width: 13px; height: 13px; border-radius: 4px; flex: none;
+    background: linear-gradient(135deg, var(--pl-blue-2), var(--pl-blue)); transform: rotate(45deg); }
+.pl-lp-nav .elos { display: flex; gap: 8px 22px; flex-wrap: wrap; }
+.pl-lp-nav .elos a { color: #aec2e0; font-size: 14px; font-weight: 500; text-decoration: none; }
+.pl-lp-nav .elos a:hover { color: #fff; }
+.pl-lp-nav .acoes { margin-left: auto; display: flex; align-items: center; gap: 6px;
+    flex-wrap: wrap; }
+/* Ação terciária sobre o azul: o .pl-btn contornado é azul escuro e sumiria aqui. */
+.pl-lp-ghost { display: inline-flex; align-items: center; height: 40px; padding: 0 16px;
+    border: 0; border-radius: var(--pl-r); background: transparent; color: #ccdcf1;
+    font-family: var(--pl-body); font-weight: 600; font-size: 14px; text-decoration: none;
+    white-space: nowrap; cursor: pointer; }
+.pl-lp-ghost:hover { color: #fff; background: rgba(255,255,255,.08); }
+.pl-lp-ghost:focus-visible, .pl-lp-nav .elos a:focus-visible, .pl-lp-marca:focus-visible,
+.pl-lp-rodape a:focus-visible { outline: 2px solid var(--pl-blue-2); outline-offset: 3px;
+    border-radius: 8px; }
+
+/* ---- Hero ---- */
+.pl-lp-hero { position: relative; color: #ccdcf1;
+    background: radial-gradient(60% 55% at 82% -10%, var(--pl-navy-2) 0%, transparent 55%),
+                var(--pl-navy); }
+.pl-lp-hero .grade { display: grid; grid-template-columns: 1.3fr .7fr; gap: 44px;
+    align-items: center; padding: 36px 0 76px; }
+@media (max-width: 900px) { .pl-lp-hero .grade { grid-template-columns: 1fr; gap: 16px;
+    padding-bottom: 54px; } }
+.pl-lp-olho { display: block; font-size: 12px; letter-spacing: .2em; text-transform: uppercase;
+    color: #8fa8cc; }
+.pl-lp-hero h1 { font-family: var(--pl-display); font-weight: 700; color: #fff;
+    font-size: clamp(34px, 4.8vw, 58px); line-height: 1.03; letter-spacing: -.03em;
+    margin: 14px 0 16px; text-wrap: balance; }
+/* A palavra que carrega a tese, no degradê do mockup. */
+.pl-lp-hero h1 .v { background: linear-gradient(90deg, var(--pl-blue), var(--pl-blue-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+.pl-lp-hero .sub { color: #aec2e0; font-size: 17px; line-height: 1.6; max-width: 62ch;
+    margin: 0 0 24px; }
+
+/* A busca. Campo largo, ação preenchida à direita, e um rótulo de verdade para leitor de tela
+   (não aria-label), escondido só aos olhos. */
+.pl-lp-busca { display: flex; align-items: center; gap: 8px; padding: 8px;
+    background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.18);
+    border-radius: 14px; }
+.pl-lp-busca:focus-within { border-color: var(--pl-blue-2);
+    box-shadow: 0 0 0 4px rgba(46,107,230,.28); }
+.pl-lp-busca .lupa { display: grid; place-items: center; padding: 0 2px 0 8px; color: #8fa8cc;
+    flex: none; }
+.pl-lp-busca .lupa svg { width: 18px; height: 18px; }
+.pl-lp-busca input { flex: 1; min-width: 0; height: 40px; padding: 0 4px; border: 0;
+    background: transparent; color: #fff; font-family: var(--pl-body); font-size: 15px; }
+.pl-lp-busca input::placeholder { color: #8fa8cc; }
+.pl-lp-busca input:focus { outline: none; }   /* o contorno é da barra inteira, acima */
+.pl-lp-busca input::-webkit-search-cancel-button { filter: invert(1) opacity(.5); }
+.pl-lp-busca .pl-cta { flex: none; }
+@media (max-width: 560px) {
+    .pl-lp-busca { flex-wrap: wrap; }
+    .pl-lp-busca input { flex-basis: 100%; order: 2; }
+    .pl-lp-busca .pl-cta { order: 3; flex: 1; }
+}
+
+/* A garantia, colada na busca. O escudo usa o par do selo da casa: fundo verde água claro e a
+   marca em verde água, que é legível sobre o azul sem inventar tom. */
+.pl-lp-selo { display: inline-flex; align-items: center; gap: 8px; margin: 16px 0 0;
+    font-size: 13px; color: #aec2e0; }
+.pl-lp-escudo { width: 16px; height: 16px; flex: none; }
+.pl-lp-escudo .corpo { fill: var(--pl-seal-bg); }
+.pl-lp-escudo .marca { fill: none; stroke: var(--pl-seal); stroke-width: 2.4;
+    stroke-linecap: round; stroke-linejoin: round; }
+
+/* Quem já tem conta não recebe o par de botões de venda: recebe a volta para a aplicação. */
+.pl-lp-atalhos { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+.pl-lp-atalhos .pl-btn { height: 40px; border-color: rgba(174,194,224,.55); color: #ccdcf1; }
+.pl-lp-atalhos .pl-btn:hover { background: rgba(255,255,255,.1); border-color: #fff; color: #fff; }
+
+/* ---- As ilustrações: o plano que vira volume ----
+   Não é enfeite. É o argumento da proposta desenhado: dois eixos formam o plano e o terceiro é a
+   profundidade que transforma o plano em volume. SVG inline, sem imagem externa e sem JS. */
+.pl-lp-fig { min-width: 0; }
+.pl-lp-fig > svg { display: block; width: 100%; height: auto; max-height: 380px; }
+.pl-lp-plano .gr { fill: none; stroke: rgba(120,165,240,.16); stroke-width: 1; }
+.pl-lp-plano .face { fill: rgba(46,107,230,.10); }
+.pl-lp-plano .topo { fill: rgba(219,233,255,.10); }
+.pl-lp-plano .ex { fill: none; stroke: var(--pl-blue); stroke-width: 2.4; stroke-linecap: round; }
+.pl-lp-plano .ey { fill: none; stroke: var(--pl-blue-2); stroke-width: 2.4; stroke-linecap: round; }
+.pl-lp-plano .ez { fill: none; stroke: #dbe9ff; stroke-width: 2; stroke-linecap: round;
+    stroke-linejoin: round; }
+.pl-lp-plano .liga { fill: none; stroke: rgba(219,233,255,.5); stroke-width: 1.4; }
+.pl-lp-plano .halo { fill: none; stroke: rgba(219,233,255,.35); stroke-width: 2; }
+.pl-lp-plano .no { fill: #fff; }
+
+/* ---- Cabeçalho de faixa ---- */
+.pl-lp-shead { text-align: center; max-width: 62ch; margin: 0 auto 42px; }
+.pl-lp-shead .ey { display: block; font-size: 12px; letter-spacing: .2em; text-transform: uppercase;
+    color: var(--pl-blue); font-weight: 600; }
+.pl-lp-shead h2 { font-family: var(--pl-display); font-weight: 700;
+    font-size: clamp(26px, 3.4vw, 40px); letter-spacing: -.02em; margin: 8px 0; line-height: 1.15;
+    text-wrap: balance; }
+.pl-lp-shead p { color: var(--pl-muted); font-size: 16px; line-height: 1.6; margin: 0; }
+
+/* ---- Como funciona, e Para quem: as faixas claras ---- */
+.pl-lp-clara { padding: 66px 0; background: var(--pl-card); }
+.pl-lp-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+    align-items: stretch; }
+@media (max-width: 820px) { .pl-lp-steps { grid-template-columns: 1fr; } }
+.pl-lp-steps > .pl-card { padding: 26px; box-shadow: 0 10px 28px rgba(11,42,74,.06); }
+.pl-lp-steps .num { width: 32px; height: 32px; border-radius: 9px; display: grid;
+    place-items: center; margin-bottom: 14px; color: #fff; font-family: var(--pl-display);
+    font-weight: 700; font-size: 14px;
+    background: linear-gradient(135deg, var(--pl-blue-2), var(--pl-blue)); }
+.pl-lp-steps h3 { font-family: var(--pl-display); font-weight: 600; font-size: 18px;
+    letter-spacing: -.01em; margin: 0 0 6px; }
+.pl-lp-steps p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--pl-muted); }
+
+/* ---- Tridimensionalidade: a faixa escura ---- */
+.pl-lp-axes { background: var(--pl-navy); color: #ccdcf1; padding: 58px 0 66px; }
+.pl-lp-axes .pl-lp-shead .ey { color: var(--pl-blue-2); }
+.pl-lp-axes .pl-lp-shead h2 { color: #fff; }
+.pl-lp-axes .pl-lp-shead h2 .v { background: linear-gradient(90deg, var(--pl-blue), var(--pl-blue-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+.pl-lp-axes .pl-lp-shead p { color: #aec2e0; }
+.pl-lp-cards3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+@media (max-width: 820px) { .pl-lp-cards3 { grid-template-columns: 1fr; } }
+.pl-lp-c3 { border: 1px solid rgba(120,160,220,.16); border-radius: 20px;
+    background: linear-gradient(165deg, rgba(23,44,80,.55), rgba(9,17,33,.5));
+    display: flex; flex-direction: column; min-height: 330px; overflow: hidden; }
+.pl-lp-c3 > svg { display: block; width: 100%; height: 200px; }
+.pl-lp-c3 .tx { padding: 2px 22px 22px; margin-top: auto; }
+.pl-lp-c3 .ax { display: block; font-family: var(--pl-display); font-size: 11.5px;
+    font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+.pl-lp-c3.x .ax { color: var(--pl-blue); }
+.pl-lp-c3.y .ax { color: var(--pl-blue-2); }
+.pl-lp-c3.z .ax { color: #dbe9ff; }
+.pl-lp-c3 h3 { font-family: var(--pl-display); font-weight: 600; font-size: 20px;
+    letter-spacing: -.01em; color: #fff; margin: 8px 0 6px; }
+.pl-lp-c3 p { margin: 0; font-size: 13.5px; line-height: 1.6; color: #aec2e0; }
+.pl-lp-proof { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 26px;
+    padding-top: 26px; border-top: 1px solid rgba(120,160,220,.14); }
+@media (max-width: 820px) { .pl-lp-proof { grid-template-columns: 1fr; } }
+.pl-lp-pf { display: flex; gap: 12px; align-items: flex-start; }
+.pl-lp-pf .ic { width: 38px; height: 38px; border-radius: 10px; flex: none; display: grid;
+    place-items: center; background: rgba(46,107,230,.18); color: #dbe9ff; }
+.pl-lp-pf .ic svg { width: 18px; height: 18px; }
+.pl-lp-pf h4 { font-family: var(--pl-display); font-weight: 600; font-size: 15px; color: #fff;
+    margin: 0 0 2px; }
+.pl-lp-pf p { margin: 0; font-size: 13px; line-height: 1.55; color: #aec2e0; }
+
+/* ---- Para quem ---- */
+.pl-lp-who { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: stretch; }
+@media (max-width: 820px) { .pl-lp-who { grid-template-columns: 1fr; } }
+.pl-lp-whocard { position: relative; border: 1px solid var(--pl-border); border-radius: 20px;
+    padding: 30px; background: var(--pl-card); box-shadow: 0 12px 32px rgba(11,42,74,.07);
+    overflow: hidden; display: flex; flex-direction: column;
+    transition: transform .15s ease, box-shadow .15s ease; }
+.pl-lp-whocard:hover { transform: translateY(-2px); box-shadow: 0 18px 40px rgba(11,42,74,.12); }
+@media (prefers-reduced-motion: reduce) {
+    .pl-lp-whocard { transition: none; }
+    .pl-lp-whocard:hover { transform: none; }
+}
+.pl-lp-whocard::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--pl-blue), var(--pl-blue-2)); }
+.pl-lp-whocard.emp::before { background: linear-gradient(90deg, var(--pl-blue-2), var(--pl-blue)); }
+.pl-lp-whead { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.pl-lp-whead .em { width: 50px; height: 50px; border-radius: 14px; flex: none; display: grid;
+    place-items: center; background: var(--pl-blue-100); }
+.pl-lp-whead .em .m { width: 18px; height: 18px; border-radius: 5px; transform: rotate(45deg);
+    background: linear-gradient(135deg, var(--pl-blue-2), var(--pl-blue)); }
+.pl-lp-whead h3 { font-family: var(--pl-display); font-weight: 600; font-size: 22px;
+    letter-spacing: -.01em; margin: 0; }
+.pl-lp-whead .ws { display: block; font-size: 13px; color: var(--pl-muted); margin-top: 2px; }
+.pl-lp-checks { list-style: none; margin: 0 0 22px; padding: 0; }
+.pl-lp-checks li { display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px;
+    line-height: 1.5; color: var(--pl-ink); margin-bottom: 11px; }
+.pl-lp-checks li svg { width: 19px; height: 19px; flex: none; margin-top: 2px; }
+.pl-lp-checks .fundo { fill: var(--pl-blue-100); }
+.pl-lp-checks .marca { fill: none; stroke: var(--pl-blue); stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round; }
+.pl-lp-whocard .pe { margin-top: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+.pl-lp-whocard .pe .pl-btn { height: 44px; padding: 0 20px; font-size: 14px; }
+
+/* ---- Rodapé da landing ---- */
+.pl-lp-rodape { background: var(--pl-navy-2); color: #aec2e0; padding: 52px 0 30px; }
+.pl-lp-fgrid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 30px;
+    padding-bottom: 30px; border-bottom: 1px solid rgba(120,160,220,.14); }
+@media (max-width: 820px) { .pl-lp-fgrid { grid-template-columns: 1fr 1fr; } }
+.pl-lp-rodape h4 { font-family: var(--pl-display); font-weight: 600; font-size: 13px; color: #fff;
+    margin: 0 0 12px; }
+.pl-lp-rodape .col a { display: block; color: #8fa8cc; font-size: 13.5px; margin-bottom: 8px;
+    text-decoration: none; }
+.pl-lp-rodape .col a:hover { color: #fff; }
+.pl-lp-rodape .pl-lp-marca { margin-bottom: 12px; font-size: 18px; }
+.pl-lp-ia { font-size: 12px; line-height: 1.6; color: #8fa8cc; max-width: 52ch; margin: 0; }
+.pl-lp-ia + .pl-lp-ia { margin-top: 10px; }
+.pl-lp-fbot { display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+    padding-top: 20px; font-size: 12.5px; color: #8fa8cc; }
+
+/* ---------- 27. As quatro cenas da landing: a <canvas> animada e o quadro final em SVG --------
+   O mockup desenha as quatro cenas em <canvas> com requestAnimationFrame, e é assim que elas
+   ficam: o código mora em public/assets/js/landing.js, porque a CSP é `script-src 'self'` e
+   recusa só o script embutido. Arquivo servido pela aplicação ela aceita.
+
+   O par <canvas> + <svg> é melhoria progressiva, o mesmo padrão do feed. Sem JavaScript a
+   <canvas> nunca aparece e quem fica na tela é o SVG do quadro final daquela cena, com a mesma
+   geometria: nenhum retângulo vazio, nenhum buraco na página. Com JavaScript o landing.js marca
+   o bloco com `is-js` e os dois trocam de lado. A troca é feita por classe, e não pelo contrário
+   (canvas visível por padrão), porque a falha tem de cair no lado seguro: se o arquivo não
+   carregar, sobra desenho, não um vão.
+
+   As alturas são as do mockup: 380px no hero, 200px em cada cartão da faixa escura. A do hero
+   cede em tela estreita, onde 380px de figura empurrariam a primeira faixa de texto para fora
+   da primeira dobra. Quem pediu `prefers-reduced-motion: reduce` recebe o quadro final desenhado
+   uma vez, sem laço: isso é decidido no JavaScript, que é quem sabe desenhar o quadro. */
+.pl-lp-fig > canvas, .pl-lp-c3 > canvas { display: none; width: 100%; }
+.pl-lp-fig > canvas { height: 380px; }
+.pl-lp-c3 > canvas { height: 200px; }
+@media (max-width: 900px) { .pl-lp-fig > canvas { height: 300px; } }
+.pl-lp-fig.is-js > canvas, .pl-lp-c3.is-js > canvas { display: block; }
+.pl-lp-fig.is-js > svg, .pl-lp-c3.is-js > svg { display: none; }
+
+/* ---------- 28. Busca de profissionais: o porte da tela 02 de docs/mockups/prolink-busca.html --
+   Substitui, no que é forma, a seção 20: a unidade de leitura continua sendo UMA pessoa, e o que
+   muda é o desenho do cartão, que agora é o do mockup. Primário quem ela é (marca, nome e selo);
+   secundário o que o CREA registrou sobre ela, que é o que o termo encontra; terciário a ação.
+
+   A moldura do mockup não vem junto: ela é o recorte da tela dentro do documento de mockups. A
+   barra de topo desenhada lá é a navegação do layout aqui.
+
+   Duas cores do mockup não existem nos tokens da seção 1 e foram traduzidas: o azul #215ac2 do
+   chip já é o do .pl-tag, e o petróleo #1B4079 do botão contornado é o --pl-data. Nenhum tom
+   novo. */
+
+/* ---- A fileira de busca ----
+   O campo ocupa a linha e os controles ficam ao lado, todos com a mesma altura de 46px: era isso
+   que o mockup fazia com os dois seletores, e é o que impede o degrau de alturas diferentes numa
+   barra de ação. */
+.pl-busca-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-bottom: 14px; }
+.pl-busca-row .cx { flex: 1 1 260px; min-width: 0; height: 46px; display: flex;
+    align-items: center; gap: 9px; padding: 0 14px; background: var(--pl-card);
+    border: 1px solid var(--pl-border); border-radius: var(--pl-r); }
+.pl-busca-row .cx:focus-within { border-color: var(--pl-blue);
+    box-shadow: 0 0 0 3px rgba(46,107,230,.16); }
+.pl-busca-row .lupa { display: grid; place-items: center; flex: none; color: var(--pl-faint); }
+.pl-busca-row .lupa svg { width: 16px; height: 16px; }
+.pl-busca-row .cx input { flex: 1; min-width: 0; height: 100%; border: 0; padding: 0;
+    background: transparent; color: var(--pl-ink); font-family: var(--pl-body); font-size: 14px; }
+.pl-busca-row .cx input:focus { outline: none; }   /* o contorno é da caixa inteira, acima */
+.pl-busca-row .cx input::placeholder { color: var(--pl-faint); }
+/* Mesma caixa dos seletores do mockup, no lugar deles. */
+.pl-busca-flt { display: flex; align-items: center; gap: 9px; height: 46px; padding: 0 14px;
+    background: var(--pl-card); border: 1px solid var(--pl-border); border-radius: var(--pl-r);
+    font-size: 13px; font-weight: 600; color: var(--pl-ink); white-space: nowrap; }
+.pl-busca-flt .form-check-input { margin: 0; float: none; flex: none; }
+.pl-busca-flt label { margin: 0; cursor: pointer; }
+.pl-busca-row .pl-btn { height: 46px; padding: 0 18px; }
+
+/* ---- A barra de contagem ----
+   Quantos, de um lado; de quem é a lista, do outro. A segunda metade não é rodapé de tabela: é a
+   qualificação do conjunto, e por isso fica na mesma linha do número, não escondida atrás de um
+   "i". */
+.pl-busca-barra { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px;
+    flex-wrap: wrap; margin: 6px 0 16px; }
+.pl-busca-barra .ct { margin: 0; font-family: var(--pl-display); font-weight: 600; font-size: 15px;
+    color: var(--pl-ink); }
+.pl-busca-barra .ct b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.pl-busca-barra .vis { margin: 0; display: inline-flex; align-items: center; gap: 7px;
+    font-size: 12.5px; color: var(--pl-muted); }
+.pl-busca-barra .vis svg { width: 14px; height: 14px; flex: none; color: var(--pl-faint); }
+
+/* ---- O cartão de pessoa ----
+   Altura igual dentro da fileira e a ação encostada na base: com cartões de altura própria, uma
+   fileira de quatro botões ficava em quatro alturas diferentes. */
+.pl-grade.pessoas { align-items: stretch; }
+.pl-grade.pessoas > .pl-pcard { padding: 20px; flex-direction: column; gap: 15px; }
+.pl-pcard .ph { display: flex; align-items: center; gap: 12px; }
+.pl-pcard .pl-av { width: 50px; height: 50px; border-radius: 14px; font-size: 16px;
+    font-weight: 600; box-shadow: 0 8px 18px rgba(19,49,90,.20); }
+.pl-pcard .pinfo { min-width: 0; flex: 1; }
+.pl-pcard .pname { display: flex; align-items: center; gap: 7px; margin: 0;
+    font-family: var(--pl-display); font-weight: 600; font-size: 16.5px; line-height: 1.25;
+    letter-spacing: -.01em; }
+.pl-pcard .pname a { color: var(--pl-ink); text-decoration: none; overflow-wrap: anywhere; }
+.pl-pcard .pname a:hover { color: var(--pl-blue); text-decoration: none; }
+.pl-pcard .pname a:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 3px;
+    border-radius: 6px; }
+.pl-pcard .pname .pl-mark { width: 15px; height: 15px; vertical-align: 0; }
+.pl-pcard .pmeta { margin: 2px 0 0; display: flex; align-items: center; flex-wrap: wrap;
+    gap: 3px 7px; font-size: 12.5px; color: var(--pl-muted); }
+.pl-pcard .pmeta .pl-mono { font-size: 11.5px; }
+.pl-pcard .pmeta .mais { color: var(--pl-faint); }
+.pl-pcard .ph > .pl-pill { flex: none; align-self: flex-start; }
+
+/* A linha do acervo: o filete separa o que o conselho registrou de quem a pessoa é. */
+/* Uma linha só, como no mockup: quem cede espaço é o nome da área, que tem teto e reticências,
+   e não a contagem nem o "e mais". Com a linha quebrando, o "e mais 4 áreas" caía sozinho embaixo
+   em uns cartões e ficava ao lado em outros, e a fileira perdia o ritmo. */
+.pl-pcard .metae { margin: auto 0 0; padding-top: 13px; border-top: 1px solid var(--pl-border-2);
+    display: flex; align-items: center; flex-wrap: nowrap; gap: 8px 12px; font-size: 12.5px;
+    color: var(--pl-muted); }
+.pl-pcard .metae .qt { display: inline-flex; align-items: center; gap: 5px; flex: none; }
+.pl-pcard .metae .qt b { color: var(--pl-ink); font-family: var(--pl-display); font-weight: 600;
+    font-variant-numeric: tabular-nums; }
+.pl-pcard .metae .qt.nulo { color: var(--pl-faint); }
+.pl-pcard .metae .mais { font-size: 11.5px; color: var(--pl-faint); flex: none; }
+/* O chip do mockup: mesma tinta do .pl-tag, caixa arredondada e teto de largura. Sem o teto, um
+   grupo da Tabela de Obras e Serviços de 50 caracteres definia sozinho a largura da coluna. */
+.pl-pcard .achip { border-radius: 20px; font-size: 11px; padding: 4px 10px; min-width: 0;
+    max-width: 100%; display: inline-block; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; }
+/* Ação contornada ocupando a largura do cartão, como no mockup. */
+.pl-pcard .pbtn { width: 100%; height: 40px; font-size: 13.5px; }
+
+@media (max-width: 720px) {
+    .pl-busca-row .cx, .pl-busca-flt { flex: 1 1 100%; }
+    .pl-busca-row .pl-cta, .pl-busca-row .pl-btn { flex: 1; }
+    .pl-convite { max-width: none; }
+    /* Em coluna única o cartão tem largura de tela, e a linha do acervo cabe melhor quebrada do
+       que com o nome da área cortado em duas palavras. */
+    .pl-pcard .metae { flex-wrap: wrap; }
+}
+
+/* ---------- 29. O shell de quem está logado, e a barra pública do mockup ---------------------
+   Duas barras, e só duas. O `docs/design.md` já dizia (linha 77) que `pl-app` é o shell das
+   páginas logadas e que a top-nav serve as públicas, mas só o painel administrativo tinha a
+   barra lateral: empresa e profissional navegavam numa fileira de links soltos da navbar do
+   Bootstrap, que não existe em mockup nenhum.
+
+   a) **Barra lateral navy** para quem está dentro da conta. A seção 5 já desenhou o shell; o que
+      faltava era o estado recolhido (o mockup esconde rótulo e centra ícone, e aqui a coluna de
+      66px existia sem nenhuma regra para o que acontece dentro dela), o lado direito da topbar
+      (sino e identidade) e as medidas do conteúdo.
+   b) **Barra pública** de `docs/mockups/prolink-busca.html` (telas 02 e 03), que é a mesma da
+      landing em faixa clara: marca à esquerda, três links, "Entrar" discreto e "Usar a
+      plataforma" preenchido. Nenhuma cor nova: a marca é `--pl-navy`, os links são `--pl-muted`,
+      e a ação preenchida é o `.pl-cta` da casa.
+
+   A unidade de leitura da barra lateral é a seção em que a pessoa está: primário o item ativo
+   (único preenchido de branco), secundário os outros itens, terciário a identidade no rodapé. Na
+   topbar, primário é o nome da seção e terciário o sino e o avatar, que são atalho, não assunto.
+
+   Escala: a navegação tem no máximo seis itens por perfil e não cresce com o dado, então não há
+   rolagem interna prevista na barra. Se um dia passar de dez, a coluna precisa de overflow-y. */
+
+/* ---- O shell como página inteira ---- */
+/* O `body` é flex-column com min-vh-100 (Bootstrap). Sem isto o shell, que é grid, não recebe a
+   altura sobrando e o fundo off-white parava no fim do conteúdo curto. */
+body > .pl-app { flex: 1 0 auto; min-width: 0; }
+/* A transição do mockup, que a seção 5 não portou. Recolher sem ela é um salto de 166px. */
+.pl-app { transition: grid-template-columns .22s ease; }
+@media (prefers-reduced-motion: reduce) { .pl-app { transition: none; } }
+
+/* ---- A barra recolhida ---- */
+/* A seção 5 declarava a coluna de 66px e nada sobre o que vive dentro dela: o rótulo continuava
+   ocupando largura, era clipado pelo overflow, e a barra recolhida ficava com meia palavra em
+   cada item. Estas são as regras do mockup (linhas 51-58 de prolink-profissional.html). */
+.pl-app.collapsed .pl-side .name,
+.pl-app.collapsed .pl-side .lb,
+.pl-app.collapsed .pl-side small,
+.pl-app.collapsed .pl-side .foot .txt { display: none; }
+.pl-app.collapsed .pl-brand { justify-content: center; margin: 6px 0 18px; }
+.pl-app.collapsed .pl-brand .m { display: none; }
+.pl-app.collapsed .pl-brand .pl-ham { margin-left: 0; }
+.pl-app.collapsed .pl-nav a { justify-content: center; padding: 10px 0; }
+.pl-app.collapsed .pl-side .foot { justify-content: center; padding: 10px 0; }
+.pl-ham svg { width: 16px; height: 16px; }
+.pl-ham:hover { background: rgba(255,255,255,.14); color: #fff; }
+/* Nome longo na identidade do rodapé: uma linha, cortada, e nunca uma segunda coluna de texto
+   empurrando a barra. "Alfa Engenharia e Consultoria Ltda" tem 33 caracteres. */
+.pl-side .foot .txt { white-space: nowrap; }
+/* Foco de teclado na barra e na topbar: a seção 11 cobriu o que é do painel e nada mais. */
+.pl-nav a:focus-visible, .pl-ham:focus-visible, .pl-topbar-acoes a:focus-visible,
+.pl-topbar-acoes button:focus-visible { outline: 2px solid var(--pl-blue-2); outline-offset: 2px;
+    border-radius: 10px; }
+.pl-topbar-acoes a:focus-visible, .pl-topbar-acoes button:focus-visible {
+    outline-color: var(--pl-blue); }
+
+/* ---- A topbar: o lugar à esquerda, os atalhos à direita ---- */
+/* O nome da seção é indicador de lugar e não o título da página: por isso é <p> e não <h1>. As
+   telas já trazem o próprio <h1> no conteúdo, e dois <h1> na mesma página seriam dois assuntos. */
+.pl-topbar-tt { margin: 0; min-width: 0; font-family: var(--pl-display); font-weight: 600;
+    font-size: 16px; letter-spacing: -.01em; color: var(--pl-ink); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+/* Sino: a mesma caixa de 36px do mockup. Sem contador, porque ninguém mede ainda quantas
+   manifestações chegaram e não foram abertas (DashboardRepository::naoVistas existe, e nenhum
+   controller o chama). Ponto vermelho fixo seria alarme falso permanente. */
+.pl-ibtn { width: 36px; height: 36px; border-radius: 9px; flex: none; display: grid;
+    place-items: center; background: var(--pl-app); border: 1px solid var(--pl-border);
+    color: var(--pl-muted); text-decoration: none; }
+.pl-ibtn:hover { color: var(--pl-data); border-color: var(--pl-blue-2); }
+.pl-ibtn svg { width: 18px; height: 18px; }
+/* A marca de pessoa na escala da topbar: a mesma de .pl-av, sem a sombra, que a 36px vira
+   borrão. */
+.pl-av.xs { width: 36px; height: 36px; border-radius: 9px; font-size: 12px; font-weight: 600;
+    box-shadow: none; text-decoration: none; }
+.pl-sair { height: 36px; padding: 0 12px; border: 0; border-radius: 9px; background: transparent;
+    color: var(--pl-muted); font-family: var(--pl-body); font-weight: 600; font-size: 13px;
+    cursor: pointer; white-space: nowrap; }
+.pl-sair:hover { color: var(--pl-ink); background: var(--pl-app); }
+
+/* ---- A medida do conteúdo dentro do shell ---- */
+/* O teto é à esquerda, e não centralizado: a moldura da página já é a janela inteira, com a
+   barra e a topbar a ocupando. Formulário com medida de leitura no meio de 1700px de área
+   voltaria a ser a coluna estreita com vazio dos dois lados. */
+.pl-content.registro { max-width: 1400px; }
+.pl-content.leitura  { max-width: 1080px; }
+
+/* ---- A fileira de indicadores do início ---- */
+/* `repeat(4, 1fr)` é o do mockup e só serve a quatro: o início da empresa tem cinco tiles e o do
+   contratante tem três, porque ele não tem acervo nem quadro técnico. Com auto-fit a mesma
+   fileira serve aos três casos, e `min()` no piso impede a coluna de ficar maior que a área
+   quando sobram 330px de tela. */
+.pl-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
+    gap: 14px; }
+
+/* ---- A barra pública ---- */
+.pl-topnav { background: var(--pl-card); border-bottom: 1px solid var(--pl-border); }
+.pl-topnav .in { display: flex; align-items: center; gap: 10px 22px; min-height: 62px;
+    flex-wrap: wrap; padding: 8px clamp(16px, 2.4vw, 40px); }
+.pl-topnav .marca { display: flex; align-items: center; gap: 9px; color: var(--pl-navy);
+    font-family: var(--pl-display); font-weight: 700; font-size: 18px; text-decoration: none;
+    white-space: nowrap; }
+.pl-topnav .marca:hover { color: var(--pl-navy-2); }
+.pl-topnav .marca .m { width: 12px; height: 12px; border-radius: 4px; flex: none;
+    background: linear-gradient(135deg, var(--pl-blue-2), var(--pl-blue)); transform: rotate(45deg); }
+.pl-topnav .elos { display: flex; gap: 8px 20px; flex-wrap: wrap; min-width: 0; }
+.pl-topnav .elos a { color: var(--pl-muted); font-size: 14px; font-weight: 500;
+    text-decoration: none; white-space: nowrap; }
+.pl-topnav .elos a:hover { color: var(--pl-ink); }
+.pl-topnav .acoes { margin-left: auto; display: flex; align-items: center; gap: 6px;
+    flex-wrap: wrap; }
+/* Ação terciária sobre a faixa clara: o .pl-btn contornado concorreria com o .pl-cta ao lado. */
+.pl-topnav .ghost { display: inline-flex; align-items: center; height: 40px; padding: 0 14px;
+    border: 0; border-radius: var(--pl-r); background: transparent; color: var(--pl-ink);
+    font-family: var(--pl-body); font-weight: 600; font-size: 14px; text-decoration: none;
+    white-space: nowrap; cursor: pointer; }
+.pl-topnav .ghost:hover { background: var(--pl-app); color: var(--pl-ink); }
+.pl-topnav a:focus-visible, .pl-topnav button:focus-visible { outline: 2px solid var(--pl-blue);
+    outline-offset: 3px; border-radius: 8px; }
+
+/* ---- As duas barras num aparelho de 390px ---- */
+@media (max-width: 768px) {
+    /* A seção 25 transforma a barra lateral em faixa horizontal abaixo de 768px, e ali o estado
+       recolhido não faz sentido: a coluna de 66px já não existe. Sem isto, quem recolheu no
+       desktop abriria o celular com uma faixa de ícones sem rótulo e sem nome de conta. */
+    .pl-app.collapsed .pl-side .name,
+    .pl-app.collapsed .pl-side .lb,
+    .pl-app.collapsed .pl-side small,
+    .pl-app.collapsed .pl-side .foot .txt { display: revert; }
+    .pl-app.collapsed .pl-brand { justify-content: flex-start; margin: 0; }
+    .pl-app.collapsed .pl-brand .m { display: block; }
+    .pl-app.collapsed .pl-nav a { justify-content: flex-start; padding: 8px 13px; }
+    .pl-app.collapsed .pl-side .foot { justify-content: flex-start; padding: 0; }
+    /* O botão de recolher sai: ele comanda uma coluna que não existe nesta largura. */
+    .pl-side .pl-ham { display: none; }
+    /* A seção 25 quebra a topbar em duas linhas, e no painel isso é certo: a segunda linha recebe
+       o selo de somente leitura e a contagem do momento. Aqui a topbar só tem o nome da seção e
+       dois atalhos de 36px, que somam menos de 200px, e em duas linhas ela viraria 120px de barra
+       vazia no topo de um aparelho de 390px. O seletor é o do shell com botão de recolher, para o
+       painel administrativo continuar com o comportamento dele. */
+    .pl-app[data-colapsavel] .pl-topbar { height: 60px; align-items: center; flex-wrap: nowrap;
+        gap: 8px; padding: 0 14px; }
+    .pl-app[data-colapsavel] .pl-topbar-acoes { margin-left: auto; flex-wrap: nowrap; gap: 8px; }
+}
+@media (max-width: 760px) {
+    /* Marca e ações na primeira fileira, os três links na segunda. Deixados à sorte do wrap, o
+       par de botões caía numa terceira fileira e a barra pública ficava com 150px de altura em
+       toda tela pública. */
+    .pl-topnav .in { min-height: 0; gap: 8px 14px; }
+    .pl-topnav .elos { order: 3; width: 100%; gap: 6px 16px; }
+}
+
+/* ---------- 30. O feed no porte de docs/mockups/prolink-feed-imersivo-v3.html ----------------
+   A seção 13 desenhou a mecânica do feed (o palco, o card único, o trilho, a evidência sob
+   demanda) dentro da moldura errada: o `.pl-feed` era a classe do `<main>` da barra pública, e a
+   única tela logada que ainda abria sem barra lateral era justamente a que sustenta o
+   diferencial declarado na proposta.
+
+   Esta seção faz três coisas, e só três:
+
+   a) **Dá ao feed a sangria total.** `.pl-content` é uma coluna com 22px de ar e 18px de gap, que
+      é a medida certa de toda tela de conteúdo e a errada para um palco. `sem-ar` zera as três e
+      deixa o feed crescer até o fim da janela, que é o que o mockup mostra: o card em foco vive
+      num palco, não numa coluna com margem.
+   b) **Sobe a escala para a do mockup.** O card de lá tem 26px de raio, 46px de ar e um nome de
+      42px; o daqui tinha 22, 34 e 30. Num palco de 1200px de largura, a diferença é entre um
+      card de formulário e o objeto único da tela.
+   c) **Desenha o fundo do palco.** A `<canvas>` do mockup (o plano em perspectiva que vira
+      volume) é o que impede a sangria total de virar vazio dos dois lados do card.
+
+   O que NÃO veio do mockup, e por quê: as seis dimensões continuam em dois grupos com selo
+   (comprovado no CREA / informado pelo perfil), porque confundir o que a API verificou com o que
+   a pessoa escreveu é exatamente o que a D33 proíbe; a coluna de rótulo fica em 152px e não em
+   128px, porque "Disponibilidade" e "Competência técnica" não cabem em 128; e `--pl-faint-2` do
+   mockup não existe aqui, então os rótulos pequenos usam `--pl-muted`, que tem mais contraste.
+
+   Escala: o palco é dimensionado para o pool que o motor devolve hoje (unidades e dezenas). O
+   trilho é contínuo e a altura do indicador tem piso de 14px, então um pool de 200 continua
+   legível; abaixo de dois candidatos o JS nem liga o modo player. */
+
+/* ---- a) A sangria total dentro do shell ---- */
+/* `flex: 1` e `min-height: 0` juntos: sem o primeiro o palco tem a altura do card e sobra fundo
+   embaixo; sem o segundo o item flex ganha piso automático e volta a empurrar a página. */
+.pl-content.sem-ar { padding: 0; max-width: none; gap: 0; flex: 1 1 auto; min-height: 0; }
+.pl-content.sem-ar > .pl-feed { flex: 1 1 auto; min-height: 0; }
+/* O aviso de erro é irmão do feed, não filho: com o ar zerado ele encostaria nas duas bordas.
+   É por aqui que volta a recusa de `registrarInteresse` (perfil fechado, duplicata, alvo). */
+.pl-content.sem-ar > .alert { margin: 16px 40px 0; }
+
+/* ---- b) A escala do mockup ---- */
+.pl-feed .pl-ctxline { padding: 18px 40px 0; }
+/* Centro que não corta: `place-items: center` recorta o topo quando o conteúdo passa da altura
+   do palco, e sem JavaScript o palco é uma pilha de cards. `margin: auto` centra e cede. */
+/* Coluna, e não linha: abaixo de 900px a seção 13 tira o trilho do posicionamento absoluto, e
+   num flex em linha ele virava uma segunda coluna ao lado do card: 97px de rolagem horizontal
+   num aparelho de 390px. `margin: auto` no track centra nos dois eixos sem recortar. */
+.pl-feed .pl-stage { display: flex; flex-direction: column; padding: 34px 40px 44px; }
+.pl-feed .pl-track { width: min(660px, 100%); margin: auto; }
+
+.pl-feed .pl-focus { border-radius: 26px; padding: 46px 48px 40px;
+    box-shadow: 0 2px 3px rgba(11,42,74,.04), 0 34px 70px rgba(11,42,74,.13); }
+.pl-feed.is-js .pl-focus { min-height: 560px; }
+
+/* O avatar do mockup não fica ao lado do nome: ele abre o card, e o nome vem embaixo. É o
+   elemento que persiste entre um candidato e o outro, e por isso tem o lugar de âncora. */
+.pl-feed .pl-topo { display: block; }
+.pl-feed .pl-av { width: 72px; height: 72px; border-radius: 20px; font-size: 25px;
+    box-shadow: 0 12px 26px rgba(19,49,90,.24); }
+.pl-feed .pl-name { font-size: 42px; line-height: 1.08; letter-spacing: -.03em;
+    margin: 22px 0 0; gap: 12px; }
+.pl-feed .pl-name .pl-seal { width: 22px; height: 22px; }
+.pl-feed .pl-meta { font-size: 13.5px; margin: 8px 0 0; }
+.pl-feed .pl-acervo { font-size: 13.5px; margin: 8px 0 0; }
+
+.pl-feed .pl-adher { margin-top: 34px; }
+.pl-feed .pl-grp { font-size: 10.5px; letter-spacing: .09em; margin-bottom: 14px; }
+.pl-feed .pl-adher .pl-dim { grid-template-columns: 152px minmax(0, 1fr) 44px; gap: 16px;
+    margin-bottom: 14px; }
+.pl-feed .pl-adher .pl-dim .dlab, .pl-feed .pl-adher .pl-dim .pct { font-size: 13px; }
+/* O trilho da barra é chapado como no mockup: o contorno de 1px sobre fundo quase branco lia
+   como campo de formulário vazio ao lado do preenchimento azul escuro. */
+.pl-feed .pl-adher .pl-bar { background: var(--pl-border); border: 0; }
+.pl-feed .pl-toggle { margin-top: 26px; }
+
+/* ---- As duas ações: a preenchida laranja e a contornada, do mesmo tamanho ---- */
+/* Sem borda superior: o mockup não tem, e no card de 560px a linha cortava o ar que o
+   `margin-top: auto` já reserva. */
+.pl-feed .pl-acoes { margin-top: 34px; padding-top: 0; border-top: 0; gap: 12px; }
+/* No modo player o `margin-top: auto` da seção 13 empurra as ações para o rodapé do card, e com
+   um candidato de seis dimensões medidas não sobra folga nenhuma: o par de botões encostava no
+   "Por que este perfil é compatível". O ar vira padding, que o `auto` não come. */
+.pl-feed.is-js .pl-acoes { padding-top: 34px; }
+.pl-feed .pl-acoes form { margin: 0; }
+.pl-feed .pl-acoes .pl-cta.lg, .pl-feed .pl-acoes .pl-btn.lg { height: 48px; border-radius: 14px; }
+.pl-feed .pl-acoes .pl-cta.lg { padding: 0 22px; font-size: 14px; }
+.pl-feed .pl-acoes .pl-btn.lg { padding: 0 20px; }
+/* O anel de foco do `.pl-cta` nasceu aqui, no escopo do feed, com a lacuna anotada para a
+   aplicação inteira. A regra geral está na seção 31, e esta saiu: duas regras idênticas, uma
+   dentro da outra, é a que fica para trás quando a de fora muda. */
+.pl-feed .pl-nota-acao { margin-top: 14px; max-width: 62ch; }
+
+.pl-feed .pl-peek { margin-top: -16px; border-radius: 0 0 22px 22px; padding: 26px 34px 14px;
+    box-shadow: 0 20px 34px rgba(11,42,74,.07); }
+.pl-feed .pl-peek .pav { width: 30px; height: 30px; }
+.pl-feed .pl-peek .pn { font-size: 15px; }
+
+.pl-feed .pl-rail { right: 18px; gap: 16px; }
+.pl-feed .pl-arrow { width: 42px; height: 42px; }
+.pl-feed .pl-progress { height: 132px; }
+.pl-feed .pl-hint { left: 40px; bottom: 20px; }
+.pl-feed .pl-end .et { font-size: 26px; }
+.pl-feed .pl-proveniencia { padding: 0 40px 22px; }
+
+/* ---- c) O fundo do palco ---- */
+/* A malha em perspectiva com os prismas em wireframe: o plano XY que ganha o eixo Z. Fica atrás
+   da luz central (`.pl-stage::before`, z-index 1) e do card (z-index 2), e nunca recebe evento.
+   Sem JavaScript a <canvas> continua transparente e o palco fica como estava. */
+.pl-feed .pl-motivo { position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    width: 100%; height: 100%; }
+.pl-feed .pl-stage::before { z-index: 1; }
+.pl-feed .pl-track, .pl-feed .pl-focus { z-index: 2; }
+.pl-feed .pl-peek { z-index: 1; }
+
+/* ---- O feed num aparelho de 390px ---- */
+@media (max-width: 900px) {
+    .pl-content.sem-ar > .alert { margin: 14px 16px 0; }
+    .pl-feed .pl-ctxline { padding: 14px 16px 0; }
+    /* A etiqueta da atividade tem `white-space: nowrap` (seção 6), e a descrição da Tabela de
+       Obras e Serviços chega com 46 caracteres: em 390px eram 22px de rolagem horizontal. Aqui
+       ela quebra dentro da própria etiqueta, e o texto inteiro continua no title. */
+    .pl-feed .pl-ctxline .pl-tos { white-space: normal; max-width: 100%; }
+    .pl-feed .pl-stage { padding: 18px 16px 30px; }
+    .pl-feed .pl-focus { padding: 26px 22px 24px; border-radius: 18px; }
+    .pl-feed .pl-av { width: 56px; height: 56px; border-radius: 16px; font-size: 20px; }
+    .pl-feed .pl-name { font-size: 26px; margin-top: 16px; }
+    /* O rótulo ganha a linha inteira: em 390px sobram 230px para a barra, e "Não medida nesta
+       sessão" numa coluna de 100px quebrava em quatro linhas por dimensão. */
+    .pl-feed .pl-adher .pl-dim { grid-template-columns: minmax(0, 1fr) 44px; gap: 6px 10px;
+        margin-bottom: 16px; }
+    .pl-feed .pl-adher .pl-dim .dlab { grid-column: 1 / -1; color: var(--pl-ink); }
+    /* O selo acompanha a primeira linha do texto quando a frase quebra, e não o meio do bloco. */
+    .pl-feed .pl-acervo { align-items: flex-start; }
+    .pl-feed .pl-acervo .pl-mark { margin-top: 3px; }
+    /* O par de ações empilha em vez de espremer: dois botões de 48px lado a lado em 390px
+       quebram o texto em duas linhas, que é o defeito que a régua de botões proíbe. */
+    .pl-feed .pl-acoes { flex-direction: column; align-items: stretch; }
+    .pl-feed .pl-acoes form, .pl-feed .pl-acoes .pl-cta.lg, .pl-feed .pl-acoes .pl-btn.lg { width: 100%; }
+    /* O trilho vira uma fileira horizontal aqui (seção 13), e a altura de 132px declarada acima
+       vinha depois na folha: o indicador de 2px virava um retângulo de 120 por 132. */
+    .pl-feed .pl-progress { width: 120px; height: 2px; }
+    .pl-feed .pl-peek { width: 94%; padding: 22px 20px 12px; }
+    .pl-feed .pl-proveniencia { padding: 0 16px 18px; }
+    /* A malha só faz sentido com palco largo: em 390px ela vira ruído atrás do texto. */
+    .pl-feed .pl-motivo { display: none; }
+}
+
+/* ============================================================================
+   31 · Avisos que flutuam sobre a tela
+   ----------------------------------------------------------------------------
+   Eles ficavam no topo do `<main>`, dentro do fluxo, e empurravam a página para
+   baixo: entrar na conta jogava o herói da landing meio quadro abaixo. Agora são
+   fixos no alto, à direita, onde a leitura ocidental termina e nada importante
+   da tela costuma estar.
+
+   Em telas estreitas eles ocupam a largura, porque um cartão de 400px num
+   aparelho de 390px sobraria para fora ou encolheria a ponto de quebrar a frase
+   em cinco linhas.
+   ============================================================================ */
+
+.pl-toasts {
+    position: fixed;
+    /* Abaixo da barra do topo, que tem 60px nas telas de dentro da conta e 64px na pública:
+       flutuar em cima dela escondia o sino, o avatar e o Sair enquanto o aviso durasse. */
+    top: 76px;
+    right: 18px;
+    z-index: 1080;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(400px, calc(100vw - 36px));
+    pointer-events: none;
+}
+
+.pl-toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 13px 14px 13px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--pl-line);
+    border-left: 3px solid var(--pl-data);
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(11, 31, 59, .14), 0 2px 6px rgba(11, 31, 59, .08);
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity .22s ease, transform .22s ease;
+}
+
+.pl-toast.saindo { opacity: 0; transform: translateY(-6px); }
+
+.pl-toast .tx {
+    margin: 0;
+    flex: 1;
+    font-size: .93rem;
+    line-height: 1.45;
+    color: var(--pl-ink);
+}
+
+.pl-toast .x {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--pl-muted);
+    cursor: pointer;
+}
+
+.pl-toast .x:hover { background: var(--pl-bg-2); color: var(--pl-ink); }
+
+/* A cor da barra diz o que é sem depender de ícone, e o verde água continua
+   reservado a verificação: sucesso usa o verde de estado, não o selo. */
+.pl-toast.is-success { border-left-color: var(--pl-ok, #2f855a); }
+.pl-toast.is-danger  { border-left-color: var(--pl-err, #c53030); }
+.pl-toast.is-warning { border-left-color: var(--pl-warn, #b7791f); }
+.pl-toast.is-info    { border-left-color: var(--pl-data); }
+
+@media (max-width: 575.98px) {
+    .pl-toasts { top: 70px; right: 12px; left: 12px; width: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pl-toast { transition: none; }
+}
+
+/* ---------- 31. A entrada no núcleo da landing, a gestão de contas, e três correções de casa ---
+   Quatro assuntos, e o primeiro explica os outros:
+
+   a) **A família de entrada** (`/login`, `/cadastro`, `/recuperar-senha`, redefinir senha). Não há
+      mockup de login em `docs/mockups/`: o que existe lá é o botão "Entrar" da barra pública. O
+      pedido foi que estas telas ficassem "no core da landing page de design", então elas são
+      derivadas da seção 26, e nenhum valor aqui é novo: o azul é o mesmo `--pl-navy` com o mesmo
+      degradê radial do herói, os quatro tons de texto sobre ele são os quatro que a sidebar e o
+      herói já usam (#fff, #ccdcf1, #aec2e0, #8fa8cc), a palavra da tese usa o mesmo degradê de
+      `--pl-blue` para `--pl-blue-2`, o escudo é o par `--pl-seal-bg` + `--pl-seal`, e a ação
+      preenchida é o laranja único, que aqui chega pelo `.btn-primary` já retematizado na seção 2.
+
+      A composição é a faixa inteira repartida em duas colunas, e não o cartão de 420px centrado da
+      seção 19: aquele cartão deixava mais de mil pixels de off-white vazio dos dois lados de um
+      formulário de dois campos, que é a coluna estreita que a régua do projeto proíbe. O
+      `.pl-auth` da seção 19 continua onde está, porque a tela de erro ainda o usa.
+
+   b) **A tela de contas** do painel (Anexo I, item 3). Reaproveita a mecânica de log da seção 12 e
+      a barra de filtro da seção 11; o que ela acrescenta é a tira das três recusas do serviço e as
+      medidas de coluna próprias.
+
+   c) **O anel de foco do `.pl-cta`**, que a seção 30 corrigiu só dentro do feed e deixou anotado
+      como pendência da aplicação inteira. Agora vale em todo lugar, e a regra de lá saiu.
+
+   d) **A barra lateral que estica com o conteúdo.** `.pl-side` era `static` com altura automática,
+      então em qualquer tela mais alta que a janela o cartão de identidade do rodapé ia parar
+      abaixo da dobra: medido em `/demandas/{id}/compativeis` numa janela de 1000px de altura, o
+      cartão ficava em 1073px. Nos mockups ele está sempre visível, colado no pé da barra. */
+
+/* ---- d) A barra lateral acompanha a janela ---- */
+/* `sticky` e não `fixed`: a barra continua sendo a primeira coluna do grid, então nada precisa
+   compensar a largura dela com margem, e o estado recolhido de 66px continua valendo sem uma
+   segunda regra. A altura é a da janela, e a navegação rola dentro dela quando a janela é baixa,
+   para o cartão de identidade nunca ser empurrado para fora por um menu comprido.
+
+   Acima de 768px só: abaixo disso a seção 25 transforma a barra em faixa horizontal no topo, onde
+   `sticky` com 100vh de altura ocuparia a tela inteira de um aparelho de 390px. */
+@media (min-width: 769px) {
+    .pl-side { position: sticky; top: 0; height: 100vh; align-self: start; }
+    /* `min-height: 0` é o que permite o filho encolher dentro de um contêiner flex: sem ele a
+       navegação se recusa a ficar menor que o conteúdo dela e empurra o rodapé para fora de novo,
+       que é exatamente o defeito que esta regra existe para consertar. */
+    .pl-side .pl-nav { overflow-y: auto; min-height: 0; }
+    /* O cartão de identidade não encolhe junto com a navegação: ele é o que precisa sobreviver. */
+    .pl-side .foot { flex: none; }
+}
+
+/* ---- c) O foco do `.pl-cta`, na aplicação inteira ---- */
+/* O anel fino padrão do navegador some sobre o laranja, ao lado de um `.pl-btn` com anel de 2px.
+   O azul escuro é a cor de contorno que a seção 11 já usa no painel. */
+.pl-cta:focus-visible { outline: 2px solid var(--pl-data); outline-offset: 3px; }
+
+/* ---- a) A entrada: a página inteira, repartida em duas ---- */
+/* Mesma correção do `.pl-lp`: o `main` perde a medida do `.pl-wrap` e cada metade pinta até a
+   borda da janela. O respiro volta dentro de cada painel. */
+.pl-ent { width: 100%; max-width: none; padding: 0; display: flex; flex-direction: column; }
+.pl-ent-grade { flex: 1 1 auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch; }
+@media (max-width: 900px) { .pl-ent-grade { grid-template-columns: minmax(0, 1fr); } }
+
+/* O painel azul. O degradê radial é o do herói da landing, na mesma posição e na mesma extensão. */
+.pl-ent-lado { min-width: 0; color: #ccdcf1; display: flex; flex-direction: column;
+    justify-content: center; padding: clamp(34px, 5vw, 76px) clamp(22px, 4.5vw, 72px);
+    background: radial-gradient(60% 55% at 82% -10%, var(--pl-navy-2) 0%, transparent 55%),
+                var(--pl-navy); }
+.pl-ent-olho { display: block; font-size: 12px; letter-spacing: .2em; text-transform: uppercase;
+    color: #8fa8cc; }
+/* A tese não é <h1> nem <h2>: o assunto da página é a tarefa do formulário, e o <h1> dele é quem
+   responde por ela. O porte é o do herói, um degrau abaixo, porque aqui ela é contexto. */
+.pl-ent-lado .tese { font-family: var(--pl-display); font-weight: 700; color: #fff;
+    font-size: clamp(30px, 3.3vw, 44px); line-height: 1.06; letter-spacing: -.03em;
+    margin: 14px 0 16px; text-wrap: balance; max-width: 18ch; }
+.pl-ent-lado .tese .v { background: linear-gradient(90deg, var(--pl-blue), var(--pl-blue-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+.pl-ent-lado .sub { color: #aec2e0; font-size: 16px; line-height: 1.6; max-width: 46ch; margin: 0; }
+/* O selo da landing, com o par do selo da casa: fundo verde água claro e a marca em verde água.
+   Fecha o painel, e não abre a lista: colado acima dos itens de confirmação ele virava o primeiro
+   item de uma lista de três, com um ícone diferente dos outros dois. Aqui ele é a garantia que
+   assina o bloco, separada por uma linha fina, que é o mesmo recurso da faixa de provas da
+   landing (`.pl-lp-proof`), no mesmo tom. */
+.pl-ent-selo { display: flex; align-items: center; gap: 8px; max-width: 46ch;
+    margin: 26px 0 0; padding-top: 20px; border-top: 1px solid rgba(120,160,220,.16);
+    font-size: 13px; color: #aec2e0; }
+.pl-ent-escudo { flex: none; }
+.pl-ent-escudo .corpo { fill: var(--pl-seal-bg); }
+.pl-ent-escudo .marca { fill: none; stroke: var(--pl-seal); stroke-width: 2.4;
+    stroke-linecap: round; stroke-linejoin: round; }
+/* Os itens de confirmação, com o mesmo símbolo da faixa "Para quem". Sobre o azul os dois tons do
+   símbolo trocam: o disco vira o azul de dado a 22% e a marca vira o azul claro da sidebar. */
+.pl-ent-lista { list-style: none; margin: 24px 0 0; padding: 0; max-width: 46ch; }
+.pl-ent-lista li { display: flex; gap: 10px; align-items: flex-start; font-size: 14px;
+    line-height: 1.5; color: #aec2e0; margin-bottom: 12px; }
+.pl-ent-lista li:last-child { margin-bottom: 0; }
+.pl-ent-lista svg { flex: none; margin-top: 1px; }
+.pl-ent-lista .fundo { fill: rgba(46,107,230,.22); }
+.pl-ent-lista .marca { fill: none; stroke: var(--pl-blue-2); stroke-width: 2.2;
+    stroke-linecap: round; stroke-linejoin: round; }
+
+/* O painel do formulário. Branco, e não o off-white do fundo: o formulário é o quadro da página,
+   e quadro desta aplicação é branco. */
+.pl-ent-painel { min-width: 0; background: var(--pl-card); display: flex; align-items: center;
+    justify-content: center; padding: clamp(30px, 4vw, 60px) clamp(22px, 3.4vw, 56px); }
+/* Formulário longo (cadastro) começa no topo: centrado, ele nasceria fora da primeira dobra. */
+.pl-ent-painel.longo { align-items: flex-start; }
+.pl-ent-caixa { width: 100%; max-width: 420px; }
+.pl-ent-caixa.larga { max-width: 560px; }
+.pl-ent-caixa h1 { font-family: var(--pl-display); font-weight: 700; font-size: 30px;
+    letter-spacing: -.025em; margin: 0 0 6px; }
+.pl-ent-caixa .pl-linha-titulo { margin-bottom: 6px; }
+.pl-ent-caixa .pl-linha-titulo > h1 { margin: 0; }
+.pl-ent-ld { font-size: 14px; line-height: 1.6; color: var(--pl-muted); margin: 0 0 22px; }
+.pl-ent-caixa .alert { font-size: 13.5px; }
+/* Botão único de formulário curto ocupa a largura da caixa: 90px encostados na esquerda de um
+   formulário de 420px era o desalinhamento visível destas telas. */
+.pl-ent-caixa form > button[type="submit"].btn { width: 100%; height: 46px; border-radius: var(--pl-r);
+    font-size: 15px; margin-top: 4px; }
+/* A barra de ações do cadastro. `.pl-acoes-form` é usada por nove telas e nunca teve regra
+   nenhuma, então aqui ela fica no escopo desta caixa: as outras telas continuam como estão. */
+.pl-ent-caixa .pl-acoes-form { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-top: 4px; }
+.pl-ent-caixa .pl-acoes-form .btn { height: 46px; padding: 0 22px; border-radius: var(--pl-r);
+    font-size: 15px; }
+.pl-ent-caixa .pl-acoes-form .pl-btn { height: 46px; padding: 0 20px; border-radius: var(--pl-r);
+    font-size: 14px; }
+.pl-ent-links { margin: 18px 0 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    font-size: 13px; }
+.pl-ent-links a { color: var(--pl-blue); text-decoration: none; }
+.pl-ent-links a:hover { text-decoration: underline; }
+
+/* O painel azul do cadastro acompanha a rolagem do formulário longo. `align-self: start` é o que
+   dá ao item de grid uma altura própria, sem a qual `sticky` não tem folga para deslizar. */
+@media (min-width: 901px) {
+    .pl-ent-grade.longo .pl-ent-lado { position: sticky; top: 0; align-self: start;
+        min-height: 100vh; }
+}
+
+/* ---- A entrada num aparelho de 390px ---- */
+@media (max-width: 900px) {
+    /* O painel azul vira uma faixa curta no topo: a tarefa é o formulário, e em tela estreita ele
+       precisa estar na primeira dobra. A lista de itens sai por isso, e não por caber: ela é
+       reforço de argumento, e argumento não pode empurrar o campo de e-mail para fora da tela. */
+    .pl-ent-lado { padding: 26px clamp(18px, 5vw, 32px) 28px; }
+    .pl-ent-lado .tese { font-size: clamp(26px, 7vw, 34px); margin: 10px 0 12px; max-width: none; }
+    .pl-ent-lado .sub { font-size: 14.5px; max-width: none; }
+    .pl-ent-selo { margin-top: 16px; }
+    .pl-ent-lista { display: none; }
+    .pl-ent-painel, .pl-ent-painel.longo { align-items: flex-start;
+        padding: 30px clamp(18px, 5vw, 32px) 40px; }
+    .pl-ent-caixa, .pl-ent-caixa.larga { max-width: 560px; margin-inline: auto; }
+    .pl-ent-caixa h1 { font-size: 26px; }
+}
+
+/* ---- b) Contas: a lista de quem existe na plataforma ---- */
+/* A tabela é a de log da seção 12, com as medidas desta tela. 1040px de mínimo é o mesmo da
+   trilha: abaixo disso o quadro rola dentro de si, e nenhuma coluna vira uma tira de duas letras. */
+.pl-contas { min-width: 1040px; }
+.pl-contas col.c-papel    { width: 150px; }
+.pl-contas col.c-situacao { width: 172px; }
+.pl-contas col.c-sessoes  { width: 104px; }
+.pl-contas col.c-acesso   { width: 176px; }
+.pl-contas col.c-acao     { width: 158px; }
+.pl-contas col.c-ref      { width: 68px; }
+
+.pl-contas .tt { display: block; font-size: 13px; font-weight: 600; color: var(--pl-ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-contas .sub { display: block; margin-top: 2px; font-size: 11px; color: var(--pl-faint);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-contas .papel { display: block; font-size: 12.5px; color: var(--pl-ink); }
+.pl-contas .hora { display: block; }
+/* Ausência de acesso não é uma data: sai da fonte monoespaçada para não ser lida como valor. */
+.pl-contas .hora.vaga { font-family: var(--pl-body); font-size: 12px; color: var(--pl-faint); }
+/* A contagem de sessões é dado, não referência: ela fica alinhada à direita como o número do
+   registro, e em tinta cheia, porque é ela que diz o tamanho do efeito de um bloqueio. */
+.pl-contas td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600;
+    color: var(--pl-ink); }
+.pl-contas td.acao, .pl-contas thead th.acao { text-align: right; }
+/* A pílula do estado ganha a linha inteira para a trava de entrada assentar embaixo dela. */
+.pl-contas td .pl-pill { display: inline-flex; }
+
+/* Linha que a administração não gere. Como na lixeira, não é erro nem alerta: é o serviço
+   recusando por uma regra, então o trilho é azul escuro, a cor de dado e decisão, e não vermelho. */
+.pl-contas tbody tr.fechada td, .pl-contas tbody tr.fechada:hover td { background: var(--pl-app); }
+.pl-contas tbody tr.fechada td:first-child { box-shadow: inset 2px 0 0 var(--pl-data); }
+.pl-contas .fechado { display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+    font-weight: 600; color: var(--pl-muted); }
+.pl-contas .fechado svg { flex: none; }
+
+/* As três recusas, escritas uma vez entre o cabeçalho do quadro e a tabela.
+   Uma frase por linha impedida, como a lixeira faz, não serve aqui: lá o caso é raro, e aqui a
+   base de demonstração tem centenas de contas excluídas. A tira fica no fundo da área de conteúdo,
+   como o cabeçalho de dia da trilha, para não virar um card dentro do card. */
+.pl-recusas { list-style: none; margin: 0; padding: 12px 18px 13px; display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 22px;
+    background: var(--pl-app); border-bottom: 1px solid var(--pl-border); }
+@media (max-width: 1100px) { .pl-recusas { grid-template-columns: minmax(0, 1fr); } }
+.pl-recusas li { display: flex; align-items: flex-start; gap: 9px; font-size: 12px;
+    line-height: 1.5; color: var(--pl-muted); }
+.pl-recusas svg { flex: none; margin-top: 1px; color: var(--pl-data); }
+.pl-recusas b { display: block; color: var(--pl-ink); font-weight: 600; }
+
+/* A barra de filtro desta tela: as três larguras vêm do dado que cada campo recebe, e não são
+   iguais entre si, pela mesma razão da seção 11. */
+.pl-filtros .campo-termo    { width: 280px; }
+.pl-filtros .campo-perfil   { width: 196px; }
+.pl-filtros .campo-situacao { width: 202px; }
+@media (max-width: 640px) {
+    .pl-filtros .campo-termo, .pl-filtros .campo-perfil, .pl-filtros .campo-situacao { width: 100%; }
+    .pl-filtros-acoes { width: 100%; }
+    .pl-filtros-acoes .pl-btn { flex: 1; }
+}
+
+/* ---------- 33. As telas de interesse, no porte de docs/mockups/prolink-interacoes.html -------
+   Cobre o cenário 4 (confirmar, minhas, interessados, ver). Duas peças vieram do mockup e não
+   existiam na casa:
+
+   a) `.pl-miniinfo`, o `.miniinfo` de lá: a nota neutra em caixa, com ícone, que o mockup usa
+      para dizer na tela o que a plataforma faz no instante do clique (o retrato é capturado
+      agora; o envio vai por e-mail e entra no histórico). Não é alerta e não é erro, então não
+      tem cor de estado: é o fundo da área de conteúdo dentro do card branco, como `.pl-retrato`,
+      do qual herda a medida. A diferença entre os dois é o assunto, não a forma: `.pl-retrato`
+      data um conteúdo já congelado, `.pl-miniinfo` antecipa o que ainda vai acontecer.
+
+   b) `.pl-fatos`, a fileira "Localização: … Contrato: …" do cartão da demanda no mockup. Rótulo
+      em tinta cheia e valor em cinza, na mesma linha, quebrando em duas quando a janela aperta.
+      É diferente de `.pl-meta`, que é uma linha de identificação separada por pontos e sem
+      rótulo: aqui cada fato precisa do nome dele, porque "Manaus, AM" e "Prestação de serviço"
+      não se explicam pela posição.
+
+   Nada aqui usa --pl-seal nem --pl-accent: nota não é selo de verificação e não é ação. */
+
+.pl-miniinfo { display: flex; align-items: flex-start; gap: 9px; margin: 0 0 10px;
+    padding: 11px 13px; background: var(--pl-app); border: 1px solid var(--pl-border-2);
+    border-radius: 10px; font-size: 12.5px; line-height: 1.6; color: var(--pl-muted); }
+.pl-miniinfo:last-child { margin-bottom: 0; }
+.pl-miniinfo > svg { width: 15px; height: 15px; flex: none; margin-top: 3px; color: var(--pl-faint); }
+.pl-miniinfo b { color: var(--pl-ink); font-weight: 600; }
+/* Medida de leitura própria: dentro de `.pl-content.leitura` a caixa já é estreita, mas na tela
+   larga (interessados) uma nota de 160 caracteres atravessaria 1440px inteiros. */
+.pl-miniinfo > span { max-width: 92ch; }
+
+.pl-fatos { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 0 0 14px;
+    font-size: 12.5px; color: var(--pl-muted); }
+.pl-fatos > span { min-width: 0; }
+.pl-fatos b { color: var(--pl-ink); font-weight: 600; margin-right: 4px; }
+
+/* Num aparelho de 390px os fatos empilham: lado a lado, "Prestação de serviço (PJ)" quebra no
+   meio da palavra e a linha perde o par rótulo-valor. */
+@media (max-width: 560px) {
+    .pl-fatos { flex-direction: column; gap: 5px; }
+}
+
+/* ---------- 34. As telas de demanda: o painel, o formulário de publicar e o detalhe ----------
+   Porte de docs/mockups/prolink-empresa-1.html (tela 02, "Publicar Demanda", e tela 03, "Minhas
+   Demandas") e do quadro vazio de docs/mockups/prolink-estados-criticos.html.
+
+   Cobre quatro coisas, e nenhuma delas é cor nova:
+
+   a) a tabela de largura fixa com célula que corta em reticências e coluna de contagem centrada,
+      que é o `.tfixed` / `.ttrunc` / `.tcenter` do mockup;
+   b) o caminho do rascunho, que o mockup não desenha porque lá a demanda nasce publicada. Aqui
+      ela nasce rascunho por decisão de projeto (sem código da tabela não há o que compatibilizar),
+      e o preço de uma decisão dessas é ter de mostrar o caminho inteiro na tela onde ele começa;
+   c) a fileira de campos do `.formgrid3`, com largura por campo em vez de três colunas iguais:
+      a UF tem duas letras e não ocupa o mesmo que um seletor de rótulo longo;
+   d) a nota de modo leitura da demanda encerrada (`.dreadonly`) e o quadro tracejado de lista
+      filtrada sem resultado (`.pl-empty` dos estados críticos). */
+
+/* ---- a) A tabela do painel do demandante ----
+   Largura fixa só a partir de 992px. Abaixo disso a tabela volta ao cálculo automático e rola
+   dentro do próprio quadro, que é o que a seção 25 já resolveu para 390px: largura fixa somada a
+   `min-width: 190px` na coluna do assunto seria uma regra brigando com a outra. Pelo mesmo motivo
+   o corte em reticências mora dentro da media query: `white-space: nowrap` numa tabela de largura
+   automática não corta nada, só empurra a tabela para o lado. */
+@media (min-width: 992px) {
+    .pl-table.fixa { table-layout: fixed; }
+    .pl-table.fixa .trunc { display: block; max-width: 100%; overflow: hidden;
+        text-overflow: ellipsis; white-space: nowrap; }
+}
+.pl-table th.cen, .pl-table td.cen { text-align: center; font-variant-numeric: tabular-nums; }
+/* A contagem que abre a lista contada continua sendo link, e link dentro de coluna centrada
+   precisa do mesmo alvo de clique que o número solto ao lado. */
+.pl-table td.cen .lk { color: var(--pl-data); font-weight: 600; text-decoration: none; }
+.pl-table td.cen .lk:hover { text-decoration: underline; }
+
+/* ---- b) O caminho do rascunho ----
+   Três passos numerados, o corrente em tinta cheia e os outros dois em cinza: a pessoa precisa
+   saber, antes de preencher, que salvar não publica. É lista ordenada de verdade, e não três
+   divs, porque a ordem é o conteúdo. O traço entre um passo e outro é decorativo e sai do fluxo
+   de leitura pelo `aria-hidden` do template. */
+.pl-passos { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    list-style: none; margin: 0 0 18px; padding: 0; }
+.pl-passos > li { display: flex; align-items: center; gap: 9px; font-size: 12.5px;
+    color: var(--pl-muted); min-width: 0; }
+.pl-passos .n { display: grid; place-items: center; flex: none; width: 22px; height: 22px;
+    border-radius: 50%; background: var(--pl-app); border: 1px solid var(--pl-border);
+    font-size: 11.5px; font-weight: 600; color: var(--pl-faint);
+    font-variant-numeric: tabular-nums; }
+.pl-passos > li.atual { color: var(--pl-ink); font-weight: 600; }
+.pl-passos > li.atual .n { background: var(--pl-blue-100); border-color: #D3E3FB; color: #215ac2; }
+.pl-passos .li { width: 22px; height: 1px; background: var(--pl-border); flex: none; }
+
+/* ---- c) A fileira de campos ----
+   O `.formgrid3` do mockup com largura por campo: município é texto livre, UF são duas letras,
+   e os dois seletores pedem a largura do rótulo mais longo da lista. Em 900px vira duas colunas,
+   e em 620px uma só. `.mb-3` zerado porque o espaçamento aqui é o `gap` da grade, não a margem
+   que cada macro de campo traz. */
+.pl-form-linha { display: grid; grid-template-columns: minmax(0, 1.5fr) 128px minmax(0, 1.4fr);
+    gap: 0 14px; }
+.pl-form-linha.dois { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+@media (max-width: 900px) { .pl-form-linha { grid-template-columns: minmax(0, 1fr) 128px; }
+    .pl-form-linha > *:last-child { grid-column: 1 / -1; } }
+@media (max-width: 620px) { .pl-form-linha, .pl-form-linha.dois { grid-template-columns: minmax(0, 1fr); }
+    .pl-form-linha > *:last-child { grid-column: auto; } }
+
+/* ---- d) Os dois estados desenhados ----
+   Modo leitura: nota, e não banner. Esticada de ponta a ponta numa tela de 1400px ela teria o
+   peso de um alerta, e o fato é o oposto disso — a demanda está inteira, só não aceita mais
+   edição. É a mesma razão pela qual `.pl-somente-leitura` não podia ser esticada (seção 11). */
+.pl-leitura-aviso { align-self: flex-start; max-width: 100%; margin: 0;
+    font-size: 12px; color: var(--pl-muted); background: var(--pl-border-2);
+    border-radius: 8px; padding: 8px 12px; }
+
+/* Lista que existe mas o filtro não achou nada: quadro tracejado dentro do card, e não a tabela
+   com zero linhas. Tracejado, e não sólido, porque o vazio aqui é transitório (basta limpar o
+   filtro), ao contrário do estado vazio de tela inteira, que é o começo de tudo. */
+.pl-vazio.tracejado { padding: 30px 20px; border: 1px dashed var(--pl-border);
+    border-radius: 14px; background: var(--pl-app); }
+.pl-vazio.tracejado .t { font-size: 14px; }
+.pl-vazio.tracejado .s { font-size: 12.5px; }
+
+/* ---------- 34, continuação: as três medidas que faltavam às telas de demanda ----------
+   Separada do bloco acima porque foi escrita depois de as telas existirem, e o arquivo está
+   sendo acrescentado por mais de uma mão ao mesmo tempo: reescrever a seção para caber três
+   regras apagaria trabalho alheio em silêncio. */
+
+/* As colunas do painel do demandante, na proporção do `colgroup` do mockup. Em classe e não em
+   `style`, porque proporção de coluna é desenho da tabela, não dado da página: as duas telas que
+   usam .pl-table com esta grade precisam responder igual. As larguras só valem com
+   `table-layout: fixed`, portanto a partir de 992px; abaixo disso a tabela rola (seção 25). */
+.pl-table.fixa .c-assunto  { width: 32%; }
+.pl-table.fixa .c-regime   { width: 15%; }
+.pl-table.fixa .c-data     { width: 13%; }
+.pl-table.fixa .c-situacao { width: 14%; }
+.pl-table.fixa .c-conta    { width: 11%; }
+.pl-table.fixa .c-acao     { width: 15%; }
+
+/* O h1 de uma tela cujo assunto inteiro mora dentro de um card: é o título da página, e não pode
+   ter o tamanho de um título de seção. São os 19px/700 do quadro "Nova demanda" do mockup. */
+.pl-secao.tela { font-size: 19px; font-weight: 700; }
+
+/* Rodapé de formulário alinhado à direita, como no quadro de publicar demanda: a saída à
+   esquerda, a ação que compromete encostada na borda onde o olho termina de ler o formulário. */
+.pl-acoes-form.fim { justify-content: flex-end; }
+
+/* ---------- 32. As duas telas de perfil: o retrato, a legenda de procedência e o painel de
+   visibilidade -----------------------------------------------------------------------------
+   Porte de docs/mockups/prolink-early-career.html (telas 02 e 03) e da tela 03 de
+   docs/mockups/prolink-profissional.html para `perfil/index.html.twig` e `perfil/empresa.html.twig`.
+
+   A unidade de leitura da tela é a PESSOA (ou a empresa) e a procedência de cada coisa que ela
+   mostra. Primário é o retrato: nome, registro e quanto acervo verificado existe. Secundário são
+   os blocos de conteúdo, na ordem que diz quem sustenta quem — primeiro o que o conselho confirma,
+   depois o que a pessoa declara. Terciário é o controle do titular, na coluna do painel.
+
+   O que esta seção acrescenta, e por quê:
+
+   a) **Retrato** (`.pl-perfil-id`). O cabeçalho era `<h1>` mais uma linha de texto: o nome tinha o
+      mesmo peso visual de qualquer título de tela e o acervo não aparecia até a metade da página.
+      O mockup abre com marca de pessoa, nome selado, registro e a linha "N ARTs verificadas". O
+      vocabulário (`pl-topo`, `pl-av`, `pl-ident`, `pl-name`, `pl-meta`, `pl-acervo`) é o da seção
+      13, portado do mesmo mockup para o feed: só a escala muda, porque aqui o nome é o `<h1>` da
+      página e não o do candidato em foco no palco.
+
+   b) **Perfil em construção** (`.pl-construcao`, `.pl-apoio`). Estado legítimo e sinalizado, nunca
+      escondido (o edital pede inclusão de quem está começando). Marca neutra com o ícone de obra
+      do mockup, e nunca `warn` nem `danger`: início de carreira não é defeito. A copy de apoio é
+      exclusiva do dono, como o mockup manda; quem visita recebe o fato e nada mais.
+
+   c) **Legenda de procedência** (`.pl-legenda-selo`). É a tese do projeto em uma linha. Usa as
+      duas MARCAS que a tela usa de verdade, e não dois pontos coloridos: a legenda tem de ensinar
+      o símbolo que a pessoa vai encontrar três parágrafos abaixo.
+
+   d) **Painel de visibilidade** (`.pl-vis`). O `form.selecao` empilhado dava uma torre de rótulo e
+      controle em que "ART AM20269998821" era tudo que se sabia da ART cuja exposição estava sendo
+      decidida. A linha do mockup põe o item à esquerda, com a segunda linha dizendo qual é, e o
+      controle à direita. O controle continua sendo `<select>` e não interruptor, porque o nível
+      tem três estados.
+
+   Escala: o painel foi desenhado para o acervo típico do dado fictício (2 a 6 ARTs). A partir de
+   umas 25 linhas a coluna do painel vira uma rolagem longa e o certo passa a ser paginar ou
+   agrupar por ano; não há dado assim hoje. */
+
+/* ---- O retrato ---- */
+.pl-perfil-id { margin-bottom: 14px; }
+/* A marca de pessoa em escala de cabeçalho de página: a de 62px da seção 13 foi medida contra o
+   nome de 30px do palco do feed, e ao lado de um h1 de 26px ela passa a competir com o nome. */
+.pl-perfil-id .pl-av { width: 54px; height: 54px; border-radius: 16px; font-size: 18px; }
+.pl-perfil-id .pl-name { font-size: 26px; }
+.pl-perfil-id .pl-meta { margin-top: 5px; }
+.pl-perfil-id .pl-acervo { margin-top: 9px; flex-wrap: wrap; gap: 7px 10px; }
+/* O selo da conta fica no alto, alinhado com o nome, e não no meio da altura do retrato. */
+.pl-perfil-est { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* ---- Perfil em construção ---- */
+/* Mesma caixa da `.pl-pill.neutral`, com o ícone de obra do mockup no lugar do ponto: a marca
+   precisa ser reconhecível ao lado da contagem de ARTs, que é texto corrido. */
+.pl-construcao { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px;
+    font-weight: 600; color: var(--pl-muted); background: #EEF0F3; border-radius: 20px;
+    padding: 4px 10px; white-space: nowrap; }
+.pl-construcao svg { width: 13px; height: 13px; flex: none; }
+/* A copy de apoio. Faixa no fundo da área de conteúdo, não um card dentro do card: ela é um
+   recado ao dono, e transformá-la em objeto próprio a faria concorrer com o acervo. */
+.pl-apoio { display: flex; align-items: flex-start; gap: 11px; margin-top: 16px; padding: 13px 15px;
+    background: var(--pl-app); border: 1px solid var(--pl-border-2); border-radius: 12px; }
+.pl-apoio > .ic { width: 19px; height: 19px; flex: none; margin-top: 1px; color: var(--pl-muted); }
+.pl-apoio p { margin: 0; font-size: 13px; line-height: 1.55; color: var(--pl-ink); max-width: 72ch; }
+.pl-apoio .act { margin-top: 10px; }
+
+/* ---- A legenda de procedência ---- */
+.pl-legenda-selo { display: flex; flex-wrap: wrap; gap: 6px 20px; margin: 0 0 18px;
+    font-size: 11.5px; color: var(--pl-muted); }
+.pl-legenda-selo > span { display: inline-flex; align-items: center; gap: 7px; }
+.pl-legenda-selo .pl-mark { width: 14px; height: 14px; vertical-align: 0; }
+
+/* ---- O painel de visibilidade ---- */
+.pl-vis { border: 0; padding: 0; margin: 0 0 18px; min-width: 0; }
+.pl-vis:last-of-type { margin-bottom: 20px; }
+/* 168px é a medida de "Qualquer pessoa", o mais longo dos três níveis, com o chevron e o padding
+   do <select> nativo. Abaixo disso o Chrome corta a palavra em "Qualquer pesso". */
+.pl-vis .ln { display: grid; grid-template-columns: minmax(0, 1fr) 168px; align-items: center;
+    gap: 6px 12px; padding: 11px 0; border-bottom: 1px solid var(--pl-border-2); }
+.pl-vis .ln:last-child { border-bottom: 0; padding-bottom: 0; }
+.pl-vis .tx { min-width: 0; overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
+/* O rótulo é o conteúdo que se lê, e não um rótulo de campo de formulário: fica em tinta cheia,
+   um degrau acima dos 12,5px do `.form-label`. O selo cola nele, como em toda a interface. */
+.pl-vis .vt { display: flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 600;
+    color: var(--pl-ink); margin: 0; cursor: pointer; overflow-wrap: anywhere; }
+/* O número da ART é uma unidade: "ART AM20269999008" quebrado em duas linhas parece dois itens
+   quando a linha de baixo já é a descrição. Um degrau de fonte compra os 20px que faltavam para
+   ele caber inteiro ao lado do controle. Título de experiência continua quebrando, porque lá o
+   texto é livre e pode ter dez palavras. */
+.pl-vis .vt.unidade { white-space: nowrap; font-size: 13px; }
+/* A segunda linha responde "qual é este item?". Duas linhas e corta: objeto de ART somado ao nome
+   do contratante passa de 90 caracteres, e a linha do painel não é o lugar de lê-lo inteiro. */
+.pl-vis .vs { font-size: 12px; line-height: 1.45; color: var(--pl-muted); overflow: hidden;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.pl-vis .form-select { font-size: 13px; }
+
+/* ---- Os dois perfis num aparelho de 390px ---- */
+@media (max-width: 640px) {
+    /* O retrato empilha: a marca de pessoa ao lado de um nome longo em 390px deixava o nome em
+       quatro linhas de duas palavras. O selo da conta vai para baixo do nome, pela mesma razão. */
+    .pl-perfil-id .pl-topo { flex-wrap: wrap; gap: 12px; }
+    .pl-perfil-id .pl-name { font-size: 21px; }
+    .pl-perfil-est { margin-left: 0; width: 100%; }
+    /* O controle passa a ocupar a linha inteira abaixo do item: 168px de `select` ao lado de um
+       objeto de ART nesta largura deixa as duas colunas ilegíveis. */
+    .pl-vis .ln { grid-template-columns: minmax(0, 1fr); }
+    .pl-vis .form-select { width: 100%; }
+}
+
+/* ---------- 35. Moderação e telas de exceção: a fila, a decisão, e as cinco respostas de erro ---
+   Três assuntos, todos do lado "o que a plataforma faz quando algo dá errado":
+
+   a) **A fila de denúncias e a tela de decisão.** A fila reaproveita a mecânica de log da seção 12
+      (cabeçalho de dia, hora monoespaçada, hover de linha), porque ela e a trilha respondem a mesma
+      pergunta em tempos diferentes. O que esta seção acrescenta são as medidas de coluna próprias,
+      o trilho âmbar do que ainda espera decisão humana, e a lista de efeitos que põe ao lado do
+      campo o que cada providência faz de verdade.
+
+   b) **A evidência da denúncia**, que é texto escrito por terceiro e por isso nunca vira âncora:
+      ela tem caixa própria, monoespaçada, com quebra em qualquer ponto, porque endereço longo sem
+      espaço estourava a coluna do detalhe.
+
+   c) **A tela de exceção** (401, 403, 404, 419, 500). Era um quadro estreito centrado com mais de
+      mil pixels vazios dos dois lados. Aqui a página inteira é a composição, na gramática da
+      família de entrada da seção 31: painel azul com o degradê radial do herói à esquerda, painel
+      branco com a explicação e a saída à direita. Nenhum valor novo, nenhum token novo.
+
+      A cor do ponto de estado segue a ficha de docs/mockups/prolink-estados-criticos.html, e é a
+      única diferença visual entre os cinco casos: azul para o que é recuperável sem culpa (401,
+      404), âmbar para o transitório (419, formulário expirado), vermelho para operação impedida e
+      falha (403, 500). O verde água não aparece aqui: ele afirma verificação pela API, e não há o
+      que verificar numa tela de erro. */
+
+/* ---- a) A fila de moderação ---- */
+/* A tabela é a de log da seção 12, com as medidas desta tela. 1100px de mínimo: abaixo disso o
+   quadro rola dentro de si, e nenhuma coluna vira uma tira de duas letras. */
+.pl-fila { min-width: 1100px; }
+.pl-fila col.c-tipo     { width: 190px; }
+.pl-fila col.c-autor    { width: 200px; }
+.pl-fila col.c-situacao { width: 176px; }
+.pl-fila col.c-acao     { width: 120px; }
+
+.pl-fila .tt { display: block; font-size: 13px; font-weight: 600; color: var(--pl-ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-fila .sub { display: block; margin-top: 2px; font-size: 11px; color: var(--pl-faint);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-fila .tipo { display: block; font-size: 12.5px; color: var(--pl-ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A pílula ganha a linha inteira para a providência assentar embaixo dela. */
+.pl-fila td .pl-pill { display: inline-flex; }
+.pl-fila td.acao, .pl-fila thead th.acao { text-align: right; }
+
+/* Trilho âmbar no que ainda espera decisão humana. Qualifica o estado do trabalho, nunca o alvo:
+   é a diferença entre sinalizar fila e julgar pessoa (item 10.1). Âmbar e não vermelho porque
+   denúncia pendente não é erro, é trabalho na mesa. */
+.pl-fila tbody tr.aguarda td:first-child { box-shadow: inset 2px 0 0 var(--pl-warn); }
+
+/* ---- a) A decisão sobre uma denúncia ---- */
+/* A linha de procedência do alvo, no topo do detalhe. Mesmo desenho da sessão do motor, que é a
+   outra tela de registro único do painel. */
+.pl-det-topo .meta { margin: 6px 0 0; display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+    font-size: 12.5px; color: var(--pl-muted); }
+
+/* O que cada providência faz, ao lado do campo que a escolhe. Um bloco dividido em linhas, e não
+   um cartão por item: quatro cartões dentro de um card seriam caixa dentro de caixa dentro de
+   caixa, que é exatamente o ruído que o design system proíbe. */
+.pl-efeitos { list-style: none; margin: 0 0 18px; padding: 0; background: var(--pl-app);
+    border: 1px solid var(--pl-border-2); border-radius: 10px; overflow: hidden; }
+.pl-efeitos li { padding: 10px 14px; border-bottom: 1px solid var(--pl-border-2);
+    font-size: 12.5px; line-height: 1.55; color: var(--pl-muted); }
+.pl-efeitos li:last-child { border-bottom: 0; }
+.pl-efeitos b { display: block; font-size: 12.5px; font-weight: 600; color: var(--pl-ink);
+    margin-bottom: 1px; }
+/* A única providência com efeito imediato no sistema ganha o trilho, para não ficar
+   indistinguível das três que só registram o desfecho. */
+.pl-efeitos li.forte { box-shadow: inset 2px 0 0 var(--pl-warn); }
+
+/* ---- b) A evidência indicada por quem denunciou ---- */
+/* Quebra em qualquer ponto: endereço longo sem espaço estourava a coluna do detalhe. O seletor
+   repete `:last-child` porque a regra de .pl-descricao que ele precisa vencer também o tem. */
+.pl-descricao .pl-evidencia, .pl-descricao .pl-evidencia:last-child {
+    margin: 0; padding: 9px 12px; background: var(--pl-app); border: 1px solid var(--pl-border-2);
+    border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px; line-height: 1.6; color: var(--pl-ink);
+    white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* ---- c) A tela de exceção, na faixa inteira ---- */
+/* Mesma correção do .pl-ent: o main perde a medida do .pl-wrap e cada metade pinta até a borda da
+   janela. O respiro volta dentro de cada painel. */
+.pl-erro { width: 100%; max-width: none; padding: 0; display: flex; flex-direction: column; }
+.pl-erro-grade { flex: 1 1 auto; display: grid;
+    grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr); align-items: stretch; }
+@media (max-width: 900px) { .pl-erro-grade { grid-template-columns: minmax(0, 1fr); } }
+
+.pl-erro-lado { min-width: 0; color: #ccdcf1; display: flex; flex-direction: column;
+    justify-content: center; padding: clamp(34px, 5vw, 76px) clamp(22px, 4.5vw, 72px);
+    background: radial-gradient(60% 55% at 82% -10%, var(--pl-navy-2) 0%, transparent 55%),
+                var(--pl-navy); }
+/* O número é o dado da tela, e tem o porte de dado. Tabular para 401 e 500 ocuparem a mesma caixa. */
+.pl-erro-lado .cod { font-family: var(--pl-display); font-weight: 700; color: #fff;
+    font-size: clamp(74px, 9.5vw, 148px); line-height: .88; letter-spacing: -.05em; margin: 0;
+    font-variant-numeric: tabular-nums; }
+.pl-erro-lado .olho { display: flex; align-items: center; gap: 9px; margin: 20px 0 0;
+    font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: #8fa8cc; }
+.pl-erro-lado .olho::before { content: ""; width: 8px; height: 8px; border-radius: 50%; flex: none;
+    background: var(--pl-blue-2); box-shadow: 0 0 0 4px rgba(46, 107, 230, .22); }
+.pl-erro-lado.expirado .olho::before { background: var(--pl-warn);
+    box-shadow: 0 0 0 4px rgba(232, 163, 23, .24); }
+.pl-erro-lado.recusa .olho::before, .pl-erro-lado.falha .olho::before { background: var(--pl-danger);
+    box-shadow: 0 0 0 4px rgba(226, 74, 74, .24); }
+.pl-erro-lado .sub { margin: 16px 0 0; max-width: 42ch; font-size: 14px; line-height: 1.6;
+    color: #aec2e0; }
+.pl-erro-lado .pl-mono { color: #fff; }
+
+.pl-erro-painel { min-width: 0; background: var(--pl-card); display: flex; align-items: center;
+    padding: clamp(30px, 4vw, 60px) clamp(22px, 3.4vw, 56px); }
+.pl-erro-caixa { width: 100%; max-width: 62ch; }
+.pl-erro-caixa h1 { font-family: var(--pl-display); font-weight: 700;
+    font-size: clamp(24px, 2.6vw, 32px); letter-spacing: -.025em; margin: 0 0 14px;
+    text-wrap: balance; }
+/* O que houve, em tinta cheia. O que o sistema já fez, um degrau abaixo. A ordem é a da ficha de
+   estados críticos, e o contraste entre as duas é o que faz a ordem ser lida. */
+.pl-erro-caixa .houve { font-size: 15px; line-height: 1.65; color: var(--pl-ink); margin: 0 0 14px; }
+.pl-erro-caixa .fez { font-size: 13.5px; line-height: 1.65; color: var(--pl-muted); margin: 0 0 22px; }
+/* O detalhe que o controller mandou. Azul de informação: é contexto recuperável, não acusação. */
+.pl-erro-caixa .detalhe { display: flex; align-items: flex-start; gap: 9px; margin: 0 0 16px;
+    padding: 10px 13px; background: var(--pl-blue-100); border: 1px solid #D3E3FB;
+    border-radius: 10px; font-size: 13px; line-height: 1.55; color: var(--pl-ink); }
+.pl-erro-caixa .detalhe svg { flex: none; margin-top: 2px; color: var(--pl-blue); }
+.pl-erro-saidas { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pl-erro-saidas .pl-btn { height: 44px; padding: 0 20px; }
+.pl-erro-rodape { margin: 24px 0 0; padding-top: 16px; border-top: 1px solid var(--pl-border-2);
+    font-size: 12.5px; line-height: 1.6; color: var(--pl-faint); max-width: 62ch; }
+
+@media (max-width: 900px) {
+    .pl-erro-lado { padding: 28px clamp(18px, 5vw, 32px) 30px; }
+    .pl-erro-lado .cod { font-size: clamp(54px, 15vw, 88px); }
+    .pl-erro-lado .sub { max-width: none; font-size: 13.5px; }
+    .pl-erro-painel { align-items: flex-start; padding: 28px clamp(18px, 5vw, 32px) 44px; }
+    .pl-erro-caixa { max-width: none; }
+    .pl-erro-saidas .pl-cta, .pl-erro-saidas .pl-btn { flex: 1 1 auto; justify-content: center; }
+}
+
+/* ---------- 34, fim: dois acertos vistos na tela, não no código ----------
+
+   1. O caminho do rascunho vira faixa própria.
+      Solto entre o parágrafo de explicação e o primeiro rótulo, ele lia como continuação do
+      texto: mesma cor de fundo, mesma margem, e o olho não tinha onde saber que ali começa outra
+      coisa. A faixa usa o mesmo fundo, contorno e raio dos quadros de número do mockup, portanto
+      não é componente novo, é o mesmo vocabulário aplicado a um caso a mais.
+
+   2. O traço entre um passo e outro some quando a lista quebra de linha.
+      Em 390px os três passos empilham, e o traço ficava pendurado no fim de cada linha apontando
+      para o vazio. Ele é decoração de sequência horizontal: sem a horizontal, não tem o que
+      ligar, e a ordem continua dita pelos números.
+
+   3. A UF cabe inteira.
+      "Não informada" saía cortado em "Não inform" numa coluna de 128px. */
+.pl-passos { background: var(--pl-app); border: 1px solid var(--pl-border-2);
+    border-radius: 12px; padding: 11px 14px; margin: 0 0 20px; gap: 10px 12px; }
+@media (max-width: 720px) { .pl-passos .li { display: none; }
+    .pl-passos > li[aria-hidden="true"] { display: none; }
+    .pl-passos { flex-direction: column; align-items: flex-start; gap: 8px; } }
+.pl-form-linha { grid-template-columns: minmax(0, 1.5fr) 156px minmax(0, 1.4fr); }
+@media (max-width: 900px) { .pl-form-linha { grid-template-columns: minmax(0, 1fr) 156px; } }
+
+/* ============================================================================
+   36 · As duas barras públicas passam a ser a mesma barra
+   ----------------------------------------------------------------------------
+   Elas nasceram em sessões diferentes e ficaram parecidas, não iguais: a da
+   landing tinha 72px de altura e 72px de recuo lateral; a das outras telas
+   públicas, 62px e 38px. Numa navegação a diferença aparece como um pulo da
+   marca e da altura entre uma tela e a seguinte, que é o que a autora apontou
+   olhando a barra da tela de entrar.
+
+   A régua é a landing, porque é dela que o desenho todo saiu. O recuo usa o
+   mesmo `clamp` do contêiner da landing (`.pl-lp-in`), e não um valor fixo,
+   para as duas encolherem juntas.
+   ============================================================================ */
+
+.pl-topnav .in {
+    min-height: 72px;
+    gap: 10px 22px;
+    padding: 10px clamp(22px, 4.5vw, 72px);
+}
+
+.pl-topnav .marca      { font-size: 19px; }
+.pl-topnav .marca .m   { width: 13px; height: 13px; }
+.pl-topnav .elos       { gap: 8px 22px; }
+.pl-topnav .ghost      { padding: 0 16px; }
+
+/* ============================================================================
+   37 · A entrada, do mockup de login
+   ----------------------------------------------------------------------------
+   Portada do artefato que a autora desenhou, e que não estava em `docs/mockups/`
+   quando as telas de autenticação foram feitas pela primeira vez. As medidas,
+   os raios e os degradês são os de lá.
+
+   As cores vivem no escopo da tela e não na seção 1: são os tons do desenho do
+   volume (os três eixos), e não tokens da aplicação. O laranja, esse sim, é o
+   token de sempre, porque é a mesma ação preenchida de toda tela.
+   ============================================================================ */
+
+.pl-e3 {
+    --e3-bg:     #060d1c;
+    --e3-x:      #2E6BE6;
+    --e3-y:      #63A0F0;
+    --e3-z:      #8FE3FF;
+    --e3-painel: #0e1f39;
+    --e3-painel2:#0a1728;
+    --e3-linha:  rgba(120, 160, 220, .16);
+    --e3-tx:     #9FB6D6;
+
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    max-width: none;
+    color: #EAF1FB;
+    background:
+        radial-gradient(70% 60% at 78% -8%, #143a6e 0%, transparent 55%),
+        radial-gradient(60% 70% at 4% 106%, #0f2747 0%, transparent 55%),
+        var(--e3-bg);
+}
+
+.pl-e3-tela { display: grid; grid-template-columns: 1.15fr .85fr; min-height: 100vh; }
+
+/* ---- Lado da marca ---- */
+
+.pl-e3-marca-lado {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: clamp(28px, 4vw, 54px);
+    overflow: hidden;
+}
+
+.pl-e3-marca {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--pl-display);
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: -.01em;
+    color: #EAF1FB;
+    text-decoration: none;
+}
+
+.pl-e3-marca .m {
+    width: 13px;
+    height: 13px;
+    border-radius: 4px;
+    flex: none;
+    background: linear-gradient(135deg, var(--e3-z), var(--e3-x));
+    transform: rotate(45deg);
+    box-shadow: 0 0 16px rgba(143, 227, 255, .5);
+}
+
+.pl-e3-fig { flex: 1; min-height: 280px; position: relative; margin: 6px -10px; }
+.pl-e3-fig canvas { width: 100%; height: 100%; display: block; }
+
+/* O par canvas e SVG: sem JavaScript fica o desenho parado, e a <canvas> nunca
+   aparece vazia. Com JavaScript o script marca o par e a troca acontece. */
+.pl-e3-fig canvas          { display: none; }
+.pl-e3-fig.is-js canvas    { display: block; }
+.pl-e3-parado              { width: 100%; height: 100%; display: block; }
+.pl-e3-fig.is-js .pl-e3-parado { display: none; }
+
+.pl-e3-tese .lead {
+    font-family: var(--pl-display);
+    font-weight: 600;
+    font-size: clamp(24px, 3vw, 38px);
+    line-height: 1.1;
+    letter-spacing: -.02em;
+    margin: 0 0 12px;
+    max-width: 16ch;
+    text-wrap: balance;
+}
+
+.pl-e3-tese .lead .g {
+    background: linear-gradient(90deg, var(--e3-x), var(--e3-z));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.pl-e3-tese .sub { color: #AEC2E0; font-size: 15px; max-width: 46ch; margin: 0 0 18px; }
+
+.pl-e3-tese .eixos {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 12px;
+    color: #8FA8CC;
+}
+
+.pl-e3-tese .eixos li { display: flex; align-items: center; gap: 7px; }
+.pl-e3-tese .eixos i  { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.pl-e3-tese .eixos .x { background: var(--e3-x); }
+.pl-e3-tese .eixos .y { background: var(--e3-y); }
+.pl-e3-tese .eixos .z { background: var(--e3-z); box-shadow: 0 0 10px var(--e3-z); }
+
+/* ---- Lado do formulário ---- */
+
+.pl-e3-forma {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(24px, 3vw, 48px);
+    background: linear-gradient(180deg, rgba(14, 31, 57, .5), rgba(6, 13, 28, .2));
+    border-left: 1px solid var(--e3-linha);
+}
+
+.pl-e3-cartao {
+    width: 100%;
+    /* O mockup pede 380px, e na tela cheia o cartão ficava pequeno demais para o peso que tem:
+       é o assunto da página, e dividia o quadro com um herói de 38px. Cresceu junto com o que
+       está dentro dele, para a proporção do desenho continuar a mesma. */
+    max-width: 440px;
+    background: linear-gradient(180deg, var(--e3-painel), var(--e3-painel2));
+    border: 1px solid var(--e3-linha);
+    border-radius: 22px;
+    padding: 40px 38px;
+    box-shadow: 0 30px 70px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+
+.pl-e3-selo {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    color: #AEC2E0;
+    background: rgba(46, 107, 230, .14);
+    border: 1px solid rgba(120, 160, 220, .22);
+    padding: 7px 13px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+}
+
+.pl-e3-selo svg { width: 13px; height: 13px; flex: none; }
+
+.pl-e3-cartao h1 {
+    font-family: var(--pl-display);
+    font-weight: 600;
+    font-size: 28px;
+    letter-spacing: -.01em;
+    color: #EAF1FB;
+    margin: 0 0 4px;
+}
+
+.pl-e3-dica { color: var(--e3-tx); font-size: 14.5px; margin: 0 0 26px; }
+
+/* Os campos vêm das macros do projeto, que são as mesmas de toda tela: o que muda
+   aqui é só a pele, porque o cartão é escuro. */
+.pl-e3-cartao .form-label {
+    font-size: 11.5px;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--e3-tx);
+    margin-bottom: 7px;
+    font-weight: 500;
+}
+
+.pl-e3-cartao .form-label { font-size: 12px; }
+
+.pl-e3-cartao .form-control {
+    height: 50px;
+    border-radius: 12px;
+    background: #0a1830;
+    border: 1px solid var(--e3-linha);
+    color: #dbe8fa;
+    font-size: 14px;
+    padding: 0 14px;
+}
+
+.pl-e3-cartao .form-control::placeholder { color: #5f7599; }
+
+.pl-e3-cartao .form-control:focus {
+    background: #0a1830;
+    color: #dbe8fa;
+    border-color: var(--e3-x);
+    box-shadow: 0 0 0 3px rgba(46, 107, 230, .22);
+}
+
+.pl-e3-cartao .form-text,
+.pl-e3-cartao .pl-nota { color: #7f96b8; }
+
+.pl-e3-cartao .invalid-feedback,
+.pl-e3-cartao .alert-danger {
+    color: #ffb4a3;
+    background: rgba(190, 60, 40, .16);
+    border-color: rgba(255, 140, 120, .28);
+    border-radius: 12px;
+}
+
+.pl-e3-cartao .alert-danger { padding: 10px 13px; font-size: 13.5px; margin-bottom: 18px; }
+
+/* O olho de revelar a senha, que a macro traz e o cartão escuro precisa recolorir. */
+.pl-e3-cartao .pl-olho,
+.pl-e3-cartao .btn-outline-secondary {
+    background: transparent;
+    border-color: var(--e3-linha);
+    color: var(--e3-tx);
+}
+
+.pl-e3-cartao .pl-olho:hover,
+.pl-e3-cartao .btn-outline-secondary:hover { background: rgba(120, 160, 220, .12); color: #dbe8fa; }
+
+.pl-e3-linha { display: flex; justify-content: flex-end; margin: 6px 0 20px; font-size: 13px; }
+.pl-e3-linha a { color: var(--e3-tx); text-decoration: none; }
+.pl-e3-linha a:hover { color: #dbe8fa; text-decoration: underline; }
+
+.pl-e3-cartao .btn-primary,
+.pl-e3-cartao button[type="submit"] {
+    width: 100%;
+    height: 52px;
+    border: 0;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 16px;
+    color: #fff;
+    background: linear-gradient(135deg, #ff8a3d, var(--pl-accent));
+    box-shadow: 0 12px 30px rgba(242, 107, 33, .42);
+    transition: transform .12s, box-shadow .12s;
+}
+
+.pl-e3-cartao .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 36px rgba(242, 107, 33, .5);
+}
+
+.pl-e3-cartao .btn-primary:focus-visible {
+    outline: 3px solid rgba(255, 138, 61, .5);
+    outline-offset: 2px;
+}
+
+.pl-e3-alt { text-align: center; color: var(--e3-tx); font-size: 14.5px; margin: 20px 0 0; }
+.pl-e3-alt a { color: var(--e3-z); text-decoration: none; font-weight: 600; }
+.pl-e3-alt a:hover { text-decoration: underline; }
+
+.pl-e3 a:focus-visible {
+    outline: 2px solid var(--e3-z);
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+@media (max-width: 840px) {
+    .pl-e3-tela { grid-template-columns: 1fr; }
+    .pl-e3-marca-lado { min-height: 52vh; }
+    .pl-e3-forma { border-left: 0; border-top: 1px solid var(--e3-linha); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pl-e3-cartao .btn-primary { transition: none; }
+    .pl-e3-cartao .btn-primary:hover { transform: none; }
+}
+
+/* ---------- 38. O perfil repartido em abas, a experiência que colapsa, e a privacidade em
+   faixas -------------------------------------------------------------------------------------
+   Três correções pedidas na revisão das telas de perfil e de privacidade, e a mecânica de aba
+   que as duas telas de perfil passam a usar.
+
+   a) **Controle segmentado** (`.pl-seg`) e **abas por `:target`** (`.pl-seg-painel`).
+      O perfil era uma página só, com identidade, acervo, preferências, experiência e o painel de
+      visibilidade empilhados: na conta de demonstração ela passava de 8.000px de altura, e chegar
+      a qualquer assunto custava uma rolagem inteira. Agora cada assunto é uma aba com endereço
+      próprio (/perfil#acervo, /perfil#experiencia, /perfil#preferencias, /perfil#privacidade;
+      /perfil#quadro no perfil de empresa), porque a suíte e o roteiro da demonstração navegam
+      direto para partes do perfil.
+
+      A mecânica é CSS puro: `:target` mostra o painel endereçado, e `:has()` decide qual segmento
+      fica aceso e qual painel abre quando não há fragmento na URL. Nenhuma linha de JavaScript,
+      então as abas continuam funcionando com script bloqueado pela CSP, desligado ou ainda não
+      carregado, e o conteúdo das quatro está no HTML o tempo todo. São links dentro de um <nav>,
+      e não `role="tab"`: sem script não existe navegação por seta nem `aria-selected` que diga a
+      verdade, e anunciar um padrão de widget que a tela não cumpre é pior do que anunciar o que
+      ela é, que é navegação dentro da página.
+
+      A cor do segmento aceso é `--pl-data`, a mesma de `.pl-btn.active`. Não é `--pl-accent`:
+      laranja é a única ação preenchida da tela, e aba escolhida é lugar, não ação.
+
+      Custo conhecido: a regra de segmento aceso cita os identificadores um a um, porque CSS não
+      correlaciona `href` com `id` sozinho. Aba nova pede uma linha nova na lista.
+
+   b) **Experiência que colapsa** (`.pl-exp`). Cada relato era um cartão alto com título, período,
+      descrição, ART ligada e botão de remover, sempre abertos. Viram `<details>`: fechado, o
+      resumo responde "o que é, quando foi, tem ART ligada?", que é o que se procura ao varrer a
+      lista; aberto, o relato inteiro. O `<details>` é o mesmo recurso que a dica de `.pl-info` já
+      usa, então não entra dependência nem padrão novo. A marca "Declarado" fica no resumo, e não
+      só dentro: aba separada do acervo não pode virar aba onde a procedência some.
+
+   c) **Perfil em construção, uma vez só** (`.pl-lin-apoio`). O estado aparecia duas vezes no
+      cabeçalho, em dois pesos: a marca `.pl-construcao` na linha de acervo e uma caixa cinza logo
+      abaixo repetindo a mesma frase, com o botão de buscar ARTs que o estado vazio do acervo já
+      oferecia três parágrafos adiante. Fica a marca, que é onde o fato mora, mais uma linha com o
+      que a marca não cabe dizer: começar não tira ninguém da compatibilização. O botão foi para o
+      cabeçalho do acervo, que é onde ele age. `.pl-apoio` (seção 32) deixou de ser usada.
+
+   d) **Privacidade em faixas** (`.pl-faixas`). Ver o comentário no template: duas colunas de
+      altura livre com cinco quadros de pesos diferentes terminavam desalinhadas, com buraco
+      embaixo da mais curta, e o desenho mudava conforme o número de sessões e o tamanho da razão
+      social. Cada faixa é uma pergunta, os quadros de uma faixa têm a mesma altura, e o que
+      fecha o quadro (a ponte, o botão, o formulário) é ancorado no rodapé dele, para as duas
+      colunas terminarem na mesma linha em vez de terminarem por acaso. */
+
+/* ---- a) O controle segmentado ---- */
+.pl-seg-area { display: block; }
+
+.pl-seg { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; width: fit-content;
+    max-width: 100%; margin: 0 0 18px; padding: 4px; background: var(--pl-app);
+    border: 1px solid var(--pl-border); border-radius: 13px; }
+
+.pl-seg-b { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px;
+    border-radius: 9px; font-family: var(--pl-display); font-weight: 600; font-size: 13px;
+    color: var(--pl-muted); text-decoration: none; white-space: nowrap;
+    transition: background .14s ease, color .14s ease; }
+.pl-seg-b:hover { background: var(--pl-card); color: var(--pl-ink); text-decoration: none; }
+/* Contorno para dentro: a pista tem 4px de folga e um anel deslocado para fora seria cortado
+   pelo raio dela na primeira e na última posição. */
+.pl-seg-b:focus-visible { outline: 2px solid var(--pl-blue-2); outline-offset: -2px; }
+/* A contagem herda a tinta do segmento, então ela funciona aceso e apagado sem uma segunda
+   regra: 62% da cor de quem a carrega. */
+.pl-seg-b .n { font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums;
+    color: currentColor; opacity: .62; }
+
+/* ---- a) Qual painel abre, e qual segmento fica aceso ----
+   Duas mecânicas para o mesmo desenho, e nunca as duas ao mesmo tempo. Sem script vale o
+   `:target` puro. Com script, `perfil-abas.js` carimba `js-seg` na raiz e passa a mandar pela
+   classe `.aberto`/`.aqui`, porque o `:has()` do segmento aceso não é reavaliado pelo Chromium
+   quando o alvo do fragmento é definido NA CARGA do documento: abrir /perfil#experiencia direto
+   mostrava o painel certo com o primeiro segmento aceso. No clique o `:has()` acerta, que é
+   justamente o caminho de quem está sem script. */
+.pl-seg-painel { display: none; scroll-margin-top: 92px; }
+.pl-seg-painel:target { display: block; }
+html:not(.js-seg) .pl-seg-area:not(:has(> .pl-seg-painel:target)) > .pl-seg-painel.padrao { display: block; }
+
+html:not(.js-seg) .pl-seg-area:not(:has(> .pl-seg-painel:target)) > .pl-seg > .pl-seg-b:first-child,
+html:not(.js-seg) .pl-seg-area:has(> #acervo:target)       > .pl-seg > .pl-seg-b[href="#acervo"],
+html:not(.js-seg) .pl-seg-area:has(> #experiencia:target)  > .pl-seg > .pl-seg-b[href="#experiencia"],
+html:not(.js-seg) .pl-seg-area:has(> #preferencias:target) > .pl-seg > .pl-seg-b[href="#preferencias"],
+html:not(.js-seg) .pl-seg-area:has(> #quadro:target)       > .pl-seg > .pl-seg-b[href="#quadro"],
+html:not(.js-seg) .pl-seg-area:has(> #privacidade:target)  > .pl-seg > .pl-seg-b[href="#privacidade"] {
+    background: var(--pl-data); color: #fff;
+}
+
+/* O caminho COM script, em regra própria: a lista acima é toda do caso sem script, e misturar as
+   duas obrigaria a reler seis seletores de `:has()` para entender de onde vem a tinta de um
+   segmento aceso. A transição de 140ms é a mesma dos dois lados, então trocar de aba é um
+   atravessamento e não um pisca. */
+.pl-seg-b.aqui { background: var(--pl-data); color: #fff; }
+
+/* Com script, quem decide é a classe. Mais específico que `:target` de propósito: o fragmento
+   continua na URL, e as duas mecânicas não podem discordar sobre qual painel está aberto. */
+html.js-seg .pl-seg-painel.aberto { display: block; }
+/* `:not(:target)` é rede de segurança, não redundância: numa troca de endereço o `:target` do
+   navegador vale já, e a classe só depois do `hashchange`. Sem a ressalva, o quadro entre as duas
+   mostra o painel ANTERIOR; com ela, mostra os dois por um quadro e o painel endereçado nunca
+   some de quem chegou por URL. */
+html.js-seg .pl-seg-painel:not(.aberto):not(:target) { display: none; }
+/* O painel recebe foco por script (tabindex="0") para quem chega nele pela aba. Contorno no
+   painel inteiro seria uma moldura de 3.000px; o foco aparece como um fio no alto, do tamanho do
+   conteúdo que a aba acabou de revelar. */
+html.js-seg .pl-seg-painel:focus-visible { outline: 0; box-shadow: 0 -3px 0 0 var(--pl-blue-2); }
+
+/* ---- b) A experiência declarada que colapsa ---- */
+.pl-exp-lista { display: flex; flex-direction: column; }
+.pl-exp { border-bottom: 1px solid var(--pl-border-2); }
+.pl-exp:last-child { border-bottom: 0; }
+
+.pl-exp > summary { display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center; gap: 2px 12px; padding: 12px 8px; margin: 0 -8px; border-radius: 10px;
+    cursor: pointer; list-style: none; }
+.pl-exp > summary::-webkit-details-marker { display: none; }
+.pl-exp > summary::marker { content: ''; }
+.pl-exp > summary:hover { background: var(--pl-app); }
+.pl-exp > summary:focus-visible { outline: 2px solid var(--pl-blue-2); outline-offset: -2px; }
+
+/* O título é o primário da linha; o período e a ART, o secundário; a marca de procedência e a
+   seta, o terciário, encostados na borda onde a varredura termina. */
+.pl-exp .nm { grid-column: 1; grid-row: 1; margin: 0; font-family: var(--pl-body);
+    font-size: 13.5px; font-weight: 600; line-height: 1.4; color: var(--pl-ink);
+    overflow-wrap: anywhere; }
+.pl-exp .qd { grid-column: 1; grid-row: 2; display: flex; flex-wrap: wrap; align-items: center;
+    gap: 3px 7px; font-size: 12px; color: var(--pl-muted); }
+.pl-exp .qd .art { display: inline-flex; align-items: center; gap: 5px; }
+.pl-exp .qd .pl-mark { width: 12px; height: 12px; vertical-align: 0; }
+.pl-exp > summary > .pl-pill { grid-column: 2; grid-row: 1 / span 2; }
+.pl-exp .chev { grid-column: 3; grid-row: 1 / span 2; width: 16px; height: 16px; flex: none;
+    color: var(--pl-faint); transition: transform .15s ease; }
+.pl-exp[open] > summary .chev { transform: rotate(180deg); }
+.pl-exp[open] > summary .nm { color: var(--pl-navy); }
+
+.pl-exp .corpo { display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+    padding: 2px 0 15px; }
+.pl-exp .corpo .tx { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--pl-ink);
+    max-width: 78ch; white-space: pre-line; }
+.pl-exp .corpo .tx.vazia { color: var(--pl-faint); font-style: normal; }
+.pl-exp .corpo .ev { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--pl-muted);
+    max-width: 78ch; }
+.pl-exp .corpo .ev .pl-mark { width: 13px; height: 13px; vertical-align: -2px; }
+
+/* ---- c) Perfil em construção, dito uma vez ---- */
+.pl-perfil-id .pl-lin-apoio { margin: 9px 0 0; font-size: 12.5px; line-height: 1.55;
+    color: var(--pl-muted); max-width: 74ch; }
+
+/* ---- d) A privacidade em faixas ---- */
+.pl-faixas { display: flex; flex-direction: column; gap: 18px; }
+.pl-faixa { display: grid; gap: 18px; align-items: stretch; }
+.pl-faixa.um { grid-template-columns: minmax(0, 1fr); }
+.pl-faixa.dois { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* Card de faixa é coluna: o que fecha o quadro encosta no rodapé dele, e as duas colunas de uma
+   faixa terminam na mesma linha em vez de terminarem por acaso. */
+.pl-faixa > .pl-card { display: flex; flex-direction: column; }
+.pl-faixa > .pl-card > * { min-width: 0; }
+.pl-faixa > .pl-card > .pl-acoes-form:last-child,
+.pl-faixa > .pl-card > form:last-child,
+.pl-faixa > .pl-card > .pl-ponte:last-child { margin-top: auto; }
+.pl-faixa > .pl-card > form:last-child > .pl-acoes-form:last-child { margin-bottom: 0; }
+
+/* A ponte entre as duas privacidades da aplicação: esta tela é a da conta, e quem vê cada item
+   do perfil se decide no perfil. Fica no rodapé do quadro de identificação, separada por um fio,
+   porque é remissão e não mais um dado da conta. */
+.pl-ponte { margin: 0; padding-top: 14px; border-top: 1px solid var(--pl-border-2); }
+.pl-ponte a { font-weight: 600; white-space: nowrap; }
+
+/* A lista de sessões em largura inteira: identificação à esquerda, navegador à direita e uma
+   sessão por linha. O texto do navegador passa de cem caracteres sem espaço útil, então ele corta
+   com reticências e o valor inteiro fica no title, para quem precisa conferir. */
+.pl-sessoes.larga > li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    align-items: baseline; gap: 3px 22px; }
+.pl-sessoes.larga .ua { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- As três correções em 390px ---- */
+@media (max-width: 840px) {
+    .pl-sessoes.larga > li { grid-template-columns: minmax(0, 1fr); }
+    .pl-sessoes.larga .ua { white-space: normal; }
+}
+
+@media (max-width: 1080px) {
+    .pl-faixa.dois { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 640px) {
+    /* A pista ocupa a linha e os segmentos se repartem nela: quatro rótulos lado a lado em 390px
+       ou estouram a página ou viram uma fileira que rola sozinha, e as duas coisas são piores que
+       duas fileiras de dois. */
+    .pl-seg { width: 100%; }
+    .pl-seg-b { flex: 1 1 auto; justify-content: center; padding: 0 10px; font-size: 12.5px; }
+    .pl-exp > summary { grid-template-columns: minmax(0, 1fr) auto; }
+    .pl-exp .chev { display: none; }
+    .pl-ponte a { white-space: normal; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pl-seg-b, .pl-exp .chev { transition: none; }
+}
+
+/* ---------- 39. O feed de compatíveis: o cabeçalho arrumado e o fim do pool --------------------
+   Três correções na tela onde o motor apresenta resultado, todas de hierarquia, nenhuma de cor.
+
+   a) **Cabeçalho** (`.pl-feed-cab`, no lugar de `.pl-ctxline` nesta tela). Era uma fileira só,
+      com nove coisas do mesmo tamanho: rótulo em versalete, título, duas etiquetas de atividade
+      truncadas, ponto separador, contagem do pool, a qualificação do item 10.2, o botão de
+      informação e a ação. Em 1440px quebrava em duas linhas mal repartidas, e a quebra caía no
+      meio de uma etiqueta.
+
+      A unidade de leitura do cabeçalho é a DEMANDA, e o que ele responde, em três degraus: o que
+      é esta lista (título, primário), do que ela saiu (contagem e atividades, secundário), e o
+      que ela não é (a qualificação do edital, terciário, com a marca de lista). A ação fica na
+      coluna da direita, alinhada ao topo, para não competir com o título nem empurrar o texto.
+
+      As etiquetas passam a ser só o código (`ui.tos(..., compacto)`): duas atividades do mesmo
+      grupo apareciam como a MESMA frase truncada lado a lado, com a diferença escondida depois
+      das reticências. A descrição inteira continua no `title` e na tela da demanda.
+
+   b) **Fim do pool** (`.pl-end .ea`). Três ações com três pesos diferentes na mesma linha: botão
+      contornado, link azul sublinhado e botão de texto, sem alinhamento entre si. Viram o mesmo
+      componente na mesma altura: uma principal contornada e duas em fantasma. Nenhuma é laranja,
+      porque o laranja desta tela é "Registrar interesse", que compromete e mora no card.
+
+   c) **Rodapé** (`.pl-proveniencia`, no template). Semente e limiar saíram: são instrumento de
+      auditoria, e quem audita tem a tela /admin/sessoes/{id}. Nada de CSS aqui, é só menos
+      conteúdo. */
+
+.pl-feed-cab { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start;
+    gap: 12px 20px; padding: 16px 24px 0; flex: none; }
+.pl-feed .pl-feed-cab { padding: 18px 40px 0; }
+.pl-feed-cab .tx { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+
+/* Primário: o título da demanda, um degrau acima de tudo que vem depois. */
+.pl-feed-cab .dm { font-family: var(--pl-display); font-weight: 600; font-size: 16px;
+    line-height: 1.3; color: var(--pl-ink); text-decoration: none; }
+.pl-feed-cab .dm:hover { color: var(--pl-blue); text-decoration: none; }
+
+/* Secundário: de onde a lista saiu. */
+.pl-feed-cab .fato { margin: 0; display: flex; align-items: center; flex-wrap: wrap;
+    gap: 6px 10px; font-size: 12.5px; color: var(--pl-muted); }
+.pl-feed-cab .fato .n { color: var(--pl-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.pl-feed-cab .at { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px 7px; }
+.pl-feed-cab .sep { width: 3px; height: 3px; border-radius: 50%; background: var(--pl-faint);
+    flex: none; }
+.pl-feed-cab .pl-tos { font-size: 11px; padding: 2px 8px; }
+
+/* Terciário: o que a lista NÃO é. A marca de lista à esquerda separa a qualificação do fato sem
+   gastar uma caixa, e a mantém legível como afirmação da plataforma, não como mais um dado. */
+/* Bloco, e não flex: o botão "i" é do tamanho de uma palavra e precisa vir DEPOIS da frase, na
+   mesma linha. Como item de flex ele quebrava para a linha de baixo sozinho, e um botão de
+   informação órfão embaixo do texto não informa o que explica. */
+.pl-feed-cab .qual { margin: 1px 0 0; font-size: 11.5px; line-height: 1.5;
+    color: var(--pl-faint); }
+.pl-feed-cab .qual > svg { width: 13px; height: 13px; vertical-align: -2px; margin-right: 5px; }
+.pl-feed-cab .qual .pl-info { margin-left: 6px; }
+
+.pl-feed-cab .act { margin: 0; }
+
+/* ---- b) As três ações do fim do pool ---- */
+.pl-end .ea form { margin: 0; }
+.pl-end .ea > .pl-btn, .pl-end .ea form > .pl-btn { height: 46px; }
+.pl-feed .pl-end .ea { gap: 10px; }
+.pl-feed .pl-end .ea > .pl-btn, .pl-feed .pl-end .ea form > .pl-btn { height: 48px;
+    border-radius: 14px; padding: 0 20px; }
+
+@media (max-width: 900px) {
+    .pl-feed-cab { grid-template-columns: minmax(0, 1fr); }
+    .pl-feed-cab .act { margin-top: 2px; }
+}
+
+@media (max-width: 640px) {
+    .pl-feed-cab { padding: 14px 16px 0; }
+    .pl-feed .pl-feed-cab { padding: 14px 16px 0; }
+    .pl-end .ea { flex-direction: column; align-items: stretch; }
+    .pl-end .ea form, .pl-end .ea > .pl-btn, .pl-end .ea form > .pl-btn { width: 100%; }
+}
+
+/* ---------- 39. As seis telas do painel como uma aplicação só ---------------------------------
+   A trilha de auditoria, as duas de sessão, as duas de denúncia e a lixeira foram portadas em
+   sessões diferentes, por mãos diferentes, e nunca foram conferidas uma contra a outra de uma
+   vez. Cada uma estava certa sozinha; juntas, elas divergiam em coisas que quem varre o painel lê
+   como "isto é outro sistema": o rodapé do quadro tinha dois nomes, o título de card tinha dois
+   tamanhos, a coluna de ação tinha o cabeçalho de um lado e as células do outro, e a mesma
+   situação mudava de cor conforme a tela.
+
+   O que está aqui é isso: a diferença entre as seis, resolvida pela regra que a casa já tinha, e
+   o quadro de conferência da sessão, que é a única peça de desenho nova.
+
+   a) **O rodapé do quadro é um só.** `.pl-sess-rodape` (seção 21) e `.pl-log-rodape` (seção 12)
+      eram o mesmo desenho com dois nomes, e a diferença real era o alinhamento: a seção 18 empurra
+      todo `.pl-log-rodape` para a direita, porque lá ele guarda só a paginação. Quando o rodapé
+      carrega uma NOTA, empurrar para a direita espreme um parágrafo de 66ch contra a borda. A
+      regra passa a distinguir os dois casos pelo conteúdo, e as seis telas usam a mesma classe.
+
+   b) **O aviso de que a tabela continua**, na tabela do conjunto avaliado. Nas outras telas ele é
+      acionado pela largura da janela, o que basta porque a tabela ocupa a largura do conteúdo.
+      A tabela do pool não: ela tem 1080px de mínimo e mora na coluna estreita do `.pl-cols`, logo
+      ela corta até por volta de 1766px de janela. O aviso dela é acionado nessa medida.
+
+   c) **Perfil de acesso não é situação.** Na lixeira ele usava `.pl-pill`, que é o componente de
+      estado do painel inteiro, com ponto colorido e tudo. Passa a ser texto, na mesma escala em
+      que contas o mostra.
+
+   d) **O cabeçalho alinha com a coluna que encabeça.** `.pl-contas` e `.pl-fila` já alinhavam o
+      `th.acao` à direita junto com as células; a lixeira e as sessões não.
+
+   e) **O quadro de conferência da sessão** (`.pl-conf`). Ver o comentário no template: as duas
+      ordens deixam de ser duas fileiras soltas e viram duas linhas de uma tabela com uma coluna
+      por posição, mais a linha do veredito. Nada aqui usa `--pl-seal`: verde água afirma
+      "documento conferido na API do CREA", e sorteio reproduzido não é documento verificado. O
+      visto é a cor de status, a mesma de `.pl-pill.ok`. */
+
+/* ---- a) Rodapé com nota volta a repartir a linha ---- */
+/* Mais específico que a regra da seção 18 de propósito: ali o rodapé é só paginação e vai à
+   direita; aqui ele tem texto, e texto encostado na borda direita não se lê. */
+.pl-log-rodape:has(.pl-nota) { justify-content: space-between; }
+/* Rodapé que é só nota ocupa a linha inteira, como o antigo rodapé de recorte das sessões fazia:
+   sem um segundo elemento, `space-between` deixaria o parágrafo solto na esquerda com a largura
+   dele, o que é o mesmo resultado, mas a medida de leitura precisa ser declarada. */
+.pl-log-rodape > .pl-nota:only-child { max-width: 88ch; }
+
+/* ---- b) O aviso de rolagem da tabela do conjunto avaliado ---- */
+/* 1800px e não 1766: a medida exata depende do `clamp()` do respiro do conteúdo, e um limite
+   frouxo mostra o aviso em alguns pixels a mais de janela, o que é inofensivo. O contrário, um
+   limite justo demais, esconde o aviso justamente onde a tabela ainda corta. */
+@media (max-width: 1800px) {
+    .pl-lado-pool { display: flex; }
+}
+
+/* ---- c) Perfil de acesso na lixeira: texto, como em contas ---- */
+.pl-lix .papel { display: block; font-size: 12.5px; color: var(--pl-ink); }
+/* Pílula de situação com a mesma caixa das telas irmãs (contas e fila de denúncias já a tinham):
+   sem isto ela herda o `inline-flex` do componente e assenta pela linha de base do texto vizinho,
+   em vez de pela do próprio conteúdo. */
+.pl-lix td .pl-pill { display: inline-flex; }
+
+/* ---- d) O cabeçalho da coluna de ação ---- */
+.pl-lix thead th.acao, .pl-sess thead th.acao { text-align: right; }
+
+/* ---- e) O quadro de conferência: uma coluna por posição ----
+   A rolagem é do quadro, nunca de uma fileira: o alinhamento entre a ordem gravada e a refeita é
+   a prova, e uma fileira que rolasse sozinha o desfaria no primeiro arrasto. */
+.pl-conf-quadro { margin-top: 18px; overflow-x: auto; padding-bottom: 6px; }
+.pl-conf-quadro:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 3px;
+    border-radius: 10px; }
+/* Ela é `.pl-table` como toda tabela da casa, e daí herda a tipografia e a regra de que nenhuma
+   tabela escapa do design system. O que ela não pode herdar é a caixa da linha de log: aqui a
+   célula é uma peça de 52px com folga própria, não uma faixa de 14px com fio embaixo, e a
+   largura vem do conteúdo, porque esticar seis posições em 100% da tela afastaria as duas
+   séries que a tela existe para comparar. */
+.pl-conf { width: auto; border-collapse: separate; border-spacing: 5px 5px; margin: -5px; }
+/* Seletor com o mesmo peso do da seção 8, senão a faixa de 14px por 12px da linha de log vence e
+   abre 36px entre a ordem gravada e a refeita. As duas são o par que se compara: separadas por um
+   vão maior que a própria célula, elas voltam a ser duas fileiras soltas, que é o defeito que
+   este quadro existe para desfazer. */
+.pl-conf tbody td { padding: 0; border-bottom: 0; }
+.pl-conf tbody tr:last-child td { border-bottom: 0; }
+
+/* O cabeçalho de linha gruda na esquerda para não sumir junto com a rolagem. Fundo explícito, e
+   não herdado: sem ele as células passam por baixo do texto durante o arrasto. */
+.pl-conf th {
+    position: sticky; left: 0; z-index: 1; background: var(--pl-card);
+    padding: 0 14px 0 0; text-align: left; vertical-align: middle; white-space: nowrap;
+    font-size: 11.5px; font-weight: 600; color: var(--pl-muted);
+}
+.pl-conf th .qd { display: block; margin-top: 2px; font-size: 10.5px; font-weight: 500;
+    color: var(--pl-faint); font-variant-numeric: tabular-nums; }
+.pl-conf tbody td { vertical-align: middle; }
+
+/* A linha do veredito. Ela é o resultado da conferência, não uma terceira sequência, então ela
+   não repete a caixa de 52px: é uma marca do tamanho do texto, centrada na coluna que julga. */
+/* A linha do veredito desgruda um pouco do par que ela julga: ela é o resultado da comparação,
+   não uma terceira sequência. */
+.pl-conf tr.vrd th, .pl-conf tr.vrd td { padding-top: 7px; }
+.pl-conf tr.vrd th { font-size: 11px; color: var(--pl-faint); }
+.pl-conf tr.vrd td { text-align: center; }
+.pl-conf tr.vrd svg { width: 16px; height: 16px; }
+.pl-conf tr.vrd .sim { color: var(--pl-ok); }
+.pl-conf tr.vrd .nao { color: var(--pl-danger); }
+
+/* As células da fileira deixaram de ser itens de lista e passaram a ser conteúdo de célula: o
+   `flex: none` da seção 21 não vale mais dentro de <td>, e a largura precisa ser dita aqui. */
+.pl-conf .pl-cel { width: 52px; }
+
+/* Em tela estreita o cabeçalho de linha sozinho já come metade da largura útil. Ele desgruda e a
+   tabela rola inteira, que é o comportamento das tabelas do painel no mesmo tamanho. */
+@media (max-width: 900px) {
+    .pl-conf th { position: static; padding-right: 10px; white-space: normal; max-width: 108px; }
+}
+
+/* ---------- 40. A linha de ajuste em dois níveis, e o ritmo dos quadrados do painel -----------
+   A tela de parâmetros e a visão geral foram reprovadas pela mesma palavra: quadrado de dimensão
+   aleatória. Elas não tinham um problema de gosto, tinham um de implementação.
+
+   A causa primeira: cinco classes que os dois templates escrevem nunca receberam regra nenhuma.
+   `.pl-par-topo`, `.pl-par-duo`, `.meta` (a linha de apoio do campo), `.fx` (a faixa aceita) e
+   `.pl-niveis-meta` existiam só no Twig. O efeito disso é maior do que parece: sem regra, `.fx`
+   herdava o corpo de 16px da página e "Aceita de 0 a 1" aparecia MAIOR e mais escuro que o
+   próprio rótulo do parâmetro que ele qualifica. Era a hierarquia invertida, não apertada. E
+   `.pl-par-duo`, sem grade, empilhava os dois assuntos num bloco só, com o título "Operação da
+   plataforma" encostando na chave de sistema do campo de cima.
+
+   a) **A linha de apoio vira uma linha.** O comentário da macro já prometia dois níveis de texto
+      e não quatro; aqui isso passa a ser verdade. Faixa aceita, procedência e chave de sistema
+      dividem uma linha de 11.5px em tinta fraca, separadas pelo ponto do design system. A altura
+      de uma linha de parâmetro cai de ~125px para ~60px, e os seis pesos passam a ser lidos como
+      um conjunto, que é o que a tela diz que eles são.
+
+      Primário   o rótulo do parâmetro e o campo.
+      Secundário a faixa que ele aceita.
+      Terciário  quem mudou, quando, e a chave exata que quem audita quer ver escrita.
+
+      Vale também em /admin/integracoes, que usa a mesma macro e tinha o mesmo defeito.
+
+   b) **As duas colunas do topo terminam juntas.** Os campos à esquerda e as barras à direita são
+      a mesma informação em dois tempos (o que vai ser gravado, e o que está gravado). Com os dois
+      quadros esticados na altura da fileira e a ressalva final ancorada no rodapé do quadro da
+      direita, as duas colunas fecham na mesma linha em vez de fecharem por acaso.
+
+   c) **O ajuste fino em duas colunas de verdade.** Cada `.bl` entrega seus três blocos à mesma
+      grade (`display: contents`): os dois títulos dividem a primeira linha, as duas notas a
+      segunda, e os campos começam todos na mesma altura. O filete entre as colunas é contínuo
+      porque as células de uma linha de grade têm sempre a mesma altura.
+
+   d) **A barra de gravação deixa de flutuar.** Ela era `sticky` e passava por cima do sexto peso
+      no meio da rolagem: o campo ficava atrás do botão que grava o campo. A troca não é de gosto:
+      /admin/integracoes, que é o padrão mais recente do painel, fecha o formulário com uma barra
+      de ação no fim do quadro, e duas telas de administração que gravam um lote de parâmetros não
+      podem discordar sobre onde fica o botão. A consequência da gravação continua ao lado do
+      botão, que é o que separa "mudei uma configuração" de "mudei o critério de recomendação da
+      plataforma".
+
+   e) **O ritmo da visão geral.** Eram três alturas sem relação entre si e dois tamanhos de
+      quadrado na mesma tela: card com 16px de raio e 18px de recuo, tile com 14px e 16px. Os
+      tiles passam a ter a medida do card, e a fileira de cima passa a medir exatamente dois
+      tiles mais o vão entre eles (134 + 18 + 134 = 286). A tela deixa de ter três alturas
+      arbitrárias e passa a ter um módulo e o dobro dele.
+
+   Nenhuma cor nova, nenhum token tocado. Nada aqui ordena pessoa: as quebras continuam na ordem
+   fixa do template e nenhum número virou barra comparativa entre gente (item 10.1). */
+
+/* ---- a) A linha de apoio do campo de parâmetro ---- */
+.pl-par .campo { align-items: center; gap: 6px 22px; padding: 12px 0; }
+.pl-par .campo .tx { display: flex; flex-direction: column; gap: 4px; }
+.pl-par .campo label, .pl-par .campo .rot { font-size: 13.5px; font-weight: 600;
+    line-height: 1.4; color: var(--pl-ink); }
+
+/* Fluxo de texto, e não caixas lado a lado: numa coluna estreita (o quadro de ajuste fino tem
+   duas) os três blocos quebram, e como itens de flex a segunda linha começava com um ponto
+   pendurado na margem, lendo como uma lista de marcadores. Em linha corrida a quebra é a de um
+   parágrafo, que é o que esta linha é. */
+.pl-par .campo .meta, .pl-niveis-meta { display: block; margin: 0; }
+.pl-par .campo .meta > p, .pl-niveis-meta > p { display: inline; margin: 0; font-size: 11.5px;
+    line-height: 1.55; color: var(--pl-faint); }
+/* O ponto do design system no lugar de três parágrafos empilhados. */
+.pl-par .campo .meta > p + p::before, .pl-niveis-meta > p + p::before {
+    content: ' · '; color: var(--pl-border); }
+/* Quem alterou continua em tinta cheia dentro da linha fraca: é o nome de uma pessoa, e é ele a
+   evidência de supervisão humana que o item 12.3 cobra. */
+.pl-par .campo .meta .pl-hist, .pl-niveis-meta .pl-hist { font-size: 11.5px; color: var(--pl-muted); }
+.pl-par .campo .meta .pl-hist.inicial { color: var(--pl-faint); }
+.pl-par .campo .meta .pl-hist b, .pl-niveis-meta .pl-hist b { color: var(--pl-ink); font-weight: 600; }
+.pl-par .campo .meta .ch, .pl-niveis-meta .ch { overflow-wrap: anywhere; }
+.pl-niveis-meta { margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--pl-border-2); }
+
+/* ---- b) As duas colunas do topo ---- */
+/* `.pl-cols` alinha os filhos no topo (align-items: start), então sem isto a coluna da direita
+   media a altura do próprio conteúdo e as duas terminavam com 80px de degrau. */
+.pl-par-topo > .pl-card { align-self: stretch; display: flex; flex-direction: column; }
+.pl-par-topo > .pl-card > .pl-par { flex: 1 0 auto; }
+.pl-par-topo .pl-param > .sem { margin-top: auto; }
+/* A sobra da altura compartilhada se reparte entre os dois grupos de barras, em vez de virar um
+   vão único acima da ressalva final: como buraco de 90px, ela leria como conteúdo faltando. */
+.pl-par-topo .pl-param > .grupo { flex: 1 1 auto; display: flex; flex-direction: column;
+    justify-content: center; }
+
+/* ---- c) O ajuste fino, duas colunas na mesma grade ---- */
+.pl-par-duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto auto 1fr; }
+.pl-par-duo > .bl { display: contents; }
+.pl-par-duo > .bl:nth-of-type(1) > * { grid-column: 1; padding-right: 34px; }
+.pl-par-duo > .bl:nth-of-type(2) > * { grid-column: 2; padding-left: 34px;
+    border-left: 1px solid var(--pl-border-2); }
+.pl-par-duo > .bl > .pl-linha-titulo { grid-row: 1; }
+.pl-par-duo > .bl > .pl-nota { grid-row: 2; }
+.pl-par-duo > .bl > .pl-par { grid-row: 3; }
+/* A nota das duas colunas divide uma linha de grade, então as duas têm a altura da mais alta e o
+   recuo de baixo vira vão duplicado. O espaço entre a nota e o primeiro campo mora na linha. */
+.pl-par-duo > .bl > .pl-nota { margin-bottom: 10px; }
+
+/* ---- d) A barra que fecha o formulário ---- */
+.pl-salvar { position: static; padding: 18px; gap: 14px 24px; box-shadow: 0 8px 22px rgba(11,42,74,.05); }
+.pl-salvar .pl-consequencia { margin: 0; max-width: 72ch; font-size: 12.5px; line-height: 1.6; }
+.pl-salvar .acoes .pl-btn, .pl-salvar .acoes .pl-cta { height: 40px; }
+
+/* ---- e) A fileira de indicadores da visão geral ---- */
+/* Uma medida de quadrado só na tela: o tile assume o raio, o recuo e a sombra do card. */
+/* 22px é a goteira do `.pl-cols`, a fileira que fica logo acima: a fileira de indicadores alinha
+   com ela em vez de andar nos 16px do `row g-3` do Bootstrap, que era a terceira medida de vão da
+   mesma tela. */
+.pl-vis-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; }
+.pl-vis-tiles > .pl-kpi { display: flex; flex-direction: column; min-height: 144px;
+    border-radius: 16px; padding: 18px; box-shadow: 0 8px 22px rgba(11,42,74,.05); }
+/* A linha de apoio encosta no rodapé do tile: das quatro, duas ocupam uma linha e duas ocupam
+   duas, e sem isto elas ficavam em quatro alturas diferentes na mesma fileira. */
+.pl-vis-tiles > .pl-kpi .sub { margin-top: auto; padding-top: 8px; }
+.pl-vis-tiles > .pl-kpi .val { margin: 7px 0 0; }
+
+/* A fileira de cima mede exatamente dois tiles mais o vão da página: 144 + 18 + 144 = 306. É a
+   única relação de altura da tela, e ela existe para que as três fileiras leiam como um ritmo e
+   não como três acasos. 306 é a altura natural do quadro de moderação carregado, então a regra
+   fixa o que já acontece em vez de esticar a fileira. */
+.pl-cols > .pl-mod { min-height: 306px; }
+
+@media (max-width: 1280px) {
+    .pl-vis-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 1080px) {
+    /* Numa coluna só o filete vertical não separa nada: os dois assuntos voltam a ser dois
+       blocos, separados pelo fio horizontal que a casa usa entre seções de um mesmo quadro. */
+    .pl-par-duo { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+    .pl-par-duo > .bl { display: block; }
+    .pl-par-duo > .bl:nth-of-type(1) > *, .pl-par-duo > .bl:nth-of-type(2) > * {
+        padding-left: 0; padding-right: 0; border-left: 0; }
+    .pl-par-duo > .bl + .bl { margin-top: 22px; padding-top: 20px;
+        border-top: 1px solid var(--pl-border-2); }
+    .pl-cols > .pl-mod { min-height: 0; }
+}
+@media (max-width: 640px) {
+    .pl-vis-tiles { grid-template-columns: minmax(0, 1fr); }
+    /* Rótulo e campo já empilham aqui (seção 24); a linha de apoio acompanha e o campo encosta
+       na margem esquerda, no lugar de ficar pendurado à direita de uma coluna que não existe. */
+    .pl-par .campo .ent { margin-top: 4px; }
+}
+
+/* ---- f) A topbar do painel num aparelho de 390px ----
+   Todas as nove telas do painel rolavam de lado num telefone, contas e integrações inclusive, e a
+   causa é a colisão de três regras escritas em momentos diferentes:
+
+     seção 23, ≤720px  `.pl-momento { display: none }`, porque a topbar é uma linha de 60px e o
+                       título precisa dela inteira. O comentário de lá diz isso com todas as
+                       letras.
+     seção 25          a topbar quebra em duas linhas, e a contagem volta (`display: inline`),
+                       porque agora existe uma segunda linha para recebê-la.
+     seção 29, ≤768px  o shell com botão de recolher devolve a topbar a UMA linha de 60px, com
+                       `flex-wrap: nowrap`. O comentário de lá até prevê a segunda linha da seção
+                       25 e explica por que ela não serve ao painel, mas a regra que trouxe a
+                       contagem de volta continuou valendo.
+
+   Uma linha sem quebra carregando um conteúdo dimensionado para duas: a barra empurra o título
+   para fora da janela, e a janela rola. O marcador sai da linha, como a seção 23 já tinha
+   decidido, e desta vez o selo de somente leitura sai junto, que é o maior dos dois e nunca
+   esteve coberto por aquela regra.
+
+   Nada se perde. A contagem está repetida no resumo do quadro logo abaixo em todas as telas que a
+   usam, e o modo de operação continua sendo o assunto do "i" ao lado, cujo nome acessível o
+   anuncia ("O que é: Por que somente leitura"). */
+@media (max-width: 768px) {
+    .pl-app[data-colapsavel] .pl-topbar-acoes .pl-momento,
+    .pl-app[data-colapsavel] .pl-topbar-acoes .pl-somente-leitura { display: none; }
+    /* Cinto e suspensório: com o marcador fora, o título de "Sessões do motor" cabe em 390px, mas
+       um título mais longo numa tela futura voltaria a empurrar a barra. Ele corta com reticências
+       em vez de derrubar a página, e o <h1> continua inteiro para quem lê por leitor de tela. */
+    /* `flex: 0 1 auto`, e é esta a metade que derrubava a página. A seção 25 dá ao título
+       `flex: 1 0 100%` porque lá ele ocupa uma LINHA inteira da topbar quebrada. A seção 29
+       desligou a quebra e não desfez a base de 100% nem o `flex-shrink: 0`: o título passou a
+       pedir a largura toda numa linha que não quebra, e empurrou as ações inteiras para fora da
+       janela. Aqui ele volta a se medir pelo próprio texto e a poder encolher. */
+    .pl-app[data-colapsavel] .pl-topbar h1,
+    .pl-app[data-colapsavel] .pl-topbar h2,
+    .pl-app[data-colapsavel] .pl-topbar h3 { flex: 0 1 auto; min-width: 0; overflow: hidden;
+        text-overflow: ellipsis; white-space: nowrap; }
+}
+
+/* ---- f) A topbar do painel num aparelho de 390px ----
+   Não é destas duas telas: é de todas as doze do painel, e a causa é uma colisão entre duas
+   seções anteriores. A seção 25 quebra a topbar em duas fileiras abaixo de 768px, com
+   `.pl-topbar h1 { flex: 1 0 100% }`, e devolve a contagem do momento ao celular. A seção 29,
+   no mesmo ponto de quebra e mais adiante no arquivo, força `flex-wrap: nowrap` na mesma barra,
+   para que uma topbar que só tem o nome da seção e dois atalhos não vire 120px de barra vazia.
+
+   Base de 100% com `nowrap` é excesso garantido: o título toma a largura inteira e a contagem, o
+   "i" e o "Sair" ficam pendurados fora dela. Em 390px a barra media 565px e a PÁGINA inteira
+   rolava de lado, em /admin, /admin/parametros, /admin/contas, /admin/integracoes e /admin/
+   auditoria, medidas uma a uma.
+
+   Aqui as duas intenções passam a caber: a barra volta a poder quebrar, mas o título deixa de
+   forçar a quebra. Topbar que tem só nome e atalhos continua em uma fileira de 60px, que é o que
+   a seção 29 queria; topbar que carrega estado (contagem do momento, selo de somente leitura, o
+   "i") deixa o estado descer para a segunda fileira em vez de empurrar a janela. */
+@media (max-width: 768px) {
+    .pl-app[data-colapsavel] .pl-topbar { flex-wrap: wrap; height: auto; min-height: 60px;
+        align-items: center; padding: 10px 14px; }
+    .pl-app[data-colapsavel] .pl-topbar > h1,
+    .pl-app[data-colapsavel] .pl-topbar > h2,
+    .pl-app[data-colapsavel] .pl-topbar > h3 { flex: 1 1 auto; min-width: 0; }
+    .pl-app[data-colapsavel] .pl-topbar-acoes { flex-wrap: wrap; min-width: 0; }
+    .pl-app[data-colapsavel] .pl-momento { white-space: normal; }
+}
+
+/* A contagem do momento e o selo de somente leitura voltam ao celular. A seção 29 os escondia
+   abaixo de 768px porque a barra não podia quebrar e eles a empurravam para fora da janela; com a
+   quebra de volta, o custo some, e os dois são conteúdo, não enfeite de barra. "Contagem lida em
+   17/09/2026, 14:48" é a procedência do número, sem a qual um painel de indicadores obriga quem
+   olha a supor de quando ele é, e o selo de somente leitura é a prova, na tela, de que a trilha
+   de auditoria não se edita. Esconder do celular a evidência do item 12.3 é o contrário do que
+   estas telas existem para fazer. */
+@media (max-width: 768px) {
+    .pl-app[data-colapsavel] .pl-topbar-acoes .pl-momento,
+    .pl-app[data-colapsavel] .pl-topbar-acoes .pl-somente-leitura { display: inline-flex; }
+    .pl-app[data-colapsavel] .pl-topbar-acoes .pl-momento { display: inline; }
+}
+
+/* ============================================================================
+   39 · As seis telas do painel falam como uma aplicação só
+   ----------------------------------------------------------------------------
+   Auditoria, sessões, sessão, denúncias, denúncia e lixeira foram portadas em
+   sessões diferentes, e cada uma acertou o próprio detalhe sem olhar para a
+   irmã ao lado. Postas uma depois da outra, três coisas pulavam na navegação.
+   A régua é `contas.html.twig` e `integracoes.html.twig`, as duas mais
+   recentes, e nada aqui inventa medida nova: cada regra adota a que já existia
+   numa das telas e a estende às demais.
+
+   a) **O assunto da linha tem um tratamento só.** `.pl-sess .as` era o único
+      título de linha em fonte de display e 13.5px, enquanto `.tt` de contas,
+      da fila e da lixeira é corpo, 13px, peso 600. Quatro tabelas irmãs, dois
+      pesos de primário, e o salto aparecia ao ir da fila para as sessões.
+
+   b) **A coluna do número fecha as cinco tabelas na mesma medida.** Ela era
+      76px na trilha, nas sessões e na fila, 68px em contas e 64px na lixeira:
+      a borda direita do quadro andava de tela para tela, com o cabeçalho "Nº"
+      em posição diferente em cada uma. 68px é a medida de contas, e comporta
+      o maior número que a base guarda hoje com folga.
+
+   c) **Autor ausente tem um peso só.** "Sem sessão" na trilha vinha em 13px e
+      tinta média; "Origem não registrada" na lixeira, em 12.5px e tinta fraca.
+      É a mesma ausência nas duas, e em nenhuma delas ela é o assunto da
+      coluna: repetida em vinte linhas, em peso de nome, ela lê como se fosse
+      gente. Vale a leitura da lixeira, agora para todas.
+   ============================================================================ */
+
+.pl-sess .as { font-family: var(--pl-body); font-size: 13px; letter-spacing: 0; }
+
+.pl-log col.c-ref { width: 68px; }
+.pl-lix col.c-ref { width: 68px; }
+
+.pl-log .autor.anon { font-size: 12.5px; font-weight: 500; color: var(--pl-faint); }
+
+/* ---------- 41. Parâmetros e visão geral: a sobra vira ritmo, e a coluna vazia deixa de existir
+   Segunda passada sobre as duas telas que a autora reprovou pela mesma frase ("um monte de
+   dimensão aleatória de quadrado"). A seção 40 acertou as medidas; o que sobrou depois dela é de
+   outra natureza, e por isso vem em seção própria em vez de emenda naquela.
+
+   O número desta seção é 41 e não 38: o briefing pediu a 38, mas 38, 39 (duas vezes) e 40 já
+   estavam escritas no arquivo quando eu cheguei, e reusar um número faria duas seções com o mesmo
+   endereço num design system que se navega por número.
+
+   a) **Coluna vazia não se conserta com grade.** O ajuste fino eram dois assuntos lado a lado, um
+      com dois campos e outro com um. A grade da seção 40 fez os títulos, as notas e os campos
+      começarem na mesma altura, e isso era verdade, mas metade da fileira continuava sendo vão,
+      com um filete descendo pelo meio do nada. O conteúdo é que era assimétrico.
+
+      Os três campos passam a ser uma lista só, na largura do quadro, com um rótulo de grupo e a
+      nota daquele grupo antes dos campos dele. Não é forma nova: é exatamente o quadro dos pesos,
+      duas telas acima, e é a forma de /admin/integracoes, o padrão mais recente do painel. A
+      regra `.pl-grp + .campo` já existia na seção 24 e supunha o rótulo colado no primeiro campo;
+      com a nota entre os dois, quem herda a supressão do filete é a nota.
+
+   b) **A sobra da altura compartilhada vira ritmo, não dois buracos.** "Como o motor está hoje"
+      divide a altura com os seis campos ao lado e sobrava-lhe uns 120px. A seção 40 centrou cada
+      grupo de barras dentro do seu quadrão, e o efeito foi juntar a sobra em dois vãos brancos:
+      um entre "Somam 0,70" e o rótulo do segundo grupo, outro entre "Somam 0,30" e a ressalva
+      final. Vão branco no meio de uma lista lê como conteúdo que faltou carregar.
+
+      Com a distribuição nas pontas, a mesma sobra se reparte entre as linhas: o rótulo do grupo
+      fica no topo, a soma fecha embaixo, e as três barras espaçam por igual no meio. O passo
+      entre barras sai de 28px para perto de 48px, que é espaçamento generoso e legível, e some a
+      leitura de buraco. O `min-height` no `.pl-dim` é o piso: numa base em que a ressalva final
+      quebre em mais linhas, a sobra encolhe e as barras não voltam a se colar.
+
+   c) **Os dois números de manchete da visão geral na mesma linha.** "212" e "89" abrem os dois
+      quadros da fileira de cima e apareciam com 20px de diferença de altura entre si: o da
+      esquerda centrado numa caixa que carrega os botões, o da direita centrado numa caixa que não
+      carrega. Dois números do mesmo tamanho, lado a lado, em alturas diferentes, é o desalinho que
+      se vê sem medir. Os dois passam a ancorar no topo do corpo do quadro, logo abaixo do título,
+      e a sobra da altura compartilhada fica embaixo, onde ela é o fim do quadro e não um vão no
+      meio de uma leitura.
+
+   Nenhuma cor nova, nenhum token tocado, nenhum número de tela alterado. Nada aqui ordena pessoa:
+   as quebras continuam na ordem fixa do template (item 10.1). */
+
+/* ---- a) O grupo de campos: rótulo, nota do grupo, campos ---- */
+/* `.pl-par .pl-grp` zera a margem de baixo do rótulo (seção 24), porque lá o rótulo encosta
+   no primeiro campo de propósito. Com a nota do grupo no meio, é ela que carrega os dois
+   respiros: o que a separa do rótulo, e o que a separa do primeiro campo. */
+.pl-par > .pl-nota.grp { margin: 7px 0 11px; max-width: 92ch; }
+/* O primeiro campo do grupo não leva filete: quem abre o grupo é o rótulo, e o filete ali
+   separaria o campo do próprio título dele. Antes da seção 41 essa regra morava em
+   `.pl-grp + .campo`, que deixou de casar quando a nota entrou no meio. */
+.pl-par > .pl-nota.grp + .campo { border-top: 0; padding-top: 4px; }
+
+/* ---- b) A composição gravada: a sobra repartida entre as linhas ---- */
+.pl-par-topo .pl-param > .grupo { justify-content: space-between; }
+.pl-par-topo .pl-param > .grupo .pl-dim { min-height: 22px; }
+
+/* ---- c) Os dois números de manchete ancorados no topo ---- */
+.pl-mod-topo { align-items: flex-start; }
+.pl-mod-topo.empilha { justify-content: flex-start; }
+
+/* ---- d) A explicação de um card não abre para fora da janela ----
+   Os "i" da topbar já se mediam pela barra em tela estreita (seção 23). Os dois que vivem DENTRO
+   dos cards da tela de sessão não tinham esse tratamento, e a caixa de 330px é maior que a coluna
+   que a hospeda: presa a um botão de 18px, ela abria 330px para a esquerda a partir de onde ele
+   estivesse. No card do conjunto avaliado isso a punha atrás do `overflow: hidden` do quadro, e
+   ela sumia; no card dos parâmetros ela saía pela borda esquerda da janela, cortada.
+
+   Aberta, ela deixa de flutuar e vira um bloco em fluxo logo abaixo do título, com a largura do
+   card. É o mesmo conteúdo, no mesmo lugar da leitura, e nada que precise caber em 330px. */
+@media (max-width: 560px) {
+    .pl-log-topo > .pl-info[open],
+    .pl-param .pl-linha-titulo > .pl-info[open] { flex: 1 0 100%; }
+
+    .pl-log-topo > .pl-info,
+    .pl-param .pl-linha-titulo > .pl-info { position: static; }
+
+    .pl-log-topo > .pl-info .pl-info-caixa,
+    .pl-param .pl-linha-titulo > .pl-info .pl-info-caixa {
+        position: static; width: auto; transform: none; margin-top: 9px; box-shadow: none; }
+}
+/* O rótulo do primeiro grupo de barras encostava no título do quadro depois que a distribuição
+   nas pontas empurrou o conteúdo de cada grupo para as bordas dele. `:first-of-type` não serve
+   aqui: o primeiro <div> do quadro é a linha de título, não o grupo. */
+.pl-par-topo .pl-param > .pl-linha-titulo + .grupo { margin-top: 10px; }
+/* Dois filetes a 50px um do outro: o que fecha a soma do primeiro grupo, e o que abre o segundo.
+   Um total já é o fim de um grupo, e o filete dele diz isso; o segundo só repetia a mesma divisão
+   meia dúzia de pixels abaixo. Fica o espaço entre os grupos, que separa igual e não risca. */
+.pl-par-topo .pl-param > .grupo + .grupo { border-top: 0; }
+
+/* ---- e) A tira de recusas com um item só ocupa a fileira ----
+   `.pl-recusas` (seção 32) é uma grade de três colunas porque em contas são três regras. Na
+   lixeira a regra é uma, e numa grade de três ela ficava num terço da largura com dois terços
+   vazios ao lado. Com um item a grade vira uma coluna, e a medida de leitura segura a linha
+   antes da borda do quadro. */
+.pl-recusas.una { grid-template-columns: minmax(0, 1fr); }
+.pl-recusas.una li { max-width: 112ch; }
+/* O rótulo que abre a lista fica a 22px do título do quadro, a mesma medida do quadro de barras
+   ao lado (12px da linha de título + 10px). Com os 2px da seção 24 ele encostava no título e os
+   dois liam como um bloco de duas linhas em vez de título e seção. */
+.pl-par > .pl-grp:first-child { margin-top: 10px; }
+
+/* Fica sem uso a partir daqui: `.pl-par-duo` e as suas regras na seção 40, mais o bloco dela em
+   `@media (max-width: 1080px)`. Nenhum template escreve mais essa classe, porque o ajuste fino
+   deixou de ser duas colunas. Não removi as linhas porque o arquivo é compartilhado e havia outra
+   pessoa escrevendo nele na mesma hora; quem consolidar o CSS pode apagá-las com segurança,
+   conferindo antes que `grep -rn pl-par-duo templates/` continue não achando nada. */

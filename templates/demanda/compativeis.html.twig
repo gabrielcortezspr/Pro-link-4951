@@ -31,11 +31,19 @@
 {#  O chip de TOS e as iniciais moram em layout/_ui.html.twig: eram macros daqui, e enquanto
     fossem, o perfil e o detalhe da demanda continuavam mostrando `TOS_1.1.2.3` cru. #}
 
-{% block titulo %}Compatíveis · {{ demanda.dem_titulo }} · Pro-Link{% endblock %}
+{#  Esta era a única tela logada que ainda abria na barra pública: ela declarava `classe_main` e
+    ficou fora da lista da sessão que portou o shell navy. O feed é de sangria total, então a
+    medida zera o ar do `.pl-content` em vez de estreitar a coluna (seção 30 do prolink.css). #}
+{% set shell  = 'app' %}
+{% set ativo  = 'demandas' %}
+{% set medida = 'sem-ar' %}
 
-{% block classe_main %}pl-feed{% endblock %}
+{% block titulo %}Compatíveis · {{ demanda.dem_titulo }} · Pro-Link{% endblock %}
+{% block titulo_tela %}Compatíveis{% endblock %}
 
 {% block conteudo %}
+<div class="pl-feed">
+
 {% set atividades = demanda.tos|default([]) %}
 {% set descricoes = atividades|reduce((m, t) => m|merge({(t.codigo): t.descricao|default('')}), {}) %}
 {% set pool = sessao.candidatos %}
@@ -54,25 +62,59 @@
 
 <h1 class="visually-hidden">Compatíveis com a demanda {{ demanda.dem_titulo }}</h1>
 
-<div class="pl-ctxline">
-    <span class="rot">Compatíveis com</span>
-    <a class="dm" href="{{ app_url }}/demandas/{{ demanda.dem_id }}">{{ demanda.dem_titulo }}</a>
-    {% for t in atividades|slice(0, 3) %}{{ ui.tos(t.codigo, t.descricao|default('')) }}{% endfor %}
-    {% if atividades|length > 3 %}
-        {% set restantes = atividades|length - 3 %}
-        <a href="{{ app_url }}/demandas/{{ demanda.dem_id }}">e mais {{ restantes }} {{ restantes == 1 ? 'atividade' : 'atividades' }}</a>
-    {% endif %}
-    <span class="sep" aria-hidden="true"></span>
-    <span><span class="n">{{ pool|length }}</span> no pool</span>
-    <span class="sep" aria-hidden="true"></span>
-    {#  Item 10.2: a qualificação do que está sendo mostrado fica visível na tela onde o motor
-        apresenta resultado. Atrás de um clique, alguém leria a lista inteira sem saber o que
-        ela é. O detalhe de COMO a lista foi montada é que vai para o "i". #}
-    <span>correspondência indicativa, em ordem sorteada, sem ranking</span>
-    {{ ui.info('Como este pool foi montado',
-        'O pool sai do cruzamento entre as atividades da Tabela de Obras e Serviços escolhidas nesta demanda e o acervo de ART e CAT registrado no CREA. Cada dimensão é medida em separado e quem fica acima do limiar da sessão entra na lista; a ordem é sorteada pela semente, e não há nota agregada nem posição.') }}
+{#  ------------------------------------------------------------------ o cabeçalho do feed
 
-    <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/compativeis">
+    Era uma fileira só, com nove coisas do mesmo tamanho disputando a linha: o rótulo
+    "COMPATÍVEIS COM", o título, duas etiquetas de atividade truncadas, um ponto solto, a
+    contagem do pool, a qualificação do item 10.2, o botão de informação e a ação. Em 1440px
+    quebrava em duas linhas mal repartidas, e nada ali dizia o que era mais importante.
+
+    Agora são três degraus, de cima para baixo: o que esta lista é (a demanda), do que ela saiu
+    (a contagem e as atividades), e o que ela NÃO é (a qualificação do edital). A ação fica na
+    coluna da direita, encostada onde a leitura termina.
+
+    O rótulo "COMPATÍVEIS COM" saiu: o título da tela e a topbar já dizem Compatíveis, e repetir
+    isso em versalete gastava o degrau mais alto da hierarquia com uma palavra que ninguém
+    precisa ler.
+
+    As atividades viram código puro (`ui.tos(..., compacto)`). Com a descrição, duas atividades
+    do mesmo grupo apareciam como "Planejamento Urbano, Metropolitano e Regional…" repetido lado
+    a lado: a única diferença entre elas estava no código, escondido depois das reticências. Com
+    o código à vista a diferença é o que se lê, e a descrição inteira continua no title e na tela
+    da demanda, que é onde ela cabe. #}
+<div class="pl-feed-cab">
+    <div class="tx">
+        <a class="dm" href="{{ app_url }}/demandas/{{ demanda.dem_id }}">{{ demanda.dem_titulo }}</a>
+
+        <p class="fato">
+            <span><span class="n">{{ pool|length }}</span> {{ pool|length == 1 ? 'perfil no pool' : 'perfis no pool' }}</span>
+            {% if atividades is not empty %}
+                <span class="sep" aria-hidden="true"></span>
+                <span class="at">
+                    {{ atividades|length }} {{ atividades|length == 1 ? 'atividade da Tabela de Obras e Serviços' : 'atividades da Tabela de Obras e Serviços' }}
+                    {% for t in atividades|slice(0, 4) %}{{ ui.tos(t.codigo, t.descricao|default(''), true) }}{% endfor %}
+                    {% if atividades|length > 4 %}
+                        <a href="{{ app_url }}/demandas/{{ demanda.dem_id }}">e mais {{ atividades|length - 4 }}</a>
+                    {% endif %}
+                </span>
+            {% endif %}
+        </p>
+
+        {#  Item 10.2: a qualificação do que está sendo mostrado fica visível na tela onde o motor
+            apresenta resultado. Atrás de um clique, alguém leria a lista inteira sem saber o que
+            ela é. O detalhe de COMO a lista foi montada é que vai para o "i". #}
+        {#  <div> e não <p>: `ui.info` emite um <details>, que é conteúdo de fluxo, e o
+            navegador FECHA o parágrafo antes dele. Dentro de <p> o botão de informação saía do
+            texto e caía órfão na linha de baixo. #}
+        <div class="qual">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h13"/></svg>
+            Correspondência indicativa, em ordem sorteada, sem ranking e sem nota agregada
+            {{ ui.info('Como este pool foi montado',
+                'O pool sai do cruzamento entre as atividades da Tabela de Obras e Serviços escolhidas nesta demanda e o acervo de ART e CAT registrado no CREA. Cada dimensão é medida em separado e quem fica acima do limiar da sessão entra na lista; a ordem é sorteada, e não há nota agregada nem posição. O registro completo do sorteio fica na trilha de auditoria da plataforma.') }}
+        </div>
+    </div>
+
+    <form class="act" method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/compativeis">
         {{ form.csrf() }}
         <button type="submit" class="pl-btn sm">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 10-2.3 5.7"/><path d="M20 5v6h-6"/></svg>
@@ -82,16 +124,22 @@
 </div>
 
 <section class="pl-stage" data-feed aria-label="Perfis compatíveis com esta demanda">
+    {#  A assinatura da tridimensionalidade: o plano em perspectiva que ganha volume, tom sobre
+        tom, atrás do card em foco. É o que torna a sangria total do palco um fundo com assunto
+        em vez de área vazia dos dois lados. Desenhado pelo JS; sem ele a <canvas> fica
+        transparente e a tela não perde nada. #}
+    <canvas class="pl-motivo" data-motivo aria-hidden="true"></canvas>
+
     <div class="pl-track" data-track>
 
         {% for c in pool %}
             {% set idc = 'c' ~ loop.index0 %}
-            <article class="pl-focus" data-cartao data-nome="{{ c.nome }}" data-iniciais="{{ ui.iniciais(c.nome)|trim }}">
+            <article class="pl-focus" data-cartao data-nome="{{ c.nome|nome_proprio }}" data-iniciais="{{ ui.iniciais(c.nome)|trim }}">
 
                 <div class="pl-topo">
                     <span class="pl-av" aria-hidden="true">{{ ui.iniciais(c.nome) }}</span>
                     <div class="pl-ident">
-                        <h2 class="pl-name">{{ c.nome }}</h2>
+                        <h2 class="pl-name">{{ c.nome|nome_proprio }}</h2>
                         <p class="pl-meta">
                             <span>{{ c.tipo == 'E' ? 'Empresa' : 'Profissional' }}</span>
                             {% if c.registro_crea %}
@@ -162,10 +210,14 @@
                             está no pool pelas outras dimensões medidas acima.
                         </p>
                     {% else %}
-                        <div class="table-responsive">
+                        {#  Alcance de teclado e nome no quadro rolável: o Chrome não dá foco a contêiner de
+                            rolagem sozinho, e sem os três atributos quem navega por teclado não chega às
+                            colunas da direita. Mesmo padrão da trilha de auditoria. #}
+                        <div class="table-responsive" tabindex="0" role="region"
+                             aria-label="Perfis compatíveis com esta demanda">
                             <table class="pl-table">
                                 <caption class="visually-hidden">
-                                    Atividades desta demanda cobertas pelo acervo de {{ c.nome }}, com o documento que as sustenta
+                                    Atividades desta demanda cobertas pelo acervo de {{ c.nome|nome_proprio }}, com o documento que as sustenta
                                 </caption>
                                 <thead>
                                     <tr>
@@ -242,12 +294,26 @@
                     {% endif %}
                 </div>
 
+                {#  As duas ações do mockup: a preenchida laranja e a contornada. O rótulo não é o
+                    "Manifestar interesse" de lá: quem manifesta interesse é o candidato, a
+                    partir das demandas abertas (D51). Aqui é o demandante que registra interesse
+                    num perfil do pool, e o verbo precisa dizer de que lado a ação parte. #}
                 <div class="pl-acoes">
+                    <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/interesse">
+                        {{ form.csrf() }}
+                        <input type="hidden" name="candidato" value="{{ c.usuario_id }}">
+                        <button type="submit" class="pl-cta lg">Registrar interesse</button>
+                    </form>
                     <a class="pl-btn lg" href="{{ app_url }}/perfil/{{ c.usuario_id }}">
                         Ver perfil completo
                         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="M13 6l6 6-6 6"/></svg>
                     </a>
                 </div>
+                <p class="pl-fine pl-nota-acao">
+                    Registrar interesse avisa o titular deste perfil por e-mail e guarda o perfil como
+                    ele está agora, com hash. O caminho inverso continua valendo: quem manifesta
+                    interesse na demanda é o próprio titular, pelas demandas abertas.
+                </p>
             </article>
         {% endfor %}
 
@@ -275,23 +341,33 @@
                         desta demanda
                     </p>
                     <p class="es">
-                        A lista é remontada e sorteada de novo a cada atualização, com semente registrada.
-                        Perfil novo entra quando o acervo registrado no CREA passa a cobrir as atividades
-                        desta demanda.
+                        A lista é remontada e sorteada de novo a cada atualização, e cada sorteio fica
+                        registrado para auditoria. Perfil novo entra quando o acervo registrado no CREA
+                        passa a cobrir as atividades desta demanda.
                     </p>
                 {% endif %}
 
+                {#  Três ações, e antes elas tinham três pesos visuais diferentes na mesma linha:
+                    um botão contornado, um link azul sublinhado e um botão de texto. Agora é uma
+                    ação principal contornada e as outras duas em fantasma, todas com a mesma
+                    altura e o mesmo componente. Nada aqui é laranja: o laranja desta tela é
+                    "Registrar interesse", que é a ação que compromete, e ela não mora neste
+                    quadro. #}
                 <div class="ea">
                     {% if pool is empty %}
                         <a class="pl-btn lg" href="{{ app_url }}/demandas/{{ demanda.dem_id }}">Rever as atividades da demanda</a>
+                        <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/compativeis">
+                            {{ form.csrf() }}
+                            <button type="submit" class="pl-btn ghost lg">Atualizar e sortear de novo</button>
+                        </form>
                     {% else %}
-                        <button type="button" class="pl-btn lg" data-reiniciar hidden>Rever do início</button>
-                        <a href="{{ app_url }}/demandas/{{ demanda.dem_id }}">Voltar à demanda</a>
+                        <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/compativeis">
+                            {{ form.csrf() }}
+                            <button type="submit" class="pl-btn lg">Atualizar e sortear de novo</button>
+                        </form>
+                        <button type="button" class="pl-btn ghost lg" data-reiniciar hidden>Rever do início</button>
+                        <a class="pl-btn ghost lg" href="{{ app_url }}/demandas/{{ demanda.dem_id }}">Voltar à demanda</a>
                     {% endif %}
-                    <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/compativeis">
-                        {{ form.csrf() }}
-                        <button type="submit" class="pl-btn ghost lg">Atualizar e sortear de novo</button>
-                    </form>
                 </div>
             </div>
         </article>
@@ -313,33 +389,37 @@
         </button>
     </div>
 
+    {#  A dica do mockup, com o mesmo ícone de roda. O palco agora ocupa a janela inteira, então
+        a roda percorre o pool de verdade; o teclado continua valendo e é anunciado pelo
+        aria-label das duas setas do trilho. #}
     <p class="pl-hint" hidden>
-        {#  A roda também percorre, mas só quando não há mais nada para rolar na página: a dica
-            promete o gesto que vale sempre. #}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9l4-4 4 4"/><path d="M8 15l4 4 4-4"/></svg>
-        Setas do teclado percorrem o pool
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="18" rx="4"/><path d="M12 7v3"/></svg>
+        Role para navegar
     </p>
 
     <p class="visually-hidden" role="status" aria-live="polite" data-anuncio></p>
 </section>
 
+{#  O rodapé traz o que é informação de quem USA a tela, e nada do que é instrumento de quem a
+    audita. A semente do sorteio e o limiar da sessão saíram daqui: para o demandante, nem o
+    identificador nem o percentual decidem coisa alguma, e quem confere tem tela própria, a
+    /admin/sessoes/{id}, onde a plataforma refaz o mesmo sorteio a partir da semente na frente de
+    quem pergunta. A qualificação do item 10.2 continua visível em dois lugares (no cabeçalho, em
+    palavras, e aqui), porque ela é exigência do edital e não nota de rodapé. #}
 <p class="pl-proveniencia">
     <span>
         Sessão de compatibilização{% if sessao.dt_registro %} registrada em {{ sessao.dt_registro|date('d/m/Y H:i') }}{% endif %}
     </span>
     <span class="sep" aria-hidden="true"></span>
-    <span>semente <span class="mono" title="{{ sessao.semente }}">{{ sessao.semente|slice(0, 8) }}…</span></span>
-    <span class="sep" aria-hidden="true"></span>
-    <span>limiar {{ (sessao.limiar * 100)|round }}%</span>
-    <span class="sep" aria-hidden="true"></span>
-    <span>ordem sorteada pela semente, sem ranking e sem nota agregada</span>
+    <span>ordem sorteada, sem ranking e sem nota agregada</span>
     {% if pool is not empty and ocultos > 0 %}
         <span class="sep" aria-hidden="true"></span>
         <span>{{ ocultos == 1 ? '1 perfil saiu' : ocultos ~ ' perfis saíram' }} da lista por escolha do titular</span>
     {% endif %}
     <span class="sep" aria-hidden="true"></span>
-    <span>o feed é passivo: quem manifesta interesse é o profissional, a partir das demandas abertas</span>
+    <span>registrar interesse parte de você; manifestar interesse parte do titular do perfil</span>
 </p>
+</div>
 {% endblock %}
 
 {#

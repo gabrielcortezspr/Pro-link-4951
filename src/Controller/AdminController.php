@@ -4,10 +4,16 @@ declare(strict_types=1);
 
 namespace ProLink\Controller;
 
+use ProLink\Repository\IntegracaoRepository;
 use ProLink\Repository\AuditoriaRepository;
 use ProLink\Repository\CompatibilizacaoRepository;
+use ProLink\Repository\IndicadorRepository;
+use ProLink\Repository\LixeiraRepository;
 use ProLink\Service\CompatibilizacaoService;
+use ProLink\Service\ContaService;
 use ProLink\Service\DenunciaService;
+use ProLink\Service\LixeiraService;
+use ProLink\Service\ParametroService;
 use ProLink\Service\ValidacaoException;
 use ProLink\Support\Auditoria;
 use ProLink\Support\Flash;
@@ -28,6 +34,13 @@ final class AdminController
         private readonly AuditoriaRepository $auditoria = new AuditoriaRepository(),
         private readonly CompatibilizacaoRepository $sessoes = new CompatibilizacaoRepository(),
         private readonly CompatibilizacaoService $motor = new CompatibilizacaoService(),
+        private readonly IndicadorRepository $indicadores = new IndicadorRepository(),
+        private readonly ParametroService $parametros = new ParametroService(),
+        private readonly LixeiraService $lixeira = new LixeiraService(),
+        private readonly ContaService $contas = new ContaService(),
+        //  Acrescentado no fim de propósito: inserir parâmetro no meio de um construtor
+        //  quebra em silêncio de tipo toda chamada posicional que já existia.
+        private readonly IntegracaoRepository $integracao = new IntegracaoRepository(),
     ) {
     }
 
@@ -70,9 +83,18 @@ final class AdminController
         ]);
     }
 
+    /**
+     * Visão geral: os números da operação (RF06; Anexo I, item 3, "emitir relatórios").
+     *
+     * Contagem agregada, nunca lista de pessoas ordenada por nada. O item 10.1 veda ranking de
+     * profissionais, e é num painel de indicadores que ele apareceria disfarçado de métrica.
+     */
     public function index(): string
     {
-        return View::render('admin/index.html.twig', ['ativo' => 'visao']);
+        return View::render('admin/index.html.twig', [
+            'ativo'       => 'visao',
+            'indicadores' => $this->indicadores->resumo(),
+        ]);
     }
 
     public function denuncias(): string
@@ -194,6 +216,245 @@ final class AdminController
             'paginas'     => $paginas,
             'por_pagina'  => self::AUDITORIA_POR_PAGINA,
             'seguranca'   => $seguranca,
+        ]);
+    }
+
+    /**
+     * Os parâmetros do motor, abertos para edição (edital 12.3: supervisão humana).
+     *
+     * A tela mostra o que cada número faz e a faixa que ele aceita, porque parâmetro sem
+     * explicação é campo que ninguém mexe ou que alguém mexe sem saber no quê.
+     */
+    public function parametros(): string
+    {
+        return $this->telaDeParametros();
+    }
+
+    /**
+     * Grava o lote de parâmetros.
+     *
+     * Lote atômico: um valor fora da faixa reprova todos, e a tela volta com o erro por campo.
+     * Meia gravação deixaria o motor num estado que ninguém pediu.
+     */
+    public function salvarParametros(): string
+    {
+        $enviados = is_array($_POST['parametro'] ?? null) ? $_POST['parametro'] : [];
+
+        try {
+            $alteradas = $this->parametros->salvar((int) Sessao::usuarioId(), $enviados);
+        } catch (ValidacaoException $e) {
+            // Volta com o que a pessoa digitou, e não com o que está no banco: o padrão da casa
+            // é re-renderizar o formulário, porque redirecionar perderia a edição inteira por
+            // causa de um campo.
+            return $this->telaDeParametros($e->erros(), $enviados, $e->getMessage());
+        }
+
+        Flash::sucesso($alteradas === []
+            ? 'Nenhum parâmetro mudou: os valores enviados são os que já estavam gravados.'
+            : count($alteradas) . ' parâmetro(s) alterado(s). A mudança vale a partir da próxima sessão do motor.');
+
+        View::redirecionar('/admin/parametros');
+    }
+
+    /**
+     * @param array<string, string> $erros   campo => mensagem
+     * @param array<string, mixed>  $valores o que veio do formulário, para não perder a edição
+     */
+    private function telaDeParametros(array $erros = [], array $valores = [], string $aviso = ''): string
+    {
+        return View::render('admin/parametros.html.twig', [
+            'ativo'      => 'parametros',
+            'parametros' => $this->parametros->listar(),
+            'erros'      => $erros,
+            'valores'    => $valores,
+            'aviso'      => $aviso,
+        ]);
+    }
+
+    /**
+     * A lixeira: o que está em exclusão lógica (edital 8.6j).
+     *
+     * O 8.6j manda o excluído continuar acessível pelo mecanismo administrativo, e é esta tela.
+     * Inclui o que o administrador não pode restaurar: conta que o titular mandou excluir aparece
+     * aqui com a restauração fechada, porque esconder resolveria o risco e quebraria o requisito.
+     */
+    /**
+     * O estado da integração com a API oficial do CREA-AM (Anexo I, item 3, "configurar
+     * integrações").
+     *
+     * ## O que esta tela recusa fazer
+     *
+     * **Não chama a API.** O item 10.4 veda coleta automatizada e a organização registra cada
+     * chamada ao ambiente fictício; uma tela que consultasse o serviço a cada carregamento
+     * gastaria cota alheia para mostrar um número, e bastaria deixar a página aberta para virar
+     * o que o edital proíbe. O estado vem do cache e da trilha.
+     *
+     * **Não mostra o token.** Ela diz se ele existe e quantos caracteres tem, porque é isso que
+     * responde "a integração está configurada?" sem colocar uma credencial na tela de alguém.
+     */
+    public function integracoes(): string
+    {
+        return $this->telaDeIntegracoes();
+    }
+
+    /**
+     * Grava os ajustes da sincronização, pelo mesmo lote atômico dos pesos do motor.
+     *
+     * São os dois parâmetros que a administração pode mexer sem tocar no ambiente: o intervalo
+     * mínimo entre reconsultas e o tamanho do lote. Os dois existem por causa do item 10.4, e a
+     * faixa aceitável de cada um está declarada em `Parametros::LIMITES`, com o piso protegendo a
+     * API oficial de virar alvo de varredura.
+     */
+    public function salvarIntegracoes(): string
+    {
+        $enviados = is_array($_POST['parametro'] ?? null) ? $_POST['parametro'] : [];
+
+        try {
+            $alteradas = $this->parametros->salvar((int) Sessao::usuarioId(), $enviados);
+        } catch (ValidacaoException $e) {
+            return $this->telaDeIntegracoes($e->erros(), $enviados, $e->getMessage());
+        }
+
+        Flash::sucesso($alteradas === []
+            ? 'Nenhum ajuste mudou: os valores enviados são os que já estavam gravados.'
+            : count($alteradas) . ' ajuste(s) da integração alterado(s). O valor anterior e o novo foram para a trilha.');
+
+        View::redirecionar('/admin/integracoes');
+    }
+
+    /**
+     * @param array<string, string> $erros   campo => mensagem
+     * @param array<string, mixed>  $valores o que veio do formulário, para não perder a edição
+     */
+    private function telaDeIntegracoes(array $erros = [], array $valores = [], string $aviso = ''): string
+    {
+        $token = (string) API_TOKEN;
+
+        return View::render('admin/integracoes.html.twig', [
+            'ativo'    => 'integracoes',
+            'conexao'  => [
+                'base'             => API_BASE,
+                'tempo_limite'     => API_TIMEOUT,
+                'token_presente'   => $token !== '',
+                'token_tamanho'    => mb_strlen($token),
+                'ambiente'         => APP_ENV,
+            ],
+            'colecoes'    => $this->integracao->colecoes(),
+            'situacao'    => $this->integracao->situacaoDosPerfis(),
+            'importacoes' => $this->integracao->ultimasImportacoes(),
+            // Só os da integração: um mesmo controle em duas telas seria duas verdades sobre a
+            // mesma coisa, e a tela de parâmetros passou a apontar para cá.
+            'ajustes'     => array_values(array_filter(
+                $this->parametros->listar(),
+                static fn (array $p): bool => str_starts_with((string) $p['par_chave'], 'api.'),
+            )),
+            'erros'   => $erros,
+            'valores' => $valores,
+            'aviso'   => $aviso,
+        ]);
+    }
+
+    public function lixeira(): string
+    {
+        return View::render('admin/lixeira.html.twig', [
+            'ativo'   => 'lixeira',
+            'lixeira' => $this->lixeira->visao(
+                (string) ($_GET['entidade'] ?? ''),
+                max(1, (int) ($_GET['pagina'] ?? 1)),
+            ),
+            'entidades' => LixeiraRepository::ENTIDADES,
+            'erros'     => [],
+        ]);
+    }
+
+    /**
+     * Devolve um registro à operação, com motivo obrigatório na trilha de auditoria.
+     */
+    public function restaurar(): string
+    {
+        $entidade = (string) ($_POST['entidade'] ?? '');
+        $id       = (int) ($_POST['id'] ?? 0);
+
+        try {
+            $registro = $this->lixeira->restaurar(
+                $entidade,
+                $id,
+                (int) Sessao::usuarioId(),
+                (string) ($_POST['motivo'] ?? ''),
+            );
+        } catch (ValidacaoException $e) {
+            Flash::erro($e->getMessage());
+            View::redirecionar('/admin/lixeira?entidade=' . urlencode($entidade));
+        }
+
+        Flash::sucesso('"' . $registro['titulo'] . '" voltou para a operação. A restauração e o '
+            . 'motivo ficaram na trilha de auditoria.');
+        View::redirecionar('/admin/lixeira?entidade=' . urlencode($entidade));
+    }
+
+    /**
+     * Gestão de contas (Anexo I, item 3: "gerir perfis").
+     *
+     * Bloquear já existia, mas só como providência de denúncia: conta que precisa ser suspensa sem
+     * que ninguém a tenha denunciado não tinha caminho, e não havia lista para responder quem
+     * existe na plataforma.
+     */
+    public function contas(): string
+    {
+        return $this->telaDeContas();
+    }
+
+    public function bloquearConta(string $id): string
+    {
+        try {
+            $r = $this->contas->bloquear(
+                (int) $id,
+                (int) Sessao::usuarioId(),
+                (string) ($_POST['motivo'] ?? ''),
+            );
+        } catch (ValidacaoException $e) {
+            Flash::erro($e->getMessage());
+            View::redirecionar('/admin/contas');
+        }
+
+        Flash::sucesso(sprintf(
+            '"%s" foi bloqueada. Sessões encerradas: %d. O motivo ficou na trilha.',
+            $r['nome'],
+            $r['sessoes_derrubadas'],
+        ));
+        View::redirecionar('/admin/contas');
+    }
+
+    public function desbloquearConta(string $id): string
+    {
+        try {
+            $r = $this->contas->desbloquear(
+                (int) $id,
+                (int) Sessao::usuarioId(),
+                (string) ($_POST['motivo'] ?? ''),
+            );
+        } catch (ValidacaoException $e) {
+            Flash::erro($e->getMessage());
+            View::redirecionar('/admin/contas');
+        }
+
+        Flash::sucesso('"' . $r['nome'] . '" voltou para a operação. O motivo ficou na trilha.');
+        View::redirecionar('/admin/contas');
+    }
+
+    private function telaDeContas(): string
+    {
+        $filtros = [
+            'termo'    => (string) ($_GET['q'] ?? ''),
+            'perfil'   => (string) ($_GET['perfil'] ?? ''),
+            'situacao' => (string) ($_GET['situacao'] ?? ''),
+        ];
+
+        return View::render('admin/contas.html.twig', [
+            'ativo'   => 'contas',
+            'lista'   => $this->contas->listar($filtros, max(1, (int) ($_GET['pagina'] ?? 1))),
+            'filtros' => $filtros,
+            'perfis'  => PERFIS_AUTENTICADOS,
         ]);
     }
 

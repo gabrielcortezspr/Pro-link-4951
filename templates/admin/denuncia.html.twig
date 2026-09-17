@@ -1,21 +1,71 @@
 {% extends 'admin/_layout.html.twig' %}
 {% import 'layout/_form.html.twig' as form %}
+{% import 'layout/_ui.html.twig' as ui %}
+
+{#
+    Uma denúncia, e a decisão sobre ela (RF06; edital 8.5g).
+
+    É aqui que a Administração pratica o único ato de escrita do painel, e o ato pode tirar a conta
+    de alguém de operação. Por isso a unidade de leitura é a decisão, e não o registro:
+
+    Primário   o alvo e o relato, que é sobre o que se decide.
+    Secundário o que cada providência faz de verdade, ao lado do campo que a escolhe.
+    Terciário  a procedência do caso: quem denunciou, quando, e o número na trilha.
+
+    ## As regras do serviço ficam na tela, não atrás de um clique
+
+    O DenunciaService recusa bloquear quando o alvo não é uma conta, e recusa bloquear conta de
+    administração ou a própria conta de quem modera. Oferecer a opção e mostrar o erro depois seria
+    fazer a pessoa descobrir a regra batendo nela, então "Bloquear a conta" não entra na lista
+    quando o alvo não é conta, e as duas recusas restantes estão escritas acima do botão.
+
+    ## A evidência não vira link
+
+    `den_evidencia` é texto livre escrito por quem denunciou. Transformá-lo em âncora poria um
+    destino escolhido por terceiro debaixo do cursor de quem modera, que é a definição de isca. O
+    valor aparece inteiro, como texto, e quem precisar abrir copia e decide fora daqui.
+
+    ## O que esta tela não mostra
+
+    Nenhuma contagem de denúncias por pessoa, e nenhuma comparação entre contas. O item 10.1 veda
+    ordenar pessoas, e "conta mais denunciada" é exatamente isso com outro nome.
+#}
 
 {% block titulo %}Denúncia {{ denuncia.den_id }} · Pro-Link{% endblock %}
-{% block titulo_painel %}Denúncia {{ denuncia.den_id }}{% endblock %}
+{% block titulo_painel %}Denúncia nº {{ denuncia.den_id }}{% endblock %}
+
+{% block topbar_acoes %}
+    {#  O modo da tela, no mesmo canto em que as três telas de auditoria dizem "Somente leitura" e
+        em que a lixeira e contas põem a contagem. Aqui a frase é o oposto da delas, e é verdade:
+        esta é a única tela do painel que escreve, e a escrita vai para uma trilha que ninguém
+        edita depois. O canto estava vazio, e o "i" ficava sozinho encostado no botão de sair. #}
+    <span class="pl-momento">A decisão gravada aqui vai para a trilha de auditoria</span>
+    {{ ui.info('O que acontece quando você grava',
+        'A situação e a providência são gravadas na mesma transação que escreve na trilha de auditoria, com o seu nome, a data e a situação anterior. Quando a providência é bloquear, a conta sai de operação e todas as sessões abertas dela são encerradas no mesmo ato: ou tudo acontece, ou nada acontece.', 'fim') }}
+{% endblock %}
 
 {% block painel %}
 
     {% set estado = {'PENDENTE': 'Pendente', 'EM_ANALISE': 'Em análise', 'RESOLVIDA': 'Resolvida'} %}
     {% set cores  = {'PENDENTE': 'warn',     'EM_ANALISE': 'neutral',    'RESOLVIDA': 'ok'} %}
+
+    {#  Providência no infinitivo, porque aqui ela é uma escolha a fazer. Na fila ela aparece no
+        particípio, porque lá o ato já aconteceu. #}
     {% set rotulo_prov = {
-        'ADVERTIR': 'Advertir',
-        'BLOQUEAR': 'Bloquear a conta',
-        'REMOVER': 'Remover o conteúdo',
+        'ADVERTIR':     'Advertir',
+        'BLOQUEAR':     'Bloquear a conta',
+        'REMOVER':      'Remover o conteúdo',
         'IMPROCEDENTE': 'Improcedente'
     } %}
 
-    <p class="mb-3">
+    {% set alvo_e_conta   = denuncia.den_entidade == 'USUARIO' and denuncia.alvo_nome is not empty %}
+    {% set alvo_bloqueado = alvo_e_conta and denuncia.alvo_status == 'I' %}
+
+    {#  Bloquear só existe quando há conta para bloquear. Fora disso o serviço recusa, e a opção
+        seria um caminho que a tela promete e o servidor nega. #}
+    {% set opcoes_prov = alvo_e_conta ? rotulo_prov : rotulo_prov|filter((t, c) => c != 'BLOQUEAR') %}
+
+    <p class="mb-0">
         <a class="pl-link-voltar" href="{{ app_url }}/admin/denuncias">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
             Voltar para a fila
@@ -24,68 +74,160 @@
 
     <div class="pl-detalhe">
 
-        <div class="pl-card">
+        {# ------------------------------------------------------------------ o caso #}
+        <section class="pl-card" aria-labelledby="h-caso">
+
             <div class="pl-det-topo">
                 <div>
-                    <p class="rot">Alvo</p>
-                    <p class="alvo">{{ denuncia.alvo_nome|default(denuncia.den_entidade|capitalize ~ ' #' ~ denuncia.den_entidade_id) }}</p>
-                    {% if denuncia.alvo_nome %}
-                        <p class="rot">Conta{% if denuncia.alvo_status == 'I' %} · bloqueada{% endif %}</p>
-                    {% endif %}
+                    <p class="rot">Alvo da denúncia</p>
+                    <p class="alvo" id="h-caso">
+                        {%- if alvo_e_conta -%}
+                            {{ denuncia.alvo_nome|nome_proprio }}
+                        {%- else -%}
+                            {{ denuncia.den_entidade|rotulo_entidade }} nº {{ denuncia.den_entidade_id }}
+                        {%- endif -%}
+                    </p>
+                    <p class="meta">
+                        {% if alvo_e_conta %}
+                            <span>Conta nº {{ denuncia.den_entidade_id }}</span>
+                            <span aria-hidden="true">·</span>
+                            {#  A situação da conta alvo é o que diz se a providência ainda tem
+                                efeito: bloquear quem já está bloqueado não muda nada, e quem
+                                decide precisa saber disso antes de escolher. #}
+                            {% if alvo_bloqueado %}
+                                <span>conta já bloqueada</span>
+                            {% elseif denuncia.alvo_status == 'X' %}
+                                <span>conta em exclusão lógica</span>
+                            {% else %}
+                                <span>conta em operação</span>
+                            {% endif %}
+                        {% else %}
+                            <span>Conteúdo publicado na plataforma</span>
+                        {% endif %}
+                    </p>
                 </div>
-                <span class="pl-pill {{ cores[denuncia.den_situacao]|default('neutral') }}">
-                    <span class="pd"></span>{{ estado[denuncia.den_situacao]|default(denuncia.den_situacao) }}
+
+                <span class="pl-pill {{ cores[denuncia.den_situacao]|default('neutral') }}" title="{{ denuncia.den_situacao }}">
+                    <span class="pd" aria-hidden="true"></span>
+                    {{ estado[denuncia.den_situacao]|default('Situação não prevista') }}
                 </span>
             </div>
 
             <dl class="pl-dl">
                 <dt>Tipo</dt>
-                <dd>{{ tipos[denuncia.den_tipo]|default(denuncia.den_tipo) }}</dd>
+                <dd title="{{ denuncia.den_tipo }}">{{ tipos[denuncia.den_tipo]|default(denuncia.den_tipo|lower|replace({'_': ' '})|capitalize) }}</dd>
 
-                <dt>Autor</dt>
-                <dd>{{ denuncia.autor_nome }}</dd>
+                <dt>Quem denunciou</dt>
+                <dd>{{ denuncia.autor_nome|nome_proprio }}</dd>
 
-                <dt>Recebida</dt>
+                <dt>Recebida em</dt>
                 <dd class="mono">{{ denuncia.den_dt_registro|date('d/m/Y H:i') }}</dd>
 
-                {% if denuncia.den_evidencia %}
-                    <dt>Evidência</dt>
-                    <dd>{{ denuncia.den_evidencia }}</dd>
-                {% endif %}
-
+                {#  `den_dt_tratamento` marca a última vez que alguém mexeu no caso, e não só a
+                    decisão final: pôr o caso em análise também grava ali. Chamar as duas coisas de
+                    "decidida em" faria a tela afirmar uma decisão que ainda não existe. #}
                 {% if denuncia.den_dt_tratamento %}
-                    <dt>Tratada em</dt>
+                    {% set encerrada = denuncia.den_situacao == 'RESOLVIDA' %}
+
+                    <dt>{{ encerrada ? 'Decidida em' : 'Última movimentação' }}</dt>
                     <dd class="mono">{{ denuncia.den_dt_tratamento|date('d/m/Y H:i') }}</dd>
 
                     <dt>Providência</dt>
-                    <dd>{{ rotulo_prov[denuncia.den_providencia]|default('Nenhuma') }}</dd>
+                    <dd>
+                        {{ rotulo_prov[denuncia.den_providencia]|default(encerrada ? 'Encerrada sem providência' : 'Ainda não registrada') }}
+                        {% if denuncia.den_usu_moderador %}
+                            {#  O repositório traz o número da conta que moderou, e não o nome
+                                dela: o nome pede um segundo join, que é pedido no relatório. O
+                                número é o que a trilha de auditoria usa, então ele não é um beco. #}
+                            <span class="lin-sub">Por {{ encerrada ? 'decisão' : 'ato' }} da conta de administração nº {{ denuncia.den_usu_moderador }}</span>
+                        {% endif %}
+                    </dd>
                 {% endif %}
             </dl>
 
             <div class="pl-descricao">
-                <p class="rot">Descrição</p>
+                <p class="rot">Relato de quem denunciou</p>
                 <p>{{ denuncia.den_descricao }}</p>
             </div>
-        </div>
 
-        <div class="pl-card">
-            <h2 class="pl-card-titulo">Registrar providência</h2>
+            <div class="pl-descricao">
+                <p class="rot">Evidência indicada</p>
+                {% if denuncia.den_evidencia %}
+                    {#  Texto, nunca âncora: o destino foi escrito por terceiro, e um link clicável
+                        aqui poria o cursor de quem modera sobre um endereço que ninguém conferiu. #}
+                    <p class="pl-evidencia">{{ denuncia.den_evidencia }}</p>
+                {% else %}
+                    <p>Não informada. A apuração se apoia no relato acima e no que a plataforma já
+                       registrou sobre o alvo na trilha de auditoria.</p>
+                {% endif %}
+            </div>
+
+            {% if alvo_e_conta %}
+                <div class="pl-acoes-form">
+                    {#  O filtro da trilha é por quem PRATICOU o evento, então o rótulo diz
+                        exatamente isso. Prometer "histórico da conta" traria também o que foi
+                        feito sobre ela, e não é o que este link devolve. #}
+                    <a class="pl-btn" href="{{ app_url }}/admin/auditoria?usuario={{ denuncia.den_entidade_id }}&amp;dias=90">
+                        Ver o que esta conta fez na trilha
+                    </a>
+                </div>
+            {% endif %}
+        </section>
+
+        {# ------------------------------------------------------------------ a decisão #}
+        <section class="pl-card" aria-labelledby="h-decidir">
+            <div class="pl-linha-titulo">
+                <h2 class="pl-card-titulo" id="h-decidir">Registrar a decisão</h2>
+            </div>
+
+            {#  O que cada providência faz, ao lado do campo que a escolhe. Sem isto a lista é um
+                vocabulário de quatro palavras, e a única com efeito real no sistema fica
+                indistinguível das três que só registram o desfecho. #}
+            <ul class="pl-efeitos">
+                <li>
+                    <b>Advertir</b>
+                    Registra a advertência na trilha, com o seu nome. A conta continua em operação.
+                </li>
+                <li{% if alvo_e_conta %} class="forte"{% endif %}>
+                    <b>Bloquear a conta</b>
+                    {% if alvo_e_conta %}
+                        Tira a conta de operação agora e encerra todas as sessões abertas dela, no
+                        mesmo ato. Ela deixa de entrar até alguém desbloquear em Contas.
+                    {% else %}
+                        Indisponível neste caso: o alvo não é uma conta, e não há sessão para
+                        encerrar nem acesso para suspender.
+                    {% endif %}
+                </li>
+                <li>
+                    <b>Remover o conteúdo</b>
+                    Registra a remoção na trilha. Nada é apagado do banco: o registro sai das
+                    consultas e continua alcançável pela lixeira.
+                </li>
+                <li>
+                    <b>Improcedente</b>
+                    Encerra o caso sem efeito sobre o alvo, e deixa escrito que a apuração aconteceu.
+                </li>
+            </ul>
 
             <form method="post" action="{{ app_url }}/admin/denuncias/{{ denuncia.den_id }}">
                 {{ form.csrf() }}
 
-                {{ form.selecao('situacao', 'Situação', estado, denuncia.den_situacao, null, {required: true}, false) }}
+                {{ form.selecao('situacao', 'Situação da apuração', estado, denuncia.den_situacao, null, {required: true}, false) }}
 
-                {{ form.selecao('providencia', 'Providência', rotulo_prov, denuncia.den_providencia|default(''), null, {}, 'Nenhuma por enquanto') }}
+                {{ form.selecao('providencia', 'Providência', opcoes_prov, denuncia.den_providencia|default(''), null, {}, 'Nenhuma por enquanto') }}
 
                 <p class="pl-nota">
-                    Bloquear encerra todas as sessões ativas da conta na hora.<br>
-                    Toda ação de moderação é registrada na Auditoria.
+                    Duas contas a plataforma não bloqueia por aqui, e o servidor recusa as duas: a
+                    sua própria, e qualquer conta de administração. É assim que o acesso ao painel
+                    se perderia no meio de uma apuração.
                 </p>
 
-                {{ form.botao('Registrar providência') }}
+                <div class="pl-acoes-form">
+                    {{ form.botao(denuncia.den_dt_tratamento ? 'Atualizar a decisão' : 'Registrar a decisão') }}
+                    <a class="pl-btn ghost" href="{{ app_url }}/admin/denuncias">Cancelar</a>
+                </div>
             </form>
-        </div>
+        </section>
 
     </div>
 

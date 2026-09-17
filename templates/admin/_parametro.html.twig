@@ -1,0 +1,83 @@
+{#
+    O campo de um parâmetro configurável, com a faixa aceitável declarada e a procedência da
+    última alteração.
+
+    Vive fora da tela de parâmetros porque duas telas o usam: a do motor de compatibilização e
+    a de integrações, que configura a sincronização com a API oficial. Macro declarada em
+    `_self` só serve à tela que a declara.
+#}
+{#
+    A procedência de um valor: quem o mudou e quando.
+
+    É a evidência mais direta que o item 12.3 pode receber. A tela inteira existe para provar que
+    os critérios de recomendação estão sob supervisão humana, e até aqui ela provava só que a
+    supervisão era possível: quem já tinha sido exercida ficava na trilha de auditoria, noutra
+    tela. A frase ao lado do campo traz a prova para onde a decisão é tomada.
+
+    Os dois estados são desenhados, e o segundo não é ausência de dado. Parâmetro que ninguém
+    mexeu continua valendo o que a carga inicial definiu, e isso é uma afirmação sobre o motor,
+    não uma lacuna: por isso ele tem frase própria, e não um traço mudo. Autor nulo é o terceiro
+    caso e também é dito por extenso, porque alteração sem pessoa identificada é exatamente o que
+    a supervisão humana não é.
+#}
+{% macro procedencia(h) %}
+    {% if h and h.quem %}
+        <p class="pl-hist">Alterado por <b>{{ h.quem }}</b> em {{ h.quando|date('d/m/Y, H:i') }}</p>
+    {% elseif h %}
+        <p class="pl-hist">Alterado em {{ h.quando|date('d/m/Y, H:i') }}, sem autor registrado</p>
+    {% else %}
+        <p class="pl-hist inicial">Valor da carga inicial, sem alteração registrada</p>
+    {% endif %}
+{% endmacro %}
+
+{% macro campo(p, erros, valores, unidade = '') %}
+    {% set id    = 'par-' ~ p.par_chave|replace({'.': '-', '_': '-'}) %}
+    {% set erro  = erros[p.par_chave]|default(null) %}
+    {#  Vírgula decimal vira ponto na volta: o serviço aceita as duas (o teclado brasileiro produz
+        vírgula), e um campo numérico com vírgula no atributo value aparece vazio no navegador, que
+        é justamente perder a edição que a re-renderização existe para salvar.
+
+        O que volta do POST é o que a pessoa enviou, e num envio adulterado isso pode não ser um
+        texto: nesse caso a tela mostra o valor gravado em vez de estourar. O servidor já recusou
+        o lote; a tela não pode cair junto. #}
+    {% set enviado = valores[p.par_chave]|default(null) %}
+    {% set valor   = (enviado is null or enviado is iterable ? p.par_valor : enviado)|replace({',': '.'}) %}
+
+    {#  Dois níveis de texto, e não quatro: o rótulo, e uma linha de apoio onde cabem a faixa
+        aceita, a procedência da última alteração e a chave de sistema, separadas pelo ponto do
+        design system. Empilhadas, as três tinham o mesmo peso do rótulo e a linha do parâmetro
+        virava um parágrafo de quatro alturas diferentes. #}
+    <div class="campo{% if erro %} erro{% endif %}">
+        <div class="tx">
+            {% if p.editavel %}<label for="{{ id }}">{{ p.par_descricao }}</label>
+            {% else %}<span class="rot">{{ p.par_descricao }}</span>{% endif %}
+
+            <div class="meta">
+                {% if p.limite %}
+                    <p class="fx">Aceita de {{ p.limite.min }} a {{ p.limite.max }}{% if p.limite.inteiro %}, em número inteiro{% endif %}</p>
+                {% endif %}
+                {{ _self.procedencia(p.ultima_alteracao|default(null)) }}
+                <p class="ch"><span class="k">{{ p.par_chave }}</span></p>
+            </div>
+        </div>
+
+        <div class="ent">
+            {% if p.editavel %}
+                <input type="number" id="{{ id }}" name="parametro[{{ p.par_chave }}]"
+                       class="form-control{% if erro %} is-invalid{% endif %}" value="{{ valor }}"
+                       {% if p.limite %}min="{{ p.limite.min }}" max="{{ p.limite.max }}" step="{{ p.limite.passo }}"{% endif %}
+                       inputmode="{{ p.limite and p.limite.inteiro ? 'numeric' : 'decimal' }}"
+                       {% if erro %}aria-invalid="true" aria-describedby="{{ id }}-erro"{% endif %}>
+            {% else %}
+                <span class="fixo">{{ valor }}</span>
+            {% endif %}
+            {% if unidade %}<span class="un">{{ unidade }}</span>{% endif %}
+        </div>
+
+        {% if erro %}
+            <p class="msg" id="{{ id }}-erro">{{ erro }}</p>
+        {% elseif not p.editavel %}
+            <p class="msg neutra">Este parâmetro não é editável por esta tela.</p>
+        {% endif %}
+    </div>
+{% endmacro %}

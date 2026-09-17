@@ -4,6 +4,13 @@
 
 {% block titulo %}{{ demanda.dem_titulo }} · Pro-Link{% endblock %}
 
+{#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
+{% set shell = 'app' %}
+{% set ativo = usuario() and usuario().perfil in ['EMPRESA', 'TERCEIRO'] ? 'demandas' : 'abertas' %}
+{% set medida = 'registro' %}
+
+{% block titulo_tela %}Demanda{% endblock %}
+
 {#  Um registro: conteúdo à esquerda, painel de ação à direita. O 7/5 do Bootstrap dava, num
     monitor de 1600, uma coluna de leitura larga demais e um painel largo demais. #}
 {% block classe_main %}pl-wrap registro{% endblock %}
@@ -57,6 +64,15 @@
         </div>
     {% endif %}
 </div>
+
+{#  Modo leitura, como no detalhe do mockup: a demanda encerrada continua inteira e só não aceita
+    mais edição. Nota, e não alerta: nada deu errado e nada foi apagado. #}
+{% if d.dem_situacao == 'ENCERRADA' %}
+    <p class="pl-leitura-aviso">
+        Demanda encerrada{% if d.dem_dt_encerramento %} em {{ d.dem_dt_encerramento|date('d/m/Y') }}{% endif %} ·
+        aberta em modo leitura. O histórico permanece.
+    </p>
+{% endif %}
 
 <div class="pl-cols">
     <div class="pl-stack">
@@ -120,20 +136,30 @@
                 <div class="pl-linha-titulo">
                     <h2 class="pl-secao">Acrescentar atividade</h2>
                     {{ ui.info('Como procurar na tabela',
-                        'Termo isolado funciona melhor que frase: os textos da tabela começam com preposição. Acento e maiúscula não fazem diferença.') }}
+                        'A busca lê o texto da atividade: grupo, subgrupo, obra ou serviço e complemento. Termo isolado funciona melhor que frase, porque os textos da tabela começam com preposição. Acento e maiúscula não fazem diferença, e são precisos pelo menos três caracteres.') }}
                 </div>
 
                 {# Busca por GET: o resultado precisa sobreviver a um recarregamento e ser
                    compartilhável, e a demanda já está salva, não há o que perder no caminho. #}
                 <form method="get" action="{{ app_url }}/demandas/{{ d.dem_id }}" class="pl-busca">
                     <div class="cx">
-                        <label for="campo-q" class="form-label">Procurar atividade</label>
+                        <label for="campo-q" class="form-label">Procurar atividade pelo nome do serviço</label>
                         <input type="search" name="q" id="campo-q" class="form-control"
-                               value="{{ busca }}" minlength="3"
+                               value="{{ busca }}" minlength="3" maxlength="80"
+                               aria-describedby="campo-q-ajuda"
                                placeholder="edificação, ponte, elétrica…">
                     </div>
                     <button type="submit" class="pl-btn">Procurar</button>
                 </form>
+
+                {#  Ninguém decora código da tabela, e a consulta nem procura por ele: o SQL varre
+                    grupo, subgrupo, obra e complemento, e só texto. Dizer isso no campo evita a
+                    busca por “1.1.2.3” que volta vazia e parece defeito. Fora do flex da linha,
+                    para o botão continuar na mesma base do campo. #}
+                <p id="campo-q-ajuda" class="form-text mt-2 mb-0">
+                    Procure pelo nome do serviço. O código não é pesquisável, e três caracteres é
+                    o mínimo.
+                </p>
 
                 {% if busca is not empty %}
                     {% if resultados is empty %}

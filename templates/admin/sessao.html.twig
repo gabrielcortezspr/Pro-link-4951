@@ -51,7 +51,9 @@
     {% set nomes    = reproducao.candidatos|reduce((m, c) => m|merge({(c.chave): c.nome}), {}) %}
     {% set dimensoes = ['competencia', 'area', 'localizacao', 'experiencia', 'contrato', 'disponibilidade'] %}
 
-    <p class="mb-3">
+    {#  `mb-0`, como no detalhe da denúncia: `.pl-content` já é uma coluna com 18px de respiro
+        entre filhos, e a margem extra deixava esta tela com 34px onde a irmã tinha 18. #}
+    <p class="mb-0">
         <a class="pl-link-voltar" href="{{ app_url }}/admin/sessoes">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
             Voltar para as sessões
@@ -70,7 +72,7 @@
                 <p class="meta">
                     <span>Demanda nº {{ s.mts_dem_id }}</span>
                     <span aria-hidden="true">·</span>
-                    <span>Executada por {{ s.usu_nome|default('conta não localizada') }}</span>
+                    <span>Executada por {{ (s.usu_nome|default('conta não localizada'))|nome_proprio }}</span>
                     <span aria-hidden="true">·</span>
                     <span class="mono">{{ s.mts_dt_registro|date('d/m/Y H:i') }}</span>
                     {% if s.mts_ip %}
@@ -122,26 +124,77 @@
                 {% endif %}
             </p>
 
-            <div class="pl-ordem">
-                <p class="rot" id="ordem-gravada">
-                    Gravada no banco
-                    <span class="qd">{{ s.mts_dt_registro|date('d/m/Y H:i') }}</span>
-                </p>
-                <ol class="cels" aria-labelledby="ordem-gravada">
-                    {% for chave in gravada %}
-                        {{ seq.celula(chave, nomes[chave]|default(null), false) }}
-                    {% endfor %}
-                </ol>
+            {#  ---------------------------------------------- a conferência, posição por posição
 
-                <p class="rot" id="ordem-refeita">
-                    Recalculada agora
-                    <span class="qd">{{ 'now'|date('d/m/Y H:i') }}</span>
-                </p>
-                <ol class="cels" aria-labelledby="ordem-refeita">
-                    {% for chave in refeita %}
-                        {{ seq.celula(chave, nomes[chave]|default(null), gravada[loop.index0]|default(null) != chave) }}
-                    {% endfor %}
-                </ol>
+                Eram duas fileiras soltas, uma embaixo da outra, e nada ligava a posição 3 de cima
+                à posição 3 de baixo: o texto prometia "item a item" e o desenho pedia que a
+                pessoa fizesse a conferência com o dedo na tela. Numa página cuja única função é
+                PROVAR uma igualdade, deixar a prova implícita é o defeito.
+
+                Agora as duas ordens são as duas primeiras linhas de uma mesma tabela, uma coluna
+                por posição, e a terceira linha é o veredito daquela coluna. A conferência aparece
+                acontecendo, uma posição de cada vez, em vez de ser afirmada na frase ao lado.
+
+                É <table> de propósito, e não uma grade de <div>: a comparação é tabular (duas
+                séries e um resultado, indexados pela mesma posição), o alinhamento por coluna vem
+                de graça e é justamente o que sustenta a leitura, e o leitor de tela anuncia cada
+                célula com o cabeçalho da linha a que ela pertence.
+
+                A rolagem é do quadro inteiro, nunca de uma fileira: se cada série rolasse por
+                conta própria, o alinhamento entre a gravada e a refeita se perderia no primeiro
+                arrasto. O cabeçalho de linha gruda na esquerda para não sumir junto. #}
+            <div class="pl-conf-quadro" tabindex="0" role="region"
+                 aria-label="Conferência entre a ordem gravada e a ordem recalculada">
+                <table class="pl-table pl-conf">
+                    <caption class="visually-hidden">
+                        Conferência posição a posição. A primeira linha é a ordem gravada no banco,
+                        a segunda é a ordem recalculada nesta página, e a terceira diz se as duas
+                        coincidem naquela posição. Cada coluna é uma posição do conjunto sorteado,
+                        e a posição não é colocação.
+                    </caption>
+                    <tbody>
+                        <tr>
+                            <th scope="row">
+                                Gravada no banco
+                                <span class="qd">{{ s.mts_dt_registro|date('d/m/Y H:i') }}</span>
+                            </th>
+                            {% for chave in gravada %}
+                                <td>{{ seq.celula(chave, nomes[chave]|default(null), false) }}</td>
+                            {% endfor %}
+                        </tr>
+
+                        <tr>
+                            <th scope="row">
+                                Recalculada agora
+                                <span class="qd">{{ 'now'|date('d/m/Y H:i') }}</span>
+                            </th>
+                            {% for chave in refeita %}
+                                <td>{{ seq.celula(chave, nomes[chave]|default(null), gravada[loop.index0]|default(null) != chave) }}</td>
+                            {% endfor %}
+                        </tr>
+
+                        {#  O veredito de cada posição. O visto é a marca de status, não o selo de
+                            verificação: `--pl-seal` afirma "documento conferido na API do CREA", e
+                            sorteio reproduzido não é documento. A divergência não acontece hoje, e
+                            é por isso que precisa estar desenhada: no dia em que acontecer é
+                            defeito grave e tem de saltar da coluna. #}
+                        <tr class="vrd">
+                            <th scope="row">Confere</th>
+                            {% for chave in refeita %}
+                                {% set bate = gravada[loop.index0]|default(null) == chave %}
+                                <td>
+                                    {% if bate %}
+                                        <svg class="sim" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>
+                                        <span class="visually-hidden">Posição {{ loop.index }}: confere</span>
+                                    {% else %}
+                                        <svg class="nao" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>
+                                        <span class="visually-hidden">Posição {{ loop.index }}: não confere</span>
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
             <p class="conta">
@@ -179,12 +232,27 @@
                         <span aria-hidden="true">·</span>
                         <span>na ordem sorteada, que não é classificação</span>
                     </p>
+                    {#  Esta é a tabela mais larga do painel (1080px) e ela vive na coluna estreita
+                        da tela, então ela rola dentro do quadro mesmo num monitor grande, e não só
+                        num aparelho estreito como as tabelas das telas irmãs. O aviso das outras
+                        quatro telas é acionado pela largura da janela; este é acionado pela
+                        largura em que ESTA tabela deixa de caber, que é o que o aviso significa.
+                        Sem ele a coluna "Disponibilidade" ficava cortada a 1440px sem nada dizer
+                        que havia mais. #}
+                    <p class="pl-log-lado pl-lado-pool">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"/><path d="M14 6l6 6-6 6"/></svg>
+                        A tabela continua para o lado
+                    </p>
                 </div>
                 {{ ui.info('Por que as dimensões e não uma nota',
                     'O motor mede seis dimensões em separado e compõe uma nota para decidir quem passa do limiar. A nota não é exibida em tela nenhuma, nem para a Administração: exibida, ela serviria para ordenar pessoas. O que fica registrado e auditável são as seis medidas, uma a uma, e o limiar que separou quem entrou de quem ficou de fora.', 'fim') }}
             </div>
 
-            <div class="table-responsive">
+            {#  Alcance de teclado e nome no quadro rolável: o Chrome não dá foco a contêiner de
+                rolagem sozinho, e sem os três atributos quem navega por teclado não chega às
+                colunas da direita. Mesmo padrão da trilha de auditoria. #}
+            <div class="table-responsive" tabindex="0" role="region"
+                 aria-label="Pool desta sessão do motor">
                 <table class="pl-table pl-log pl-pool">
                     <caption class="visually-hidden">
                         Candidatos do conjunto avaliado, na ordem sorteada pela semente da sessão,
@@ -211,7 +279,7 @@
                             <td class="ord">{{ loop.index }}</td>
                             <td>
                                 {% if c.nome %}
-                                    <span class="autor" title="{{ c.nome }}">{{ c.nome }}</span>
+                                    <span class="autor" title="{{ c.nome }}">{{ c.nome|nome_proprio }}</span>
                                 {% else %}
                                     {# Conta excluída depois da sessão. A linha fica e diz o que é:
                                        conjunto com buraco silencioso é auditoria incompleta. #}
@@ -252,8 +320,8 @@
             {# A nota explica a leitura das linhas. Sem linha nenhuma ela vira faixa de texto
                embaixo de um estado vazio, explicando o que não está na tela. #}
             {% if reproducao.candidatos is not empty %}
-            <div class="pl-sess-rodape">
-                <p class="pl-nota mb-0">
+            <div class="pl-log-rodape">
+                <p class="pl-nota">
                     O traço na coluna de uma dimensão significa que ela não pôde ser medida e ficou
                     fora da média daquele candidato, em vez de valer zero. A relação de candidatos é
                     a do instante do cálculo e não é filtrada pela preferência de exibição de hoje:
@@ -265,10 +333,18 @@
 
         {# --------------------------------------------------------- parâmetros desta execução #}
         <aside class="pl-card pl-param">
+            {#  `.pl-card-titulo`, e não `.pl-secao`: é o título de um card do painel, e era o
+                único que usava a escala de 16px enquanto o card ao lado, na mesma linha da tela,
+                usava a de 15px. Dois títulos irmãos, dois tamanhos. #}
             <div class="pl-linha-titulo">
-                <h2 class="pl-secao">Parâmetros desta execução</h2>
+                <h2 class="pl-card-titulo">Parâmetros desta execução</h2>
+                {#  `fim` porque este "i" é o último elemento da coluna estreita da direita, e a
+                    caixa tem 330px fixos: centrada no botão, ela terminava 2px além da janela a
+                    1440px, e a página inteira ganhava rolagem horizontal por causa dela. Alinhada
+                    pela direita, ela abre para dentro do card. Mesma razão pela qual os "i" da
+                    topbar já usavam `fim`. #}
                 {{ ui.info('Por que os pesos ficam na sessão',
-                    'Os pesos e o limiar são configuráveis pela Administração. Se a sessão guardasse só a referência ao parâmetro, uma recalibração de hoje mudaria a explicação de uma execução de ontem. Por isso cada sessão grava os números com que rodou, e é por eles que ela se explica.') }}
+                    'Os pesos e o limiar são configuráveis pela Administração. Se a sessão guardasse só a referência ao parâmetro, uma recalibração de hoje mudaria a explicação de uma execução de ontem. Por isso cada sessão grava os números com que rodou, e é por eles que ela se explica.', 'fim') }}
             </div>
 
             <div class="grupo">
@@ -330,15 +406,15 @@
     {%- set numero = chave|split(':')|last -%}
     {%- set tipo = chave|split(':')|first == 'E' ? 'Empresa' : 'Profissional' -%}
     {%- if nome -%}
-        <li class="pl-cel{{ divergente ? ' dif' : '' }}" title="{{ nome }} · {{ tipo }} nº {{ numero }}">
+        <div class="pl-cel{{ divergente ? ' dif' : '' }}" title="{{ nome }} · {{ tipo }} nº {{ numero }}">
             <span class="in" aria-hidden="true">{{ ui.iniciais(nome) }}</span>
             <span class="id" aria-hidden="true">{{ numero }}</span>
             <span class="visually-hidden">{{ nome }}, {{ tipo }} nº {{ numero }}{{ divergente ? ', em posição diferente da gravada' : '' }}</span>
-        </li>
+        </div>
     {%- else -%}
-        <li class="pl-cel fora{{ divergente ? ' dif' : '' }}" title="Conta excluída depois desta sessão · {{ tipo }} nº {{ numero }}">
+        <div class="pl-cel fora{{ divergente ? ' dif' : '' }}" title="Conta excluída depois desta sessão · {{ tipo }} nº {{ numero }}">
             <span class="id" aria-hidden="true">{{ numero }}</span>
             <span class="visually-hidden">{{ tipo }} nº {{ numero }}, conta excluída depois desta sessão</span>
-        </li>
+        </div>
     {%- endif -%}
 {% endmacro %}

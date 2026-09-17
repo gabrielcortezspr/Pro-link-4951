@@ -188,6 +188,75 @@ final class ProfissionalRepository extends Repositorio
      * Falha parcial deixa o valor anterior intacto, e não o zera: o que interessa é quando foi a
      * última sincronização **bem-sucedida**, que é o que `api.sincronizacao.horas` compara.
      */
+    /**
+     * Quem passou do intervalo de sincronização e precisa ser reconsultado na API.
+     *
+     * Traz o documento cifrado junto porque a consulta da API é por CPF, e é no próprio laço da
+     * sincronização que ele é decifrado, um por vez — nunca uma lista de CPFs em claro em memória.
+     *
+     * `prf_dt_sincronizacao` nulo entra na lista de propósito: nulo é o estado de "importamos o
+     * perfil e o acervo não veio", que é justamente quem precisa de nova tentativa.
+     *
+     * Traz também o consentimento de consulta à API, para quem chama poder pular sem gastar
+     * chamada e ainda assim contar quantos pulou. Filtrar isso no `WHERE` esconderia o número.
+     *
+     * O `LIMIT` é obrigatório e não tem valor padrão aqui: o item 10.4 veda coleta automatizada,
+     * e uma sincronização sem teto percorrendo o cadastro inteiro é indistinguível de varredura
+     * do lado de quem registra as chamadas.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function vencidos(int $horas, int $limite): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT p.prf_id, p.prf_usu_id, p.prf_rnp, p.prf_status_api, p.prf_dt_sincronizacao,
+                    u.usu_nome, u.usu_documento_cif,
+                    COALESCE(c.con_concedido, 0) AS consentiu
+               FROM pro_profissionais p
+               JOIN sis_usuarios u ON u.usu_id = p.prf_usu_id
+               LEFT JOIN sis_consentimentos c
+                      ON c.con_usu_id = p.prf_usu_id
+                     AND c.con_finalidade = :finalidade
+                     AND c.con_status = :ativo
+              WHERE p.prf_status = :ativo2
+                AND u.usu_status = :ativo3
+                AND (p.prf_dt_sincronizacao IS NULL
+                     OR p.prf_dt_sincronizacao < NOW() - INTERVAL :horas HOUR)
+              ORDER BY p.prf_dt_sincronizacao IS NULL DESC, p.prf_dt_sincronizacao ASC
+              LIMIT :limite'
+        );
+
+        $stmt->bindValue(':finalidade', FINALIDADE_CONSULTA_API);
+        $stmt->bindValue(':ativo', STATUS_ATIVO);
+        $stmt->bindValue(':ativo2', STATUS_ATIVO);
+        $stmt->bindValue(':ativo3', STATUS_ATIVO);
+        $stmt->bindValue(':horas', $horas, \PDO::PARAM_INT);
+        $stmt->bindValue(':limite', $limite, \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Grava a situação que a API devolveu e carimba a sincronização.
+     *
+     * Separado de `salvar()` porque aquele é o caminho do vínculo inicial, com `ON DUPLICATE KEY
+     * UPDATE` sobre cinco colunas; aqui só duas mudam, e passar pelo outro caminho reescreveria
+     * nome e registro do CREA com o que estivesse em memória.
+     */
+    public function atualizarStatusApi(int $profissionalId, ?string $statusApi): void
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE pro_profissionais
+                SET prf_status_api = :status, prf_dt_sincronizacao = NOW()
+              WHERE prf_id = :id'
+        );
+
+        $stmt->bindValue(':status', $statusApi);
+        $stmt->bindValue(':id', $profissionalId, \PDO::PARAM_INT);
+        $stmt->execute();
+    }
+
     public function marcarSincronizado(int $profissionalId): void
     {
         $this->pdo->prepare(
