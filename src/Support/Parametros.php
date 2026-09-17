@@ -51,6 +51,11 @@ final class Parametros
         // marcaria todo mundo, o que não informa nada (ver backlog, E4).
         'match.early_career.min_arts' => ['min' => 0.0, 'max' => 20.0, 'passo' => 1.0, 'inteiro' => true],
 
+        // Manifestações de interesse por usuário por hora. Zero desliga o limite, e é por isso
+        // que o piso é 0 e não 1: desligar é uma escolha legítima da administração, diferente de
+        // "uma por hora", que travaria a demonstração.
+        'manifestacao.limite_hora' => ['min' => 0.0, 'max' => 500.0, 'passo' => 1.0, 'inteiro' => true],
+
         // Intervalo mínimo entre reconsultas de status do profissional na API oficial. O piso de
         // uma hora protege o item 10.4: intervalo curto demais transforma sincronização em
         // varredura, que é vedada.

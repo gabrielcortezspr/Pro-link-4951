@@ -10,6 +10,14 @@ declare(strict_types=1);
  * senha padrão em carga-inicial.sql seria exatamente isso.
  *
  *     docker compose exec php php scripts/criar-admin.php
+ *
+ * Aceita também o modo não interativo, para ambiente automatizado e para a suíte de ponta a
+ * ponta, que precisa de um administrador com credencial conhecida sem que ninguém digite nada:
+ *
+ *     docker compose exec -T php php scripts/criar-admin.php --nome=... --email=... --senha=...
+ *
+ * A senha em linha de comando fica no histórico do shell e na lista de processos: use isto só
+ * com credencial de ambiente descartável, nunca com a que vai para a demonstração.
  */
 
 require_once dirname(__DIR__) . '/_config.php';
@@ -42,10 +50,20 @@ if ($perfilId === false) {
     exit("Perfil ADMIN não encontrado. A carga inicial rodou? Veja _arq/README.md.\n");
 }
 
-$nome  = perguntar('Nome do administrador: ');
-$email = perguntar('E-mail: ');
-$senha = perguntar('Senha (não aparece na tela): ', true);
-$confirmacao = perguntar('Repita a senha: ', true);
+$opcoes        = getopt('', ['nome::', 'email::', 'senha::']);
+$naoInterativo = isset($opcoes['nome'], $opcoes['email'], $opcoes['senha']);
+
+if ($naoInterativo) {
+    $nome  = (string) $opcoes['nome'];
+    $email = (string) $opcoes['email'];
+    $senha = (string) $opcoes['senha'];
+    $confirmacao = $senha;
+} else {
+    $nome  = perguntar('Nome do administrador: ');
+    $email = perguntar('E-mail: ');
+    $senha = perguntar('Senha (não aparece na tela): ', true);
+    $confirmacao = perguntar('Repita a senha: ', true);
+}
 
 if ($senha !== $confirmacao) {
     exit("As senhas não conferem.\n");

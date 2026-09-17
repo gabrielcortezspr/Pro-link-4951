@@ -70,10 +70,20 @@ pelo `docker/php/Dockerfile`.
 
 ## Ferramentas de desenvolvimento (não vão para produção)
 
-| Componente | Para quê |
-|---|---|
-| Mailpit | captura os e-mails da RF07 em desenvolvimento, sem SMTP real |
-| Composer | gerenciamento de dependências; item 8.1.1d |
+| Componente | Versão | Licença | Para quê |
+|---|---|---|---|
+| Mailpit | latest | MIT | captura os e-mails da RF07 em desenvolvimento, sem SMTP real |
+| Composer | 2.x | MIT | gerenciamento de dependências; item 8.1.1d |
+| PHPUnit | 11.x | BSD-3-Clause | a suíte de `tests/`; vem por `composer require --dev` |
+| `@playwright/test` | 1.62.0 | Apache-2.0 | a suíte de ponta a ponta em `e2e/`, que exercita os seis cenários do Anexo I pelo navegador |
+| Python 3 | 3.11+ | PSF | `scripts/atualizar_tos.py` (carga da TOS) e `scripts/gerar-mer.py` (o MER) |
+
+Nenhuma destas é servida pela aplicação nem entra no contêiner de produção. O Playwright roda na
+máquina de quem desenvolve, contra a aplicação já de pé, e o diretório `e2e/node_modules/` está no
+`.gitignore`: o `.zip` da entrega não o carrega, como não carrega `vendor/`.
+
+O Chromium que o Playwright baixa é do próprio projeto Chromium, BSD-3-Clause com componentes de
+terceiros nas respectivas licenças, e também não é distribuído por nós.
 
 ## Compatibilidade de licença
 
