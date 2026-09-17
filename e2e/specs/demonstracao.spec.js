@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { mkdir, copyFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { ADMIN, EMPRESA, PROFISSIONAL, TOS_PRINCIPAL, TOS_SECUNDARIO } from '../apoio/contas.js';
 import { aceitarConfirmacoes, entrar, sair } from '../apoio/acoes.js';
@@ -194,14 +194,20 @@ test.describe('Demonstração', () => {
     expect(confirmacoes.textos.length, 'nenhuma ação irreversível pediu confirmação')
       .toBeGreaterThan(0);
 
-    // O vídeo só existe depois que o contexto fecha, e o caminho é resolvido pelo Playwright.
-    // Guardar o nome aqui é o que permite copiá-lo para um lugar previsível no fim da execução.
-    info.annotations.push({ type: 'video', description: await page.video()?.path() ?? '(sem vídeo)' });
-  });
+    // O Playwright apaga `resultados/` inteiro no começo de cada execução, então o vídeo da
+    // demonstração se perdia na primeira vez que alguém rodasse outro projeto. `saveAs` grava uma
+    // cópia num lugar previsível, que é de onde ele sai para virar o vídeo da entrega.
+    const video = page.video();
 
-  test.afterAll(async () => {
-    // Nada a fazer se a execução não gravou: `video` pode estar desligado numa rodada de
-    // depuração, e o teste não deve falhar por causa disso.
+    if (video) {
+      const destino = path.join(info.project.outputDir, '..', 'videos', 'demonstracao-jornada-completa.webm');
+
+      await mkdir(path.dirname(destino), { recursive: true });
+      await video.saveAs(destino);
+
+      info.annotations.push({ type: 'vídeo', description: destino });
+      console.log(`\n  vídeo da jornada completa: ${destino}\n`);
+    }
   });
 });
 

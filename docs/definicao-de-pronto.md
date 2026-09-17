@@ -124,6 +124,28 @@ leitura de código. Conferência de 17/09/2026, madrugada.
 O item 10 fica **parcial por escolha**: marcar "sim" com seis telas quebrando no celular de quem
 avalia seria a definição de verde falso que este documento existe para impedir.
 
+### O `.zip`, e por que `git archive`
+
+O item 8.7 pede o repositório no GitHub **mais** um `.zip`, sem `vendor/`, `.env` e `storage/`.
+Compactar o diretório de trabalho levaria os três junto, além de `e2e/node_modules`. O comando que
+leva **exatamente o que está versionado**, e nada mais, é:
+
+```bash
+git archive --format=zip -o pro-link-4951.zip HEAD
+```
+
+Conferido em 17/09: 332 arquivos, 9,0 MB. O que parece proibido e **deve** estar:
+`public/assets/vendor/` (Bootstrap e as fontes servidos pela própria aplicação desde a D60),
+`storage/*/.gitkeep` e `.env.example`, que é o modelo que o edital pede.
+
+Confira antes de subir:
+
+```bash
+unzip -l pro-link-4951.zip | grep -E "(^|/)vendor/|node_modules|\.env$" 
+```
+
+A saída tem de ser vazia. `public/assets/vendor/` não casa com esse padrão de propósito.
+
 ### Higiene de demonstração
 
 Não é exigência do edital, é o que faz a demo não constranger:
