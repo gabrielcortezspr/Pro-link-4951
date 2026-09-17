@@ -14,10 +14,39 @@ JavaScript e redirecionamento.
 |---|---|
 | `specs/cenarios.spec.js` | **verifica**: seis testes, conferência dura, falha rápido. É o que se roda antes de commitar. |
 | `specs/demonstracao.spec.js` | **mostra**: um teste, um contexto, **um vídeo só**, no ritmo de quem apresenta, com legenda sobreposta. É o insumo do vídeo demonstrativo e o ensaio da demo. |
+| `specs/refinamento.spec.js` | **compara com o desenho**: prova que cada tela é o mockup de `docs/mockups/`, e não só que ela funciona. |
+| `specs/responsivo.spec.js` | as mesmas telas em 390px. |
+| `specs/seguranca.spec.js` | o que a plataforma precisa recusar. |
+
+### O que o refinamento cobra, e por quê
+
+Nasceu de uma reprovação: telas numa coluna estreita no meio do monitor, duas barras de navegação
+diferentes convivendo, e a landing sem as animações do mockup. Nenhuma das três aparecia em teste
+nenhum, porque todas as telas **funcionavam**. São quatro réguas:
+
+1. **Uma barra por situação.** Barra lateral navy para quem está dentro da conta, barra pública do
+   mockup para o resto, nunca as duas, e nunca a navbar do Bootstrap que o projeto usava antes.
+2. **Largura total**, com 90% de folga: o alvo é a coluna de 960px no meio de um monitor de 1600.
+3. **Console limpo.** Foi um bloqueio silencioso de política de segurança que apagou as animações.
+4. **O canvas da landing pinta pixel.** Canvas existente e nunca desenhado dá o mesmo resultado
+   visual de canvas nenhum, e foi por aí que a animação sumiu sem ninguém notar.
 
 ## Como rodar
 
 O ambiente precisa estar de pé (`docker compose up -d`) e respondendo em `http://localhost:8080`.
+
+As telas do painel administrativo só são conferidas com uma conta de administração no ambiente, e
+o teste **pula** em vez de falhar quando ela não está configurada, porque falta de configuração de
+quem roda não é defeito da aplicação:
+
+```bash
+export PROLINK_E2E_ADMIN_EMAIL=e2e.admin@verificacao.local
+export PROLINK_E2E_ADMIN_SENHA='...'        # nunca em arquivo versionado (Anexo VI)
+```
+
+A conta de verificação é criada por `scripts/criar-admin.php`, e é **outra** conta que não a de
+demonstração: bloquear, moderar e mexer em parâmetro deixa rastro na trilha, e o rastro da suíte
+não pode se misturar com o que a banca vai ler.
 
 ```bash
 cd e2e
