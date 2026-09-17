@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { ADMIN, EMPRESA, PROFISSIONAL, TOS_PRINCIPAL, TOS_SECUNDARIO } from '../apoio/contas.js';
-import { aceitarConfirmacoes, descrever, entrar, manifestar, sair, telaSaudavel } from '../apoio/acoes.js';
+import { aceitarConfirmacoes, comoNaTela, descrever, entrar, manifestar, sair, telaSaudavel } from '../apoio/acoes.js';
 
 /**
  * Os seis cenários mínimos do Anexo I, item 7, pelo navegador.
@@ -28,7 +28,7 @@ test.describe('Os seis cenários do Anexo I', () => {
     const resposta = await page.goto('/perfil');
     await telaSaudavel(page, resposta);
 
-    await expect(page.getByRole('heading', { level: 1 })).toContainText(PROFISSIONAL.nome);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(comoNaTela(PROFISSIONAL.nome));
 
     // O selo de verificação é o compromisso central da proposta: ele separa o que a API do CREA
     // confirmou do que a pessoa declarou. Sem ele na tela, o resto do projeto não se sustenta.
@@ -145,7 +145,7 @@ test.describe('Os seis cenários do Anexo I', () => {
 
     // A tela mostra o retrato do perfil que vai junto, antes de qualquer clique: manifestar
     // interesse abre para o demandante o que o titular tinha aberto, e ele precisa ver o quê.
-    await expect(page.locator('body')).toContainText(PROFISSIONAL.nome);
+    await expect(page.locator('body')).toContainText(comoNaTela(PROFISSIONAL.nome));
 
     // `manifestar()` traduz a recusa em mensagem: o teto de manifestações por hora conta por
     // pessoa, e sem isso o sintoma é um estouro de tempo que parece defeito do botão.
@@ -167,7 +167,7 @@ test.describe('Os seis cenários do Anexo I', () => {
 
     resposta = await page.goto(`/demandas/${demanda.id}/interessados`);
     await telaSaudavel(page, resposta);
-    await expect(page.locator('body')).toContainText(PROFISSIONAL.nome);
+    await expect(page.locator('body')).toContainText(comoNaTela(PROFISSIONAL.nome));
 
     await sair(page);
   });

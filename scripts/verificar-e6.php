@@ -617,6 +617,58 @@ foreach ($telas as $tela => $dados) {
     conferir("{$tela} renderiza com dado do banco", $html !== '', $erro);
 }
 
+//  ## A busca da lista de contas
+//
+//  Ela devolvia 500 e nenhuma conferência pegava, porque o defeito não estava na regra de negócio
+//  e sim na consulta: `:termo` aparecia nas duas pontas do OR, e a conexão roda com
+//  `ATTR_EMULATE_PREPARES => false`, onde o servidor recusa o mesmo marcador duas vezes. Quem
+//  abrisse a tela e digitasse um nome via a tela de erro.
+//
+//  A lição que fica na forma destas conferências: filtro só está coberto quando é **exercitado**
+//  com valor, e não quando a listagem sem filtro passa.
+echo "\n\e[1mListagem de contas (Anexo I, item 3)\e[0m\n";
+
+$contas = new ProLink\Service\ContaService();
+
+$semFiltro = $contas->listar([], 1);
+
+conferir(
+    'a lista sem filtro responde e pagina',
+    $semFiltro['total'] > 0 && $semFiltro['paginas'] >= 1,
+    "total {$semFiltro['total']} · páginas {$semFiltro['paginas']}",
+);
+
+$porTermo = $contas->listar(['termo' => 'prolink.local'], 1);
+
+conferir(
+    'a busca por nome ou e-mail devolve resultado, e não erro',
+    $porTermo['total'] > 0 && $porTermo['total'] < $semFiltro['total'],
+    "encontrou {$porTermo['total']} de {$semFiltro['total']}",
+);
+
+$inexistente = $contas->listar(['termo' => 'nao-existe-esta-conta-em-lugar-nenhum'], 1);
+
+conferir(
+    'busca sem resultado é lista vazia, e não falha',
+    $inexistente['total'] === 0 && $inexistente['contas'] === [],
+);
+
+$porSituacao = $contas->listar(['situacao' => STATUS_EXCLUIDO], 1);
+
+conferir(
+    'o filtro de situação separa o que a lixeira mostra',
+    $porSituacao['total'] > 0 && $porSituacao['total'] < $semFiltro['total'],
+    "excluídas {$porSituacao['total']}",
+);
+
+$combinado = $contas->listar(['termo' => 'prolink.local', 'situacao' => STATUS_ATIVO], 1);
+
+conferir(
+    'dois filtros ao mesmo tempo continuam valendo',
+    $combinado['total'] > 0 && $combinado['total'] <= $porTermo['total'],
+    "termo mais situação: {$combinado['total']}",
+);
+
 printf(
     "\n%s  %d aprovadas, %d falharam\n",
     $falhou === 0 ? "\e[32mE6 (DENÚNCIAS E PAINEL) VERIFICADA\e[0m" : "\e[31mE6 COM FALHA\e[0m",

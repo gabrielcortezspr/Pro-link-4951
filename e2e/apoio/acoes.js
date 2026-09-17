@@ -191,3 +191,17 @@ export async function descrever(pagina) {
     return `campos: ${campos.join(', ') || '(nenhum)'}\nbotoes: ${botoes.join(', ') || '(nenhum)'}`;
   });
 }
+
+/**
+ * O nome de uma conta como ele aparece na tela, e não como está no banco.
+ *
+ * A API oficial devolve tudo em caixa alta e a plataforma guarda assim, mas a exibição passa pelo
+ * filtro `nome_proprio`: "SOPHIA MARTINS" no banco é "Sophia Martins" na tela. Um teste que
+ * compara os dois literalmente falha por diferença de caixa, que não é o que ele quer conferir.
+ *
+ * Confere identidade, então, e não formatação. Quem quiser cobrar a caixa de título cobra no teste
+ * de unidade de `Rotulos::nomeProprio()`, que é onde a regra mora.
+ */
+export function comoNaTela(nome) {
+  return new RegExp(nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+}

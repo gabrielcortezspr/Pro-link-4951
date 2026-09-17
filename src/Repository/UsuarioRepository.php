@@ -166,8 +166,15 @@ final class UsuarioRepository extends Repositorio
         $termo = trim((string) ($filtros['termo'] ?? ''));
 
         if ($termo !== '') {
-            $condicoes[]      = '(u.usu_nome LIKE :termo OR u.usu_email LIKE :termo)';
-            $params[':termo'] = '%' . $termo . '%';
+            //  Dois nomes para o mesmo valor, e não `:termo` nas duas pontas do OR.
+            //
+            //  A conexão roda com `ATTR_EMULATE_PREPARES => false`, que é o certo: quem monta a
+            //  consulta é o servidor, e não o driver costurando texto. Nesse modo o MariaDB
+            //  recusa o mesmo marcador usado duas vezes, e a busca por nome ou e-mail devolvia
+            //  500 antes de chegar na listagem.
+            $condicoes[]            = '(u.usu_nome LIKE :termo_nome OR u.usu_email LIKE :termo_email)';
+            $params[':termo_nome']  = '%' . $termo . '%';
+            $params[':termo_email'] = '%' . $termo . '%';
         }
 
         $perfil = (string) ($filtros['perfil'] ?? '');
