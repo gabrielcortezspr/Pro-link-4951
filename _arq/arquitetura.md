@@ -131,14 +131,187 @@ perfil antes de agir (OWASP A01).
 
 ### Operações atômicas
 
-Cinco operações rodam dentro de transação, via `Database::transacao()`, porque falha parcial
-deixaria o sistema inconsistente:
+Cinco operações foram desenhadas como atômicas, porque falha parcial deixaria o sistema
+inconsistente. Todas as cinco estão implementadas, via `Database::transacao()`:
 
-1. associação de ART ao portfólio (valida na API, grava ART, atividades, evidências e selo);
-2. sessão de recomendação (grava semente, pool e critérios juntos);
-3. manifestação de interesse (grava manifestação, snapshot e notificação);
-4. edição de perfil com versionamento (grava novo valor e a linha de auditoria);
-5. bloqueio de usuário (bloqueia, encerra sessões e registra a moderação).
+1. **associação de ART ao portfólio** — valida na API, grava ART, atividades, evidências e selo
+   (`PortfolioService`, `PerfilCreaService`);
+2. **sessão de compatibilização** — grava semente, limiar, pesos e pool juntos, porque sessão sem
+   pool é registro de auditoria mentindo (`CompatibilizacaoService`);
+3. **manifestação de interesse** — grava a manifestação com o retrato e o hash, move a demanda
+   para `COM_INTERESSADOS`, registra na trilha e enfileira a notificação (`ManifestacaoService`);
+4. **edição de perfil com versionamento** — grava o novo valor e a linha de auditoria
+   (`PreferenciaService`, `ExperienciaService`, `VisibilidadeService`);
+5. **bloqueio de usuário** — bloqueia, encerra as sessões e registra a moderação
+   (`DenunciaService`).
+
+O uso cresceu além dessas cinco: há 30 blocos transacionais em 13 serviços, porque a regra "trilha
+de auditoria desfaz junto com o fato que ela registra" vale para toda escrita, não só para as
+operações destacadas.
+
+## Declaração de uso de inteligência artificial, vieses e limitações
+
+Exigida pelo item 12.3 do edital e pelo Anexo VI ("documenta riscos, limitações e uso de
+inteligência artificial"). O raciocínio por trás de cada escolha citada aqui está em
+`../docs/decisoes.md`, que tem 59 entradas com o campo *Alternativa recusada* preenchido.
+
+### 1. Não há inteligência artificial no produto
+
+A compatibilização **não usa aprendizado de máquina**. Não há modelo treinado, não há dado de
+treino, não há inferência estatística sobre comportamento de usuário e não há caixa-preta. O que
+existe é uma fórmula determinística, escrita à mão, auditável linha a linha em
+`src/Support/Compatibilidade.php` e documentada em `../docs/matching.md`:
+
+- seis dimensões (item 3.2 do edital), cada uma com peso explícito em `sis_parametros`;
+- a afinidade entre dois códigos da Tabela de Obras e Serviços é o número de componentes iniciais
+  iguais, uma contagem, não uma semelhança aprendida;
+- o score composto é a média ponderada das dimensões medidas.
+
+**Consequência prática:** a mesma demanda com o mesmo acervo produz sempre o mesmo resultado, e
+qualquer pessoa pode refazer a conta no papel. Não há "o algoritmo decidiu" — há uma fórmula que o
+administrador vê, edita e reproduz.
+
+### 2. A ordem não vem do score, e isso é uma decisão contra viés de posição
+
+O item 10.1 veda ranking de profissionais. A implementação vai além de não numerar a lista:
+
+- **o score filtra, não ordena.** Quem passa do limiar entra no pool; quem não passa, não entra;
+- **a ordem vem de uma semente aleatória por sessão**, gravada em `mat_sessoes`. Dois candidatos
+  que entraram com 0,9 e 0,6 aparecem em ordem sorteada;
+- a semente é `bin2hex(random_bytes(16))` — aleatória de verdade, porque semente previsível
+  permitiria a alguém posicionar um perfil;
+- o embaralhamento ordena por hash de (semente + chave do candidato), e não por `shuffle()` com
+  seed global, para não depender do estado nem da versão do gerador do PHP. A mesma semente
+  reproduz a mesma ordem em qualquer máquina;
+- **nem ao administrador o score composto é exibido.** A tela `/admin/sessoes/{id}` refaz o
+  sorteio na frente de quem audita e mostra as dimensões individuais, que são o critério
+  explicável; a nota agregada só serviria para ordenar.
+
+O viés que isso ataca é conhecido e mensurável: em qualquer lista, quem aparece primeiro recebe
+mais atenção. Ordenar por mérito calculado transformaria uma diferença de centésimos numa
+diferença de oportunidade.
+
+### 3. O que protege quem está começando
+
+A massa tem profissionais com duas ARTs e outros com quatro. Sem cuidado explícito, um motor de
+evidência documental vira uma máquina de concentrar trabalho em quem já tem trabalho:
+
+- **multiplicidade tem retorno decrescente.** Cinco ARTs no mesmo código valem mais que uma e
+  menos que cinco vezes uma, por raiz. Volume alto de acervo não pode virar ranking implícito por
+  antiguidade de carreira;
+- **dimensão sem dado sai da média, em vez de valer zero.** Quem não declarou regime de
+  contratação não é penalizado por isso: a dimensão simplesmente não entra no cálculo daquele
+  candidato. Zero é uma medida; ausência não é;
+- **"perfil em construção" sinaliza, nunca exclui.** Abaixo de `match.early_career.min_arts` ARTs
+  o perfil recebe uma marca de contexto e **continua no pool**. O limiar vale 3, e o número foi
+  escolhido por medição, não por intuição: na base de demonstração os profissionais têm de 2 a 4
+  ARTs, média 3,0. O limiar 3 marca 4 de 12 (33%); o limiar 4 marcaria 8 de 12 (67%), e rótulo que
+  vale para dois terços da plataforma não informa nada. **Este é um valor calibrado contra uma
+  massa fictícia de 12 profissionais**, e é dos primeiros que precisariam ser recalibrados com
+  volume real.
+
+**A exceção, declarada:** na busca ativa, o filtro "incluir quem está começando" nasce
+**desligado**. É o único lugar da plataforma onde um atributo do perfil esconde alguém por padrão,
+e está aqui porque a proposta aprovada o descreve assim. É o ponto do sistema que mais merece
+revisão depois da fase de protótipo.
+
+### 4. Vieses que a massa fictícia esconde, e que apareceriam com dado real
+
+Esta é a seção que a banca deve ler com mais atenção, porque são limitações que os nossos testes
+**não** conseguem detectar:
+
+- **Os vínculos entre ART e código TOS na massa são aleatórios.** Um profissional cujo objeto de
+  ART é uma obra civil pode ter atividades de agronomia vinculadas. Isso significa que **nenhum
+  resultado de compatibilização nesta base tem coerência temática**, e que a qualidade real do
+  motor não pôde ser avaliada. Os cenários de demonstração foram escritos *depois* de consultar
+  quais códigos concentram acervo, e não antes — é o único modo honesto de demonstrar com esta
+  massa;
+- **A dimensão de localização não discrimina nesta base.** Quase todo o acervo é do Amazonas, e a
+  demanda de demonstração também. Com dado real, localização seria a dimensão com maior potencial
+  de efeito indireto: concentrar oportunidade na capital, em detrimento do interior, sem que
+  nenhuma regra mencione região. Não conseguimos medir isso, e não vamos afirmar que está
+  resolvido;
+- **A dimensão de experiência declarada premia quem escreve mais.** Ela pesa 0,10, o menor peso
+  junto com contrato e disponibilidade, e é a única alimentada por texto livre. Quem tem mais
+  facilidade de redigir tende a preencher melhor. Foi mantida com peso baixo e visualmente
+  separada do dado verificado, mas o efeito existe;
+- **Nenhum critério vedado pelo item 12.2 existe no modelo de dados.** Não há raça, cor, sexo,
+  gênero, deficiência, idade, religião ou origem em nenhuma tabela — não como campo oculto, não
+  como campo opcional. O que não se coleta não pode ser usado, nem por engano. Conferível:
+  nenhuma coluna de `estrutura.sql` casa com esses termos (as ocorrências textuais do arquivo são
+  todas substrings de "validade", "finalidade", "entidade" e "disponibilidade").
+
+### 5. Assimetrias conhecidas entre o que o motor usa e o que a tela mostra
+
+- **ART fechada conta para a compatibilidade e não é citada pelo número** (decisão D52). O
+  candidato que fecha um documento não perde posicionamento por isso — penalizar a privacidade
+  empurraria todo mundo a abrir tudo —, mas o demandante vê um score sustentado por evidência que
+  não pode conferir. É o preço explícito de não punir quem usa o controle de visibilidade que a
+  plataforma oferece;
+- **O retrato enviado na manifestação é o que o demandante já podia ver** (decisão D57).
+  Manifestar interesse não abre campo fechado. Quem tem o perfil discreto envia pouco, e a tela de
+  confirmação diz isso antes do envio, com o número exato de campos, ARTs e experiências que vão
+  junto;
+- **A busca ativa ordena alfabeticamente.** Não é ranking — o termo decide quem entra, e dentro de
+  quem entrou ninguém está à frente. Mas o teto de 60 resultados existe (para que uma busca aberta
+  a anônimo não vire endpoint de extração, item 10.4), e com ele um termo muito genérico favorece
+  sistematicamente nomes no começo do alfabeto. Com a base atual, de 12 profissionais, o teto
+  nunca é atingido e o efeito não aparece; com volume real seria preciso paginação ou outra ordem
+  neutra. **É uma limitação que os nossos testes não conseguem exibir.**
+
+### 6. Supervisão humana
+
+Nenhuma decisão da plataforma é final ou automática. O item 10.1 é explícito e a implementação o
+segue: não há contratação automática, intermediação financeira, garantia de preço, certificação de
+qualidade nem recomendação institucional. **A correspondência é indicativa, e quem decide é a
+pessoa.**
+
+Os controles de supervisão, todos exercitáveis pelo painel:
+
+| O quê | Onde |
+|---|---|
+| Pesos das seis dimensões e limiar de entrada | `sis_parametros`, editável sem deploy |
+| Limiar de "perfil em construção" | `match.early_career.min_arts` |
+| Limite de manifestações por hora | `manifestacao.limite_hora` |
+| Reprodução de qualquer sessão passada | `/admin/sessoes/{id}` — refaz o sorteio pela semente gravada e compara com a ordem registrada |
+| Trilha imutável de toda escrita | `sis_auditoria`, insert-only por trigger |
+
+### 7. Uso de IA na construção deste sistema
+
+O item 12.3 pede que o uso de IA seja declarado. Ele foi usado — não no produto, mas para
+construí-lo — e escondê-lo seria o oposto do que a exigência pede.
+
+**O que foi usado.** Assistente de programação baseado em modelo de linguagem (Claude, da
+Anthropic), operado pela equipe em sessões de pareamento, com o histórico de decisões registrado
+em `../docs/decisoes.md` conforme as escolhas eram feitas.
+
+**Em quê.** Escrita de código sob especificação da equipe, revisão de código, redação de
+documentação, e investigação de defeitos. O desenho do produto, a leitura do edital, a modelagem
+de dados e todas as decisões com alternativa real foram tomadas pela equipe — é por isso que o
+campo *Alternativa recusada* existe em cada entrada do registro de decisões: ele mostra o que foi
+considerado e descartado, por quem decidiu.
+
+**Com que supervisão.** Todo código gerado passou por revisão humana e pelo conjunto de
+verificação do repositório: 188 testes automatizados, verificadores por etapa que rodam contra o
+banco, e um verificador de padrão visual. Vários defeitos encontrados nesta construção — e
+registrados no histórico de commits — foram achados exatamente porque a verificação não confiou no
+que o código dizia de si mesmo.
+
+**O que isso implica como limitação.** Código escrito com assistência de modelo de linguagem pode
+conter erros sutis que passam por revisão, como qualquer código. A mitigação adotada foi
+verificação executável em vez de leitura: cada afirmação relevante deste documento corresponde a
+um teste ou a um script que pode ser rodado por quem avalia.
+
+### 8. O que não foi entregue, e é promessa da proposta
+
+Declarado aqui como evolução, não escondido:
+
+- aviso proativo de registro próximo do vencimento;
+- preview do pool antes de publicar a demanda;
+- sincronização de status agendada — entregue como script executável, não como rotina automática;
+- chat completo — entregue como mensagens simples dentro da manifestação;
+- notificação por e-mail a cada mensagem: o RF07 lista os eventos que notificam e mensagem não
+  está entre eles, então quem não voltar à plataforma não sabe que recebeu resposta.
 
 ## Onde o desenvolvimento continua
 
