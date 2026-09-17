@@ -21,6 +21,7 @@ use ProLink\Controller\CompativelController;
 use ProLink\Controller\DemandaController;
 use ProLink\Controller\DenunciaController;
 use ProLink\Controller\HomeController;
+use ProLink\Controller\InicioController;
 use ProLink\Controller\ManifestacaoController;
 use ProLink\Controller\PerfilController;
 use ProLink\Controller\PrivacidadeController;
@@ -65,6 +66,10 @@ $router->post('/sair',                AuthController::class, 'sair', PERFIS_AUTE
 // Público (Anexo I, item 3). O anônimo não deixa de ver a tela, ele vê menos dela — quem decide
 // campo a campo é a Visao, pelo alcance de Visibilidade::alcanceDe().
 $router->get('/profissionais', BuscaController::class, 'profissionais', PERFIL_PUBLICO);
+
+// O "Início" de quem está logado, primeira entrada da barra lateral nos mockups. A landing
+// em `/` continua pública: quem já entrou não precisa do discurso de venda.
+$router->get('/inicio',               InicioController::class, 'index', PERFIS_AUTENTICADOS);
 
 $router->get('/perfil',                       PerfilController::class, 'index', PERFIS_AUTENTICADOS);
 $router->post('/perfil/visibilidade',        PerfilController::class, 'definirVisibilidade', PERFIS_AUTENTICADOS);
