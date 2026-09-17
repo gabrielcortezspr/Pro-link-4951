@@ -51,8 +51,10 @@ Guia completo de instalação, atualização e problemas comuns: [`_arq/README.m
 
 ## Equipe
 
-Gabriel Cortez de São Paulo Rozeno · arquitetura, back-end, integração com a API, motor
-Camila Vasconcelos Moi · segurança, privacidade e LGPD, auditoria, revisão
+- **Gabriel Cortez de São Paulo Rozeno** · arquitetura, back-end, integração com a API, motor de
+  compatibilização, autenticação e cadastro
+- **Camila Vasconcelos Moi** · arquitetura, motor de compatibilização, segurança, privacidade e
+  LGPD, auditoria e trilha, painel administrativo, interface e experiência, revisão
 
 ## Aviso
 
