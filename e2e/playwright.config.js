@@ -44,11 +44,22 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
     },
     {
-      // O Anexo I item 5 e o Anexo VI cobram uso em dispositivo móvel. Só os cenários marcados
-      // com @responsivo rodam aqui: o resto seria repetição cara sem informação nova.
+      // O Anexo I item 5 e o Anexo VI cobram uso em dispositivo móvel. Só os testes marcados com
+      // @responsivo rodam aqui: o resto seria repetição cara sem informação nova.
+      //
+      // Chromium em viewport de celular, e não o perfil de iPhone, que puxa WebKit: a pergunta
+      // que este projeto responde é se a tela cabe em 390px e se o toque funciona, não se o
+      // Safari renderiza diferente. Baixar um segundo navegador para isso custaria oitenta
+      // megabytes e uma dependência a mais na máquina de quem for rodar.
       name: 'celular',
       grep: /@responsivo/,
-      use: { ...devices['iPhone 13'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+        deviceScaleFactor: 3,
+      },
     },
   ],
 });
