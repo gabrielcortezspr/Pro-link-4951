@@ -39,13 +39,30 @@ docker compose exec php composer install
 ```
 
 Na primeira subida o MariaDB executa sozinho `_arq/estrutura.sql` e `_arq/carga-inicial.sql`:
-o banco já sobe com as 29 tabelas, os 5 perfis de acesso, as 25 modalidades, os 2000 códigos da
-Tabela de Obras e Serviços e os parâmetros do motor.
+o banco já sobe com as **28 tabelas mais a view `crea_evidencias`**, 27 chaves estrangeiras, as
+duas triggers que tornam a trilha de auditoria imutável, os 5 perfis de acesso, as 25 modalidades,
+os 2000 códigos da Tabela de Obras e Serviços, os 11 parâmetros do motor e o texto vigente dos
+Termos de Uso e da Política de Privacidade.
+
+**Nenhum usuário vem na carga**, de propósito: o Anexo VI do edital lista "não contém credenciais,
+secrets ou chaves reais" como item de triagem, e uma senha padrão em `carga-inicial.sql` seria
+exatamente isso.
+
+Conferido em 17/09/2026 subindo um MariaDB limpo só com esses dois arquivos montados em
+`docker-entrypoint-initdb.d`, que é o caminho que o `docker-compose.yml` usa.
 
 Crie o usuário administrador (nenhuma credencial viaja no repositório):
 
 ```bash
 docker compose exec php php scripts/criar-admin.php
+```
+
+Em ambiente automatizado, onde ninguém digita, o mesmo script aceita argumentos. A senha fica no
+histórico do shell e na lista de processos, então use assim só com credencial descartável:
+
+```bash
+docker compose exec -T php php scripts/criar-admin.php \
+  --nome="Nome" --email="admin@exemplo.local" --senha="<uma senha de 12 ou mais>"
 ```
 
 ## Verificação
