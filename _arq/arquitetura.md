@@ -270,11 +270,18 @@ Os controles de supervisão, todos exercitáveis pelo painel:
 
 | O quê | Onde |
 |---|---|
-| Pesos das seis dimensões e limiar de entrada | `sis_parametros`, editável sem deploy |
-| Limiar de "perfil em construção" | `match.early_career.min_arts` |
-| Limite de manifestações por hora | `manifestacao.limite_hora` |
+| Pesos das seis dimensões e limiar de entrada | **`/admin/parametros`**, com a faixa aceitável declarada por campo, lote atômico e o valor anterior e o novo indo para a trilha |
+| Limiar de "perfil em construção" | `match.early_career.min_arts`, na mesma tela |
+| Limite de manifestações por hora | `manifestacao.limite_hora`, na mesma tela |
+| Quem mudou cada parâmetro, e quando | a própria tela, ao lado do campo, lido de `sis_auditoria` |
 | Reprodução de qualquer sessão passada | `/admin/sessoes/{id}` — refaz o sorteio pela semente gravada e compara com a ordem registrada |
 | Trilha imutável de toda escrita | `sis_auditoria`, insert-only por trigger |
+| O que foi excluído, e por ordem de quem | `/admin/lixeira` (item 8.6j) |
+
+Até 16/09 os pesos só existiam como linha no banco, e a supervisão do 12.3 era uma frase nesta
+documentação mais um `UPDATE` de quem tivesse acesso ao servidor. A tela mudou a natureza disso:
+quem altera um critério de recomendação é uma pessoa identificada, o valor anterior e o novo ficam
+na trilha, e a alteração aparece ao lado do campo na próxima vez que alguém abrir a tela.
 
 ### 7. Uso de IA na construção deste sistema
 
@@ -293,9 +300,16 @@ considerado e descartado, por quem decidiu.
 
 **Com que supervisão.** Todo código gerado passou por revisão humana e pelo conjunto de
 verificação do repositório: 188 testes automatizados, verificadores por etapa que rodam contra o
-banco, e um verificador de padrão visual. Vários defeitos encontrados nesta construção — e
-registrados no histórico de commits — foram achados exatamente porque a verificação não confiou no
-que o código dizia de si mesmo.
+banco, um verificador de padrão visual, e — desde 17/09 — uma suíte de ponta a ponta que percorre
+os seis cenários mínimos pelo navegador, mais sondas de autorização com requisição forjada. Vários
+defeitos encontrados nesta construção — e registrados no histórico de commits — foram achados
+exatamente porque a verificação não confiou no que o código dizia de si mesmo.
+
+Dois exemplos do que só apareceu por essa desconfiança, ambos de 17/09: a marca de "perfil em
+construção" não era recalculada ao associar uma ART à mão, e ninguém tinha visto porque nenhuma
+rota chamava o método; e a evidência do art. 18 da LGPD na lixeira era desfeita pelo próprio
+script que a criava, porque ele terminava gravando a exclusão administrativa depois da exclusão do
+titular.
 
 **O que isso implica como limitação.** Código escrito com assistência de modelo de linguagem pode
 conter erros sutis que passam por revisão, como qualquer código. A mitigação adotada foi
