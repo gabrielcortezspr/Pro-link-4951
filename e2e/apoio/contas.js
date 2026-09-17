@@ -15,30 +15,53 @@ export const SENHA_DEMO = process.env.PROLINK_E2E_SENHA_DEMO ?? 'ProLinkDemo2026
  * código TOS da massa são aleatórios, então escolher a pessoa antes de olhar o índice produziria
  * um cenário sem compatível nenhum.
  */
-export const PROFISSIONAL = {
-  email: 'pedro.henrique.alves.0451@prolink.local',
-  senha: SENHA_DEMO,
-  nome: 'PEDRO HENRIQUE ALVES',
-};
+const COMPATIVEIS = [
+  { email: 'pedro.henrique.alves.0451@prolink.local', senha: SENHA_DEMO, nome: 'PEDRO HENRIQUE ALVES' },
+  { email: 'sophia.martins.0702@prolink.local',       senha: SENHA_DEMO, nome: 'SOPHIA MARTINS' },
+  { email: 'arthur.gomes.0613@prolink.local',         senha: SENHA_DEMO, nome: 'ARTHUR GOMES' },
+];
 
 /**
- * O profissional da **demonstração**, deliberadamente diferente do dos cenários.
+ * Qual dos três a execução usa, e por que a escolha gira.
  *
- * `manifestacao.limite_hora` vale 10 e conta por pessoa. Rodando a suíte inteira várias vezes
- * seguidas, como acontece numa sessão de trabalho, o mesmo profissional bate o teto e a
- * manifestação passa a ser recusada: o anti-spam funcionando como projetado derrubava a
- * demonstração, com um estouro de tempo em `waitForURL` que não dizia nada sobre a causa.
+ * `manifestacao.limite_hora` vale 10 e conta **por pessoa**. É um anti-spam correto, e derrubava a
+ * suíte: numa sessão de trabalho ela roda muitas vezes, e a partir da décima a plataforma recusa a
+ * manifestação. O sintoma era um estouro de tempo em `waitForURL`, e três investigações começaram
+ * procurando defeito no botão.
  *
- * Dividir o consumo em dois não elimina o teto, adia. `manifestar()` em `acoes.js` reconhece a
- * recusa e falha dizendo o que houve, que é o que faltava.
+ * Girar entre os três multiplica a folga por três sem mexer no limite, que é o que não se deve
+ * fazer: baixá-lo para o teste passar seria adaptar o produto ao teste. A escolha é pelo relógio,
+ * em janelas de dez minutos, então é estável dentro de uma execução e de uma rodada de depuração,
+ * e muda sozinha entre elas.
  *
- * Também tem acervo em `TOS_10.4.2.3`, então continua compatível com a demanda do roteiro.
+ * Os três têm acervo em `TOS_10.4.2.3`, que é o código da demanda do roteiro: trocar de conta não
+ * troca o cenário. Para fixar uma, exporte `PROLINK_E2E_PROFISSIONAL` com o e-mail.
  */
-export const PROFISSIONAL_DEMO = {
-  email: 'sophia.martins.0702@prolink.local',
-  senha: SENHA_DEMO,
-  nome: 'SOPHIA MARTINS',
-};
+function daVez(deslocamento = 0) {
+  const fixo = process.env.PROLINK_E2E_PROFISSIONAL;
+
+  if (fixo) {
+    const achado = COMPATIVEIS.find((c) => c.email === fixo);
+
+    if (!achado) {
+      throw new Error(
+        `PROLINK_E2E_PROFISSIONAL=${fixo} não está entre os compatíveis: `
+        + COMPATIVEIS.map((c) => c.email).join(', '),
+      );
+    }
+
+    return achado;
+  }
+
+  const janela = Math.floor(Date.now() / 600_000);
+
+  return COMPATIVEIS[(janela + deslocamento) % COMPATIVEIS.length];
+}
+
+export const PROFISSIONAL = daVez(0);
+
+/** A demonstração usa o seguinte da roda, para não disputar cota com os cenários. */
+export const PROFISSIONAL_DEMO = daVez(1);
 
 export const EMPRESA = {
   email: 'alfa.engenharia.e.consultoria.ltda.0145@prolink.local',
