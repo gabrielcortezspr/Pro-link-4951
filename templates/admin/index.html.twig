@@ -206,15 +206,21 @@
             <div class="pl-kpi">
                 <div class="lab">Demandas cadastradas</div>
                 <div class="val">{{ dem.total }}</div>
-                {#  A quebra por situação da demanda fica de fora de propósito: `dem_situacao`
-                    vale 'ABERTA' tanto para a demanda publicada quanto para o rascunho, e a
-                    interface chama rascunho de rascunho em toda outra tela. Dizer "abertas" aqui
-                    faria o painel contradizer a lista. Encerrada não tem essa ambiguidade. #}
+                {#  A quebra vem de `dem_dt_publicacao`, e não de `dem_situacao`: aquela coluna
+                    vale 'ABERTA' tanto para a demanda publicada quanto para o rascunho, e dizer
+                    "abertas" aqui faria o painel contradizer toda outra tela, que chama rascunho
+                    de rascunho. Encerrada não tem essa ambiguidade e continua na mesma linha. #}
                 <p class="sub">
-                    {%- if encerradas == 0 -%}
-                        Nenhuma encerrada até agora
+                    {%- if dem.publicadas == 1 -%}
+                        1 publicada
                     {%- else -%}
-                        {{ encerradas }} {{ encerradas == 1 ? 'encerrada' : 'encerradas' }}
+                        {{ dem.publicadas }} publicadas
+                    {%- endif -%}
+                    {%- if dem.rascunho > 0 -%}
+                        , {{ dem.rascunho }} em rascunho
+                    {%- endif -%}
+                    {%- if encerradas > 0 -%}
+                        , {{ encerradas }} {{ encerradas == 1 ? 'encerrada' : 'encerradas' }}
                     {%- endif -%}
                 </p>
             </div>
