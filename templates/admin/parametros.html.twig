@@ -53,6 +53,30 @@
     Parâmetro fora da lista fechada de Support\Parametros chega com editavel = false: aqui ele
     aparece como valor, não como campo. O formulário aceita de volta só o que ele mesmo desenhou.
 #}
+{#
+    A procedência de um valor: quem o mudou e quando.
+
+    É a evidência mais direta que o item 12.3 pode receber. A tela inteira existe para provar que
+    os critérios de recomendação estão sob supervisão humana, e até aqui ela provava só que a
+    supervisão era possível: quem já tinha sido exercida ficava na trilha de auditoria, noutra
+    tela. A frase ao lado do campo traz a prova para onde a decisão é tomada.
+
+    Os dois estados são desenhados, e o segundo não é ausência de dado. Parâmetro que ninguém
+    mexeu continua valendo o que a carga inicial definiu, e isso é uma afirmação sobre o motor,
+    não uma lacuna: por isso ele tem frase própria, e não um traço mudo. Autor nulo é o terceiro
+    caso e também é dito por extenso, porque alteração sem pessoa identificada é exatamente o que
+    a supervisão humana não é.
+#}
+{% macro procedencia(h) %}
+    {% if h and h.quem %}
+        <p class="pl-hist">Alterado por <b>{{ h.quem }}</b> em {{ h.quando|date('d/m/Y, H:i') }}</p>
+    {% elseif h %}
+        <p class="pl-hist">Alterado em {{ h.quando|date('d/m/Y, H:i') }}, sem autor registrado</p>
+    {% else %}
+        <p class="pl-hist inicial">Valor da carga inicial, sem alteração registrada</p>
+    {% endif %}
+{% endmacro %}
+
 {% macro campo(p, erros, valores, unidade = '') %}
     {% set id    = 'par-' ~ p.par_chave|replace({'.': '-', '_': '-'}) %}
     {% set erro  = erros[p.par_chave]|default(null) %}
@@ -70,6 +94,7 @@
         <div class="tx">
             {% if p.editavel %}<label for="{{ id }}">{{ p.par_descricao }}</label>
             {% else %}<span class="rot">{{ p.par_descricao }}</span>{% endif %}
+            {{ _self.procedencia(p.ultima_alteracao|default(null)) }}
             <p class="ch">
                 <span class="k">{{ p.par_chave }}</span>
                 {% if p.limite %}
@@ -303,6 +328,7 @@
                     {% endfor %}
                 </div>
 
+                {{ par.procedencia(niveis.ultima_alteracao|default(null)) }}
                 <p class="ch pl-niveis-ch"><span class="k">{{ chave_niveis }}</span></p>
 
                 {% if erro_niveis %}

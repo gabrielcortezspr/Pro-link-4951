@@ -1643,3 +1643,184 @@ main.p-0 > .alert { margin: 0; border-radius: 0; border-left: 0; border-right: 0
     .pl-salvar .acoes .pl-btn, .pl-salvar .acoes .pl-cta { width: 100%; height: auto;
         min-height: 40px; padding: 9px 12px; white-space: normal; text-align: center; }
 }
+
+/* ---------- 25. A aplicação em 390px: o painel sem barra lateral fixa, e a tabela que rola
+   dentro do próprio quadro ----------------------------------------------------------------
+   O Anexo I item 5 e o item 10 da triagem do Anexo VI cobram uso em dispositivo móvel, e seis
+   telas rolavam de lado. Duas causas, e nenhuma das duas é a tabela em si.
+
+   A primeira é estrutural: a barra lateral do painel tinha 232px em qualquer largura, então num
+   aparelho de 390px a navegação ficava com 60% da tela e o conteúdo com 158px. Foi contra esses
+   158px que as seções 23 e 24 escreveram remendo por componente ("sobra menos de 200px"). Aqui a
+   causa some: abaixo de 768px a barra deixa de ser coluna e vira faixa, o conteúdo recebe a
+   largura inteira, e os remendos das seções anteriores passam a ser o segundo estágio, não o
+   primeiro.
+
+   A segunda é de contenção: `.visually-hidden` do Bootstrap é `position: absolute`, e nenhum
+   antepassado da tabela era bloco de contenção. O rótulo de leitor de tela da última coluna
+   ficava ancorado no documento, escapava do quadro de rolagem e esticava a página inteira, mesmo
+   com a tabela devidamente clipada. É por isso que o excesso medido em `/demandas` (194px) não
+   batia com a largura da tabela (616px): quem vazava não era a tabela, era um <span> de 1px a
+   1170px da origem.
+
+   768px é onde a barra lateral deixa de ser navegação e vira obstáculo: abaixo disso ela come
+   mais de 30% da janela. Fica acima dos 720px das seções 23 e 24 de propósito, para a faixa
+   entrar em cena antes dos remendos que existiam para sobreviver sem ela. */
+
+/* ---- Toda tabela larga rola dentro do próprio quadro ---- */
+/* `position: relative` é a correção de raiz: o quadro passa a ser o bloco de contenção do que
+   está posicionado dentro dele, e o rótulo de leitor de tela volta a ser clipado junto com a
+   tabela. Vale para os dez quadros de tabela da aplicação de uma vez, e não só para os que
+   vazam hoje. */
+.table-responsive { position: relative; }
+
+/* A affordance: sombra de rolagem em CSS puro. As duas primeiras camadas são brancas e viajam
+   com o conteúdo (`local`); as duas de baixo são a sombra e ficam presas ao quadro (`scroll`).
+   No começo da rolagem a camada branca cobre a sombra da esquerda, e sobra a da direita. Rolou
+   até o fim, inverte. Tabela que cabe inteira não mostra sombra nenhuma, porque não há o que
+   cobrir: a dica aparece exatamente quando existe conteúdo escondido, sem uma linha de script. */
+.table-responsive {
+    background:
+        linear-gradient(to right, var(--pl-card) 34%, rgba(255, 255, 255, 0)) left center,
+        linear-gradient(to left,  var(--pl-card) 34%, rgba(255, 255, 255, 0)) right center,
+        linear-gradient(to right, rgba(11, 42, 74, .15), rgba(11, 42, 74, 0)) left center,
+        linear-gradient(to left,  rgba(11, 42, 74, .15), rgba(11, 42, 74, 0)) right center;
+    background-repeat: no-repeat;
+    background-size: 44px 100%, 44px 100%, 20px 100%, 20px 100%;
+    background-attachment: local, local, scroll, scroll;
+}
+/* Área rolável precisa ser alcançável por teclado: o Chrome não dá foco a contêiner de rolagem
+   sozinho, e sem isto quem não usa ponteiro não chega às colunas da direita. O contorno vai para
+   dentro porque o quadro de log tem `overflow: hidden` e cortaria um contorno externo. */
+.table-responsive:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: -2px; }
+
+/* ---- A coluna do assunto não colapsa ---- */
+/* A tabela de largura automática reparte o espaço que falta tirando de quem cede mais, e quem
+   cede mais é sempre a coluna de texto livre: o título da demanda virava uma tira de 65px com
+   uma palavra por linha, e a linha inteira ficava com 150px de altura. Um piso devolve à coluna
+   do assunto a largura de uma frase. Custa alguns pixels a mais de arrasto e devolve a leitura,
+   que é a troca certa: rolar de lado é um gesto, ler uma palavra por linha é um obstáculo. */
+.pl-table th.assunto, .pl-table td.assunto { min-width: 190px; }
+
+/* A dica de rolagem do quadro de log.
+   A sombra sozinha diz "há mais", mas não diz "há mais COLUNA": a coluna do meio corta com
+   reticências na borda, e reticências leem como texto truncado. A linha desfaz a ambiguidade para
+   quem abre a trilha pela primeira vez, que é exatamente quem a banca é.
+
+   O ponto onde ela aparece não é um palpite: a tabela de log tem 1040px de mínimo, a barra lateral
+   tem 232px e o conteúdo tem clamp(18px, 1.8vw, 30px) de cada lado, então a área útil é
+   0,964·L − 232 e ela fica menor que 1040 abaixo de 1320px de janela. Acima disso a tabela cabe
+   inteira e a frase seria ruído. */
+.pl-log-lado { display: none; align-items: center; gap: 6px; margin: 7px 0 0; font-size: 12px;
+    color: var(--pl-muted); }
+.pl-log-lado svg { width: 13px; height: 13px; flex: none; color: var(--pl-faint); }
+@media (max-width: 1319px) { .pl-log-lado { display: flex; } }
+
+/* ---- O "i" aberto, dentro da topbar do painel ---- */
+/* A seção 18 tirou o fundo do botão para ele não virar uma bolha branca sobre a topbar clara, e
+   junto levou o fundo do estado aberto: o "i" fica branco sobre branco e some justamente quando
+   está ativo. Aqui só o estado aberto volta ao azul escuro, que é o que a seção 15 já desenhou. */
+.pl-topbar .pl-info[open] > summary { background: var(--pl-data); border-color: var(--pl-data);
+    color: #fff; }
+
+/* ---- Grade de cartões em tela estreita ---- */
+/* `minmax(330px, 1fr)` é um piso absoluto: quando a área útil é menor que 330px, a coluna
+   continua com 330 e a página rola de lado. `min()` faz o piso ceder à largura disponível. É a
+   mesma correção já usada em `.pl-ressalvas .itens` e em `.pl-niveis`, agora onde ela nasceu. */
+.pl-grade         { grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); }
+.pl-grade.pessoas { grid-template-columns: repeat(auto-fill, minmax(min(376px, 100%), 1fr)); }
+
+/* ---- Parâmetros: a procedência de cada valor ----
+   Quem mudou, e quando. A linha entra entre o rótulo e a chave de sistema, e não depois dela,
+   para o peso da linha cair sem degrau: nome de gente em tinta cheia, depois o identificador em
+   cinza claro. Invertida, a linha do meio ficaria mais apagada que a de baixo.
+
+   Nunca alterado é o outro estado desenhado, não a falta de um: ele afirma que o valor continua
+   sendo o da carga inicial. Como é afirmação e não evidência de supervisão, fica no cinza claro
+   da chave; a linha com nome de pessoa sobe para o cinza de texto, com o nome em tinta cheia. É
+   o que permite varrer os onze parâmetros e ver de relance quais passaram por decisão humana. */
+.pl-hist { margin: 3px 0 0; font-size: 12px; line-height: 1.45; color: var(--pl-muted); }
+.pl-hist b { color: var(--pl-ink); font-weight: 600; }
+.pl-hist.inicial { color: var(--pl-faint); }
+/* A escada de afinidade é um parâmetro só, com os cinco campos numa grade: ali a procedência se
+   descola da grade do mesmo tanto que a chave se descolava antes dela. */
+.pl-niveis + .pl-hist { margin-top: 14px; }
+.pl-hist + .pl-niveis-ch { margin-top: 3px; }
+
+/* ---- A nota de apoio dentro de uma lista de rótulo e valor ---- */
+/* `.lin-sub` só tem estilo dentro de `.pl-table` (seção 16). Num <dd> ele voltava ao corpo de
+   14px em tinta cheia, e "Guardado cifrado. O valor completo sai apenas na sua exportação."
+   emendava no número do documento com o mesmo peso dele, no cartão que é a evidência de LGPD da
+   tela. Aqui a nota volta a ser nota: linha própria, um degrau menor, em cinza. */
+.pl-dl .lin-sub { display: block; margin-top: 2px; font-size: 12px; line-height: 1.5;
+    color: var(--pl-muted); }
+
+/* ---- Valor sem ponto de quebra dentro de uma lista de rótulo e valor ---- */
+/* Os 3px de `/privacidade` eram o e-mail do titular: 38 caracteres sem espaço numa coluna de
+   204px. A caixa do <dd> obedecia ao grid, e a linha de texto dentro dela é que passava por cima
+   da borda e esticava a página. `anywhere`, e não `break-word`: só o primeiro deixa a coluna
+   encolher abaixo do tamanho da palavra, que é o que uma grade estreita precisa. É a mesma regra
+   já aplicada ao nome do candidato, ao título da demanda e ao hash do retrato. */
+.pl-dl dd { overflow-wrap: anywhere; }
+
+@media (max-width: 768px) {
+
+    /* ---- A barra lateral vira faixa ---- */
+    /* Uma linha de identificação e a navegação em chips embaixo dela, quebrando em duas fileiras
+       em vez de rolar de lado. Rolando, o painel caberia em 97px de altura contra 182px, e por
+       85px de tela esconderia metade da navegação atrás de um gesto que nada anuncia: num
+       aparelho de 390px sobram três chips visíveis, e Auditoria e Lixeira, que são a evidência
+       de segurança e do item 8.6j, ficariam fora do ar. Com a quebra, as seis seções estão na
+       tela e a que está aberta é sempre visível. */
+    .pl-app, .pl-app.collapsed { grid-template-columns: minmax(0, 1fr); }
+    .pl-side { flex-flow: row wrap; align-items: center; gap: 0 10px; padding: 11px 14px 0;
+        white-space: normal; }
+    .pl-side .pl-brand { order: 0; margin: 0; font-size: 15px; }
+    .pl-side small { order: 1; margin: 0; }
+    /* A conta continua identificada, sem o cargo repetido: "Administração" já está escrito ao
+       lado da marca, a dois centímetros dali. */
+    .pl-side .foot { order: 2; margin: 0 0 0 auto; padding: 0; background: none; gap: 8px;
+        max-width: 46%; }
+    .pl-side .foot .txt { white-space: nowrap; }
+    .pl-side .foot .fn { display: none; }
+
+    .pl-nav { order: 3; width: 100%; display: flex; flex-wrap: wrap; gap: 7px;
+        margin: 11px 0 0; padding-bottom: 11px; }
+    .pl-nav a { flex: none; padding: 8px 13px; border-radius: 999px;
+        background: rgba(255, 255, 255, .07); font-size: 13px; }
+    .pl-nav a.active { background: #fff; }
+
+    /* ---- A topbar em duas linhas ---- */
+    /* O título ocupa a primeira sozinho, e o que era "ação de página" desce para a segunda. Nada
+       daqui é ação: são estado (somente leitura, contagem do momento) e explicação, e estado
+       atrás de um menu é justamente esconder do celular a prova de que a trilha não se edita.
+       Duas linhas sempre, e não quando não couber: "Sessões do motor" cabe numa linha e "Trilha
+       de auditoria" não, e duas telas irmãs com alturas de cabeçalho diferentes leem como duas
+       aplicações. */
+    .pl-topbar { position: relative; height: auto; align-items: flex-start; flex-wrap: wrap;
+        gap: 9px 12px; padding: 13px 16px 14px; }
+    .pl-topbar h1, .pl-topbar h2, .pl-topbar h3 { flex: 1 0 100%; }
+    .pl-topbar-acoes { margin-left: 0; flex-wrap: wrap; gap: 9px 10px; }
+    /* A contagem volta ao celular. Ela saiu na seção 23 porque a topbar tinha 158px para o
+       título inteiro; com a faixa no lugar da coluna, ela cabe, e em duas destas telas ela não é
+       enfeite: é o tamanho da lixeira e o número de parâmetros abertos à Administração. */
+    .pl-momento { display: inline; white-space: normal; }
+
+    /* ---- Linha de contexto: texto corrido, não fileira de caixas ---- */
+    /* O ponto separador ficava pendurado no fim da linha, e o "i" descia sozinho para uma linha
+       só dele, porque numa fileira de flex cada pedaço é uma caixa que quebra inteira. Em tela
+       estreita a linha volta a ser texto: os pedaços fluem como frase, o ponto fica no meio dela
+       e o "i" encosta na última palavra, que é onde ele deve estar. */
+    .pl-log-resumo, .pl-head .sub { display: block; }
+    .pl-log-resumo > [aria-hidden="true"], .pl-head .sub > .pl-sep { margin: 0 5px; }
+    .pl-head .sub > .pl-info { margin-left: 5px; }
+
+    /* A caixa do "i" da topbar passa a se medir pela barra, e não pelo botão de 18px que a abre.
+       Presa ao botão, ela abria 330px para a esquerda a partir de onde ele estivesse, e na
+       segunda linha do cabeçalho isso a jogava para fora da tela pela esquerda. */
+    /* Três classes no seletor de propósito: `.pl-info.fim .pl-info-caixa` da seção 15 também
+       tem três, e sem empatar com ela o alinhamento pela direita continuaria valendo. */
+    .pl-topbar .pl-info { position: static; }
+    .pl-topbar .pl-info .pl-info-caixa { left: 16px; right: 16px; width: auto; transform: none;
+        top: calc(100% + 6px); }
+}

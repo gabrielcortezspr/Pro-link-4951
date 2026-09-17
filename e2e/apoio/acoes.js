@@ -129,6 +129,37 @@ export function aceitarConfirmacoes(pagina) {
 }
 
 /**
+ * Manifesta interesse na demanda e confirma que a plataforma aceitou.
+ *
+ * O ponto desta função é traduzir uma recusa em mensagem. `manifestacao.limite_hora` vale 10 e
+ * conta por pessoa: rodando a suíte várias vezes seguidas, o mesmo profissional bate o teto e o
+ * POST passa a ser recusado. Sem isto, o sintoma é `waitForURL` estourando o tempo, e três
+ * investigações já começaram procurando defeito no botão.
+ *
+ * Recusa por limite é o anti-spam funcionando, e o teste diz isso em vez de acusar a aplicação.
+ */
+export async function manifestar(pagina, demandaId) {
+  await pagina.goto(`/demandas/${demandaId}/manifestar`);
+  await pagina.getByRole('button', { name: /Manifestar interesse/i }).click();
+
+  try {
+    await pagina.waitForURL(/\/manifestacoes/, { timeout: 8000 });
+  } catch {
+    const corpo = await pagina.locator('body').innerText();
+    const aviso = corpo.match(/[^\n]*(limite|aguarde|muitas)[^\n]*/i)?.[0]?.trim();
+
+    throw new Error(
+      aviso
+        ? `A manifestação foi recusada pela plataforma: "${aviso}". `
+          + 'Isso costuma ser o teto de manifestações por hora, que conta por pessoa e é '
+          + 'comportamento correto. Espere a hora virar, use outra conta, ou suba '
+          + '`manifestacao.limite_hora` em /admin/parametros.'
+        : `A manifestação não redirecionou e a tela não explicou por quê. URL: ${pagina.url()}`,
+    );
+  }
+}
+
+/**
  * Inventário de uma tela, para depuração.
  *
  * Não é conferência: serve para o relatório de execução dizer o que havia na página quando algo

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { ADMIN, EMPRESA, PROFISSIONAL, TOS_PRINCIPAL, TOS_SECUNDARIO } from '../apoio/contas.js';
-import { aceitarConfirmacoes, descrever, entrar, sair, telaSaudavel } from '../apoio/acoes.js';
+import { aceitarConfirmacoes, descrever, entrar, manifestar, sair, telaSaudavel } from '../apoio/acoes.js';
 
 /**
  * Os seis cenários mínimos do Anexo I, item 7, pelo navegador.
@@ -147,8 +147,9 @@ test.describe('Os seis cenários do Anexo I', () => {
     // interesse abre para o demandante o que o titular tinha aberto, e ele precisa ver o quê.
     await expect(page.locator('body')).toContainText(PROFISSIONAL.nome);
 
-    await page.getByRole('button', { name: /Manifestar interesse/i }).click();
-    await page.waitForURL(/\/manifestacoes/);
+    // `manifestar()` traduz a recusa em mensagem: o teto de manifestações por hora conta por
+    // pessoa, e sem isso o sintoma é um estouro de tempo que parece defeito do botão.
+    await manifestar(page, demanda.id);
     await telaSaudavel(page);
 
     // O envio não pode ser desfeito e é um por demanda: a plataforma precisa dizer isso **antes**

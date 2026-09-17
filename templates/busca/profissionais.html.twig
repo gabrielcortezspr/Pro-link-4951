@@ -36,7 +36,11 @@
 <div class="pl-head">
     <div class="tit">
         <h1>{{ titulo }}</h1>
-        <p class="sub">
+        {#  <div>, e não <p>: o "i" é um <details>, que não é conteúdo de frase. Dentro de um
+            parágrafo o próprio analisador do navegador fechava o <p> antes dele, e o "i" caía
+            numa linha só dele, solto embaixo do texto que ele explica. É a mesma razão que fez
+            .pl-linha-titulo existir para o título de seção. #}
+        <div class="sub">
             {% if busca.total > 0 %}
                 <span>
                     <span class="n">{{ busca.total }}</span>
@@ -50,7 +54,7 @@
             <span>Ordem alfabética, sem ranking: o termo decide quem aparece, e ninguém aparece na frente de ninguém</span>
             {{ ui.info('Onde esta busca procura',
                 'O termo é procurado no nome, na modalidade do registro no CREA, no grupo da Tabela de Obras e Serviços em que a pessoa tem ART registrada, no título e na descrição das experiências declaradas e no resumo do perfil. Encontrar é tudo: não existe nota de relevância, nem ordenação por quantidade de acervo.') }}
-        </p>
+        </div>
     </div>
 
     {% if not usuario() %}

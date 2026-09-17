@@ -43,14 +43,15 @@
     </div>
 {% else %}
     <div class="pl-card">
-        <div class="table-responsive">
+        <div class="table-responsive" tabindex="0" role="region"
+             aria-label="Manifestações de interesse que você enviou">
             <table class="pl-table">
                 <caption class="visually-hidden">
                     Demandas em que você manifestou interesse, com a situação de cada envio e o retorno do demandante
                 </caption>
                 <thead>
                     <tr>
-                        <th scope="col">Demanda</th>
+                        <th scope="col" class="assunto">Demanda</th>
                         <th scope="col">Situação</th>
                         <th scope="col">Retorno do demandante</th>
                         <th scope="col">Enviada</th>
@@ -60,7 +61,7 @@
                 <tbody>
                     {% for m in manifestacoes %}
                         <tr>
-                            <td>
+                            <td class="assunto">
                                 <a class="lin-tt" href="{{ app_url }}/manifestacoes/{{ m.man_id }}">{{ m.dem_titulo }}</a>
                                 {#  A demanda encerrada muda o que a pessoa pode esperar daqui, e é
                                     a única situação da demanda que vale ocupar espaço na linha. #}

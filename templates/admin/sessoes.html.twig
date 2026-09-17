@@ -51,10 +51,23 @@
                        clique do "i". O detalhe de COMO é que vai para a explicação sob demanda. #}
                     <span>a ordem de cada pool é sorteada pela semente da sessão, sem ranking</span>
                 </p>
+                {#  Afinidade com a borda: a coluna do meio corta com reticências exatamente no fim
+                    do quadro, e reticências leem como "o texto foi cortado", não como "a tabela
+                    continua". A linha desfaz a ambiguidade, e some no desktop. #}
+                <p class="pl-log-lado">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"/><path d="M14 6l6 6-6 6"/></svg>
+                    A tabela continua para o lado
+                </p>
             </div>
         </div>
 
-        <div class="table-responsive">
+        {#  A tabela é mais larga que um aparelho estreito e rola dentro do próprio quadro, sem
+            empurrar a página. O quadro precisa dos três atributos: `tabindex` porque o Chrome não
+            dá foco a contêiner de rolagem sozinho, e sem foco quem navega por teclado não alcança
+            as colunas da direita; `role` e `aria-label` para o quadro ser anunciado com nome em
+            vez de virar uma parada de tabulação muda. #}
+        <div class="table-responsive" tabindex="0" role="region"
+             aria-label="Execuções registradas do motor">
             <table class="pl-table pl-log pl-sess">
                 <caption class="visually-hidden">
                     Sessões do motor de compatibilização, da mais recente para a mais antiga,

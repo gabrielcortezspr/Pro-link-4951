@@ -29,12 +29,13 @@
                     'Cada finalidade é independente das outras e pode ser concedida ou revogada quando você quiser. A revogação tem efeito imediato: a plataforma reconfere a escolha em toda leitura, e não guarda cópia do que ficou fora.') }}
             </div>
 
-            <div class="table-responsive">
+            <div class="table-responsive" tabindex="0" role="region"
+                 aria-label="Finalidades de uso dos seus dados">
                 <table class="pl-table">
                     <caption class="visually-hidden">Finalidades de uso dos seus dados e situação de cada uma</caption>
                     <thead>
                         <tr>
-                            <th scope="col">Finalidade</th>
+                            <th scope="col" class="assunto">Finalidade</th>
                             <th scope="col">Situação</th>
                             <th scope="col"><span class="visually-hidden">Ação</span></th>
                         </tr>
@@ -43,7 +44,7 @@
                     {% for chave, descricao in finalidades %}
                         {% set estado = painel.consentimentos[chave] %}
                         <tr>
-                            <th scope="row" class="fw-normal">{{ descricao }}</th>
+                            <th scope="row" class="fw-normal assunto">{{ descricao }}</th>
                             <td>
                                 {% if estado.concedido %}
                                     <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Concedido</span>
@@ -100,7 +101,19 @@
             <div class="pl-linha-titulo"><h2 class="pl-secao" id="h-conta">Minha conta</h2></div>
             <dl class="pl-dl mini mt-0">
                 <dt>Nome</dt><dd>{{ painel.usuario.nome }}</dd>
-                <dt>E-mail</dt><dd>{{ painel.usuario.email }}</dd>
+                <dt>E-mail</dt>
+                {#  <wbr> depois do arroba: o endereço não tem espaço, e num painel de 372px ele
+                    quebrava no meio do domínio ("prolink.l / ocal"). Com uma oportunidade de
+                    quebra declarada, o navegador prefere ela à quebra de emergência do
+                    overflow-wrap, e o endereço parte onde a leitura espera. #}
+                <dd>
+                    {%- set em = painel.usuario.email -%}
+                    {%- if '@' in em -%}
+                        {{ em|split('@')|first }}@<wbr>{{ em|split('@')|last }}
+                    {%- else -%}
+                        {{ em }}
+                    {%- endif -%}
+                </dd>
                 <dt>Perfil</dt>
                 <dd title="{{ painel.usuario.perfil }}">{{ perfis[painel.usuario.perfil]|default('Conta') }}</dd>
                 <dt>CPF ou CNPJ</dt>

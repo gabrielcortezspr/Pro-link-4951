@@ -21,6 +21,25 @@ export const PROFISSIONAL = {
   nome: 'PEDRO HENRIQUE ALVES',
 };
 
+/**
+ * O profissional da **demonstração**, deliberadamente diferente do dos cenários.
+ *
+ * `manifestacao.limite_hora` vale 10 e conta por pessoa. Rodando a suíte inteira várias vezes
+ * seguidas, como acontece numa sessão de trabalho, o mesmo profissional bate o teto e a
+ * manifestação passa a ser recusada: o anti-spam funcionando como projetado derrubava a
+ * demonstração, com um estouro de tempo em `waitForURL` que não dizia nada sobre a causa.
+ *
+ * Dividir o consumo em dois não elimina o teto, adia. `manifestar()` em `acoes.js` reconhece a
+ * recusa e falha dizendo o que houve, que é o que faltava.
+ *
+ * Também tem acervo em `TOS_10.4.2.3`, então continua compatível com a demanda do roteiro.
+ */
+export const PROFISSIONAL_DEMO = {
+  email: 'sophia.martins.0702@prolink.local',
+  senha: SENHA_DEMO,
+  nome: 'SOPHIA MARTINS',
+};
+
 export const EMPRESA = {
   email: 'alfa.engenharia.e.consultoria.ltda.0145@prolink.local',
   senha: SENHA_DEMO,

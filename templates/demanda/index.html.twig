@@ -44,12 +44,13 @@
     </div>
 {% else %}
     <div class="pl-card">
-        <div class="table-responsive">
+        <div class="table-responsive" tabindex="0" role="region"
+             aria-label="Demandas publicadas por você">
             <table class="pl-table">
                 <caption class="visually-hidden">Demandas publicadas por você, com situação e número de interessados</caption>
                 <thead>
                     <tr>
-                        <th scope="col">Demanda</th>
+                        <th scope="col" class="assunto">Demanda</th>
                         <th scope="col">Regime</th>
                         <th scope="col">Situação</th>
                         <th scope="col" class="num">Interessados</th>
@@ -60,7 +61,7 @@
                 <tbody>
                     {% for d in demandas %}
                         <tr>
-                            <td>
+                            <td class="assunto">
                                 <a class="lin-tt" href="{{ app_url }}/demandas/{{ d.dem_id }}">{{ d.dem_titulo }}</a>
                                 <span class="lin-sub">
                                     {% if d.dem_local_municipio %}

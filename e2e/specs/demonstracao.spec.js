@@ -1,8 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { mkdir } from 'node:fs/promises';
-import path from 'node:path';
-import { ADMIN, EMPRESA, PROFISSIONAL, TOS_PRINCIPAL, TOS_SECUNDARIO } from '../apoio/contas.js';
-import { aceitarConfirmacoes, entrar, sair } from '../apoio/acoes.js';
+import { ADMIN, EMPRESA, PROFISSIONAL_DEMO, TOS_PRINCIPAL, TOS_SECUNDARIO } from '../apoio/contas.js';
+import { aceitarConfirmacoes, entrar, manifestar, sair } from '../apoio/acoes.js';
 
 /**
  * A jornada completa, de ponta a ponta, num vídeo só.
@@ -22,7 +20,11 @@ import { aceitarConfirmacoes, entrar, sair } from '../apoio/acoes.js';
  */
 test.describe('Demonstração', () => {
   test('a jornada completa do Pro-Link, dos seis cenários do Anexo I', async ({ page }, info) => {
-    test.slow();
+    // `test.slow()` triplica o tempo do arquivo de configuração, e não basta: as pausas de
+    // legenda somam perto de um minuto, e a jornada tem vinte navegações. O teto aqui é
+    // deliberado, e é o único teste do repositório que precisa dele: os outros falham rápido de
+    // propósito.
+    test.setTimeout(300_000);
 
     const confirmacoes = aceitarConfirmacoes(page);
     const selo = new Date().toISOString().slice(11, 19).replace(/:/g, '');
@@ -36,7 +38,7 @@ test.describe('Demonstração', () => {
 
     // ---------------------------------------------------------------- cenário 1
     await legenda(page, 'Cenário 1 de 6', 'O profissional vê o acervo que a API oficial do CREA confirmou');
-    await entrar(page, PROFISSIONAL);
+    await entrar(page, PROFISSIONAL_DEMO);
     await page.goto('/perfil');
     await respirar(page, 1500);
 
@@ -113,15 +115,15 @@ test.describe('Demonstração', () => {
 
     // ---------------------------------------------------------------- cenário 4
     await legenda(page, 'Cenário 4 de 6', 'O profissional manifesta interesse, e a empresa vê o perfil');
-    await entrar(page, PROFISSIONAL);
+    await entrar(page, PROFISSIONAL_DEMO);
     await page.goto(`/demandas/${demandaId}/manifestar`);
     await respirar(page, 1500);
 
     await legenda(page, 'O retrato do perfil', 'O demandante recebe o que o titular tinha aberto, congelado no instante do envio');
     await respirar(page, 3000);
 
-    await page.getByRole('button', { name: /Manifestar interesse/i }).click();
-    await page.waitForURL(/\/manifestacoes/);
+    // A ida acima foi para mostrar o retrato; `manifestar()` recarrega a mesma tela e envia.
+    await manifestar(page, demandaId);
     await respirar(page, 1800);
     await sair(page);
 
@@ -133,7 +135,7 @@ test.describe('Demonstração', () => {
 
     // ---------------------------------------------------------------- cenário 5
     await legenda(page, 'Cenário 5 de 6', 'O titular corrige um dado, restringe outro e registra uma denúncia');
-    await entrar(page, PROFISSIONAL);
+    await entrar(page, PROFISSIONAL_DEMO);
     await page.goto('/perfil');
     await rolarAte(page, 'select[name="nivel[PERFIL:-:RESUMO]"]');
     await legenda(page, 'Visibilidade campo a campo', 'Nada é público por padrão, e não existe superusuário que abra perfil fechado');
@@ -194,20 +196,15 @@ test.describe('Demonstração', () => {
     expect(confirmacoes.textos.length, 'nenhuma ação irreversível pediu confirmação')
       .toBeGreaterThan(0);
 
-    // O Playwright apaga `resultados/` inteiro no começo de cada execução, então o vídeo da
-    // demonstração se perdia na primeira vez que alguém rodasse outro projeto. `saveAs` grava uma
-    // cópia num lugar previsível, que é de onde ele sai para virar o vídeo da entrega.
-    const video = page.video();
-
-    if (video) {
-      const destino = path.join(info.project.outputDir, '..', 'videos', 'demonstracao-jornada-completa.webm');
-
-      await mkdir(path.dirname(destino), { recursive: true });
-      await video.saveAs(destino);
-
-      info.annotations.push({ type: 'vídeo', description: destino });
-      console.log(`\n  vídeo da jornada completa: ${destino}\n`);
-    }
+    // O vídeo **não** é copiado daqui. `video.saveAs()` espera o arquivo fechar, e o arquivo só
+    // fecha quando o contexto do teste fecha, que acontece depois deste bloco: chamá-lo aqui
+    // trava o teste até o tempo estourar, e foi o que aconteceu na primeira escrita.
+    //
+    // A cópia é um passo de fora, documentado em `e2e/README.md`:
+    //
+    //     npx playwright test specs/demonstracao.spec.js \
+    //       && cp resultados/demonstracao*/video.webm videos/demonstracao-jornada-completa.webm
+    info.annotations.push({ type: 'vídeo', description: 'resultados/demonstracao*/video.webm' });
   });
 });
 

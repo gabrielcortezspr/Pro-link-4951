@@ -195,6 +195,13 @@
                         <span class="seg"><i aria-hidden="true"></i><b>{{ n_seg }}</b>&nbsp;de segurança</span>
                     {% endif %}
                 </p>
+                {#  Afinidade com a borda: a coluna do meio corta com reticências exatamente no fim
+                    do quadro, e reticências leem como "o texto foi cortado", não como "a tabela
+                    continua". A linha desfaz a ambiguidade, e some no desktop. #}
+                <p class="pl-log-lado">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"/><path d="M14 6l6 6-6 6"/></svg>
+                    A tabela continua para o lado
+                </p>
             </div>
             {# Faixa exibida no topo, número da página no rodapé: informação diferente em cada
                ponta, em vez de repetir "Página 1 de 9" duas vezes no mesmo quadro. #}
@@ -203,7 +210,11 @@
             {% endif %}
         </div>
 
-        <div class="table-responsive">
+        {#  Rola dentro do quadro, e nenhuma coluna sai do ar num aparelho estreito: numa trilha
+            de auditoria toda coluna é prova, e esconder uma delas no celular é editar a prova.
+            Os três atributos põem o quadro ao alcance do teclado, com nome. #}
+        <div class="table-responsive" tabindex="0" role="region"
+             aria-label="Eventos registrados na trilha de auditoria">
             <table class="pl-table pl-log">
                 <caption class="visually-hidden">
                     Trilha de auditoria, somente leitura. Um evento por linha, do mais recente

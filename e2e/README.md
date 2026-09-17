@@ -35,7 +35,17 @@ npx playwright test specs/demonstracao.spec.js             # grava a jornada com
 npx playwright show-report relatorio                       # abre o relatório
 ```
 
-O vídeo de cada execução fica em `resultados/<teste>/video.webm`.
+O vídeo de cada execução fica em `resultados/<teste>/video.webm`, e o Playwright **apaga esse
+diretório inteiro** no começo da execução seguinte. Para guardar o da jornada completa:
+
+```bash
+npx playwright test specs/demonstracao.spec.js \
+  && cp resultados/demonstracao*/video.webm videos/demonstracao-jornada-completa.webm
+```
+
+A cópia é um passo de fora de propósito: `video.saveAs()` dentro do teste espera o arquivo fechar,
+e o arquivo só fecha quando o contexto fecha, o que acontece depois do corpo do teste. Chamá-lo lá
+trava a execução até o tempo estourar.
 
 ### Nenhuma senha mora neste diretório
 
