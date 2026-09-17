@@ -45,6 +45,7 @@ final class View
         // Identificador de sistema não chega à tela: ação, tabela e coluna passam por rótulo em
         // português. Filtro, e não tradução no controller, porque a regra é de apresentação e
         // vale em qualquer template que toque auditoria. Ver Support\Rotulos.
+        $twig->addFilter(new TwigFilter('nome_proprio', [Rotulos::class, 'nomeProprio']));
         $twig->addFilter(new TwigFilter('rotulo_acao', [Rotulos::class, 'acao']));
         $twig->addFilter(new TwigFilter('rotulo_entidade', [Rotulos::class, 'entidade']));
         $twig->addFilter(new TwigFilter('rotulo_campo', [Rotulos::class, 'campo']));

@@ -110,7 +110,7 @@
 
         <div class="foot">
             <span class="av" aria-hidden="true">{{ pl_u.nome|slice(0, 1)|upper }}</span>
-            <span class="txt">{{ pl_u.nome }}<span class="fn">{% if pl_u.perfil == 'PROFISSIONAL' %}Profissional{% elseif pl_u.perfil == 'EMPRESA' %}Empresa{% else %}Contratante{% endif %}</span></span>
+            <span class="txt">{{ pl_u.nome|nome_proprio }}<span class="fn">{% if pl_u.perfil == 'PROFISSIONAL' %}Profissional{% elseif pl_u.perfil == 'EMPRESA' %}Empresa{% else %}Contratante{% endif %}</span></span>
         </div>
     </aside>
 
@@ -128,7 +128,7 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M9.5 20a2.5 2.5 0 005 0"/></svg>
                     <span class="visually-hidden">Interesses e mensagens</span>
                 </a>
-                <a class="pl-av xs" href="{{ app_url }}/perfil" title="{{ pl_u.nome }}">
+                <a class="pl-av xs" href="{{ app_url }}/perfil" title="{{ pl_u.nome|nome_proprio }}">
                     <span aria-hidden="true">{{ pl_u.nome|slice(0, 1)|upper }}</span>
                     <span class="visually-hidden">Meu perfil</span>
                 </a>

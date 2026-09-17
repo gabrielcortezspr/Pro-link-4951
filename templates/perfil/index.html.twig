@@ -19,7 +19,7 @@
 
 <div class="pl-head">
     <div class="tit">
-        <h1>{{ p.identidade.nome }}</h1>
+        <h1>{{ p.identidade.nome|nome_proprio }}</h1>
         <p class="sub">
             {% if p.identidade.rnp %}
                 <svg class="pl-mark" role="img" aria-label="Registro validado na API do CREA-AM"><use href="#pl-sym-seal"/></svg>

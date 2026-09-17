@@ -100,12 +100,12 @@
 
         {% for c in pool %}
             {% set idc = 'c' ~ loop.index0 %}
-            <article class="pl-focus" data-cartao data-nome="{{ c.nome }}" data-iniciais="{{ ui.iniciais(c.nome)|trim }}">
+            <article class="pl-focus" data-cartao data-nome="{{ c.nome|nome_proprio }}" data-iniciais="{{ ui.iniciais(c.nome)|trim }}">
 
                 <div class="pl-topo">
                     <span class="pl-av" aria-hidden="true">{{ ui.iniciais(c.nome) }}</span>
                     <div class="pl-ident">
-                        <h2 class="pl-name">{{ c.nome }}</h2>
+                        <h2 class="pl-name">{{ c.nome|nome_proprio }}</h2>
                         <p class="pl-meta">
                             <span>{{ c.tipo == 'E' ? 'Empresa' : 'Profissional' }}</span>
                             {% if c.registro_crea %}
@@ -183,7 +183,7 @@
                              aria-label="Perfis compatíveis com esta demanda">
                             <table class="pl-table">
                                 <caption class="visually-hidden">
-                                    Atividades desta demanda cobertas pelo acervo de {{ c.nome }}, com o documento que as sustenta
+                                    Atividades desta demanda cobertas pelo acervo de {{ c.nome|nome_proprio }}, com o documento que as sustenta
                                 </caption>
                                 <thead>
                                     <tr>

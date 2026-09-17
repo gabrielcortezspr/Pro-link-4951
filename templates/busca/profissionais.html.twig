@@ -206,7 +206,7 @@
                     <span class="pl-av" aria-hidden="true">{{ ui.iniciais(r.nome) }}</span>
                     <div class="pinfo">
                         <h2 class="pname">
-                            <a href="{{ app_url }}/perfil/{{ r.usuario_id }}">{{ r.nome }}</a>
+                            <a href="{{ app_url }}/perfil/{{ r.usuario_id }}">{{ r.nome|nome_proprio }}</a>
                             {% if r.registro_crea %}
                                 <svg class="pl-mark" role="img" aria-label="Registro validado na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
                             {% endif %}
@@ -269,7 +269,7 @@
                 </p>
 
                 <a class="pl-btn pbtn" href="{{ app_url }}/perfil/{{ r.usuario_id }}">
-                    Ver perfil<span class="visually-hidden"> de {{ r.nome }}</span>
+                    Ver perfil<span class="visually-hidden"> de {{ r.nome|nome_proprio }}</span>
                 </a>
             </article>
         {% endfor %}
