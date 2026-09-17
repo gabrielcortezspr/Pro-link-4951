@@ -380,9 +380,43 @@ admin vê a trilha, trata a denúncia e bloqueia.
 > `'self'`, zero origens externas em qualquer tela. `dependencias.md` atualizado com as versões
 > travadas do lock e as seis transitivas.
 >
-> **Falta, em ordem de obrigatoriedade:** MER em `_arq/mer/` (8.3.2b, o único item obrigatório que
-> ainda não existe); texto real de `sis_termos`, hoje espaço reservado (11.3); README testado em
-> clone limpo; roteiro dos seis cenários e ensaio; tag, zip e upload antes das 18h de 17/09.
+> **Sessão de 17/09 (madrugada), branch `claude/e7-lacunas`.** Fechou o que estava sem dono:
+>
+> · **MER** em `_arq/mer/` (8.3.2b), gerado do banco ao vivo, cinco diagramas no design system do
+>   projeto. Ele levantou dois desvios de nomenclatura em `sis_auditoria`, declarados na D65.
+> · **Texto real dos termos** (11.3), com a D03 e a D05 escritas em linguagem de titular, na carga
+>   inicial e não só no banco daqui.
+> · **Três buracos do painel**: indicadores da visão geral, que anunciava por escrito "os
+>   indicadores entram em 15/09"; editor de `sis_parametros` (12.3, supervisão humana); e a
+>   lixeira do 8.6j. Backend pronto e coberto, telas pelo `designer-ui`.
+> · **`sincronizar-status.php`** (RF02), promessa do backlog da E2 desde 10/09.
+> · **`prf_em_construcao`** volta a seguir a contagem de ARTs (defeito latente da E2, D63).
+> · **Suíte de ponta a ponta** em `e2e/`: os seis cenários pelo navegador, mais a jornada completa
+>   gravada em vídeo com legenda. D66.
+> · **Definição de pronto** (`docs/definicao-de-pronto.md`) e **roteiro da demo**
+>   (`docs/roteiro-demo.md`), que não existiam.
+>
+> Verificado: `verificar-e2` de 138 para 151 conferências, `verificar-e6` de 19 para 50, 188 testes
+> de unidade, seis cenários verdes no navegador. Carga inicial conferida num MariaDB limpo.
+>
+> **Achado em aberto, com diagnóstico pronto: seis telas rolam na horizontal em 390px.** O Anexo VI
+> cobra uso em dispositivo móvel como item de triagem. O padrão é um só, tabela larga sem
+> contêiner de rolagem própria, e o excesso medido é:
+>
+> | Tela | Excesso | Elemento |
+> |---|---|---|
+> | `/admin/sessoes` | 781px | `table.pl-table.pl-log` e `div.pl-topbar-acoes` |
+> | `/admin/auditoria` | 696px | idem |
+> | `/demandas` | 194px | `table.pl-table` |
+> | `/manifestacoes` | 54px | `table.pl-table` |
+> | `/privacidade` | 3px | não isolado |
+> | `/profissionais` | 2px | `article.pl-card` |
+>
+> `e2e/specs/responsivo.spec.js` trava isso no pipeline e **falha hoje**, de propósito: verde falso
+> seria pior do que vermelho honesto.
+
+> **Falta, em ordem de obrigatoriedade:** correção responsiva das seis telas acima; ensaio do
+> roteiro duas vezes; tag, zip e upload antes das 18h de 17/09.
 
 > **Parte do checklist de segurança saiu adiantada em 15/09** (`e0ada5a`, `0c417a6`), por ter
 > aparecido numa revisão de código: CSP conferida por máquina contra o layout (D50), `try_files`
