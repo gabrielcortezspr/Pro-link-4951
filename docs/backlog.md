@@ -437,10 +437,11 @@ Metade da nota depende disto. Não é "se sobrar tempo".
   que escreve nele usa `ON DUPLICATE KEY UPDATE` — se usar, está quebrado.
 - **Melhoria pós-entrega anotada na D28**: fazer o banco garantir a unicidade do alvo de
   visibilidade com coluna gerada, em vez de depender de todo mundo passar pelo repositório.
-- **`Sessao` guarda o perfil em `$_SESSION` e nunca o reconfere contra o banco.** O
-  `sessaoTemRespaldo()` derruba sessão revogada, mas mudança de papel — o rebaixamento para
-  Terceiro da D20/D26, e principalmente o bloqueio pelo administrador da E6 — só vale no próximo
-  login. Decidir junto com a operação atômica 5, que é quem depende disso.
+- ~~**`Sessao` guarda o perfil em `$_SESSION` e nunca o reconfere contra o banco.**~~ **Fechado em
+  17/09 (D68).** O bloqueio já valia na hora desde a D39, porque a operação atômica 5 revoga as
+  sessões. O que faltava era a mudança de papel, e ela não era teórica: o rebaixamento da D20 e da
+  D26 acontece quando a própria pessoa manda revalidar o registro, com sessão aberta. Medido com
+  requisição forjada (303 antes, 403 depois) e travado por cinco conferências em `verificar-e1.php`.
 - Rodar o Anexo VI do edital como autoavaliação. Todos os doze itens.
 - `grep` por segredo no repositório antes do push final.
 

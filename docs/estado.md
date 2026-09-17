@@ -16,8 +16,11 @@ buracos do painel (indicadores, editor de parâmetros do 12.3, lixeira do 8.6j);
 `sincronizar-status.php` (RF02); e a suíte de ponta a ponta em `e2e/`, que roda os seis cenários
 pelo navegador e grava a jornada num vídeo com legenda.
 
-Verificado: 188 testes · E1 75 · E2 151 · E4 32 · E6 53 · 36 telas · 59 conferências de padrão com
-0 violações · 16 de ponta a ponta no desktop. Carga inicial conferida num MariaDB limpo, e o
+Fechou também a última pendência de segurança da E7: **mudança de papel passa a valer na sessão
+já aberta** (D68), medida com requisição forjada, 303 antes e 403 depois.
+
+Verificado: 188 testes · E1 80 · E2 151 · E4 32 · E6 53 · 36 telas · 59 conferências de padrão com
+0 violações · 15 de ponta a ponta no desktop. Carga inicial conferida num MariaDB limpo, e o
 `.zip` por `git archive` conferido em 332 arquivos, sem `vendor/`, `.env` nem `node_modules`.
 
 ## Próximo passo
