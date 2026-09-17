@@ -5,48 +5,44 @@ Máximo de ~30 linhas: se passar disso, algo aqui deveria estar num commit ou nu
 
 ## Última sessão
 
-15–16/09/2026 — Gabriel, com Claude Code. Branch `e4/feed-demandante`, seis commits, **não
-integrada na `main`**.
+16/09/2026 — Gabriel, com Claude Code. Branch `e5/manifestacao`, seis commits.
 
 ## Onde parou
 
-**E4 concluída.** O motor deixou de ser inalcançável: feed do demandante, busca ativa e auditoria
-de sessões existem e são navegáveis. A base foi povoada pelo fluxo real (14 candidatos, ~28
-chamadas da API) e enriquecida com visibilidade variada e dados autodeclarados.
+**E5 concluída, e com ela os seis cenários mínimos do edital rodam.** O profissional manifesta
+interesse, o e-mail sai sozinho (o gatilho da fila faltava desde a E1), o demandante abre o perfil
+congelado no envio e as duas partes conversam. Conferido pelo navegador, não só por script.
 
-Verificado: 188 testes · 46 conferências de padrão com **0 violações** · 29 telas · E2 138 ·
-E4 32 · E6 19. A E5 (manifestação, mensagens, e-mail) não começou.
+Verificado: 188 testes · 55 conferências de padrão com **0 violações** · 34 telas · E2 138 ·
+E4 32 · E6 19.
 
 ## Próximo passo
 
-**Integrar `e4/feed-demandante` na `main`** e então começar a E5 por
-`src/Service/ManifestacaoService.php`, a operação atômica 3: grava `pro_manifestacoes` com
-`man_snapshot` e hash, muda a demanda para `COM_INTERESSADOS` e enfileira notificação. O ponto de
-entrada do profissional já existe — `/demandas/abertas` — e a D51 fixou o sentido do fluxo.
+**A E7**, que é a entrega, e o primeiro item dela é o que está sem dono há mais tempo: a
+**declaração de uso de IA, vieses e limitações** (item 12.3 e Anexo VI). A matéria-prima são as 59
+entradas de `docs/decisoes.md` — ela se escreve a partir de lá, não do zero.
+
+Junto, e obrigatório: o **MER** em `_arq/mer/` (8.3.2b).
 
 ## Decisões pendentes
 
-- **Servir Bootstrap e as fontes localmente** e fechar a CSP em `'self'` (Consequência da D50).
-  No Demo Day presencial, sem internet, a apresentação é feita sem CSS.
-- `prf_em_construcao` é derivado guardado em coluna: derivar na leitura (como a D01) ou ponto
-  único de escrita?
-- MER (`_arq/mer/`) e a declaração de uso de IA (12.3) seguem **sem dono**, ambos obrigatórios na
-  entrega. A `decisoes.md` chegou a 56 entradas: a matéria-prima da 12.3 está lá.
+- **Servir Bootstrap e as fontes localmente** e fechar a CSP em `'self'` (Consequência da D50). No
+  Demo Day presencial, sem internet, a apresentação é feita sem CSS. É o risco operacional maior.
+- `prf_em_construcao` é derivado guardado em coluna: derivar na leitura (como a D01) ou ponto único
+  de escrita?
+- `ARQUIVADA` em `man_situacao`: quem arquiva, e o que isso significa para quem manifestou.
 
 ## Lembrar
 
 - **A senha do admin não é a das contas semeadas.** `camila@prolink.local` tem senha própria, de
-  desenvolvimento, que não entra em arquivo versionado. Um agente perdeu duas tentativas de login
-  por assumir o contrário.
-- **`verificar-e4.php` grava duas sessões novas a cada execução.** Das ~45 sessões em
-  `mat_sessoes`, mais de 30 são lixo de verificação e aparecem na primeira página de
-  `/admin/sessoes`. Limpar antes do pitch, ou fazer o script reutilizar uma demanda fixa.
-- **Antes da demonstração**: recarregar o banco e rodar, nesta ordem, `semear-candidatos.php`,
-  `abrir-visibilidade-demo.php` e `preencher-declarados-demo.php`. Sem os dois últimos o feed
-  mostra perfis vazios e quatro das seis dimensões saem "Não medida".
-- **Escreva as demandas do roteiro olhando o índice**, nunca antes — mordeu de novo nesta sessão.
+  desenvolvimento, fora de arquivo versionado.
+- **`ParametroRepository` faz cache estático por processo.** Mudar `sis_parametros` e chamar o
+  serviço na mesma execução lê o valor antigo. Custou um falso positivo nesta sessão.
+- **`verificar-e4.php` grava duas sessões a cada execução**, e a primeira página de
+  `/admin/sessoes` está com dezenas de linhas de teste. Limpar antes do pitch.
+- **Antes da demonstração**: recarregar o banco e rodar `semear-candidatos.php`,
+  `abrir-visibilidade-demo.php` e `preencher-declarados-demo.php`, nesta ordem.
+- **Escreva as demandas do roteiro olhando o índice**, nunca antes.
 - `verificar-api.php` consome chamadas registradas: nunca rodar em laço sobre `verificar-*.php`.
-- Pendências de front anotadas e não feitas: vitrine sem filtro por UF ou atividade, navegação sem
-  estado `.active`, e hover de cartão que existe na busca e não em `demanda/abertas`.
-- `dem_titulo` é renderizado cru em cinco telas: demanda cujo título contenha `TOS_x` vazaria o
-  código. Uma linha de `|replace` em cada resolve.
+- Pendências de front anotadas: vitrine sem filtro por UF ou atividade, navegação sem estado
+  `.active`, e `dem_titulo` renderizado cru em cinco telas.
