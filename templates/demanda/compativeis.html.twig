@@ -31,11 +31,19 @@
 {#  O chip de TOS e as iniciais moram em layout/_ui.html.twig: eram macros daqui, e enquanto
     fossem, o perfil e o detalhe da demanda continuavam mostrando `TOS_1.1.2.3` cru. #}
 
-{% block titulo %}Compatíveis · {{ demanda.dem_titulo }} · Pro-Link{% endblock %}
+{#  Esta era a única tela logada que ainda abria na barra pública: ela declarava `classe_main` e
+    ficou fora da lista da sessão que portou o shell navy. O feed é de sangria total, então a
+    medida zera o ar do `.pl-content` em vez de estreitar a coluna (seção 30 do prolink.css). #}
+{% set shell  = 'app' %}
+{% set ativo  = 'demandas' %}
+{% set medida = 'sem-ar' %}
 
-{% block classe_main %}pl-feed{% endblock %}
+{% block titulo %}Compatíveis · {{ demanda.dem_titulo }} · Pro-Link{% endblock %}
+{% block titulo_tela %}Compatíveis{% endblock %}
 
 {% block conteudo %}
+<div class="pl-feed">
+
 {% set atividades = demanda.tos|default([]) %}
 {% set descricoes = atividades|reduce((m, t) => m|merge({(t.codigo): t.descricao|default('')}), {}) %}
 {% set pool = sessao.candidatos %}
@@ -82,6 +90,12 @@
 </div>
 
 <section class="pl-stage" data-feed aria-label="Perfis compatíveis com esta demanda">
+    {#  A assinatura da tridimensionalidade: o plano em perspectiva que ganha volume, tom sobre
+        tom, atrás do card em foco. É o que torna a sangria total do palco um fundo com assunto
+        em vez de área vazia dos dois lados. Desenhado pelo JS; sem ele a <canvas> fica
+        transparente e a tela não perde nada. #}
+    <canvas class="pl-motivo" data-motivo aria-hidden="true"></canvas>
+
     <div class="pl-track" data-track>
 
         {% for c in pool %}
@@ -246,12 +260,26 @@
                     {% endif %}
                 </div>
 
+                {#  As duas ações do mockup: a preenchida laranja e a contornada. O rótulo não é o
+                    "Manifestar interesse" de lá: quem manifesta interesse é o candidato, a
+                    partir das demandas abertas (D51). Aqui é o demandante que registra interesse
+                    num perfil do pool, e o verbo precisa dizer de que lado a ação parte. #}
                 <div class="pl-acoes">
+                    <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/interesse">
+                        {{ form.csrf() }}
+                        <input type="hidden" name="candidato" value="{{ c.usuario_id }}">
+                        <button type="submit" class="pl-cta lg">Registrar interesse</button>
+                    </form>
                     <a class="pl-btn lg" href="{{ app_url }}/perfil/{{ c.usuario_id }}">
                         Ver perfil completo
                         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="M13 6l6 6-6 6"/></svg>
                     </a>
                 </div>
+                <p class="pl-fine pl-nota-acao">
+                    Registrar interesse avisa o titular deste perfil por e-mail e guarda o perfil como
+                    ele está agora, com hash. O caminho inverso continua valendo: quem manifesta
+                    interesse na demanda é o próprio titular, pelas demandas abertas.
+                </p>
             </article>
         {% endfor %}
 
@@ -317,11 +345,12 @@
         </button>
     </div>
 
+    {#  A dica do mockup, com o mesmo ícone de roda. O palco agora ocupa a janela inteira, então
+        a roda percorre o pool de verdade; o teclado continua valendo e é anunciado pelo
+        aria-label das duas setas do trilho. #}
     <p class="pl-hint" hidden>
-        {#  A roda também percorre, mas só quando não há mais nada para rolar na página: a dica
-            promete o gesto que vale sempre. #}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9l4-4 4 4"/><path d="M8 15l4 4 4-4"/></svg>
-        Setas do teclado percorrem o pool
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="18" rx="4"/><path d="M12 7v3"/></svg>
+        Role para navegar
     </p>
 
     <p class="visually-hidden" role="status" aria-live="polite" data-anuncio></p>
@@ -342,8 +371,9 @@
         <span>{{ ocultos == 1 ? '1 perfil saiu' : ocultos ~ ' perfis saíram' }} da lista por escolha do titular</span>
     {% endif %}
     <span class="sep" aria-hidden="true"></span>
-    <span>o feed é passivo: quem manifesta interesse é o profissional, a partir das demandas abertas</span>
+    <span>registrar interesse parte de você; manifestar interesse parte do titular do perfil</span>
 </p>
+</div>
 {% endblock %}
 
 {#

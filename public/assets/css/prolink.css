@@ -2274,3 +2274,149 @@ body > .pl-app { flex: 1 0 auto; min-width: 0; }
     .pl-topnav .in { min-height: 0; gap: 8px 14px; }
     .pl-topnav .elos { order: 3; width: 100%; gap: 6px 16px; }
 }
+
+/* ---------- 30. O feed no porte de docs/mockups/prolink-feed-imersivo-v3.html ----------------
+   A seção 13 desenhou a mecânica do feed (o palco, o card único, o trilho, a evidência sob
+   demanda) dentro da moldura errada: o `.pl-feed` era a classe do `<main>` da barra pública, e a
+   única tela logada que ainda abria sem barra lateral era justamente a que sustenta o
+   diferencial declarado na proposta.
+
+   Esta seção faz três coisas, e só três:
+
+   a) **Dá ao feed a sangria total.** `.pl-content` é uma coluna com 22px de ar e 18px de gap, que
+      é a medida certa de toda tela de conteúdo e a errada para um palco. `sem-ar` zera as três e
+      deixa o feed crescer até o fim da janela, que é o que o mockup mostra: o card em foco vive
+      num palco, não numa coluna com margem.
+   b) **Sobe a escala para a do mockup.** O card de lá tem 26px de raio, 46px de ar e um nome de
+      42px; o daqui tinha 22, 34 e 30. Num palco de 1200px de largura, a diferença é entre um
+      card de formulário e o objeto único da tela.
+   c) **Desenha o fundo do palco.** A `<canvas>` do mockup (o plano em perspectiva que vira
+      volume) é o que impede a sangria total de virar vazio dos dois lados do card.
+
+   O que NÃO veio do mockup, e por quê: as seis dimensões continuam em dois grupos com selo
+   (comprovado no CREA / informado pelo perfil), porque confundir o que a API verificou com o que
+   a pessoa escreveu é exatamente o que a D33 proíbe; a coluna de rótulo fica em 152px e não em
+   128px, porque "Disponibilidade" e "Competência técnica" não cabem em 128; e `--pl-faint-2` do
+   mockup não existe aqui, então os rótulos pequenos usam `--pl-muted`, que tem mais contraste.
+
+   Escala: o palco é dimensionado para o pool que o motor devolve hoje (unidades e dezenas). O
+   trilho é contínuo e a altura do indicador tem piso de 14px, então um pool de 200 continua
+   legível; abaixo de dois candidatos o JS nem liga o modo player. */
+
+/* ---- a) A sangria total dentro do shell ---- */
+/* `flex: 1` e `min-height: 0` juntos: sem o primeiro o palco tem a altura do card e sobra fundo
+   embaixo; sem o segundo o item flex ganha piso automático e volta a empurrar a página. */
+.pl-content.sem-ar { padding: 0; max-width: none; gap: 0; flex: 1 1 auto; min-height: 0; }
+.pl-content.sem-ar > .pl-feed { flex: 1 1 auto; min-height: 0; }
+/* O aviso de erro é irmão do feed, não filho: com o ar zerado ele encostaria nas duas bordas.
+   É por aqui que volta a recusa de `registrarInteresse` (perfil fechado, duplicata, alvo). */
+.pl-content.sem-ar > .alert { margin: 16px 40px 0; }
+
+/* ---- b) A escala do mockup ---- */
+.pl-feed .pl-ctxline { padding: 18px 40px 0; }
+/* Centro que não corta: `place-items: center` recorta o topo quando o conteúdo passa da altura
+   do palco, e sem JavaScript o palco é uma pilha de cards. `margin: auto` centra e cede. */
+/* Coluna, e não linha: abaixo de 900px a seção 13 tira o trilho do posicionamento absoluto, e
+   num flex em linha ele virava uma segunda coluna ao lado do card: 97px de rolagem horizontal
+   num aparelho de 390px. `margin: auto` no track centra nos dois eixos sem recortar. */
+.pl-feed .pl-stage { display: flex; flex-direction: column; padding: 34px 40px 44px; }
+.pl-feed .pl-track { width: min(660px, 100%); margin: auto; }
+
+.pl-feed .pl-focus { border-radius: 26px; padding: 46px 48px 40px;
+    box-shadow: 0 2px 3px rgba(11,42,74,.04), 0 34px 70px rgba(11,42,74,.13); }
+.pl-feed.is-js .pl-focus { min-height: 560px; }
+
+/* O avatar do mockup não fica ao lado do nome: ele abre o card, e o nome vem embaixo. É o
+   elemento que persiste entre um candidato e o outro, e por isso tem o lugar de âncora. */
+.pl-feed .pl-topo { display: block; }
+.pl-feed .pl-av { width: 72px; height: 72px; border-radius: 20px; font-size: 25px;
+    box-shadow: 0 12px 26px rgba(19,49,90,.24); }
+.pl-feed .pl-name { font-size: 42px; line-height: 1.08; letter-spacing: -.03em;
+    margin: 22px 0 0; gap: 12px; }
+.pl-feed .pl-name .pl-seal { width: 22px; height: 22px; }
+.pl-feed .pl-meta { font-size: 13.5px; margin: 8px 0 0; }
+.pl-feed .pl-acervo { font-size: 13.5px; margin: 8px 0 0; }
+
+.pl-feed .pl-adher { margin-top: 34px; }
+.pl-feed .pl-grp { font-size: 10.5px; letter-spacing: .09em; margin-bottom: 14px; }
+.pl-feed .pl-adher .pl-dim { grid-template-columns: 152px minmax(0, 1fr) 44px; gap: 16px;
+    margin-bottom: 14px; }
+.pl-feed .pl-adher .pl-dim .dlab, .pl-feed .pl-adher .pl-dim .pct { font-size: 13px; }
+/* O trilho da barra é chapado como no mockup: o contorno de 1px sobre fundo quase branco lia
+   como campo de formulário vazio ao lado do preenchimento azul escuro. */
+.pl-feed .pl-adher .pl-bar { background: var(--pl-border); border: 0; }
+.pl-feed .pl-toggle { margin-top: 26px; }
+
+/* ---- As duas ações: a preenchida laranja e a contornada, do mesmo tamanho ---- */
+/* Sem borda superior: o mockup não tem, e no card de 560px a linha cortava o ar que o
+   `margin-top: auto` já reserva. */
+.pl-feed .pl-acoes { margin-top: 34px; padding-top: 0; border-top: 0; gap: 12px; }
+/* No modo player o `margin-top: auto` da seção 13 empurra as ações para o rodapé do card, e com
+   um candidato de seis dimensões medidas não sobra folga nenhuma: o par de botões encostava no
+   "Por que este perfil é compatível". O ar vira padding, que o `auto` não come. */
+.pl-feed.is-js .pl-acoes { padding-top: 34px; }
+.pl-feed .pl-acoes form { margin: 0; }
+.pl-feed .pl-acoes .pl-cta.lg, .pl-feed .pl-acoes .pl-btn.lg { height: 48px; border-radius: 14px; }
+.pl-feed .pl-acoes .pl-cta.lg { padding: 0 22px; font-size: 14px; }
+.pl-feed .pl-acoes .pl-btn.lg { padding: 0 20px; }
+/* O `.pl-cta` é o único acionável da casa sem regra de foco: ele ficava com o anel fino padrão do
+   navegador, que sobre o laranja quase não aparece, ao lado de um `.pl-btn` com o anel de 2px.
+   A regra fica no escopo do feed; a lacuna vale para o `.pl-cta` da aplicação inteira e está no
+   relatório, porque corrigir por fora daqui mudaria telas que não são desta tarefa. */
+.pl-feed .pl-cta:focus-visible { outline: 2px solid var(--pl-data); outline-offset: 3px; }
+.pl-feed .pl-nota-acao { margin-top: 14px; max-width: 62ch; }
+
+.pl-feed .pl-peek { margin-top: -16px; border-radius: 0 0 22px 22px; padding: 26px 34px 14px;
+    box-shadow: 0 20px 34px rgba(11,42,74,.07); }
+.pl-feed .pl-peek .pav { width: 30px; height: 30px; }
+.pl-feed .pl-peek .pn { font-size: 15px; }
+
+.pl-feed .pl-rail { right: 18px; gap: 16px; }
+.pl-feed .pl-arrow { width: 42px; height: 42px; }
+.pl-feed .pl-progress { height: 132px; }
+.pl-feed .pl-hint { left: 40px; bottom: 20px; }
+.pl-feed .pl-end .et { font-size: 26px; }
+.pl-feed .pl-proveniencia { padding: 0 40px 22px; }
+
+/* ---- c) O fundo do palco ---- */
+/* A malha em perspectiva com os prismas em wireframe: o plano XY que ganha o eixo Z. Fica atrás
+   da luz central (`.pl-stage::before`, z-index 1) e do card (z-index 2), e nunca recebe evento.
+   Sem JavaScript a <canvas> continua transparente e o palco fica como estava. */
+.pl-feed .pl-motivo { position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    width: 100%; height: 100%; }
+.pl-feed .pl-stage::before { z-index: 1; }
+.pl-feed .pl-track, .pl-feed .pl-focus { z-index: 2; }
+.pl-feed .pl-peek { z-index: 1; }
+
+/* ---- O feed num aparelho de 390px ---- */
+@media (max-width: 900px) {
+    .pl-content.sem-ar > .alert { margin: 14px 16px 0; }
+    .pl-feed .pl-ctxline { padding: 14px 16px 0; }
+    /* A etiqueta da atividade tem `white-space: nowrap` (seção 6), e a descrição da Tabela de
+       Obras e Serviços chega com 46 caracteres: em 390px eram 22px de rolagem horizontal. Aqui
+       ela quebra dentro da própria etiqueta, e o texto inteiro continua no title. */
+    .pl-feed .pl-ctxline .pl-tos { white-space: normal; max-width: 100%; }
+    .pl-feed .pl-stage { padding: 18px 16px 30px; }
+    .pl-feed .pl-focus { padding: 26px 22px 24px; border-radius: 18px; }
+    .pl-feed .pl-av { width: 56px; height: 56px; border-radius: 16px; font-size: 20px; }
+    .pl-feed .pl-name { font-size: 26px; margin-top: 16px; }
+    /* O rótulo ganha a linha inteira: em 390px sobram 230px para a barra, e "Não medida nesta
+       sessão" numa coluna de 100px quebrava em quatro linhas por dimensão. */
+    .pl-feed .pl-adher .pl-dim { grid-template-columns: minmax(0, 1fr) 44px; gap: 6px 10px;
+        margin-bottom: 16px; }
+    .pl-feed .pl-adher .pl-dim .dlab { grid-column: 1 / -1; color: var(--pl-ink); }
+    /* O selo acompanha a primeira linha do texto quando a frase quebra, e não o meio do bloco. */
+    .pl-feed .pl-acervo { align-items: flex-start; }
+    .pl-feed .pl-acervo .pl-mark { margin-top: 3px; }
+    /* O par de ações empilha em vez de espremer: dois botões de 48px lado a lado em 390px
+       quebram o texto em duas linhas, que é o defeito que a régua de botões proíbe. */
+    .pl-feed .pl-acoes { flex-direction: column; align-items: stretch; }
+    .pl-feed .pl-acoes form, .pl-feed .pl-acoes .pl-cta.lg, .pl-feed .pl-acoes .pl-btn.lg { width: 100%; }
+    /* O trilho vira uma fileira horizontal aqui (seção 13), e a altura de 132px declarada acima
+       vinha depois na folha: o indicador de 2px virava um retângulo de 120 por 132. */
+    .pl-feed .pl-progress { width: 120px; height: 2px; }
+    .pl-feed .pl-peek { width: 94%; padding: 22px 20px 12px; }
+    .pl-feed .pl-proveniencia { padding: 0 16px 18px; }
+    /* A malha só faz sentido com palco largo: em 390px ela vira ruído atrás do texto. */
+    .pl-feed .pl-motivo { display: none; }
+}
