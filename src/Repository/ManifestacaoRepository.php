@@ -36,16 +36,19 @@ final class ManifestacaoRepository extends Repositorio
     {
         $stmt = $this->pdo->prepare(
             'INSERT INTO pro_manifestacoes
-                (man_dem_id, man_usu_id, man_candidato_tipo, man_mensagem,
+                (man_dem_id, man_usu_id, man_candidato_tipo, man_origem, man_mensagem,
                  man_snapshot, man_snapshot_hash)
              VALUES
-                (:demanda, :usuario, :tipo, :mensagem, :snapshot, :hash)'
+                (:demanda, :usuario, :tipo, :origem, :mensagem, :snapshot, :hash)'
         );
 
         $stmt->execute([
             ':demanda'  => $dados['demanda_id'],
             ':usuario'  => $dados['usuario_id'],
             ':tipo'     => $dados['candidato_tipo'],
+            // Quem começou: 'C' o candidato, 'D' o demandante. O padrão é 'C' porque foi o único
+            // caminho que existiu até 17/09, e a coluna nasceu com ele para não reescrever linha.
+            ':origem'   => $dados['origem'] ?? 'C',
             ':mensagem' => $dados['mensagem'],
             ':snapshot' => $dados['snapshot'],
             ':hash'     => $dados['hash'],

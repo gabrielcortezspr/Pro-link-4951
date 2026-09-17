@@ -259,6 +259,92 @@ conferir(
     $sessoes->daDemanda($semTos) === [],
 );
 
+secao('O demandante registra interesse (Anexo I item 3)');
+
+// O caminho inverso do feed, que era declaradamente passivo: quem publica a demanda via o
+// compatível na tela e não tinha o que fazer com ele. O Anexo I dá ao Terceiro, e por
+// consequência a todo demandante, o direito de registrar interesse em profissional ou empresa.
+$interesse = new ProLink\Service\ManifestacaoService();
+
+$demandaPublicada = $pdo->query(
+    'SELECT dem_id, dem_usu_id FROM pro_demandas
+      WHERE dem_dt_publicacao IS NOT NULL AND dem_status = "A"
+      ORDER BY dem_id DESC LIMIT 1'
+)->fetch();
+
+if ($demandaPublicada === false) {
+    conferir('há demanda publicada para exercitar o registro de interesse', false,
+        'nenhuma demanda publicada no banco');
+} else {
+    $idDemanda   = (int) $demandaPublicada['dem_id'];
+    $idDemandante = (int) $demandaPublicada['dem_usu_id'];
+
+    conferir(
+        'demanda de outra conta é recusada',
+        recusa(fn () => $interesse->registrarInteresse(999999, $idDemanda, 1, '')),
+    );
+
+    conferir(
+        'registrar interesse em si mesmo é recusado',
+        recusa(fn () => $interesse->registrarInteresse($idDemandante, $idDemanda, $idDemandante, '')),
+    );
+
+    $candidatoLivre = $pdo->query(
+        'SELECT p.prf_usu_id
+           FROM mat_sessao_pool sp
+           JOIN mat_sessoes s ON s.mts_id = sp.msp_mts_id
+           JOIN pro_profissionais p ON p.prf_id = sp.msp_candidato_id AND sp.msp_candidato_tipo = "P"
+          WHERE s.mts_dem_id = ' . $idDemanda . '
+            AND p.prf_usu_id NOT IN (SELECT man_usu_id FROM pro_manifestacoes WHERE man_dem_id = ' . $idDemanda . ')
+          LIMIT 1'
+    )->fetchColumn();
+
+    if ($candidatoLivre === false) {
+        printf("  \e[33mpulado\e[0m  todo o pool desta demanda já tem interesse registrado\n");
+    } else {
+        $idInteresse = $interesse->registrarInteresse(
+            $idDemandante,
+            $idDemanda,
+            (int) $candidatoLivre,
+            'Interesse registrado pela verificação automática da E4.',
+        );
+
+        $linha = $pdo->query(
+            "SELECT man_origem, man_usu_id, man_snapshot_hash FROM pro_manifestacoes WHERE man_id = {$idInteresse}"
+        )->fetch();
+
+        conferir('a manifestação nasce com origem de demandante',
+            ($linha['man_origem'] ?? '') === 'D', 'origem: ' . (string) ($linha['man_origem'] ?? ''));
+        conferir('o candidato é o alvo, e não quem agiu',
+            (int) ($linha['man_usu_id'] ?? 0) === (int) $candidatoLivre);
+        conferir('o retrato do candidato é congelado, com hash',
+            strlen((string) ($linha['man_snapshot_hash'] ?? '')) === 64);
+
+        $aviso = $pdo->query(
+            'SELECT not_usu_id, not_assunto FROM sis_notificacoes ORDER BY not_id DESC LIMIT 1'
+        )->fetch();
+
+        conferir('o aviso vai para o candidato, e não para quem registrou',
+            (int) ($aviso['not_usu_id'] ?? 0) === (int) $candidatoLivre);
+        conferir('o assunto diz que registraram interesse no perfil',
+            str_contains((string) ($aviso['not_assunto'] ?? ''), 'interesse no seu perfil'));
+
+        conferir(
+            'o mesmo par não recebe interesse duas vezes',
+            recusa(fn () => $interesse->registrarInteresse($idDemandante, $idDemanda, (int) $candidatoLivre, '')),
+        );
+
+        $trilha = $pdo->query(
+            "SELECT aud_valor_novo FROM sis_auditoria
+              WHERE aud_entidade = 'pro_manifestacoes' AND aud_entidade_id = {$idInteresse}
+              ORDER BY aud_id DESC LIMIT 1"
+        )->fetchColumn();
+
+        conferir('a trilha registra que a origem foi o demandante',
+            str_contains((string) $trilha, '"origem":"D"'), (string) $trilha);
+    }
+}
+
 printf(
     "\n%s  %d aprovadas, %d falharam\n",
     $falhou === 0 ? "\e[32mE4 (MOTOR DE COMPATIBILIZAÇÃO) VERIFICADA\e[0m" : "\e[31mE4 COM FALHA\e[0m",

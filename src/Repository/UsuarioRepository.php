@@ -35,6 +35,29 @@ final class UsuarioRepository extends Repositorio
         return $stmt->fetch() ?: null;
     }
 
+    /**
+     * A conta em **qualquer situação**: ativa, bloqueada ou excluída.
+     *
+     * `porId()` filtra por ativa, que é o certo para o caminho operacional: quem está bloqueado
+     * não deve ser encontrado por engano no meio de um fluxo comum. A gestão de contas precisa do
+     * contrário, e a falta disto tinha um efeito absurdo: **não dava para desbloquear ninguém**,
+     * porque a conta bloqueada não era encontrada para ser desbloqueada.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function porIdEmQualquerSituacao(int $id): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT ' . self::CAMPOS . ', per_codigo
+               FROM sis_usuarios
+               JOIN sis_perfis ON per_id = usu_per_id
+              WHERE usu_id = :id'
+        );
+        $stmt->execute([':id' => $id]);
+
+        return $stmt->fetch() ?: null;
+    }
+
     /** Usado no login. Traz o perfil junto para a sessão não precisar de segunda consulta. */
     public function porEmail(string $email): ?array
     {
@@ -59,6 +82,111 @@ final class UsuarioRepository extends Repositorio
      * @param  list<int> $ids
      * @return array<int, string> usu_id => per_codigo
      */
+    /**
+     * Uma página de contas para a gestão do administrador (Anexo I, item 3: "gerir perfis").
+     *
+     * Traz o que a tela precisa para decidir, e **nada de documento**: `usu_documento_cif` é
+     * cifrado e só o titular tem motivo para vê-lo decifrado. Uma listagem administrativa que
+     * mostrasse CPF de todo mundo seria o oposto do que a D03 se comprometeu a fazer.
+     *
+     * O filtro por situação distingue os três estados que existem de fato: ativa, bloqueada pela
+     * administração (`'I'`) e excluída pelo titular (`'X'`). A última aparece aqui **e** na
+     * lixeira, e é a mesma conta: a lixeira responde "o que dá para restaurar", esta tela
+     * responde "quem existe".
+     *
+     * @param  array{termo?: string, perfil?: string, situacao?: string} $filtros
+     * @return list<array<string, mixed>>
+     */
+    public function listar(array $filtros, int $limite, int $deslocamento): array
+    {
+        [$onde, $params] = $this->filtrosDeListagem($filtros);
+
+        $stmt = $this->pdo->prepare(
+            'SELECT u.usu_id, u.usu_nome, u.usu_email, u.usu_status, u.usu_tipo_pessoa,
+                    u.usu_dt_registro, u.usu_dt_ultimo_login, u.usu_bloqueado_ate,
+                    p.per_codigo,
+                    (SELECT COUNT(*) FROM sis_sessoes s
+                      WHERE s.ses_usu_id = u.usu_id
+                        AND s.ses_dt_revogacao IS NULL
+                        AND s.ses_dt_expiracao > NOW()
+                        AND s.ses_status = :ativo_sessao) AS sessoes_abertas
+               FROM sis_usuarios u
+               JOIN sis_perfis p ON p.per_id = u.usu_per_id
+              WHERE ' . $onde . '
+              ORDER BY u.usu_id DESC
+              LIMIT :limite OFFSET :deslocamento'
+        );
+
+        foreach ($params as $nome => $valor) {
+            $stmt->bindValue($nome, $valor);
+        }
+
+        $stmt->bindValue(':ativo_sessao', STATUS_ATIVO);
+        $stmt->bindValue(':limite', $limite, \PDO::PARAM_INT);
+        $stmt->bindValue(':deslocamento', $deslocamento, \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll();
+    }
+
+    /** @param array{termo?: string, perfil?: string, situacao?: string} $filtros */
+    public function contar(array $filtros): int
+    {
+        [$onde, $params] = $this->filtrosDeListagem($filtros);
+
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM sis_usuarios u
+               JOIN sis_perfis p ON p.per_id = u.usu_per_id
+              WHERE ' . $onde
+        );
+
+        foreach ($params as $nome => $valor) {
+            $stmt->bindValue($nome, $valor);
+        }
+
+        $stmt->execute();
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Monta o `WHERE` da listagem a partir de valores de lista fechada.
+     *
+     * Perfil e situação são conferidos contra as constantes antes de entrar na query, e o termo
+     * vai por placeholder: nada do que vem da tela chega ao SQL como texto concatenado.
+     *
+     * @param  array{termo?: string, perfil?: string, situacao?: string} $filtros
+     * @return array{0: string, 1: array<string, string>}
+     */
+    private function filtrosDeListagem(array $filtros): array
+    {
+        $condicoes = ['1 = 1'];
+        $params    = [];
+
+        $termo = trim((string) ($filtros['termo'] ?? ''));
+
+        if ($termo !== '') {
+            $condicoes[]      = '(u.usu_nome LIKE :termo OR u.usu_email LIKE :termo)';
+            $params[':termo'] = '%' . $termo . '%';
+        }
+
+        $perfil = (string) ($filtros['perfil'] ?? '');
+
+        if (in_array($perfil, PERFIS_AUTENTICADOS, true)) {
+            $condicoes[]       = 'p.per_codigo = :perfil';
+            $params[':perfil'] = $perfil;
+        }
+
+        $situacao = (string) ($filtros['situacao'] ?? '');
+
+        if (in_array($situacao, [STATUS_ATIVO, STATUS_INATIVO, STATUS_EXCLUIDO], true)) {
+            $condicoes[]         = 'u.usu_status = :situacao';
+            $params[':situacao'] = $situacao;
+        }
+
+        return [implode(' AND ', $condicoes), $params];
+    }
+
     public function perfisAtivos(array $ids): array
     {
         $linhas = $this->buscarPorIds(

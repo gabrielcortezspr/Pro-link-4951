@@ -503,6 +503,7 @@ CREATE TABLE pro_manifestacoes (
   man_dem_id         BIGINT UNSIGNED NOT NULL,
   man_usu_id         BIGINT UNSIGNED NOT NULL COMMENT 'quem manifestou',
   man_candidato_tipo CHAR(1)      NOT NULL DEFAULT 'P',
+  man_origem         CHAR(1)      NOT NULL DEFAULT 'C' COMMENT 'C = candidato manifestou | D = demandante registrou interesse (Anexo I item 3)',
   man_mensagem       TEXT         NULL,
   man_snapshot       LONGTEXT     NOT NULL COMMENT 'JSON do perfil no instante do envio',
   man_snapshot_hash  CHAR(64)     NOT NULL,

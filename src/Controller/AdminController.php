@@ -9,6 +9,7 @@ use ProLink\Repository\CompatibilizacaoRepository;
 use ProLink\Repository\IndicadorRepository;
 use ProLink\Repository\LixeiraRepository;
 use ProLink\Service\CompatibilizacaoService;
+use ProLink\Service\ContaService;
 use ProLink\Service\DenunciaService;
 use ProLink\Service\LixeiraService;
 use ProLink\Service\ParametroService;
@@ -35,6 +36,7 @@ final class AdminController
         private readonly IndicadorRepository $indicadores = new IndicadorRepository(),
         private readonly ParametroService $parametros = new ParametroService(),
         private readonly LixeiraService $lixeira = new LixeiraService(),
+        private readonly ContaService $contas = new ContaService(),
     ) {
     }
 
@@ -308,6 +310,72 @@ final class AdminController
         Flash::sucesso('"' . $registro['titulo'] . '" voltou para a operação. A restauração e o '
             . 'motivo ficaram na trilha de auditoria.');
         View::redirecionar('/admin/lixeira?entidade=' . urlencode($entidade));
+    }
+
+    /**
+     * Gestão de contas (Anexo I, item 3: "gerir perfis").
+     *
+     * Bloquear já existia, mas só como providência de denúncia: conta que precisa ser suspensa sem
+     * que ninguém a tenha denunciado não tinha caminho, e não havia lista para responder quem
+     * existe na plataforma.
+     */
+    public function contas(): string
+    {
+        return $this->telaDeContas();
+    }
+
+    public function bloquearConta(string $id): string
+    {
+        try {
+            $r = $this->contas->bloquear(
+                (int) $id,
+                (int) Sessao::usuarioId(),
+                (string) ($_POST['motivo'] ?? ''),
+            );
+        } catch (ValidacaoException $e) {
+            Flash::erro($e->getMessage());
+            View::redirecionar('/admin/contas');
+        }
+
+        Flash::sucesso(sprintf(
+            '"%s" foi bloqueada. Sessões encerradas: %d. O motivo ficou na trilha.',
+            $r['nome'],
+            $r['sessoes_derrubadas'],
+        ));
+        View::redirecionar('/admin/contas');
+    }
+
+    public function desbloquearConta(string $id): string
+    {
+        try {
+            $r = $this->contas->desbloquear(
+                (int) $id,
+                (int) Sessao::usuarioId(),
+                (string) ($_POST['motivo'] ?? ''),
+            );
+        } catch (ValidacaoException $e) {
+            Flash::erro($e->getMessage());
+            View::redirecionar('/admin/contas');
+        }
+
+        Flash::sucesso('"' . $r['nome'] . '" voltou para a operação. O motivo ficou na trilha.');
+        View::redirecionar('/admin/contas');
+    }
+
+    private function telaDeContas(): string
+    {
+        $filtros = [
+            'termo'    => (string) ($_GET['q'] ?? ''),
+            'perfil'   => (string) ($_GET['perfil'] ?? ''),
+            'situacao' => (string) ($_GET['situacao'] ?? ''),
+        ];
+
+        return View::render('admin/contas.html.twig', [
+            'ativo'   => 'contas',
+            'lista'   => $this->contas->listar($filtros, max(1, (int) ($_GET['pagina'] ?? 1))),
+            'filtros' => $filtros,
+            'perfis'  => PERFIS_AUTENTICADOS,
+        ]);
     }
 
     public function tratar(string $id): string

@@ -484,6 +484,77 @@ conferir(
     ((new ProLink\Repository\LixeiraRepository())->porId('sis_usuarios', $idLixeira)['pelo_titular'] ?? false) === true,
 );
 
+secao('Gestão de contas (Anexo I item 3)');
+
+$contas = new ProLink\Service\ContaService();
+
+conferir('a listagem devolve contas e paginação',
+    $contas->listar(['termo' => '', 'perfil' => '', 'situacao' => ''], 1)['total'] > 0);
+
+conferir('o filtro por perfil recorta',
+    $contas->listar(['termo' => '', 'perfil' => PERFIL_ADMIN, 'situacao' => ''], 1)['total']
+    < $contas->listar(['termo' => '', 'perfil' => '', 'situacao' => ''], 1)['total']);
+
+conferir('perfil fora da lista fechada é ignorado, e não quebra a consulta',
+    $contas->listar(['termo' => '', 'perfil' => 'INVENTADO', 'situacao' => ''], 1)['total']
+    === $contas->listar(['termo' => '', 'perfil' => '', 'situacao' => ''], 1)['total']);
+
+// Uma conta descartável para exercitar o bloqueio sem tocar em conta de demonstração.
+$emailConta = 'contas.' . date('His') . '.' . random_int(100, 999) . '@verificacao.local';
+$perfilTerceiro = (int) $pdo->query("SELECT per_id FROM sis_perfis WHERE per_codigo = 'TERCEIRO'")->fetchColumn();
+
+$stmt = $pdo->prepare(
+    'INSERT INTO sis_usuarios (usu_per_id, usu_nome, usu_email, usu_senha_hash,
+                               usu_tipo_pessoa, usu_email_verificado, usu_status)
+     VALUES (:perfil, :nome, :email, :hash, :tipo, 1, :status)'
+);
+$stmt->execute([
+    ':perfil' => $perfilTerceiro,
+    ':nome'   => 'Verificação de gestão de contas',
+    ':email'  => $emailConta,
+    ':hash'   => password_hash(bin2hex(random_bytes(16)), PASSWORD_ALGO),
+    ':tipo'   => 'F',
+    ':status' => STATUS_ATIVO,
+]);
+$idConta = (int) $pdo->lastInsertId();
+
+conferir('bloqueio sem motivo é recusado',
+    recusa(fn () => $contas->bloquear($idConta, $autorId, 'curto')));
+
+$bloqueio = $contas->bloquear($idConta, $autorId, 'Bloqueio de verificação automática da E6.');
+
+conferir('o bloqueio devolve o nome da conta', ($bloqueio['nome'] ?? '') !== '');
+conferir('a conta fica INATIVA, não excluída',
+    $pdo->query("SELECT usu_status FROM sis_usuarios WHERE usu_id = {$idConta}")->fetchColumn() === STATUS_INATIVO);
+
+$stmt = $pdo->prepare(
+    "SELECT aud_valor_novo FROM sis_auditoria
+      WHERE aud_acao = 'REVOGAR' AND aud_entidade = 'sis_sessoes' AND aud_entidade_id = :id
+      ORDER BY aud_id DESC LIMIT 1"
+);
+$stmt->execute([':id' => $idConta]);
+
+conferir('o motivo do bloqueio entra na trilha',
+    str_contains((string) ($stmt->fetchColumn() ?: ''), 'verificação automática'));
+
+conferir('bloquear duas vezes é recusado',
+    recusa(fn () => $contas->bloquear($idConta, $autorId, 'Segunda tentativa de verificação.')));
+
+conferir('conta de administração não é gerida por aqui',
+    recusa(fn () => $contas->bloquear($autorId, $autorId, 'Tentativa de verificação automática.')));
+
+$contas->desbloquear($idConta, $autorId, 'Desbloqueio de verificação automática da E6.');
+
+conferir('o desbloqueio devolve a conta à operação',
+    $pdo->query("SELECT usu_status FROM sis_usuarios WHERE usu_id = {$idConta}")->fetchColumn() === STATUS_ATIVO);
+
+// Conta excluída pelo titular não volta por desbloqueio: seria a D62 por outro nome.
+$pdo->prepare('UPDATE sis_usuarios SET usu_status = :x WHERE usu_id = :id')
+    ->execute([':x' => STATUS_EXCLUIDO, ':id' => $idConta]);
+
+conferir('conta excluída pelo titular não é desbloqueada por ato administrativo',
+    recusa(fn () => $contas->desbloquear($idConta, $autorId, 'Tentativa de verificação automática.')));
+
 secao('Render das telas');
 
 // A tela de auditoria subiu em 500 com as 16 verificações anteriores no verde: elas provavam
@@ -504,6 +575,12 @@ $telas = [
         'situacao'  => null,
         'situacoes' => DenunciaService::SITUACOES,
         'tipos'     => DenunciaService::TIPOS,
+    ],
+    'admin/contas.html.twig' => [
+        'ativo'   => 'contas',
+        'lista'   => (new ProLink\Service\ContaService())->listar(['termo' => '', 'perfil' => '', 'situacao' => ''], 1),
+        'filtros' => ['termo' => '', 'perfil' => '', 'situacao' => ''],
+        'perfis'  => PERFIS_AUTENTICADOS,
     ],
     'admin/lixeira.html.twig' => [
         'ativo'     => 'lixeira',

@@ -109,6 +109,8 @@ $router->post('/demandas/{id}/encerrar', DemandaController::class, 'encerrar', P
 // POST manda calcular outra — ver CompativelController.
 $router->get('/demandas/{id}/compativeis',  CompativelController::class, 'index',     PERFIS_DEMANDANTES);
 $router->post('/demandas/{id}/compativeis', CompativelController::class, 'atualizar', PERFIS_DEMANDANTES);
+// O caminho inverso do Anexo I item 3: o demandante registra interesse num candidato.
+$router->post('/demandas/{id}/interesse',  CompativelController::class, 'registrarInteresse', PERFIS_DEMANDANTES);
 
 // ---------------------------------------------------------------- manifestação (RF05)
 // Quem manifesta é o candidato, e candidato sai de crea_evidencias, que deriva de ART: Terceiro
@@ -141,6 +143,10 @@ $router->post('/admin/parametros',    AdminController::class, 'salvarParametros'
 // Lixeira do item 8.6j: o excluído continua acessível pelo mecanismo administrativo.
 $router->get('/admin/lixeira',        AdminController::class, 'lixeira', PERFIL_ADMIN);
 $router->post('/admin/lixeira',       AdminController::class, 'restaurar', PERFIL_ADMIN);
+// Gestão de contas (Anexo I item 3, "gerir perfis"): bloquear fora do fluxo de denúncia.
+$router->get('/admin/contas',         AdminController::class, 'contas', PERFIL_ADMIN);
+$router->post('/admin/contas/{id}/bloquear',   AdminController::class, 'bloquearConta', PERFIL_ADMIN);
+$router->post('/admin/contas/{id}/desbloquear', AdminController::class, 'desbloquearConta', PERFIL_ADMIN);
 // Depois da rota sem parâmetro, pelo mesmo motivo das denúncias: o Router percorre na ordem de
 // registro e {id} casaria 'sessoes' antes.
 $router->get('/admin/sessoes/{id}',   AdminController::class, 'sessao', PERFIL_ADMIN);
