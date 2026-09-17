@@ -108,7 +108,7 @@ leitura de código. Conferência de 17/09/2026, madrugada.
 
 | # | Item | Estado | Como foi conferido |
 |---|---|---|---|
-| 1 | Executa as funcionalidades essenciais | **sim** | os seis cenários do Anexo I rodam pelo navegador: `npx playwright test --project=desktop` |
+| 1 | Executa as funcionalidades essenciais | **sim** | os seis cenários do Anexo I rodam pelo navegador; e o Anexo I item 3 foi auditado perfil por perfil em 17/09, fechando as quatro linhas que não tinham caminho (D69 a D72) |
 | 2 | Só dados sintéticos, anonimizados ou autorizados | **sim** | toda origem é a API oficial do desafio; `crea_*` guarda resposta datada, e o item 8.4 proíbe base própria simulada |
 | 3 | Instruções reproduzíveis de instalação e execução | **sim** | `estrutura.sql` + `carga-inicial.sql` executados num MariaDB limpo, pelo mesmo caminho do `docker-compose`: 29 objetos, 27 chaves estrangeiras, 2 triggers, 2000 códigos TOS |
 | 4 | Dependências, licenças e componentes de terceiros | **sim** | `_arq/dependencias.md`, conferido contra `composer.lock` e contra `e2e/package.json` |

@@ -407,8 +407,34 @@ admin vê a trilha, trata a denúncia e bloqueia.
 >
 > **Bateria completa (`scripts/verificar-tudo.sh`): 9 de 9 no verde.**
 
-> **Falta:** decidir o merge de `claude/e7-lacunas` na `main`; ensaiar o roteiro duas vezes; tag,
-> zip e upload antes das 18h de 17/09.
+> **Sessão de 17/09 (manhã): auditoria de requisitos por entidade, e o refino visual.**
+>
+> A autora pediu duas coisas. A primeira foi cruzar o Anexo I item 3 com o que existe, perfil por
+> perfil. Quatro linhas não tinham caminho, e as quatro foram fechadas no backend:
+>
+> | Perfil | Linha do Anexo I | Como fechou |
+> |---|---|---|
+> | Público | pesquisar sem conta | a busca entrou na landing (a rota já era pública) |
+> | Empresa | publicar experiência | `exp_emp_id` e a `CHECK` de dono único (D71) |
+> | Terceiro | registrar interesse em profissional ou empresa | `man_origem` e o caminho inverso (D70) |
+> | Administrador | gerir perfis | `ContaService` e `/admin/contas` (D69) |
+>
+> Junto: o painel de **Início** dos dois perfis logados, que os mockups desenham e a implementação
+> não tinha (D72), e a métrica "visualizações do perfil" **não foi inventada**.
+>
+> E2 de 151 para 159 · E4 de 32 para 41 · E6 de 53 para 65.
+>
+> A segunda foi o refino visual, e ela veio com uma correção de rumo que virou regra (D73):
+> **os mockups em `docs/mockups/` são o design final**, não referência a interpretar. Quem
+> implementa porta o mockup e liga o dado; não redesenha nem reescreve texto.
+>
+> **Telas a portar, ~18 no total.** Prontas: landing. Em curso: busca. Faltam: os dois Início, o
+> portfólio, a visibilidade, o feed de demandas do profissional, publicar demanda, minhas demandas,
+> o feed de compatíveis, o perfil público, o acervo da empresa, manifestação, denúncia, as telas do
+> admin e a **barra lateral navy**, que atravessa todas as logadas e hoje só existe no painel.
+
+> **Falta:** terminar o porte das telas; decidir o merge de `claude/e7-lacunas` na `main`; ensaiar
+> o roteiro duas vezes; tag, zip e upload antes das 18h de 17/09.
 
 > **Parte do checklist de segurança saiu adiantada em 15/09** (`e0ada5a`, `0c417a6`), por ter
 > aparecido numa revisão de código: CSP conferida por máquina contra o layout (D50), `try_files`

@@ -34,6 +34,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E4 — busca ativa e auditoria de sessões | D54, D55, D56 |
 | E5 — manifestação, mensagens e notificações | D57, D58, D59 |
 | E7 — entrega | D60 a D68 |
+| E7 — auditoria de RF por entidade e refino visual | D69, D70, D71, D72, D73 |
 
 ---
 
@@ -2178,4 +2179,137 @@ transformaria uma consulta em várias, e acoplaria a camada de sessão ao reposi
 perfil e o nome. Quem "simplificar" aquela consulta no futuro reabre a falha, e é por isso que
 `verificar-e1.php` ganhou cinco conferências que a exercitam de ponta a ponta, incluindo o par
 positivo e negativo e a linha de auditoria.
+
+---
+
+## D69 · Gerir contas é ato próprio, e não providência de denúncia
+
+`17/09/2026` · E7 · `src/Service/ContaService.php`, `src/Repository/UsuarioRepository.php`
+
+**Contexto.** A auditoria de requisitos por entidade, feita a pedido da autora, cruzou o Anexo I
+item 3 com as rotas existentes. A linha "Administrador: moderar, **gerir perfis**, auditar, tratar
+denúncias, emitir relatórios" tinha um pedaço sem caminho: bloquear uma conta só era possível como
+**providência de uma denúncia**. Conta que precisa ser suspensa sem que ninguém a tenha denunciado
+não tinha por onde, e não havia listagem que respondesse "quem existe na plataforma".
+
+**Decisão.** `ContaService` com listagem filtrável por termo, perfil e situação, e bloqueio que usa
+a mesma operação atômica da E6: status, sessões revogadas e trilha, tudo ou nada. Motivo obrigatório
+de 10 a 500 caracteres, que vai para a auditoria.
+
+A listagem **não traz documento**. `usu_documento_cif` é cifrado e só o titular tem motivo para
+vê-lo decifrado; uma tela administrativa que mostrasse CPF de todo mundo seria o oposto do que a
+D03 se comprometeu a fazer ao guardá-lo.
+
+**Alternativa recusada.** Reusar o fluxo de denúncia, abrindo uma denúncia "de ofício" para poder
+bloquear. Seria menos código e produziria um registro falso: a trilha diria que houve denúncia
+onde houve decisão administrativa, e a diferença entre as duas é justamente o que a auditoria
+existe para preservar.
+
+**Consequência.** Três recusas explícitas: administrador, a própria conta, e desbloquear conta
+excluída pelo titular, que seria a D62 por outro nome. E um defeito que a implementação expôs:
+`UsuarioRepository::porId()` filtra por conta ativa, o que é correto no caminho operacional e
+tornava o **desbloqueio impossível**, porque a conta bloqueada não era encontrada para ser
+desbloqueada.
+
+---
+
+## D70 · O demandante registra interesse, e é a mesma manifestação com a origem gravada
+
+`17/09/2026` · E7 · `src/Service/ManifestacaoService.php`, `pro_manifestacoes.man_origem`
+
+**Contexto.** O Anexo I item 3 dá ao Terceiro "registrar interesse em profissional **ou** empresa",
+e a plataforma só tinha a direção contrária: o candidato manifestava interesse numa demanda, e o
+feed do demandante era declaradamente passivo. Quem publicava a demanda via o compatível na tela e
+não tinha o que fazer com ele além de esperar.
+
+**Decisão.** Uma coluna, `man_origem`, com `'C'` para candidato e `'D'` para demandante. O par
+(demanda, candidato) continua sendo o mesmo, `uq_man_dem_usu` continua garantindo um por par, e o
+que muda é quem começou e para quem vai o aviso: aqui o e-mail é para o candidato, com texto
+próprio, porque o fato é outro (lá alguém se candidatou, aqui alguém foi procurado).
+
+**Alternativa recusada.** Uma tabela `pro_interesses` separada. Duplicaria o snapshot, o limite por
+hora, a situação e o canal de mensagens, e criaria duas respostas possíveis para "existe interesse
+entre esta demanda e este perfil?" — que é exatamente a pergunta que a tela de interessados faz.
+
+**Consequência.** O teto de manifestações por hora passa a contar também o ato do demandante, o que
+é desejado: sem isso, um script registraria interesse no pool inteiro e o aviso viraria ruído para
+todo candidato. O snapshot congelado é o do candidato, na visão do demandante, que é o que ele viu
+quando decidiu.
+
+---
+
+## D71 · A experiência da empresa não vincula ART
+
+`17/09/2026` · E7 · `pro_experiencias.exp_emp_id`, `src/Service/ExperienciaService.php`
+
+**Contexto.** O Anexo I item 3 dá "publicar experiência" ao profissional **e** à empresa. Só o
+profissional tinha caminho: as três rotas eram `PERFIL_PROFISSIONAL`, e `exp_prf_id` era `NOT NULL`
+com chave estrangeira para `pro_profissionais`.
+
+**Decisão.** `exp_emp_id` entra ao lado, e uma `CHECK` garante exatamente um dono. A diferença que
+sobra entre os dois perfis é deliberada: o profissional amarra a experiência a uma ART do próprio
+acervo, e **a empresa não vincula ART nenhuma**.
+
+O motivo é a D24. A ART é sempre gravada sob o RNP de quem a registrou, nunca sob a empresa, e o
+acervo verificado da empresa é o operacional, herdado do quadro técnico pelo CAO e já exibido no
+perfil. Deixar a empresa apontar para uma ART afirmaria que ela a registrou.
+
+**Alternativa recusada.** Generalizar a coluna para `exp_usu_id` e deixar o dono ser o usuário.
+Mais limpo no papel, e exigiria migrar as linhas existentes e reescrever todas as leituras na
+véspera da entrega. Fica como melhoria pós-entrega.
+
+**Consequência.** A tentativa de vincular ART do lado da empresa é recusada inclusive por
+requisição forjada, e está coberta em `verificar-e2.php`.
+
+---
+
+## D72 · A métrica que o mockup pedia e que não foi inventada
+
+`17/09/2026` · E7 · `src/Repository/DashboardRepository.php`
+
+**Contexto.** Os mockups do profissional e da empresa abrem num painel de início que a
+implementação não tinha. Entre os quatro números do desenho está **"Visualizações do perfil"**.
+
+**Decisão.** Não existe registro de quem viu o perfil de quem, e o tile foi trocado por
+**"interesses recebidos"**, que existe desde a D70 e diz mais: é ato de um demandante, não
+passagem de olho. O mesmo raciocínio vale para o sino da topbar: `sis_notificacoes` é fila de
+e-mail, sem estado de leitura, e o número passou a contar manifestação recebida ainda não aberta,
+que é o que `man_dt_visualizacao` registra.
+
+**Alternativa recusada.** Criar a contagem de visualizações. Seria rastrear visita por titular:
+dado novo de comportamento, com implicação de privacidade que a Política não declara, acrescentado
+a horas da entrega. Inventar número para preencher um tile é o oposto da regra que o projeto
+seguiu em toda parte.
+
+**Consequência.** O painel entrega quatro números verdadeiros em vez de três verdadeiros e um
+inventado, e a diferença em relação ao desenho está escrita aqui e no código.
+
+---
+
+## D73 · Os mockups são o design final, e a implementação é que se ajusta
+
+`17/09/2026` · E7 · `docs/mockups/`, `templates/`
+
+**Contexto.** As telas foram construídas seguindo o `design.md`, que é o design system destilado
+dos mockups, e foram se afastando deles: a landing virou um título com dois botões numa coluna de
+980px, sem a barra de pesquisa que o fluxo público promete, e as telas logadas ficaram com a
+top-nav horizontal em vez da barra lateral que os mockups desenham. A autora reprovou, e a
+instrução foi literal: *"tudo que eu mandei refinar é pra ter fidelidade ao mockup, é basicamente
+só pra colocar o backend nas telas porque tá estático"*.
+
+**Decisão.** Os arquivos de `docs/mockups/` passam a ser tratados como **o design final**, e não
+como referência a ser interpretada. Quem implementa porta o mockup sobre o Bootstrap e liga o dado
+real; não redesenha, não reescreve texto, não acrescenta nem corta seção. Divergência só quando o
+mockup depende de dado que não existe ou quebra uma regra do projeto, e nesse caso ela é listada
+no relatório com o motivo.
+
+**Alternativa recusada.** Manter o `design.md` como fonte e tratar o mockup como inspiração. É o
+que vinha sendo feito, e produziu telas que respeitam a paleta e não se parecem com o que foi
+desenhado. O design system continua valendo para o que o mockup não decide (componente novo,
+estado de erro, responsividade), e não para sobrepor o que ele decide.
+
+**Consequência.** Duas divergências já registradas por essa régua: a landing não usa a top-nav do
+`base.html.twig`, porque o mockup tem a barra dentro do hero, e o `design.md` precisava dizer isso;
+e as animações em `<canvas>` do mockup voltaram, com o script movido para `public/assets/js/`,
+depois de terem sido convertidas em SVG estático por uma leitura errada da CSP.
 
