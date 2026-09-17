@@ -219,16 +219,27 @@
     </div>
 </div>
 {% else %}
+    {#  O rodapé sobrou de uma versão em que toda tela carregava a identificação da equipe. Ela
+        saiu: identificar o time é exigência da proposta e da documentação, não de cada tela, e a
+        landing já faz isso no rodapé próprio dela.
+
+        O que ficou é a qualificação do item 10.2, que **é** exigência: a correspondência entre
+        perfil e demanda é indicativa e não constitui ranking, e isso tem de estar visível na
+        própria tela, não atrás de um "saiba mais". Por isso ela aparece onde existe
+        correspondência (a busca, o feed, os compatíveis) e some onde não existe nada a
+        qualificar, como entrar na conta ou ler os termos. #}
     {% block rodape %}
-    <footer class="border-top mt-auto">
-        {#  O rodapé acompanha a moldura lateral da página em vez do `.container`: com a tela
-            ocupando 1640px, um rodapé de 1140px centralizado ficava desalinhado do conteúdo. #}
-        <div class="pl-wrap densa rodape small text-body-secondary">
-            Pro-Link · Desafio CREA Pro-Link · II CENATEC 2026 · Equipe 49/51<br>
-            Dados fictícios fornecidos pela organização. A correspondência entre perfil e demanda é
-            apenas indicativa e não constitui ranking, certificação ou recomendação institucional.
-        </div>
-    </footer>
+        {% if qualificar|default(false) %}
+            <footer class="border-top mt-auto">
+                {#  Acompanha a moldura lateral da página em vez do `.container`: com a tela
+                    ocupando 1640px, um rodapé de 1140px centralizado ficava desalinhado. #}
+                <div class="pl-wrap densa rodape small text-body-secondary">
+                    Dados fictícios fornecidos pela organização. A correspondência entre perfil e
+                    demanda é apenas indicativa e não constitui ranking, certificação ou
+                    recomendação institucional.
+                </div>
+            </footer>
+        {% endif %}
     {% endblock %}
 {% endif %}
 

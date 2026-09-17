@@ -1,6 +1,10 @@
 {% extends 'layout/base.html.twig' %}
 {% import 'layout/_ui.html.twig' as ui %}
 
+{#  Aqui existe correspondência entre perfil e demanda, então a qualificação do item 10.2
+    aparece no rodapé da própria tela. #}
+{% set qualificar = true %}
+
 {#
     Busca ativa de profissionais (RF04; Anexo I item 3, capacidade do perfil Público).
 
