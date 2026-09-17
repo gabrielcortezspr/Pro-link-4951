@@ -16,12 +16,14 @@ buracos do painel (indicadores, editor de parâmetros do 12.3, lixeira do 8.6j);
 `sincronizar-status.php` (RF02); e a suíte de ponta a ponta em `e2e/`, que roda os seis cenários
 pelo navegador e grava a jornada num vídeo com legenda.
 
-Fechou também a última pendência de segurança da E7: **mudança de papel passa a valer na sessão
-já aberta** (D68), medida com requisição forjada, 303 antes e 403 depois.
+Fechou também a última pendência de segurança da E7, **mudança de papel passa a valer na sessão
+já aberta** (D68, requisição forjada: 303 antes, 403 depois), e as **catorze telas passaram a
+caber em 390px**, o que levou o item 10 do Anexo VI de parcial para sim.
 
-Verificado: 188 testes · E1 80 · E2 151 · E4 32 · E6 53 · 36 telas · 59 conferências de padrão com
-0 violações · 15 de ponta a ponta no desktop. Carga inicial conferida num MariaDB limpo, e o
-`.zip` por `git archive` conferido em 332 arquivos, sem `vendor/`, `.env` nem `node_modules`.
+**`bash scripts/verificar-tudo.sh`: 9 de 9 no verde.** 188 testes · E1 80 · E2 151 · E4 32 ·
+E6 53 · 36 telas · 59 conferências de padrão · 16 de navegador no desktop e 5 em 390px. Carga
+inicial conferida num MariaDB limpo, e o `.zip` por `git archive` em 332 arquivos, sem `vendor/`,
+`.env` nem `node_modules`.
 
 ## Próximo passo
 
@@ -31,9 +33,6 @@ como está escrito lá, `git tag entrega-fase3`, e subir repositório e `.zip` *
 
 ## Decisões pendentes
 
-- **Seis telas rolam na horizontal em 390px**, com o elemento culpado medido em `backlog.md`. O
-  Anexo VI cobra dispositivo móvel na triagem, e o item ficou **parcial** na autoavaliação.
-  `e2e/specs/responsivo.spec.js` falha de propósito enquanto isso não fecha.
 - `ARQUIVADA` em `man_situacao`: quem arquiva, e o que significa para quem manifestou.
 - `prf_em_construcao` derivado na leitura em vez de coluna (a D63 recusou por agora).
 
@@ -41,6 +40,9 @@ como está escrito lá, `git tag entrega-fase3`, e subir repositório e `.zip` *
 
 - **Rode a suíte de ponta a ponta ANTES de recarregar o banco**, nunca depois: ela cria demanda,
   manifestação e denúncia de verdade, pela interface.
+- **`verificar-e2.php` falhou uma vez dentro da bateria e passou isolado nas cinco execuções
+  seguintes.** Não reproduziu. Se repetir, o suspeito é a seção de sincronização, que mexe em
+  visibilidade e nos carimbos de `prf_dt_sincronizacao` e os devolve ao fim.
 - **A lixeira mostra 238 registros**, quase todos contas "Verificação E2" de rodadas anteriores. É
   a tela mais feia do painel se o banco não for recarregado antes da demonstração.
 - **`verificar-e4.php` grava duas sessões do motor por execução** e `verificar-e6.php` abre
