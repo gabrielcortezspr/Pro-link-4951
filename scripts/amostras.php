@@ -59,6 +59,11 @@ return (static function (): array {
     ];
 
     $telas = [
+        // A landing não recebe variável nenhuma do controller: o que ela mostra é texto e figura.
+        // Entra aqui mesmo assim porque é a porta da aplicação, e porque o verificador só lê o
+        // HTML final das telas que estão nesta lista.
+        'home.html.twig' => [],
+
         // A visão geral só vira tela com os indicadores: até 17/09 ela era um espaço reservado sem
         // variável nenhuma, e por isso a entrada aqui não precisava de dado. Agora precisa, e é
         // justamente esta tela que a parte renderizada do verificador tem de ver, porque ela

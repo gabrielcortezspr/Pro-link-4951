@@ -86,6 +86,49 @@ final class DashboardRepository extends Repositorio
     }
 
     /**
+     * O que chegou para esta conta e ainda não foi visto.
+     *
+     * É o número do sino que os mockups desenham na topbar. **Não existe notificação dentro da
+     * plataforma**: `sis_notificacoes` é fila de e-mail, com tentativa e erro de entrega, e não
+     * tem estado de leitura. Em vez de criar uma caixa de entrada inteira a horas da entrega, o
+     * sino conta o que já existe e é do mesmo assunto: manifestação recebida que ainda não foi
+     * aberta, que é o que `man_dt_visualizacao` registra.
+     *
+     * O lado de cada papel é diferente e por isso a consulta é uma só, com dois caminhos: para o
+     * demandante, o que chegou nas demandas dele; para o candidato, o interesse que registraram
+     * no perfil dele.
+     */
+    public function naoVistas(int $usuarioId): int
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT
+                (SELECT COUNT(*)
+                   FROM pro_manifestacoes m
+                   JOIN pro_demandas d ON d.dem_id = m.man_dem_id
+                  WHERE d.dem_usu_id = :demandante
+                    AND m.man_origem = :do_candidato
+                    AND m.man_dt_visualizacao IS NULL
+                    AND m.man_status = :ativo)
+              + (SELECT COUNT(*)
+                   FROM pro_manifestacoes m2
+                  WHERE m2.man_usu_id = :candidato
+                    AND m2.man_origem = :do_demandante
+                    AND m2.man_dt_visualizacao IS NULL
+                    AND m2.man_status = :ativo2) AS total'
+        );
+
+        $stmt->bindValue(':demandante', $usuarioId, \PDO::PARAM_INT);
+        $stmt->bindValue(':candidato', $usuarioId, \PDO::PARAM_INT);
+        $stmt->bindValue(':do_candidato', 'C');
+        $stmt->bindValue(':do_demandante', 'D');
+        $stmt->bindValue(':ativo', STATUS_ATIVO);
+        $stmt->bindValue(':ativo2', STATUS_ATIVO);
+        $stmt->execute();
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
      * Em quantas demandas distintas este profissional entrou no pool do motor.
      *
      * Lê `mat_sessao_pool`, que é o que o motor gravou, e não recalcula: o número tem de ser o
