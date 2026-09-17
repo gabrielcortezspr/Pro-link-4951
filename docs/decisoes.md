@@ -33,7 +33,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | Front — largura e divulgação progressiva | D53 |
 | E4 — busca ativa e auditoria de sessões | D54, D55, D56 |
 | E5 — manifestação, mensagens e notificações | D57, D58, D59 |
-| E7 — entrega | D60, D61, D62, D63, D64, D65, D66, D67 |
+| E7 — entrega | D60 a D68 |
 
 ---
 
@@ -2138,4 +2138,44 @@ para depois é mais forte do que fingir que nunca foi prometido.
 **Consequência.** O portfólio da entrega é ART e acervo operacional. A CAT aparece no modelo de
 dados e no MER como estrutura pronta e não alimentada, o que é verdade e está escrito. Entra em
 `backlog.md`, junto dos outros itens que a proposta prometeu e o MVP não entrega.
+
+---
+
+## D68 · A sessão reconfere o perfil no banco, e a mudança de papel vale na hora
+
+`17/09/2026` · E7 · `public/index.php`, `src/Repository/SessaoRepository.php`, `src/Support/Sessao.php`
+
+**Contexto.** O backlog da E7 carregava esta linha desde 14/09: *"`Sessao` guarda o perfil em
+`$_SESSION` e nunca o reconfere contra o banco. O `sessaoTemRespaldo()` derruba sessão revogada,
+mas mudança de papel só vale no próximo login. Decidir junto com a operação atômica 5"*.
+
+A operação atômica 5 resolveu metade: bloquear uma conta revoga as sessões dela, e a D39 mediu que
+isso vale imediatamente. A outra metade ficou, e não era teórica. O rebaixamento para Terceiro da
+**D20** e da **D26** acontece quando a própria pessoa clica em "validar meu registro" e a API
+responde `200 []`, ou seja, **com sessão aberta**.
+
+Medido com requisição forjada em 17/09, e é OWASP A01: rebaixar a conta no banco e repetir o
+`POST /perfil/preferencias`, que é rota exclusiva de Profissional, devolvia 303 como antes.
+
+**Decisão.** A consulta que o front controller já fazia a cada requisição autenticada, para saber
+se a sessão vive, passa a trazer também o perfil, por `JOIN`. Se ele divergir do que está em
+`$_SESSION`, a sessão é atualizada e a troca entra na trilha de auditoria. Depois da correção, a
+mesma sonda devolve **403**.
+
+Custo: um `JOIN` numa consulta que já existia. Nenhuma consulta nova por requisição.
+
+**Alternativa recusada.** Derrubar a sessão quando o papel muda, que é a postura mais defensiva.
+Recusada pelo caso real: quem é rebaixado é justamente quem acabou de pedir para revalidar o
+próprio registro, e encerrar a sessão dele ali seria punir o ato de conferir, com uma mensagem que
+ele não teria como interpretar. A autorização passa a usar o perfil corrente, que é o que o
+problema exigia; o resto seria atrito sem ganho.
+
+Também foi recusado reconferir o perfil dentro de `Sessao::temPerfil()`, que é onde a autorização
+acontece. Aquele método é chamado várias vezes por requisição e não tem banco: colocá-lo lá
+transformaria uma consulta em várias, e acoplaria a camada de sessão ao repositório.
+
+**Consequência.** `SessaoRepository::ativa()` deixa de devolver só a sessão e passa a devolver o
+perfil e o nome. Quem "simplificar" aquela consulta no futuro reabre a falha, e é por isso que
+`verificar-e1.php` ganhou cinco conferências que a exercitam de ponta a ponta, incluindo o par
+positivo e negativo e a linha de auditoria.
 

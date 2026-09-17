@@ -549,6 +549,83 @@ if ($adminId === false) {
 }
 
 // ---------------------------------------------------------------- trilha de auditoria
+secao('Mudança de papel vale na sessão que já está aberta (OWASP A01)');
+
+// `$_SESSION` guarda uma cópia do perfil feita no login. Enquanto ninguém a comparasse com o
+// banco, mudança de papel só valia no login seguinte: uma conta rebaixada para Terceiro pelo
+// `PerfilCreaService` continuava alcançando rota de Profissional com a sessão que já tinha.
+//
+// Medido com requisição forjada em 17/09 e corrigido no front controller, que agora reconfere o
+// perfil na mesma consulta que já conferia se a sessão vive. Esta seção é a trava: sem ela, a
+// correção se perde na primeira vez que alguém "simplificar" aquela consulta.
+$emailPapel = "papel.{$marca}@verificacao.local";
+$idPapel    = cadastrar(CADASTRO_TERCEIRO_PF, 'Verificação de papel', cpfValido($serie + 90), $emailPapel);
+
+conferir('a conta de apoio foi criada', $idPapel !== null);
+
+if ($idPapel !== null) {
+    // Entra e confirma que, como Terceiro, a rota de Profissional já é recusada. O par
+    // positivo/negativo é o que prova que a conferência seguinte mede o que promete.
+    novaSessao();
+    requisitar('POST', $base . '/login', [
+        '_csrf' => csrf('/login'),
+        'email' => $emailPapel,
+        'senha' => $senha,
+    ]);
+
+    $comoTerceiro = requisitar('POST', $base . '/perfil/preferencias', [
+        '_csrf'  => csrf('/perfil'),
+        'resumo' => 'sonda',
+    ]);
+
+    conferir('Terceiro não alcança rota de Profissional', $comoTerceiro['status'] === 403,
+        'HTTP ' . $comoTerceiro['status']);
+
+    // Promove no banco, com a sessão viva, e confere que a promoção **passa a valer agora**.
+    $pdo->prepare(
+        'UPDATE sis_usuarios SET usu_per_id = (SELECT per_id FROM sis_perfis WHERE per_codigo = :perfil)
+          WHERE usu_id = :id'
+    )->execute([':perfil' => PERFIL_PROFISSIONAL, ':id' => $idPapel]);
+
+    $depoisDaTroca = requisitar('POST', $base . '/perfil/preferencias', [
+        '_csrf'  => csrf('/perfil'),
+        'resumo' => 'sonda',
+    ]);
+
+    conferir(
+        'o perfil trocado no banco vale na sessão que já estava aberta',
+        $depoisDaTroca['status'] !== 403,
+        'HTTP ' . $depoisDaTroca['status'],
+    );
+
+    // E o caminho que importa de verdade para a segurança: o rebaixamento.
+    $pdo->prepare(
+        'UPDATE sis_usuarios SET usu_per_id = (SELECT per_id FROM sis_perfis WHERE per_codigo = :perfil)
+          WHERE usu_id = :id'
+    )->execute([':perfil' => PERFIL_TERCEIRO, ':id' => $idPapel]);
+
+    $rebaixado = requisitar('POST', $base . '/perfil/preferencias', [
+        '_csrf'  => csrf('/perfil'),
+        'resumo' => 'sonda',
+    ]);
+
+    conferir(
+        'o rebaixamento fecha a rota na mesma sessão, sem esperar novo login',
+        $rebaixado['status'] === 403,
+        'HTTP ' . $rebaixado['status'],
+    );
+
+    $stmt = $pdo->prepare(
+        'SELECT COUNT(*) FROM sis_auditoria
+          WHERE aud_entidade = :entidade AND aud_entidade_id = :id AND aud_campo = :campo'
+    );
+    $stmt->execute([':entidade' => 'sis_usuarios', ':id' => $idPapel, ':campo' => 'usu_per_id']);
+
+    conferir('a troca de papel entra na trilha de auditoria', ((int) $stmt->fetchColumn()) >= 1);
+
+    requisitar('POST', $base . '/sair', ['_csrf' => csrf('/')]);
+}
+
 secao('Trilha de auditoria (edital 8.5g)');
 
 $ids  = array_column($criados, 'id');

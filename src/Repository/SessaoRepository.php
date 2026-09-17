@@ -43,15 +43,28 @@ final class SessaoRepository extends Repositorio
     }
 
     /** Válida = não revogada, não expirada, status ativo. */
+    /**
+     * A sessão viva, com **o perfil que o banco diz agora**.
+     *
+     * O perfil vem junto de propósito, no mesmo `SELECT` que já acontecia a cada requisição
+     * autenticada. `$_SESSION` guarda uma cópia do perfil feita no momento do login, e enquanto
+     * ninguém a reconferisse, mudança de papel só valia no login seguinte: uma conta rebaixada
+     * para Terceiro por `PerfilCreaService` continuava alcançando rota de Profissional com a
+     * sessão que já tinha. Medido com requisição forjada em 17/09, e é OWASP A01.
+     *
+     * Trazer o perfil aqui custa um `JOIN` numa consulta que já existe, e não uma consulta nova.
+     */
     public function ativa(string $tokenHash): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT ses_id, ses_usu_id, ses_dt_expiracao
-               FROM sis_sessoes
-              WHERE ses_token_hash = :hash
-                AND ses_status = :ativo
-                AND ses_dt_revogacao IS NULL
-                AND ses_dt_expiracao > NOW()'
+            'SELECT s.ses_id, s.ses_usu_id, s.ses_dt_expiracao, p.per_codigo, u.usu_nome
+               FROM sis_sessoes s
+               JOIN sis_usuarios u ON u.usu_id = s.ses_usu_id
+               JOIN sis_perfis p ON p.per_id = u.usu_per_id
+              WHERE s.ses_token_hash = :hash
+                AND s.ses_status = :ativo
+                AND s.ses_dt_revogacao IS NULL
+                AND s.ses_dt_expiracao > NOW()'
         );
         $stmt->execute([':hash' => $tokenHash, ':ativo' => STATUS_ATIVO]);
 

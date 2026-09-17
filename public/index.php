@@ -207,9 +207,10 @@ try {
     // sete objetos, o serviço de notificação incluído, e o roteador não tem o que fazer com
     // nenhum deles para responder uma pergunta de uma linha.
     if (Sessao::autenticado()) {
-        $token = Sessao::tokenServidor();
+        $token  = Sessao::tokenServidor();
+        $viva   = $token === null ? null : (new SessaoRepository())->ativa($token);
 
-        if ($token === null || (new SessaoRepository())->ativa($token) === null) {
+        if ($viva === null) {
             Sessao::reiniciar();
             Flash::aviso('Sua sessão foi encerrada. Entre novamente.');
 
@@ -218,6 +219,29 @@ try {
             // monitoramento por um motivo que não é dele.
             if (!Router::ehPublica($rota['perfis'])) {
                 View::redirecionar('/login');
+            }
+        } else {
+            // O perfil também é reconferido, e não só a existência da sessão. `$_SESSION` guarda
+            // uma cópia feita no login, e enquanto ninguém a comparasse com o banco, mudança de
+            // papel só valia no login seguinte: uma conta rebaixada para Terceiro continuava
+            // alcançando rota de Profissional com a sessão que já tinha. Medido com requisição
+            // forjada em 17/09 (OWASP A01), e a consulta que descobre isso é a mesma de cima.
+            //
+            // A sessão é atualizada, e não derrubada: o rebaixamento acontece quando a própria
+            // pessoa manda revalidar o registro, e encerrar a sessão dela ali seria punir o ato de
+            // conferir. A autorização passa a usar o perfil corrente, que é o que importa.
+            $anterior = Sessao::trocarPerfil((string) $viva['per_codigo']);
+
+            if ($anterior !== null) {
+                Auditoria::registrar(
+                    Auditoria::EDITAR,
+                    'sis_usuarios',
+                    (int) $viva['ses_usu_id'],
+                    'usu_per_id',
+                    $anterior,
+                    (string) $viva['per_codigo'],
+                    (int) $viva['ses_usu_id'],
+                );
             }
         }
     }

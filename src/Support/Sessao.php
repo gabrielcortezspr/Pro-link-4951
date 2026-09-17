@@ -123,6 +123,30 @@ final class Sessao
         return $_SESSION[self::CHAVE_TOKEN] ?? null;
     }
 
+    /**
+     * Troca o perfil guardado na sessão pelo que o banco diz agora.
+     *
+     * Chamado pelo front controller quando a reconferência de sessão encontra divergência. Não
+     * regenera o identificador de sessão nem mexe no relógio de atividade: não é um login novo, é
+     * a mesma sessão deixando de carregar uma informação vencida.
+     *
+     * Devolve o perfil anterior, para quem chama poder registrar a troca na trilha. Mudança de
+     * papel é evento raro e vale linha de auditoria; a reconferência que não acha divergência,
+     * que é o caso de toda requisição normal, não escreve nada.
+     */
+    public static function trocarPerfil(string $perfil): ?string
+    {
+        $atual = $_SESSION[self::CHAVE_USUARIO]['perfil'] ?? null;
+
+        if ($atual === null || $atual === $perfil) {
+            return null;
+        }
+
+        $_SESSION[self::CHAVE_USUARIO]['perfil'] = $perfil;
+
+        return $atual;
+    }
+
     /** @return array{id: int, nome: string, perfil: string}|null */
     public static function usuarioAtual(): ?array
     {
