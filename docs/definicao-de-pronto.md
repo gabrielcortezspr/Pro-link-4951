@@ -103,20 +103,26 @@ São a definição de pronto do MVP e não se cortam.
 
 ### Autoavaliação do Anexo VI
 
-Os doze itens da triagem da banca. Marcar só o que foi conferido de fato:
+Os doze itens da triagem da banca, marcados **só** quando alguém executou a verificação, nunca por
+leitura de código. Conferência de 17/09/2026, madrugada.
 
-- [ ] Executa as funcionalidades essenciais
-- [ ] Utiliza apenas dados sintéticos, anonimizados ou autorizados
-- [ ] Possui instruções reproduzíveis de instalação e execução
-- [ ] Identifica dependências, licenças e componentes de terceiros
-- [ ] Não contém credenciais, segredos ou chaves reais
-- [ ] Demonstra autenticação e segregação de perfis
-- [ ] Prevê consentimento, correção e controle de visibilidade
-- [ ] Possui trilhas mínimas de auditoria e moderação
-- [ ] Apresenta critérios explicáveis de compatibilização
-- [ ] Considera acessibilidade e uso em dispositivos móveis
-- [ ] Documenta riscos, limitações e uso de inteligência artificial
-- [ ] Entrega código-fonte e documentação no prazo
+| # | Item | Estado | Como foi conferido |
+|---|---|---|---|
+| 1 | Executa as funcionalidades essenciais | **sim** | os seis cenários do Anexo I rodam pelo navegador: `npx playwright test --project=desktop` |
+| 2 | Só dados sintéticos, anonimizados ou autorizados | **sim** | toda origem é a API oficial do desafio; `crea_*` guarda resposta datada, e o item 8.4 proíbe base própria simulada |
+| 3 | Instruções reproduzíveis de instalação e execução | **sim** | `estrutura.sql` + `carga-inicial.sql` executados num MariaDB limpo, pelo mesmo caminho do `docker-compose`: 29 objetos, 27 chaves estrangeiras, 2 triggers, 2000 códigos TOS |
+| 4 | Dependências, licenças e componentes de terceiros | **sim** | `_arq/dependencias.md`, conferido contra `composer.lock` e contra `e2e/package.json` |
+| 5 | Sem credenciais, segredos ou chaves reais | **sim** | `.env` fora do versionamento, conferido em clone limpo; a carga inicial cria **zero** usuários; a senha do administrador da suíte vem do ambiente, sem valor padrão |
+| 6 | Autenticação e segregação de perfis | **sim** | `verificar-e1.php`, e os seis cenários entram com quatro contas de perfis diferentes |
+| 7 | Consentimento, correção e controle de visibilidade | **sim** | cenário 5, ponta a ponta: corrige um campo, restringe outro, e o painel de privacidade exporta e revoga |
+| 8 | Trilhas mínimas de auditoria e moderação | **sim** | cenário 6: a denúncia é tratada e a ação do próprio administrador aparece na trilha |
+| 9 | Critérios explicáveis de compatibilização | **sim** | cenário 3 confere a aderência por dimensão na tela e a ausência de qualquer sinal de ranking |
+| 10 | Acessibilidade e uso em dispositivos móveis | **parcial** | `responsivo.spec.js` em 390px: rótulo, hierarquia de título, texto alternativo e teclado passam; **seis telas rolam na horizontal** e estão listadas no `backlog.md` com o elemento culpado |
+| 11 | Riscos, limitações e uso de inteligência artificial | **sim** | `_arq/arquitetura.md`, seção de declaração; `docs/decisoes.md` com 66 entradas, cada uma com a alternativa recusada |
+| 12 | Código-fonte e documentação no prazo | **pendente** | 17/09 até as 18h |
+
+O item 10 fica **parcial por escolha**: marcar "sim" com seis telas quebrando no celular de quem
+avalia seria a definição de verde falso que este documento existe para impedir.
 
 ### Higiene de demonstração
 
