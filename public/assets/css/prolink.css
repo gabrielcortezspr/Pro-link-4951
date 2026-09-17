@@ -3272,11 +3272,14 @@ body > .pl-app { flex: 1 0 auto; min-width: 0; }
 
 .pl-e3-cartao {
     width: 100%;
-    max-width: 380px;
+    /* O mockup pede 380px, e na tela cheia o cartão ficava pequeno demais para o peso que tem:
+       é o assunto da página, e dividia o quadro com um herói de 38px. Cresceu junto com o que
+       está dentro dele, para a proporção do desenho continuar a mesma. */
+    max-width: 440px;
     background: linear-gradient(180deg, var(--e3-painel), var(--e3-painel2));
     border: 1px solid var(--e3-linha);
-    border-radius: 20px;
-    padding: 34px 30px;
+    border-radius: 22px;
+    padding: 40px 38px;
     box-shadow: 0 30px 70px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .05);
 }
 
@@ -3284,13 +3287,13 @@ body > .pl-app { flex: 1 0 auto; min-width: 0; }
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    font-size: 11.5px;
+    font-size: 12.5px;
     color: #AEC2E0;
     background: rgba(46, 107, 230, .14);
     border: 1px solid rgba(120, 160, 220, .22);
-    padding: 6px 11px;
+    padding: 7px 13px;
     border-radius: 20px;
-    margin-bottom: 22px;
+    margin-bottom: 24px;
 }
 
 .pl-e3-selo svg { width: 13px; height: 13px; flex: none; }
@@ -3298,13 +3301,13 @@ body > .pl-app { flex: 1 0 auto; min-width: 0; }
 .pl-e3-cartao h1 {
     font-family: var(--pl-display);
     font-weight: 600;
-    font-size: 24px;
+    font-size: 28px;
     letter-spacing: -.01em;
     color: #EAF1FB;
     margin: 0 0 4px;
 }
 
-.pl-e3-dica { color: var(--e3-tx); font-size: 13.5px; margin: 0 0 24px; }
+.pl-e3-dica { color: var(--e3-tx); font-size: 14.5px; margin: 0 0 26px; }
 
 /* Os campos vêm das macros do projeto, que são as mesmas de toda tela: o que muda
    aqui é só a pele, porque o cartão é escuro. */
@@ -3317,8 +3320,10 @@ body > .pl-app { flex: 1 0 auto; min-width: 0; }
     font-weight: 500;
 }
 
+.pl-e3-cartao .form-label { font-size: 12px; }
+
 .pl-e3-cartao .form-control {
-    height: 46px;
+    height: 50px;
     border-radius: 12px;
     background: #0a1830;
     border: 1px solid var(--e3-linha);
@@ -3367,11 +3372,11 @@ body > .pl-app { flex: 1 0 auto; min-width: 0; }
 .pl-e3-cartao .btn-primary,
 .pl-e3-cartao button[type="submit"] {
     width: 100%;
-    height: 48px;
+    height: 52px;
     border: 0;
     border-radius: 12px;
     font-weight: 600;
-    font-size: 15px;
+    font-size: 16px;
     color: #fff;
     background: linear-gradient(135deg, #ff8a3d, var(--pl-accent));
     box-shadow: 0 12px 30px rgba(242, 107, 33, .42);
@@ -3388,7 +3393,7 @@ body > .pl-app { flex: 1 0 auto; min-width: 0; }
     outline-offset: 2px;
 }
 
-.pl-e3-alt { text-align: center; color: var(--e3-tx); font-size: 13.5px; margin: 18px 0 0; }
+.pl-e3-alt { text-align: center; color: var(--e3-tx); font-size: 14.5px; margin: 20px 0 0; }
 .pl-e3-alt a { color: var(--e3-z); text-decoration: none; font-weight: 600; }
 .pl-e3-alt a:hover { text-decoration: underline; }
 
