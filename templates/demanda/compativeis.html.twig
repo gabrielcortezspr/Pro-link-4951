@@ -52,7 +52,7 @@
 {# Texto de cada dimensão: o que ela compara, e de onde sai o dado. É o "critério explicável"
    do Anexo VI, e por isso mora na tela, não num documento que ninguém abre na hora. #}
 {% set explicacoes = {
-    'competencia':     'O quanto o acervo de ART e CAT registrado no CREA cobre as atividades da Tabela de Obras e Serviços que esta demanda pede. Mais de uma ART na mesma atividade reforça o valor, e CAT emitida reforça de novo.',
+    'competencia':     'O quanto o acervo de ART e CAT registrado no CREA cobre as atividades da Tabela de Obras e Serviços que esta demanda pede. Mais de uma ART na mesma atividade reforça o valor, e CAT vigente reforça de novo.',
     'area':            'A modalidade do registro no CREA contra a modalidade que as atividades desta demanda exigem. Empresa não tem modalidade própria: quem a tem é o profissional do quadro técnico, então a dimensão sai da média dela.',
     'localizacao':     'Onde as ARTs do acervo foram registradas, contra o município e a UF da obra desta demanda.',
     'experiencia':     'Quantas experiências a pessoa lançou no próprio perfil e quantas delas têm ART vinculada. Não é comparada com o escopo desta demanda: cruzar relato livre com código da tabela exigiria classificar texto.',
@@ -165,10 +165,23 @@
                         <svg class="pl-mark nao" role="img" aria-label="Sem documento nesta demanda"><use href="#pl-sym-seal-x"/></svg>
                         Nenhuma atividade desta demanda coberta pelo acervo registrado
                     {% else %}
+                        {#  Quantas das atividades cobertas têm CAT vigente. É fato sobre ESTA
+                            demanda, contado do mesmo jeito para todo candidato, e zero não é dito:
+                            "nenhuma com CAT" ao lado de um nome leria como nota baixa (item 10.1).
+                            Um só <span>, para a frase quebrar como frase e não como três blocos. #}
+                        {% set n_ev  = c.evidencias|length %}
+                        {% set n_cat = c.evidencias|filter(e => e.cat or e.cat_fechada|default(false))|length %}
                         <svg class="pl-mark" role="img" aria-label="Verificado na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
-                        {{ c.evidencias|length }} de {{ atividades|length }}
-                        {{ atividades|length == 1 ? 'atividade desta demanda coberta' : 'atividades desta demanda cobertas' }}
-                        por acervo registrado no CREA
+                        <span>
+                            {{ n_ev }} de {{ atividades|length }}
+                            {{ atividades|length == 1 ? 'atividade desta demanda coberta' : 'atividades desta demanda cobertas' }}
+                            por acervo registrado no CREA
+                            {#- O complemento é uma unidade: quebrado, deixava "vigente" sozinho na
+                                linha de baixo. #}
+                            {%- if n_cat > 0 %} <span class="text-nowrap">· {{ n_cat == n_ev
+                                ? (n_ev == 1 ? 'com CAT vigente' : 'todas com CAT vigente')
+                                : n_cat ~ ' com CAT vigente' }}</span>{% endif %}
+                        </span>
                     {% endif %}
                 </p>
 
@@ -257,10 +270,21 @@
                                                         {{ e.arts_fechadas }} {{ e.arts_fechadas == 1 ? 'ART registrada, não aberta' : 'ARTs registradas, não abertas' }} pelo titular
                                                     </span>
                                                 {% endif %}
-                                                {% if e.cat %}
-                                                    <span class="doc">CAT {{ e.cat }}<svg class="pl-mark" role="img" aria-label="Verificada na API do CREA-AM"><use href="#pl-sym-seal"/></svg></span>
+                                                {#  `e.cat` só vem com CAT vigente (D76). Por isso a ausência
+                                                    diz "vigente": a certidão pode existir e ter vencido, e
+                                                    "sem CAT" seria falso nesse caso.
+
+                                                    Com todas as ARTs da linha fechadas, a CAT que a reforça
+                                                    certifica uma ART fechada, e ela herda a visibilidade da
+                                                    ART: o reforço é dito, o número não. #}
+                                                {% if e.cat_fechada|default(false) %}
+                                                    <span class="sem" title="A certidão segue a visibilidade da ART que ela certifica. Ela reforça esta atividade e não é identificada.">Certificada por CAT vigente, não aberta pelo titular</span>
+                                                {% elseif e.cat %}
+                                                    <span class="doc" title="Certidão de Acervo Técnico vigente. Reforça a competência nesta atividade.">CAT {{ e.cat }}<svg class="pl-mark" role="img" aria-label="Certidão conferida na API do CREA-AM"><use href="#pl-sym-seal"/></svg></span>
+                                                {% elseif e.cat_vencida|default(null) %}
+                                                    <span class="sem" title="A certidão existe e venceu. Não reforça mais esta atividade, e a ART continua contando pelo que é.">CAT {{ e.cat_vencida }} vencida · não reforça</span>
                                                 {% else %}
-                                                    <span class="sem">Sem CAT nesta atividade</span>
+                                                    <span class="sem">Sem CAT vigente nesta atividade</span>
                                                 {% endif %}
                                             </td>
                                             <td class="num">{{ (e.contribuicao * 100)|round }}%</td>

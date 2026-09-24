@@ -79,17 +79,41 @@
 {% endmacro %}
 
 {#
-  Uma ART do acervo verificado. O mesmo bloco serve ao perfil do profissional e ao acervo
-  operacional da empresa (lá com o autor do registro), e as duas telas escreviam o seu.
+  Uma ART do acervo verificado. O mesmo bloco serve ao perfil do profissional, ao acervo
+  operacional da empresa e ao retrato congelado de uma manifestação.
 
   A verificação é o símbolo colado no número da ART, e não uma tarja verde de texto ao lado
   (docs/design.md). Divergência continua sendo tarja, e vermelha: ali o fato é anômalo e precisa
   de peso, porque significa que o conteúdo gravado não corresponde ao selo.
 
-  `autor` é null no perfil do profissional, e {nome, rnp} no acervo da empresa.
+  `autor` é null no perfil do profissional, e {nome, rnp} onde a ART é de outra pessoa.
+
+  A certidão (D76). A ART lê `cats`, todas as certidões que a cobrem, a de validade mais longa
+  primeiro; o retrato gravado antes disso só tem `cat`, e antes da D76 nem isso. Dois modos:
+
+  - **Lista** (`grupo` null): o cartão diz a sua certidão. Na linha do número, a ficha
+    "Certificada pela CAT nº" com o selo da própria certidão; nos campos, a linha "Certidão".
+    É o modo do retrato da manifestação. `dizer_sem_cat` decide se a ausência é dita: vale true
+    quando ALGUMA ART da lista tem CAT, porque aí a comparação entre linhas tem sentido; numa
+    lista em que nenhuma tem, "nenhuma CAT" em cada ART seria coluna vazia, e num retrato anterior
+    à D76 seria falso.
+  - **Dentro de um bloco de certidão** (`grupo` com o número da CAT, ou '' no bloco das ARTs sem
+    certidão; ver `acervo_por_certidao`): o bloco já diz qual é a certidão, então a ficha e a
+    linha "Certidão" saem, e entra "Também na CAT X" para as outras certidões da mesma ART, com
+    link para o bloco delas. `ancora` é o prefixo dos ids do bloco; `ocultar` são as certidões
+    vencidas já renovadas, que não se citam: a obra está coberta pela nova, e a linha compacta
+    da renovada é quem aponta para ela.
+
+  `dizer_sem_cat` continua na terceira posição de propósito: o retrato da manifestação o passa
+  por posição, e trocar a ordem faria o booleano cair em `grupo` sem erro nenhum na tela.
 #}
-{% macro art(a, autor = null) %}
+{% macro art(a, autor = null, dizer_sem_cat = false, grupo = null, ancora = '', ocultar = []) %}
     {%- import _self as ui -%}
+    {#  `default`, e não acesso direto: o retrato congelado gravado antes da D76 não tem as chaves,
+        e com strict_variables o acesso direto derruba a tela. #}
+    {%- set cats = a.cats|default(a.cat|default(null) ? [a.cat] : []) -%}
+    {%- set c = grupo is null ? (cats|first ?: null) : null -%}
+    {%- set outras = grupo is null ? [] : cats|filter(x => x.numero != grupo and x.numero not in ocultar) -%}
     <article class="pl-art">
         <div class="tp">
             <h3 class="nr">
@@ -99,8 +123,39 @@
                 {% endif %}
             </h3>
             {% if not a.selo_confere %}
-                <span class="pl-pill danger" title="O conteúdo gravado não corresponde ao selo. Isto foi registrado na auditoria.">
+                <span class="pl-pill danger" title="Os dados guardados desta ART não batem com a conferência feita na API do CREA. A diferença foi registrada para revisão.">
                     <span class="pd" aria-hidden="true"></span>Selo divergente
+                </span>
+            {% endif %}
+            {% if c %}
+                <span class="pl-cat{% if not c.vigente %} vencida{% endif %}"
+                      title="Certidão de Acervo Técnico {{ c.numero }}{% if c.selo_confere %}, conferida na API do CREA-AM{% endif %}">
+                    Certificada pela <span class="n">CAT {{ c.numero }}</span>
+                    {%- if c.selo_confere %}
+                        <svg class="pl-mark" role="img" aria-label="Certidão conferida na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+                    {%- endif %}
+                </span>
+                {% if not c.vigente %}
+                    <span class="pl-pill warn" title="A certidão venceu. A obra continua no acervo, só sem o destaque de obra certificada pelo CREA.">
+                        <span class="pd" aria-hidden="true"></span>CAT vencida
+                    </span>
+                {% endif %}
+                {% if not c.selo_confere %}
+                    <span class="pl-pill danger" title="Os dados guardados desta certidão não batem com a conferência feita na API do CREA. A diferença foi registrada para revisão.">
+                        <span class="pd" aria-hidden="true"></span>Selo da CAT divergente
+                    </span>
+                {% endif %}
+            {% endif %}
+            {#  A outra certidão é citada, não desenhada de novo: o bloco dela está na mesma tela.
+                Vencida diz que é, para ninguém ir até lá esperando o destaque. #}
+            {% if outras is not empty %}
+                <span class="pl-tambem">
+                    Também na
+                    {% for o in outras %}
+                        <a href="#{{ ancora }}cat-{{ o.numero|replace({'/': '-'}) }}">CAT {{ o.numero }}</a>
+                        {%- if not o.vigente %} <span class="vc">(vencida)</span>{% endif %}
+                        {{- not loop.last ? ',' : '' }}
+                    {% endfor %}
                 </span>
             {% endif %}
             <span class="qd">Consultada em {{ a.dt_consulta|date('d/m/Y') }}</span>
@@ -116,7 +171,22 @@
             {% endif %}
             <dt>Contratante</dt><dd>{{ a.contratante ?: 'Não informado' }}</dd>
             <dt>Local</dt><dd>{{ a.local ?: 'Não informado' }}</dd>
-            <dt>Situação</dt><dd>{{ a.situacao ?: 'Não informado' }}</dd>
+            {#  A situação chega da API em caixa alta (`REGISTRADA`), que é forma de sistema; o mockup
+                escreve "Registrada". O valor cru fica no title. #}
+            <dt>Situação</dt><dd{% if a.situacao %} title="{{ a.situacao }}"{% endif %}>{{ a.situacao ? a.situacao|rotulo_documento : 'Não informado' }}</dd>
+            {% if c %}
+                {%- set meta = ui.cat_meta(c, true)|trim -%}
+                <dt>Certidão</dt>
+                <dd class="pl-art-cert"{% if c.tipo %} title="{{ c.tipo }}"{% endif %}>
+                    {{ meta }}
+                    {% if not c.vigente %}
+                        <span class="nt">A obra continua no acervo, só sem o destaque de obra certificada pelo CREA.</span>
+                    {% endif %}
+                </dd>
+            {% elseif grupo is null and dizer_sem_cat %}
+                <dt>Certidão</dt>
+                <dd class="pl-art-cert"><span class="vaz">Esta obra não está em nenhuma CAT</span></dd>
+            {% endif %}
         </dl>
 
         {% if a.atividades is empty %}
@@ -129,6 +199,310 @@
             </ul>
         {% endif %}
     </article>
+{% endmacro %}
+
+{#
+  Os dados de uma certidão numa linha: "Inicial · emitida em 15/01/2026 · para Licitação · válida
+  até 31/12/2026". Cada pedaço é opcional, porque a API não promete nenhum. O tipo chega como
+  constante (`INICIAL`) e sai como palavra.
+
+  A validade da vencida só entra com `com_vencimento`: no bloco de certidão a frase logo abaixo já
+  começa por ela, e no cartão em modo lista ela é a única menção.
+#}
+{% macro cat_meta(c, com_vencimento = false) %}
+    {%- set partes = [] -%}
+    {%- if c.tipo %}{% set partes = partes|merge([c.tipo|rotulo_documento]) %}{% endif -%}
+    {%- if c.dt_emissao %}{% set partes = partes|merge(['emitida em ' ~ c.dt_emissao|date('d/m/Y')]) %}{% endif -%}
+    {%- if c.finalidade %}{% set partes = partes|merge(['para ' ~ c.finalidade]) %}{% endif -%}
+    {%- if c.vigente -%}
+        {%- set partes = partes|merge([c.dt_validade ? 'válida até ' ~ c.dt_validade|date('d/m/Y') : 'sem data de validade informada']) -%}
+    {%- elseif com_vencimento -%}
+        {%- set partes = partes|merge(['venceu em ' ~ c.dt_validade|date('d/m/Y')]) -%}
+    {%- endif -%}
+    {%- set linha = partes|join(' · ') -%}
+    {{- linha|slice(0, 1)|upper ~ linha|slice(1) -}}
+{% endmacro %}
+
+{#
+  A pílula "Vencida" com o "i". Amarela (`warn`): é destaque, e não alarme. Só a pílula é amarela;
+  o bloco vencido continua tracejado e em tinta média (seção 42 do prolink.css).
+#}
+{% macro vencida() %}
+    {%- import _self as ui -%}
+    <span class="pl-pill warn"><span class="pd" aria-hidden="true"></span>Vencida</span>
+    {{ ui.info('O que muda quando a CAT vence',
+        'A CAT tem prazo de validade. Depois que vence, as obras que ela reunia continuam registradas no nome do profissional e continuam aparecendo quando alguém procura esse tipo de serviço. O que muda é que elas deixam de ter o destaque de obra certificada pelo CREA. Uma CAT nova volta a dar esse destaque.') }}
+{% endmacro %}
+
+{#
+  A frase do bloco vencido. Três leitores, três frases: quem visita recebe o fato; o dono do perfil
+  do profissional recebe o que fazer, com o botão pelo nome (um "aqui" solto não diz nada no leitor
+  de tela); e o dono do perfil da empresa recebe o fato certo para ele, porque quem pede a CAT é o
+  profissional, e não a empresa.
+
+  `leitor`: 'visita', 'dono' ou 'empresa'.
+#}
+{% macro certidao_vencida_nota(c, leitor = 'visita') %}
+    {%- set data = c.dt_validade|date('d/m/Y') -%}
+    {%- if leitor == 'dono' -%}
+        Esta certidão venceu em {{ data }}. As obras continuam no seu acervo. Para voltar a ter a
+        comprovação, peça uma nova CAT ao CREA e depois use <b>Atualizar meu acervo no CREA</b>, no
+        alto desta aba.
+    {%- elseif leitor == 'empresa' -%}
+        Esta certidão venceu em {{ data }}. As obras continuam no acervo da empresa. Uma CAT nova
+        depende do profissional que registrou a obra.
+    {%- else -%}
+        Esta certidão venceu em {{ data }}. As obras continuam no acervo, só não contam mais com a
+        comprovação da certidão.
+    {%- endif -%}
+{% endmacro %}
+
+{#
+  O acervo organizado por certidão (D76; aprovado na prévia da alternativa C).
+
+  Um bloco por CAT com as ARTs que ela certifica, e um bloco final para as ARTs sem certidão, no
+  MESMO desenho: cartão, cabeçalho e tipografia iguais. Ficar sem CAT é o caso mais comum na vida
+  real (a CAT é pedida depois, e muitas obras nunca ganham uma) e não pode ler como nota baixa.
+
+  Os blocos saem das ARTs que chegam, e só delas. O serviço já entrega só a ART visível, então a
+  CAT segue a ART sem regra nova: certidão de ARTs todas fechadas não forma bloco, e a de ARTs em
+  parte fechadas forma bloco só com as abertas.
+
+  Três tipos de bloco de certidão:
+  - **vigente** (0): completo;
+  - **vencida** (1): completo, tracejado, com a pílula amarela e a frase de vencimento;
+  - **renovada** (2): vencida em que TODA ART do bloco também está numa CAT vigente. O profissional
+    pediu certidão nova para as mesmas obras, e repetir os cartões seria mostrar as mesmas obras
+    duas vezes: vira uma linha, "venceu em 31/12/2025 · renovada pela CAT 999006/2026", com link
+    para o bloco novo. É uma leitura do que está na tela, e depende do que é visível: numa empresa
+    que herdou só parte das obras de uma CAT, a mesma certidão pode estar renovada para aquele
+    acervo e não para o do profissional.
+
+  Ordem: vigentes (validade mais longa antes, sem data depois das datadas), vencidas completas (a
+  mais recente antes), renovadas, e por último as ARTs sem certidão. O índice de atalhos aparece a
+  partir de três blocos completos, e não lista as renovadas, que são histórico.
+
+  `pessoa` prefixa as âncoras, para dois profissionais do quadro de uma empresa não gerarem o
+  mesmo id. `leitor` escolhe a frase do bloco vencido (ver `certidao_vencida_nota`).
+#}
+{% macro acervo_por_certidao(arts, pessoa = '', leitor = 'visita', com_indice = false) %}
+    {%- import _self as ui -%}
+
+    {#- 1. Agrupar. Chave com prefixo: número puro como chave de mapa vira índice inteiro no PHP,
+        e o merge renumeraria. -#}
+    {%- set grupos = {} -%}
+    {%- set soltas = [] -%}
+    {%- for a in arts -%}
+        {%- set cats = a.cats|default(a.cat|default(null) ? [a.cat] : []) -%}
+        {%- if cats is empty -%}
+            {%- set soltas = soltas|merge([a]) -%}
+        {%- else -%}
+            {%- for c in cats -%}
+                {%- set k = 'c' ~ c.numero -%}
+                {%- set g = grupos[k]|default({cat: c, arts: []}) -%}
+                {%- set grupos = grupos|merge({(k): {cat: g.cat, arts: g.arts|merge([a])}}) -%}
+            {%- endfor -%}
+        {%- endif -%}
+    {%- endfor -%}
+
+    {#- 2. Classificar. Renovada é a vencida em que toda ART do bloco tem ao menos uma CAT
+        vigente; `por` são essas vigentes. -#}
+    {%- set blocos = [] -%}
+    {%- set renovadas = [] -%}
+    {%- for g in grupos -%}
+        {%- set por = [] -%}
+        {%- set cobertas = 0 -%}
+        {%- if not g.cat.vigente -%}
+            {%- for a in g.arts -%}
+                {%- set vig = a.cats|default(a.cat|default(null) ? [a.cat] : [])|filter(x => x.vigente) -%}
+                {%- if vig is not empty %}{% set cobertas = cobertas + 1 %}{% endif -%}
+                {%- for x in vig|filter(x => x.numero not in por) %}{% set por = por|merge([x.numero]) %}{% endfor -%}
+            {%- endfor -%}
+        {%- endif -%}
+        {%- set tipo = g.cat.vigente ? 0 : (cobertas == g.arts|length ? 2 : 1) -%}
+        {%- if tipo == 2 %}{% set renovadas = renovadas|merge([g.cat.numero]) %}{% endif -%}
+        {%- set blocos = blocos|merge([{cat: g.cat, arts: g.arts, tipo: tipo, por: por}]) -%}
+    {%- endfor -%}
+    {%- set blocos = blocos|sort((x, y) => x.tipo - y.tipo
+        ?: ((y.cat.dt_validade ?: '0000') > (x.cat.dt_validade ?: '0000') ? 1
+            : ((y.cat.dt_validade ?: '0000') < (x.cat.dt_validade ?: '0000') ? -1 : 0))) -%}
+
+    {#- 3. O índice. -#}
+    {%- set completos = blocos|filter(b => b.tipo < 2) -%}
+    {% if com_indice and completos|length + (soltas is empty ? 0 : 1) >= 3 %}
+        <nav class="pl-cert-indice" aria-label="Certidões deste acervo">
+            {% for b in completos %}
+                <a href="#{{ pessoa }}cat-{{ b.cat.numero|replace({'/': '-'}) }}"{% if b.tipo == 1 %} class="vencida"{% endif %}>
+                    <span class="mono">CAT {{ b.cat.numero }}</span>
+                    {%- if b.tipo == 1 %}<span class="vc">vencida</span>{% endif %}
+                    <span class="n">{{ b.arts|length }}</span>
+                </a>
+            {% endfor %}
+            {% if soltas is not empty %}
+                <a href="#{{ pessoa }}sem-certidao">Sem certidão <span class="n">{{ soltas|length }}</span></a>
+            {% endif %}
+        </nav>
+    {% endif %}
+
+    {% for b in blocos %}
+        {%- set c = b.cat -%}
+        {%- set n = b.arts|length -%}
+        {%- set id = pessoa ~ 'cat-' ~ c.numero|replace({'/': '-'}) -%}
+
+        {% if b.tipo == 2 %}
+            <section class="pl-card pl-cert vencida renovada" id="{{ id }}"
+                     aria-label="Certidão de Acervo Técnico {{ c.numero }}, vencida e renovada">
+                <div class="cab">
+                    <div class="id">
+                        <h3 class="tt">
+                            <span class="sg">CAT</span> <span class="mono">{{ c.numero }}</span>
+                            {% if c.selo_confere %}
+                                <svg class="pl-mark" role="img" aria-label="Certidão conferida na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+                            {% endif %}
+                        </h3>
+                        {{ ui.vencida() }}
+                        <span class="rn">
+                            Venceu em {{ c.dt_validade|date('d/m/Y') }} ·
+                            {{ b.por|length == 1 ? 'renovada pela' : 'renovada pelas' }}
+                            {% for num in b.por -%}
+                                <a href="#{{ pessoa }}cat-{{ num|replace({'/': '-'}) }}">CAT {{ num }}</a>
+                                {{- loop.revindex == 2 ? ' e ' : (loop.last ? '' : ', ') -}}
+                            {%- endfor %}
+                        </span>
+                        <span class="qt">{{ n }} {{ n == 1 ? 'ART' : 'ARTs' }}</span>
+                    </div>
+                </div>
+            </section>
+        {% else %}
+            <section class="pl-card pl-cert{% if b.tipo == 1 %} vencida{% endif %}"
+                     id="{{ id }}" aria-label="Certidão de Acervo Técnico {{ c.numero }}">
+                <header class="cab">
+                    <div class="id">
+                        <h3 class="tt">
+                            <span class="sg">CAT</span> <span class="mono">{{ c.numero }}</span>
+                            {% if c.selo_confere %}
+                                <svg class="pl-mark" role="img" aria-label="Certidão conferida na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+                            {% endif %}
+                        </h3>
+                        {% if b.tipo == 1 %}{{ ui.vencida() }}{% endif %}
+                        {% if not c.selo_confere %}
+                            <span class="pl-pill danger"><span class="pd" aria-hidden="true"></span>Selo divergente</span>
+                        {% endif %}
+                        <span class="qt">{{ n }} {{ n == 1 ? 'ART nesta certidão' : 'ARTs nesta certidão' }}</span>
+                    </div>
+                    {%- set meta = ui.cat_meta(c)|trim -%}
+                    {% if meta is not empty %}
+                        <p class="meta"{% if c.tipo %} title="{{ c.tipo }}"{% endif %}>{{ meta }}</p>
+                    {% endif %}
+                    {% if b.tipo == 1 %}
+                        <p class="nt">{{ ui.certidao_vencida_nota(c, leitor) }}</p>
+                    {% endif %}
+                    {% if not c.selo_confere %}
+                        <p class="nt">Os dados guardados desta certidão não batem com a conferência feita na API do CREA. A diferença foi registrada para revisão.</p>
+                    {% endif %}
+                </header>
+                <div class="corpo">
+                    {% for a in b.arts %}{{ ui.art(a, null, false, c.numero, pessoa, renovadas) }}{% endfor %}
+                </div>
+            </section>
+        {% endif %}
+    {% endfor %}
+
+    {% if soltas is not empty %}
+        {%- set n = soltas|length -%}
+        <section class="pl-card pl-cert soltas" id="{{ pessoa }}sem-certidao" aria-label="ARTs sem certidão">
+            <header class="cab">
+                <div class="id">
+                    <h3 class="tt">ARTs sem certidão</h3>
+                    {{ ui.info('Obras sem CAT',
+                        'Essas obras estão registradas no CREA e contam normalmente. A CAT é opcional: o profissional só pede quando precisa, e muitas obras nunca ganham uma.') }}
+                    <span class="qt">{{ n }} {{ n == 1 ? 'ART' : 'ARTs' }}</span>
+                </div>
+                <p class="meta">Obras registradas no CREA e conferidas na API oficial, sem certidão.</p>
+            </header>
+            <div class="corpo">
+                {% for a in soltas %}{{ ui.art(a, null, false, '', pessoa, renovadas) }}{% endfor %}
+            </div>
+        </section>
+    {% endif %}
+{% endmacro %}
+
+{#
+  O botão que traz ARTs e CATs do CREA de novo (D77). Um macro para os três lugares em que ele
+  aparece: o topo da aba Acervo e o estado vazio do perfil do profissional, e o topo da aba do
+  perfil da empresa.
+
+  Depois de uma atualização concluída o titular espera 60 minutos; depois de uma tentativa em que
+  a API não respondeu, 5. O servidor recusa o POST dentro da janela; a tela só antecipa, com o
+  botão desabilitado e a linha que diz por quê e até quando. `atualizacao` só existe na rota do
+  dono ({libera, ultima, falhou}); com `libera` nulo o botão é o de sempre.
+
+  A nota vem ANTES do botão no DOM, e o botão aponta para ela com aria-describedby: leitor de tela
+  que percorre a página lê o motivo antes de chegar ao controle, e o que anuncia o controle
+  desabilitado lê o motivo junto. Visualmente, no estado vazio centralizado, ela desce para baixo
+  do botão (seção 42, parte c, do prolink.css).
+
+  `onde` é a classe do <form>: 'dir' no topo da aba, 'a' no estado vazio.
+#}
+{#  `onde` também separa os ids das notas quando há mais de um botão na página, e 'alerta' troca
+    o estilo pelo botão amarelo dos avisos do topo, que usam o mesmo endereço e a mesma espera
+    (D77). `data-restante` são os segundos que o servidor calculou até liberar; o
+    `atualizar-acervo.js` reativa o botão quando o tempo passa, sem depender do relógio de quem
+    olha. Sem o script, o botão só volta depois de recarregar, e o servidor decide do mesmo jeito. #}
+{% macro atualizar_acervo(rotulo, atualizacao = null, onde = 'dir') %}
+    {%- import 'layout/_form.html.twig' as form -%}
+    {%- set libera = atualizacao ? atualizacao.libera|default(null) : null -%}
+    <form class="{{ onde }} pl-atualiza" method="post" action="{{ app_url }}/perfil/validar-registro"
+          {%- if libera and atualizacao.restante|default(null) %} data-restante="{{ atualizacao.restante }}"{% endif %}>
+        {{ form.csrf() }}
+        {% if libera %}
+            <span class="pl-atualiza-nota" id="atualiza-nota-{{ onde }}">
+                {%- if atualizacao.falhou -%}
+                    O CREA não respondeu · tente de novo a partir das {{ libera }}
+                {%- elseif atualizacao.ultima -%}
+                    Atualizado às {{ atualizacao.ultima }} · de novo a partir das {{ libera }}
+                {%- else -%}
+                    De novo a partir das {{ libera }}
+                {%- endif -%}
+            </span>
+        {% endif %}
+        <button type="submit" class="{{ onde == 'alerta' ? 'btn btn-warning' : 'pl-btn' }}{% if onde == 'dir' %} sm{% endif %}"
+                {%- if libera %} disabled aria-describedby="atualiza-nota-{{ onde }}"{% endif %}>
+            {%- if onde != 'alerta' %}
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 10-2.3 5.7"/><path d="M20 5v6h-6"/></svg>
+            {%- endif %}
+            {{ rotulo }}
+        </button>
+    </form>
+{% endmacro %}
+
+{#
+  O complemento de CAT de uma contagem de ARTs: " · todas certificadas por CAT", " · 2 certificadas
+  por CAT · 1 com CAT vencida", ou nada. Serve ao retrato e à aba do acervo dos dois perfis, que
+  dizem o mesmo fato em dois lugares e não podem dizê-lo de dois jeitos.
+
+  Conta a partir das próprias ARTs. "Certificada" é a ART com ao menos uma CAT vigente e de selo
+  conferido; "com CAT vencida" é a que tem certidão, mas nenhuma vigente. Zero não vira "0
+  certificadas": ausência não é contagem, e ao lado de um nome leria como nota.
+#}
+{% macro cat_resumo(arts) %}
+    {%- set total = arts|length -%}
+    {%- set vigentes = arts|filter(a => a.cats|default(a.cat|default(null) ? [a.cat] : [])
+        |filter(c => c.vigente and c.selo_confere)|length > 0)|length -%}
+    {%- set vencidas = arts|filter(a => a.cats|default(a.cat|default(null) ? [a.cat] : []) is not empty
+        and a.cats|default(a.cat|default(null) ? [a.cat] : [])|filter(c => c.vigente)|length == 0)|length -%}
+    {%- set partes = [] -%}
+    {%- if vigentes > 0 -%}
+        {%- set partes = partes|merge([vigentes == total
+            ? (total == 1 ? 'certificada por CAT' : 'todas certificadas por CAT')
+            : vigentes ~ (vigentes == 1 ? ' certificada por CAT' : ' certificadas por CAT')]) -%}
+    {%- endif -%}
+    {%- if vencidas > 0 -%}
+        {%- set partes = partes|merge([vencidas == total
+            ? (total == 1 ? 'com CAT vencida' : 'todas com CAT vencida')
+            : vencidas ~ ' com CAT vencida']) -%}
+    {%- endif -%}
+    {%- if partes is not empty %} · {{ partes|join(' · ') }}{% endif -%}
 {% endmacro %}
 
 {#

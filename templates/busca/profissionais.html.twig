@@ -251,12 +251,13 @@
                 <p class="metae">
                     {% if r.arts > 0 %}
                         <span class="qt"><b>{{ r.arts }}</b> {{ r.arts == 1 ? 'ART' : 'ARTs' }}</span>
-                        {#  Zero CAT não é contagem, é ausência, e na base de demonstração é a
-                            de todo mundo: uma coluna de "0 CATs" repetida em quinze cartões só
-                            acrescentaria ruído, e ao lado da frase de não-ranking ainda leria
-                            como nota baixa. Quem tem CAT mostra quantas. #}
+                        {#  Zero CAT não é contagem, é ausência: uma coluna de "0 CATs" em metade
+                            dos cartões só acrescentaria ruído, e ao lado da frase de não-ranking
+                            ainda leria como nota baixa. Quem tem CAT mostra quantas. A conta é de
+                            certidões importadas, vigentes ou não (D76); a sigla se explica no
+                            title, que é onde cabe sem virar mais uma linha no cartão. #}
                         {% if r.cats > 0 %}
-                            <span class="qt"><b>{{ r.cats }}</b> {{ r.cats == 1 ? 'CAT' : 'CATs' }}</span>
+                            <span class="qt" title="{{ r.cats == 1 ? 'Certidão de Acervo Técnico importada da API do CREA-AM' : 'Certidões de Acervo Técnico importadas da API do CREA-AM' }}"><b>{{ r.cats }}</b> {{ r.cats == 1 ? 'CAT' : 'CATs' }}</span>
                         {% endif %}
                     {% else %}
                         <span class="qt nulo">
