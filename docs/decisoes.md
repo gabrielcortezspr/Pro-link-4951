@@ -35,6 +35,8 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E5 — manifestação, mensagens e notificações | D57, D58, D59 |
 | E7 — entrega | D60 a D68 |
 | E7 — auditoria de RF por entidade e refino visual | D69, D70, D71, D72, D73 |
+| E7 — fechamento da entrega | D74, D75 |
+| E8 — CAT e atualização do acervo (pós-entrega) | D76, D77 |
 
 ---
 
@@ -2390,3 +2392,120 @@ tempo limite vêm do ambiente, pelo `_config.php`, e é assim que o item 8.3.1 p
 criaria duas fontes de verdade para a mesma coisa, e a que vale na hora da requisição continuaria
 sendo a do ambiente. O que é configurável em tempo de execução são os pesos do motor, e esses já
 têm tela própria, com faixa declarada por campo e trilha.
+
+---
+
+## D76 · A CAT entra no acervo, e a D67 é revista
+
+`24/09/2026` · E8 · `src/Support/Cat.php`, `src/Repository/CatRepository.php`,
+`src/Service/PortfolioService.php`, `src/Service/PerfilCreaService.php`,
+`src/Support/Compatibilidade.php`, `scripts/importar-cats.php`
+
+**Contexto.** A D67 deixou a Certidão de Acervo Técnico fora da entrega de 17/09: a estrutura
+existia inteira (`crea_cats`, `crea_cat_arts`, os dois métodos do cliente, a view
+`crea_evidencias` já fazendo `JOIN`, o reforço `REFORCO_CAT` no motor e a tela de compatíveis
+sabendo mostrar "CAT x"), e nenhum serviço gravava nas duas tabelas. O motivo da recusa era de
+calendário: mexer na evidência de todo candidato na véspera, com os seis cenários já verificados.
+Em 24/09 a organização liberou alterações até 26/09, e o motivo deixou de existir. A limitação
+era a maior distância entre a proposta aprovada ("ARTs, CATs e acervo operacional") e a entrega.
+
+**Decisão.** A CAT passa a ser importada junto com as ARTs, no cadastro do profissional, pelo
+`PortfolioService::importarCats`, com as mesmas quatro regras do `importarArts`: consentimento
+conferido antes de qualquer chamada, rede fora da transação, gravação tudo ou nada, auditoria
+(`VALIDAR_CAT`). São duas rotas da API, porque nenhuma basta sozinha: a lista do profissional dá
+os números das certidões; o detalhe de cada número dá as ARTs que ela agrupa. Custa uma chamada
+por página da lista e mais uma por CAT; na massa, duas por profissional.
+
+Cinco escolhas dentro da decisão:
+
+1. **As ARTs da CAT passam pelo `persistir()` de sempre.** Na massa elas já chegaram pela lista do
+   profissional, e a mescla da `Support\Acervo` só confirma: o detalhe da CAT não traz local nem
+   forma de registro, e nulo novo nunca apaga valor existente. Conferido no clone: município,
+   contratante e o próprio `art_hash` das quatro ARTs capturadas ficaram idênticos.
+2. **A CAT tem selo próprio, que assina a certidão e a lista de ARTs que ela agrupa.** O dado que
+   o motor usa é o vínculo, e é ele que uma fraude alteraria: uma linha a mais em `crea_cat_arts`
+   daria a qualquer ART o reforço de uma certidão. O selo quebra, a tela avisa e a divergência vai
+   para a auditoria. Reimportar desliga o vínculo estranho (`cta_status = 'X'`, nada é apagado).
+3. **Certidão cujo detalhe não confere não é gravada** (outro RNP, outro número, resposta vazia),
+   e a importação segue com as outras. É a regra do CAO (`importarCao`): gravar assim mesmo
+   atribuiria acervo certificado de uma pessoa a outra.
+4. **CAT vencida não reforça a competência.** `Compatibilidade::competencia` passou a conferir
+   `evi_cat_dt_validade`; a ART segue contando pelo que é. Validade nula conta como vigente,
+   porque ausência de data não é prova de vencimento. Na massa todas vencem em 31/12/2026, então
+   a regra não muda nada na demonstração, e existe para não mentir no dia seguinte.
+5. **Na tela, a CAT fica pendurada na ART que certifica**, e não numa lista própria. Assim ela
+   herda a visibilidade da ART (quem esconde a ART esconde a certidão junto) sem uma regra nova de
+   visibilidade, e quem lê o perfil vê a diferença onde ela importa. O desenho passou pelo
+   `designer-ui`, como pede o `CLAUDE.md`.
+
+**Quem já estava cadastrado.** `scripts/importar-cats.php` traz as certidões pelo mesmo serviço,
+com limite obrigatório e modo de simulação. Rodado em 24/09 com autorização da equipe: 12
+profissionais, 24 chamadas, 12 CATs, 36 ARTs certificadas, nenhuma recusada.
+
+**O que continua fora, e por quê.** O acervo que a empresa herda do quadro técnico só traz CAT de
+quem se cadastrou: importar as certidões de todo o quadro no momento do CAO seriam duas chamadas
+por membro, para pessoas que não consentiram com nada, e isso se aproxima da varredura que o item
+10.4 veda. A empresa herda a CAT de quem está no quadro e se cadastrou, pela view, sem chamada a
+mais.
+
+**Um fato da massa que a tela precisa saber.** Em todos os 12 profissionais importados, a CAT
+cobre 100% das ARTs. "ART sem certidão" aparece, nesta massa, no acervo herdado pela empresa (4
+das 98 linhas de evidência). Não é defeito do cálculo, e ninguém deve montar demonstração
+supondo o contrário.
+
+**Alternativa recusada: CAT como sétima dimensão do motor.** Daria à certidão peso próprio na
+média, e um profissional com CAT de uma atividade irrelevante para a demanda ganharia pontos. A
+CAT continua sendo o que a D10 desenhou: reforço dentro da competência, na atividade que ela
+certifica, saturando em 1.
+
+---
+
+## D77 · O botão de atualizar o acervo tem espera, e a espera vale no servidor
+
+`24/09/2026` · E8 · `src/Service/AtualizacaoAcervoService.php`, `src/Support/JanelaDeAtualizacao.php`,
+`src/Controller/PerfilController.php`, `src/Support/Parametros.php`
+
+**Contexto.** Desde a D76, o botão do perfil (que passou a se chamar "Atualizar meu acervo no
+CREA") refaz o vínculo inteiro: perfil, ARTs, lista de CATs e cada CAT. No profissional típico da
+massa são quatro chamadas à API oficial por clique, e nada limitava os cliques. O banco aguenta; o
+problema é a API, que a organização registra chamada a chamada. Clicar sem parar produz o padrão
+de coleta automatizada que o item 10.4 veda, e enche a trilha de auditoria de ruído.
+
+**Decisão.** Uma janela de espera por titular, medida pela **última tentativa** registrada na
+trilha (`ATUALIZAR_ACERVO`, com o resultado):
+
+- tentativa concluída: 60 minutos (`api.atualizacao.minutos`, faixa de 15 a 1440);
+- tentativa em que a API não respondeu: 5 minutos (`api.atualizacao.minutos_falha`, faixa de 1 a
+  60). Deixa tentar de novo logo, sem que uma API caída vire rajada de chamadas.
+
+Registro que o CREA não reconhece conta como consulta concluída: a API respondeu, e perguntar de
+novo em um minuto não muda a resposta. Os dois parâmetros ficam na tela de Integrações, ao lado
+dos da sincronização, com a faixa declarada (D61, D75).
+
+**Três escolhas dentro da decisão:**
+
+1. **A regra vale no servidor, e a tela só a mostra.** O botão desabilitado com o horário é
+   conforto; quem manda um POST por fora da interface esbarra no mesmo limite no
+   `PerfilController`.
+2. **A medida vem da trilha de auditoria, e não de `prf_dt_sincronizacao`.** A trilha é
+   insert-only, então ninguém zera a própria espera; e `prf_dt_sincronizacao` também é carimbado
+   pela sincronização de status, que não atualiza o acervo, e bloquearia o titular por uma coisa
+   que ele não pediu.
+3. **Clique duplo é barrado por trava nomeada do MariaDB** (`GET_LOCK`, sem espera), por titular.
+   O segundo pedido que chega enquanto o primeiro roda é recusado sem consultar nada, e o
+   bloqueio não vira tentativa na trilha. A trava some sozinha se o processo morrer.
+
+**Na tela.** Os três botões que chamam o mesmo endereço (o do acervo, o do estado vazio e os
+dos avisos amarelos de validação e importação pendentes) passam pelo mesmo macro
+(`ui.atualizar_acervo`) e ficam desabilitados com a mesma nota. O servidor manda os segundos que
+faltam, e não um horário, e `atualizar-acervo.js` reativa o botão quando eles acabam: contar pelo
+relógio de quem olha erraria em computador com hora errada. Sem o script, recarregar a página
+depois do horário traz o botão de volta.
+
+**Alternativa recusada: limite só no botão, por JavaScript.** Não protege a API, que é o motivo da
+decisão.
+
+**Alternativa recusada: contar tentativas por hora, como `manifestacao.limite_hora`.** A
+manifestação é um ato que o usuário pode querer repetir para demandas diferentes; atualizar o
+acervo é o mesmo ato repetido sobre o mesmo dado, e uma espera diz ao titular exatamente quando
+vale a pena pedir de novo.
