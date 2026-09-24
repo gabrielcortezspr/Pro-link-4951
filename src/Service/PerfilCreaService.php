@@ -145,9 +145,13 @@ final class PerfilCreaService
 
         $modalidades = count($this->profissionais->modalidades($profissionalId));
 
-        // --- transação 2, separada de propósito: o acervo pode falhar sem levar o perfil junto
+        // --- transação 2, separada de propósito: o acervo pode falhar sem levar o perfil junto.
+        // As CATs vêm logo depois das ARTs e contam como parte do mesmo acervo (D76): se a API
+        // cair entre uma e outra, o perfil fica sem o carimbo de sincronização, e a próxima
+        // tentativa refaz as duas. Reimportar ART é idempotente, então refazer não duplica nada.
         try {
             $acervo = $this->portfolio->importarArts($usuarioId, $rnp);
+            $this->portfolio->importarCats($usuarioId, $rnp);
         } catch (ApiIndisponivelException) {
             // Sem carimbo de sincronização: `prf_dt_sincronizacao` nulo é o que diferencia
             // "importamos e ele não tem ART" de "não conseguimos importar". Sem isso, os dois

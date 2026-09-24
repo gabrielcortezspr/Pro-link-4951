@@ -12,7 +12,8 @@ declare(strict_types=1);
  * nunca entra no pool), sem linha em `sis_auditoria`, e sem acervo, porque quem importa as ARTs é
  * o serviço de vínculo. O banco pareceria povoado e o feed continuaria vazio.
  *
- * **Consome chamada da API oficial**: uma consulta de perfil e uma de acervo por candidato. Não é
+ * **Consome chamada da API oficial**: no profissional, uma consulta de perfil, uma de ARTs, uma
+ * da lista de CATs e uma por CAT (D76), quatro na massa; na empresa, perfil e CAO. Não é
  * varredura (item 10.4): é cadastro individual, do mesmo jeito que uma pessoa faria pelo site, e
  * por isso o script tem limite obrigatório em vez de percorrer a massa inteira.
  *

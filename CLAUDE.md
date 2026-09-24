@@ -111,8 +111,9 @@ e não escrever o deslocamento à mão.
 - **`ON DUPLICATE KEY UPDATE` só é confiável se nenhuma coluna do índice aceitar nulo.** Já custou
   duas vezes (D25, D28).
 - **`ATTR_EMULATE_PREPARES` está desligado**: placeholder nomeado não pode repetir na mesma query.
-- **`semear-candidatos.php` consome duas chamadas da API por candidato.** Tem limite obrigatório
-  de propósito: cadastro individual não é varredura (item 10.4), mas duzentos seguidos pareceriam.
+- **`semear-candidatos.php` consome quatro chamadas da API por profissional** (perfil, ARTs,
+  lista de CATs e detalhe da CAT, D76) e duas por empresa. Tem limite obrigatório de propósito:
+  cadastro individual não é varredura (item 10.4), mas duzentos seguidos pareceriam.
 - **Documento da massa usado uma vez fica consumido para sempre** (D15), e do lado da empresa só
   as 15 de `massa-de-dados.md` passam no dígito verificador.
 

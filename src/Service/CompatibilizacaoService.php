@@ -394,6 +394,50 @@ final class CompatibilizacaoService
      * @param  mixed $evidencias como saiu do JSON gravado
      * @return list<array<string, mixed>>
      */
+    /**
+     * A CAT que a tela pode nomear nesta linha de evidência (D76).
+     *
+     * A CAT herda a visibilidade da ART que certifica: só é nomeada a certidão de uma ART aberta.
+     * Quando ela existe e todas as ARTs que certifica estão fechadas, a tela diz que há reforço
+     * (`cat_fechada`) sem identificar o documento. A CAT vencida segue a mesma regra, para a tela
+     * poder dizer "vencida" em vez de "sem CAT", que seria falso.
+     *
+     * Sessão gravada antes da D76 não tem o mapa `cats`: nesse caso vale o que ela gravou em
+     * `cat`, e a tela esconde o número quando nenhuma ART da linha está aberta.
+     *
+     * @param array<string, mixed> $evidencia
+     * @param list<string> $abertas
+     * @return array{cat: ?string, cat_fechada: bool, cat_vencida: ?string}
+     */
+    private function certidaoVisivel(array $evidencia, array $abertas): array
+    {
+        if (!isset($evidencia['cats'])) {
+            $cat = $evidencia['cat'] ?? null;
+
+            return [
+                'cat'         => $abertas === [] ? null : $cat,
+                'cat_fechada' => $abertas === [] && $cat !== null,
+                'cat_vencida' => null,
+            ];
+        }
+
+        $vigentes = (array) $evidencia['cats'];
+        $vencidas = (array) ($evidencia['cats_vencidas'] ?? []);
+        $cat      = null;
+        $vencida  = null;
+
+        foreach ($abertas as $numero) {
+            $cat     ??= $vigentes[$numero] ?? null;
+            $vencida ??= $vencidas[$numero] ?? null;
+        }
+
+        return [
+            'cat'         => $cat === null ? null : (string) $cat,
+            'cat_fechada' => $cat === null && $vigentes !== [],
+            'cat_vencida' => $cat === null && $vigentes === [] && $vencida !== null ? (string) $vencida : null,
+        ];
+    }
+
     private function evidenciasVisiveis(mixed $evidencias, int $espectadorId): array
     {
         if (!is_array($evidencias) || $evidencias === []) {
@@ -431,7 +475,14 @@ final class CompatibilizacaoService
                 }
             }
 
-            $saida[] = ['arts' => $abertas, 'arts_fechadas' => $fechadas] + (array) $evidencia;
+            // Os mapas ART => CAT carregam números de ARTs fechadas, e por isso não seguem para a
+            // tela: dali só sai o que `certidaoVisivel` decidiu mostrar.
+            $linha = (array) $evidencia;
+            unset($linha['cats'], $linha['cats_vencidas']);
+
+            $saida[] = ['arts' => $abertas, 'arts_fechadas' => $fechadas]
+                + $this->certidaoVisivel((array) $evidencia, $abertas)
+                + $linha;
         }
 
         return $saida;
