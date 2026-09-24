@@ -36,7 +36,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E7 — entrega | D60 a D68 |
 | E7 — auditoria de RF por entidade e refino visual | D69, D70, D71, D72, D73 |
 | E7 — fechamento da entrega | D74, D75 |
-| E8 — CAT e atualização do acervo (pós-entrega) | D76, D77 |
+| E8 — CAT, atualização do acervo e preferências da demanda (pós-entrega) | D76, D77, D78, D79 |
 
 ---
 
@@ -2509,3 +2509,90 @@ decisão.
 manifestação é um ato que o usuário pode querer repetir para demandas diferentes; atualizar o
 acervo é o mesmo ato repetido sobre o mesmo dado, e uma espera diz ao titular exatamente quando
 vale a pena pedir de novo.
+
+---
+
+## D78 · As preferências da demanda viram perguntas a quem manifesta interesse, e o cartão deixa de dar nota ao que não é grau
+
+`24/09/2026` · E8 · `src/Support/RespostaInteresse.php`, `src/Service/ManifestacaoService.php`,
+`src/Service/InteressadoService.php`, `src/Service/PreferenciaService.php`,
+`_arq/migracoes/2026-09-24-d78-preferencias-da-demanda.sql`
+
+**Contexto.** O cartão de compatíveis mostrava as seis dimensões como porcentagem, e duas delas
+quase sempre saíam como "Não medida nesta sessão". A causa estava no desenho, não no cálculo:
+tipo de contrato e região de atendimento (que a tela chamava de "disponibilidade", nome que
+enganava) só existiam se o profissional tivesse preenchido a aba Preferências **antes**, sem saber
+que alguma demanda ia perguntar aquilo. E a demanda podia sair com contrato "A combinar", que
+gravava vazio. Além disso, só a competência é grau de verdade: localização vale 100, 60 ou 0;
+área, contrato e região valem 0 ou 100; experiência vale 50 ou 100. Mostrar "Localização 60%"
+dava uma precisão que o cálculo não tem, e somava notas na tela que o item 10.1 manda evitar. A
+mensagem de quem manifesta interesse chegava à empresa, mas a equipe não sabia onde.
+
+**Decisão.** Quatro mudanças, aprovadas pela equipe:
+
+1. **O cartão só dá grau à competência técnica.** As outras dimensões viram frases ("Já tem obra
+   registrada em Manaus", "Aceita contrato PJ", "Atende no AM"), e o que não foi informado vira uma
+   nota discreta, não uma linha "não medida". "Por que este perfil é compatível" fica só com a
+   competência e o documento que a sustenta.
+2. **A empresa declara o que prefere ao publicar**: regime de contrato (sem a opção "A combinar";
+   o padrão é "qualquer regime") e o prazo de início (`dem_inicio_ate`, data ou em aberto).
+3. **Quem manifesta interesse responde**: se aceita o regime (sim, não ou prefere conversar), se
+   atende a região da obra, e quando pode começar. Pergunta só o que a demanda pede; início sempre.
+   Pergunta feita é resposta obrigatória. As respostas ficam na manifestação (`man_aceita_contrato`,
+   `man_atende_local`, `man_inicio_em`). Uma caixa **desmarcada** deixa o profissional usar as
+   respostas para completar o perfil: acrescenta a região às que ele atende e grava o regime só se
+   ele ainda não tinha um. Nunca substitui o que ele declarou.
+4. **A empresa vê o quadro "o que pediu × o que respondeu"** em Interessados e na conversa, com a
+   mensagem em destaque. Só quando foi o candidato que manifestou: interesse registrado pela
+   própria empresa (D70) não passa pelo formulário, e "não respondeu" ali seria uma acusação falsa.
+
+**As respostas não entram no motor.** O conjunto de compatíveis é montado antes de alguém
+manifestar, e deixar a resposta mudar a nota permitiria entrar respondendo "sim" a tudo. Elas
+servem à decisão da empresa na hora de avaliar quem se apresentou, e por isso viram "atende" ou
+"não atende", nunca porcentagem, e a lista de interessados não é ordenada por elas.
+
+**Alternativa recusada: tirar o autodeclarado do cálculo.** Resolveria o "não medida" de uma vez,
+mas o item 3.2 do edital pede que a compatibilização considere experiências declaradas. O
+autodeclarado continua na conta quando existe no perfil (30% do peso); o que muda é como aparece.
+
+**Alternativa recusada: recalcular a compatibilidade com as respostas da manifestação.** Daria à
+empresa um número por interessado, e um número por pessoa numa lista é ranking com outro nome.
+
+**Consequência.** As respostas passam a ser obrigatórias no formulário, e a suíte de ponta a ponta
+(`e2e/apoio/acoes.js`) as preenche pelo `name` do campo. Banco criado antes desta decisão precisa
+da migração em `_arq/migracoes/`, que é idempotente; quem sobe do `estrutura.sql` já tem as colunas.
+
+---
+
+## D79 · A demonstração é povoada pelos serviços da plataforma, e a vitrine é limpa por encerramento
+
+`24/09/2026` · E8 · `scripts/semear-demandas.php`
+
+**Contexto.** Para testar a D78 de verdade faltava dado: havia duas demandas reais, duas
+manifestações, e a vitrine de demandas abertas mostrava 75 "Demandas de verificação" que o
+`verificar-e4.php` deixa a cada execução, na conta da equipe. Qualquer profissional via primeiro
+o lixo de teste. A equipe pediu para povoar "usando a API, que reflete a realidade".
+
+**Decisão.** Dividir pelo que cada fonte tem. **Candidatos pela API**: 30 profissionais e 9
+empresas pelo `semear-candidatos.php`, o fluxo real do cadastro (cerca de 138 chamadas,
+autorizadas pela equipe, abaixo do volume que pareceria varredura). **Demandas e interesses pelos
+serviços da plataforma**, porque não existem na API: o `semear-demandas.php` cria, escolhe as
+atividades e publica pelo `DemandaService`; monta o conjunto pelo `CompatibilizacaoService`, como a
+empresa vê; e manifesta pelo `ManifestacaoService`, com as respostas da D78 variando entre os cinco
+casos que a empresa encontra (aceita tudo, prefere conversar, não atende a região, não aceita o
+regime, começa depois do prazo). As atividades de cada demanda foram escolhidas depois de olhar o
+acervo, nunca antes, porque os vínculos ART → TOS da massa são aleatórios.
+
+A vitrine foi limpa pelo mesmo `encerrar()` do botão da demanda: as 75 saem da vitrine, a trilha
+registra, e nada é apagado.
+
+**Alternativa recusada: inserir demandas e manifestações por SQL.** Seria mais rápido e produziria
+dado quebrado do mesmo jeito que a D66 descreve para candidatos: sem auditoria, sem snapshot do
+perfil, sem e-mail, sem sessão do motor, e sem passar pela validação que a tela aplica.
+
+**Alternativa recusada: recarregar o banco para limpar a vitrine.** Apagaria os candidatos que
+custaram chamadas registradas, e documento da massa usado uma vez fica consumido (D15).
+
+**Consequência.** O `verificar-e4.php` continua criando demandas de verificação a cada execução; o
+`semear-demandas.php` as encerra de novo quando roda. Os e-mails de aviso das 44 manifestações
+foram para a fila local (Mailpit), como iriam de um clique.

@@ -507,7 +507,13 @@ Metade da nota depende disto. Não é "se sobrar tempo".
 > · **Espera no botão de atualizar o acervo** (D77): 60 minutos depois de concluída, 5 depois de
 >   falha da API, trava contra clique duplo, regra no servidor e reativação automática na tela.
 >
-> 208 testes · 72 conferências de padrão, 0 violações · 42 telas · E6 70.
+> · **Preferências da demanda viram perguntas** (D78): a empresa declara regime e prazo de início,
+>   quem manifesta interesse responde, e a empresa vê "pediu × respondeu" em Interessados. O cartão
+>   de compatíveis só dá grau à competência; o resto vira frase.
+> · **Banco de demonstração povoado** (D79): 42 profissionais e 14 empresas pela API, 11 demandas
+>   completas e 44 interesses pelos serviços, vitrine sem as demandas de verificação.
+>
+> 216 testes · 72 conferências de padrão, 0 violações · 42 telas · E6 70.
 
 ---
 
