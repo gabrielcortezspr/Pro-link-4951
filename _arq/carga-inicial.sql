@@ -40,6 +40,8 @@ INSERT INTO sis_parametros (par_chave, par_valor, par_tipo, par_grupo, par_descr
   ('match.early_career.min_arts',   '3',     'NUMERO', 'MATCHING',  'Abaixo disso o perfil é sinalizado como em construção, sem sair do pool', 0),
   ('api.sincronizacao.horas',       '24',    'NUMERO', 'INTEGRACAO','Intervalo mínimo entre sincronizações de status do profissional', 0),
   ('api.sincronizacao.lote',        '25',    'NUMERO', 'INTEGRACAO','Quantos perfis uma execução de sincronização confere', 0),
+  ('api.atualizacao.minutos',       '60',    'NUMERO', 'INTEGRACAO','Espera entre dois pedidos de atualização do acervo pelo titular', 0),
+  ('api.atualizacao.minutos_falha', '5',     'NUMERO', 'INTEGRACAO','Espera depois de uma atualização em que a API não respondeu', 0),
   ('manifestacao.limite_hora',      '10',    'NUMERO', 'GERAL',     'Manifestações de interesse por usuário por hora; 0 desliga o limite', 0);
 
 -- ------------------------------------------------------------------ termos

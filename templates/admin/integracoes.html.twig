@@ -218,7 +218,8 @@
             <div class="pl-par">
                 {% for p in ajustes %}
                     {{ par.campo(p, erros|default({}), valores|default({}),
-                        p.par_chave == 'api.sincronizacao.horas' ? 'horas' : 'perfis') }}
+                        p.par_chave == 'api.sincronizacao.horas' ? 'horas'
+                        : (p.par_chave starts with 'api.atualizacao.' ? 'minutos' : 'perfis')) }}
                 {% endfor %}
             </div>
 

@@ -64,6 +64,48 @@ final class AuditoriaRepository extends Repositorio
      *
      * @return list<array<string, mixed>>
      */
+    /**
+     * O registro mais recente de uma ação de um usuário, ou null se nunca houve. Serve às janelas
+     * de espera que se medem pela trilha (D77): a trilha é insert-only, então ninguém "zera" a
+     * espera apagando a própria tentativa.
+     *
+     * @return array{aud_dt_registro: string, aud_valor_novo: ?string}|null
+     */
+    public function ultimaDoUsuario(int $usuarioId, string $acao): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT aud_dt_registro, aud_valor_novo
+               FROM sis_auditoria
+              WHERE aud_usu_id = :usuario AND aud_acao = :acao
+              ORDER BY aud_id DESC
+              LIMIT 1'
+        );
+        $stmt->execute([':usuario' => $usuarioId, ':acao' => $acao]);
+        $linha = $stmt->fetch();
+
+        return $linha === false ? null : $linha;
+    }
+
+    /**
+     * Trava nomeada do MariaDB, sem espera: devolve false se outra conexão já a segura.
+     *
+     * Não é tabela nem linha, e por isso não entra em conflito com a regra de nada ser apagado:
+     * a trava some sozinha quando a conexão fecha, inclusive se o processo morrer no meio.
+     */
+    public function travar(string $nome): bool
+    {
+        $stmt = $this->pdo->prepare('SELECT GET_LOCK(:nome, 0)');
+        $stmt->execute([':nome' => $nome]);
+
+        return (int) $stmt->fetchColumn() === 1;
+    }
+
+    public function destravar(string $nome): void
+    {
+        $stmt = $this->pdo->prepare('SELECT RELEASE_LOCK(:nome)');
+        $stmt->execute([':nome' => $nome]);
+    }
+
     public function doUsuario(int $usuarioId, int $limite = 500): array
     {
         $stmt = $this->pdo->prepare(
