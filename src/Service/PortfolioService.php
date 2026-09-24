@@ -6,19 +6,22 @@ namespace ProLink\Service;
 
 use PDO;
 use ProLink\Repository\AcervoRepository;
+use ProLink\Repository\CatRepository;
 use ProLink\Repository\ConsentimentoRepository;
 use ProLink\Repository\ParametroRepository;
 use ProLink\Repository\ProfissionalRepository;
 use ProLink\Support\Acervo;
 use ProLink\Support\Auditoria;
 use ProLink\Support\Cao;
+use ProLink\Support\Cat;
 use ProLink\Support\Database;
 
 /**
- * Acervo técnico: importar o do profissional, importar o da empresa pelo CAO e associar ART
- * informada à mão (RF02, RF03).
+ * Acervo técnico: importar o do profissional (ARTs e CATs), importar o da empresa pelo CAO e
+ * associar ART informada à mão (RF02, RF03).
  *
- * Dono das escritas em `crea_arts` e `crea_art_atividades`, venha a ART de onde vier. É por isso
+ * Dono das escritas em `crea_arts`, `crea_art_atividades`, `crea_cats` e `crea_cat_arts`,
+ * venha o documento de onde vier. É por isso
  * que o CAO entra aqui e não num serviço da empresa: uma ART é uma linha só, com um selo só, e
  * duas rotas de gravação para a mesma tabela acabariam selando a mesma ART de dois jeitos.
  *
@@ -64,6 +67,7 @@ final class PortfolioService
         private readonly ConsentimentoRepository $consentimentos = new ConsentimentoRepository(),
         private readonly ProfissionalRepository $profissionais = new ProfissionalRepository(),
         private readonly ParametroRepository $parametros = new ParametroRepository(),
+        private readonly CatRepository $cats = new CatRepository(),
     ) {
     }
 
@@ -167,6 +171,194 @@ final class PortfolioService
 
             return ['arts' => $arts, 'atividades' => $atividades, 'ja_existiam' => $jaExistiam];
         });
+    }
+
+    /**
+     * Importa as Certidões de Acervo Técnico do profissional e liga cada uma às ARTs que ela
+     * certifica (RF02; D76, que revê a D67).
+     *
+     * Duas rotas da API, porque nenhuma sozinha basta. A lista do profissional dá os números das
+     * certidões, e só isso; o detalhe de cada número (`validarCat`) dá as ARTs que ela agrupa,
+     * cada uma com as atividades. O custo é uma chamada por página da lista, mais uma por CAT.
+     * Continua não sendo varredura: é o acervo de um titular que consentiu, o mesmo que ele veria
+     * na própria certidão, e o cliente segue sem método que liste profissionais.
+     *
+     * As ARTs do detalhe passam pelo mesmo `persistir()` de toda ART. Na massa elas já chegaram
+     * pela lista do profissional, e aí a mescla só confirma o que havia; se chegar uma que não
+     * estava, ela entra, e entra com titularidade conferida, porque o detalhe foi pedido por RNP.
+     *
+     * Certidão cujo detalhe não confere (outro RNP, outro número, ou resposta vazia) não é
+     * gravada, e a importação segue com as outras: uma certidão estranha não pode apagar a
+     * evidência das que conferem. Ela sai contada em `recusadas` e registrada na auditoria.
+     *
+     * @return array{cats: int, arts_certificadas: int, recusadas: int}
+     * @throws ValidacaoException  quando falta consentimento
+     * @throws ApiIndisponivelException quando a API não responde
+     */
+    public function importarCats(int $usuarioId, string $rnp, int $limitePagina = 20): array
+    {
+        $this->exigirConsentimento($usuarioId);
+
+        // --- fora da transação: rede (nota 1). Lista e detalhe inteiros antes de gravar.
+        $detalhes  = [];
+        $recusadas = [];
+
+        foreach ($this->api->todasCatsDoProfissional($rnp, $limitePagina) as $daLista) {
+            $numero = (string) ($daLista['cat_numero'] ?? '');
+
+            if ($numero === '') {
+                continue;
+            }
+
+            $detalhe = $this->api->validarCat($rnp, $numero);
+
+            if ($detalhe === null || !Cat::pertence($detalhe, $rnp, $numero)) {
+                $recusadas[] = $numero;
+                continue;
+            }
+
+            // O detalhe traz os mesmos campos da certidão que a lista; a lista entra por baixo
+            // só para não perder campo que o detalhe, por acaso, não repita.
+            $detalhes[] = $detalhe + $daLista;
+        }
+
+        $consultada = date('Y-m-d H:i:s');
+
+        // --- dentro da transação: a importação é tudo ou nada
+        return Database::transacao(function (PDO $pdo) use (
+            $usuarioId, $rnp, $detalhes, $recusadas, $consultada
+        ): array {
+            $cats = 0;
+            $certificadas = [];
+
+            foreach ($detalhes as $detalhe) {
+                $artIds  = [];
+                $numeros = [];
+
+                foreach (Cat::arts($detalhe) as $item) {
+                    $resultado = $this->persistir($rnp, $item['art'], $item['atividades'], $consultada);
+
+                    $artIds[]  = $resultado['art_id'];
+                    $numeros[] = $resultado['art_numero'];
+                    $certificadas[$resultado['art_numero']] = true;
+                }
+
+                $cat   = Cat::projetar($detalhe, $rnp);
+                $catId = $this->cats->gravar($cat, Cat::selo($cat, $numeros), $consultada);
+                $this->cats->sincronizarArts($catId, $artIds);
+
+                $cats++;
+            }
+
+            // A CAT pode ter trazido ART que a lista não trouxe, e a contagem de ARTs decide a
+            // marca de início de carreira.
+            $this->reavaliarEmConstrucao($rnp, $pdo);
+
+            Auditoria::registrar(
+                Auditoria::VALIDAR_CAT,
+                'crea_cats',
+                null,
+                null,
+                null,
+                ['rnp' => $rnp, 'cats' => $cats, 'arts_certificadas' => count($certificadas),
+                 'recusadas' => $recusadas],
+                $usuarioId,
+                $pdo,
+            );
+
+            return [
+                'cats'              => $cats,
+                'arts_certificadas' => count($certificadas),
+                'recusadas'         => count($recusadas),
+            ];
+        });
+    }
+
+    /**
+     * Recalcula o selo da CAT gravada e compara com `cat_hash`, como `conferirSelo` faz com a
+     * ART. Divergência é aviso e linha na auditoria, nunca página derrubada.
+     */
+    public function conferirSeloCat(string $numero, ?int $usuarioId = null): ?bool
+    {
+        $gravada = $this->cats->porNumero($numero);
+
+        if ($gravada === null) {
+            return null;
+        }
+
+        $confere = hash_equals(
+            (string) $gravada['cat']['cat_hash'],
+            Cat::selo($gravada['cat'], $gravada['arts']),
+        );
+
+        if (!$confere) {
+            Auditoria::registrar(
+                Auditoria::SELO_DIVERGENTE,
+                'crea_cats',
+                (int) $gravada['cat']['cat_id'],
+                'cat_hash',
+                (string) $gravada['cat']['cat_hash'],
+                'recálculo não confere',
+                $usuarioId,
+            );
+        }
+
+        return $confere;
+    }
+
+    /**
+     * A certidão de cada ART, pronta para a tela, com o selo da CAT reconferido.
+     *
+     * A CAT aparece na tela **pendurada na ART**, e não numa lista própria: ela herda a
+     * visibilidade da ART que certifica (quem esconde a ART esconde a certidão dela junto), e
+     * quem lê o perfil vê a diferença onde ela importa, ART a ART. Selo divergente vai para a
+     * auditoria, como na ART, e a tela avisa em vez de esconder.
+     *
+     * Todas as certidões de cada ART, na ordem de `CatRepository::porArtIds` (validade mais
+     * longa primeiro). A aba Acervo agrupa por elas; o retrato de manifestação lê só a primeira.
+     *
+     * @param list<int> $artIds
+     * @return array<int, list<array{numero: string, tipo: ?string, finalidade: ?string,
+     *                               dt_emissao: ?string, dt_validade: ?string, vigente: bool,
+     *                               selo_confere: bool}>>
+     */
+    public function certidoesPorArt(array $artIds, ?int $espectadorId = null): array
+    {
+        $hoje       = date('Y-m-d');
+        $conferidas = [];
+        $telas      = [];
+
+        foreach ($this->cats->porArtIds($artIds) as $artId => $certidoes) {
+            foreach ($certidoes as $cat) {
+                $catId = (int) $cat['cat_id'];
+
+                if (!isset($conferidas[$catId])) {
+                    $conferidas[$catId] = hash_equals(
+                        (string) $cat['cat_hash'],
+                        Cat::selo($cat, $cat['arts']),
+                    );
+
+                    if (!$conferidas[$catId]) {
+                        Auditoria::registrar(
+                            Auditoria::SELO_DIVERGENTE, 'crea_cats', $catId, 'cat_hash',
+                            (string) $cat['cat_hash'], 'recálculo não confere ao exibir', $espectadorId,
+                        );
+                    }
+                }
+
+                $telas[$artId][] = [
+                    'numero'       => (string) $cat['cat_numero'],
+                    'tipo'         => $cat['cat_tipo'],
+                    'finalidade'   => $cat['cat_finalidade'],
+                    'dt_emissao'   => $cat['cat_dt_emissao'],
+                    'dt_validade'  => $cat['cat_dt_validade'],
+                    'vigente'      => Cat::vigente($cat['cat_dt_validade'], $hoje),
+                    'selo_confere' => $conferidas[$catId],
+                ];
+            }
+        }
+
+        return $telas;
     }
 
     /**

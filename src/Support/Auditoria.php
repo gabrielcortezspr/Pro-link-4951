@@ -41,6 +41,7 @@ final class Auditoria
     public const CONSULTA_API    = 'CONSULTA_API';
     public const VALIDAR_ART     = 'VALIDAR_ART';
     public const VALIDAR_CAT     = 'VALIDAR_CAT';
+    public const ATUALIZAR_ACERVO = 'ATUALIZAR_ACERVO';
     public const SELO_DIVERGENTE = 'SELO_DIVERGENTE';
     public const BLOQUEAR        = 'BLOQUEAR';
     public const MODERAR         = 'MODERAR';

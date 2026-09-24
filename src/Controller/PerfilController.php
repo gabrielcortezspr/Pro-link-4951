@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ProLink\Controller;
 
 use ProLink\Repository\UsuarioRepository;
+use ProLink\Service\AtualizacaoAcervoService;
 use ProLink\Service\EmpresaCreaService;
 use ProLink\Service\ExperienciaService;
 use ProLink\Service\PerfilCreaService;
@@ -235,8 +236,23 @@ final class PerfilController
             return View::erro(404, 'Perfil não encontrado.');
         }
 
+        // A janela do "Atualizar meu acervo no CREA" (D77): só o dono vê o botão, e esta é a
+        // rota do dono. A regra vale no servidor; aqui ela só vira estado do botão.
+        $janela = (new AtualizacaoAcervoService())->janela($usuarioId);
+
         return View::render($ehEmpresa ? 'perfil/empresa.html.twig' : 'perfil/index.html.twig',
-            $this->variaveis($perfil, 'Meu perfil', $erros, $aviso));
+            $this->variaveis($perfil, 'Meu perfil', $erros, $aviso) + [
+                'atualizacao' => [
+                    'libera'    => $janela['libera']?->format('H:i'),
+                    // Segundos até liberar, contados no servidor: o script da tela reativa o
+                    // botão por eles, sem depender do relógio de quem olha.
+                    'restante'  => $janela['libera'] === null
+                        ? null
+                        : max(1, $janela['libera']->getTimestamp() - time()),
+                    'ultima'    => $janela['ultima']?->format('H:i'),
+                    'falhou'    => $janela['resultado'] === \ProLink\Support\JanelaDeAtualizacao::FALHOU,
+                ],
+            ]);
     }
 
     /**
@@ -291,10 +307,15 @@ final class PerfilController
         $usuarioId = (int) Sessao::usuarioId();
         $ehEmpresa = Sessao::temPerfil(PERFIL_EMPRESA);
 
+        // A janela de espera e a trava contra clique duplo moram no serviço, e não só no botão
+        // desabilitado da tela: um POST repetido por fora da interface passaria pela tela (D77).
         try {
-            $resultado = $ehEmpresa
-                ? $this->empresaCrea->vincularEmpresa($usuarioId)
-                : $this->perfilCrea->vincularProfissional($usuarioId);
+            $resultado = (new AtualizacaoAcervoService())->executar(
+                $usuarioId,
+                fn (): array => $ehEmpresa
+                    ? $this->empresaCrea->vincularEmpresa($usuarioId)
+                    : $this->perfilCrea->vincularProfissional($usuarioId),
+            );
         } catch (ValidacaoException $e) {
             Flash::erro($e->getMessage());
             View::redirecionar('/perfil');

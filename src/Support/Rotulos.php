@@ -38,6 +38,7 @@ final class Rotulos
         'CONSULTA_API'    => 'Consulta à API do CREA',
         'VALIDAR_ART'     => 'Validação de ART',
         'VALIDAR_CAT'     => 'Validação de CAT',
+        'ATUALIZAR_ACERVO' => 'Atualização do acervo pelo titular',
         'SELO_DIVERGENTE' => 'Selo divergente',
         'BLOQUEAR'        => 'Bloqueio de conta',
         'MODERAR'         => 'Moderação',
@@ -141,6 +142,25 @@ final class Rotulos
         'contrato'        => 'Tipo de contrato',
         'disponibilidade' => 'Disponibilidade',
     ];
+
+    /**
+     * Situação da ART e tipo da CAT, como a API os devolve (`REGISTRADA`, `INICIAL`). A massa só
+     * traz esses dois valores; os outros do mapa são os que o Sistema Confea/Crea usa, e valor
+     * fora do mapa cai no tratamento genérico de `traduzir`, que nunca deixa a tela em branco.
+     */
+    private const DOCUMENTO = [
+        'REGISTRADA' => 'Registrada',
+        'BAIXADA'    => 'Baixada',
+        'CANCELADA'  => 'Cancelada',
+        'ANULADA'    => 'Anulada',
+        'INICIAL'    => 'Inicial',
+        'ADITIVA'    => 'Aditiva',
+    ];
+
+    public static function documento(?string $valor): string
+    {
+        return self::traduzir($valor, self::DOCUMENTO);
+    }
 
     public static function dimensao(?string $valor): string
     {

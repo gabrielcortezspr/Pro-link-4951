@@ -163,6 +163,70 @@ final class CompatibilidadeTest extends TestCase
         self::assertSame('999001/2026', $comCat['evidencias'][0]['cat']);
     }
 
+    /** CAT vencida não reforça, e a justificativa não a cita (D76). A ART segue contando. */
+    public function testCatVencidaNaoReforcaNemApareceNaJustificativa(): void
+    {
+        $linha = ['evi_tos_codigo' => 'TOS_1.1.2.5', 'evi_cat_numero' => '999001/2026'];
+
+        $semCat = Compatibilidade::competencia(
+            ['TOS_1.1.2.1' => 1.0],
+            $this->acervo(['evi_tos_codigo' => 'TOS_1.1.2.5']),
+            self::PESOS_AFINIDADE,
+            '2026-09-26',
+        );
+
+        $vigente = Compatibilidade::competencia(
+            ['TOS_1.1.2.1' => 1.0],
+            $this->acervo($linha + ['evi_cat_dt_validade' => '2026-12-31']),
+            self::PESOS_AFINIDADE,
+            '2026-09-26',
+        );
+
+        $vencida = Compatibilidade::competencia(
+            ['TOS_1.1.2.1' => 1.0],
+            $this->acervo($linha + ['evi_cat_dt_validade' => '2026-12-31']),
+            self::PESOS_AFINIDADE,
+            '2027-01-01',
+        );
+
+        self::assertGreaterThan($semCat['score'], $vigente['score']);
+        self::assertSame($semCat['score'], $vencida['score']);
+        self::assertNull($vencida['evidencias'][0]['cat']);
+    }
+
+    /**
+     * A evidência diz qual CAT cobre qual ART, porque a CAT herda a visibilidade da ART e a tela
+     * precisa decidir por ela (D76). Vencida só aparece quando não há vigente na atividade.
+     */
+    public function testEvidenciaLigaCadaCatAArtQueEleCertifica(): void
+    {
+        $r = Compatibilidade::competencia(
+            ['TOS_1.1.2.1' => 1.0],
+            $this->acervo(
+                ['evi_art_numero' => 'AM01', 'evi_cat_numero' => '999001/2026', 'evi_cat_dt_validade' => '2026-12-31'],
+                ['evi_art_numero' => 'AM02'],
+                ['evi_art_numero' => 'AM03', 'evi_cat_numero' => '998000/2024', 'evi_cat_dt_validade' => '2025-01-01'],
+            ),
+            self::PESOS_AFINIDADE,
+            '2026-09-26',
+        );
+
+        $e = $r['evidencias'][0];
+        self::assertSame(['AM01' => '999001/2026'], $e['cats']);
+        self::assertSame([], $e['cats_vencidas'], 'com CAT vigente na atividade, a vencida não é dita');
+
+        $soVencida = Compatibilidade::competencia(
+            ['TOS_1.1.2.1' => 1.0],
+            $this->acervo(['evi_art_numero' => 'AM03', 'evi_cat_numero' => '998000/2024', 'evi_cat_dt_validade' => '2025-01-01']),
+            self::PESOS_AFINIDADE,
+            '2026-09-26',
+        )['evidencias'][0];
+
+        self::assertSame([], $soVencida['cats']);
+        self::assertSame(['AM03' => '998000/2024'], $soVencida['cats_vencidas']);
+        self::assertNull($soVencida['cat']);
+    }
+
     public function testPesoDaDemandaMudaAContribuicaoDeCadaCodigo(): void
     {
         // Atende só o código secundário (peso 0.5) e nada do principal (peso 1.0).

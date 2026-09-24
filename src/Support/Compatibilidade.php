@@ -51,20 +51,25 @@ final class Compatibilidade
      *
      * Para cada código pedido pela demanda, procura no acervo do candidato a melhor afinidade
      * (`Tos::afinidade`), e a reforça por duas evidências de força: quantas ARTs distintas
-     * sustentam aquela afinidade, e se alguma delas está coberta por CAT. O resultado é a média
+     * sustentam aquela afinidade, e se alguma delas está coberta por CAT vigente. O resultado é a média
      * das contribuições ponderada pelo peso que a demanda deu a cada código (principal vale mais
      * que secundária, `dts_peso`).
      *
      * @param  array<string, float>        $codigosDaDemanda  código TOS => peso declarado
      * @param  list<array<string, mixed>>  $acervo            linhas de `crea_evidencias`
      * @param  list<float>                 $pesosAfinidade    os cinco níveis, de `sis_parametros`
+     * @param  string|null                 $hoje              data de referência da vigência da CAT
+     *                                                        (`YYYY-MM-DD`); null usa a de hoje
      * @return array{score: ?float, evidencias: list<array<string, mixed>>}
      */
     public static function competencia(
         array $codigosDaDemanda,
         array $acervo,
         array $pesosAfinidade,
+        ?string $hoje = null,
     ): array {
+        $hoje ??= date('Y-m-d');
+
         if ($codigosDaDemanda === [] || $acervo === []) {
             return ['score' => null, 'evidencias' => []];
         }
@@ -85,6 +90,8 @@ final class Compatibilidade
             $temCat      = false;
             $codigoAcervo = null;
             $catNumero   = null;
+            $catsPorArt  = [];      // ART => CAT vigente que a cobre
+            $vencidas    = [];      // ART => CAT vencida, quando não há vigente
 
             foreach ($acervo as $linha) {
                 $afinidade = Tos::afinidade($codigo, (string) $linha['evi_tos_codigo'], $pesosAfinidade);
@@ -101,14 +108,26 @@ final class Compatibilidade
                     $temCat       = false;
                     $codigoAcervo = (string) $linha['evi_tos_codigo'];
                     $catNumero    = null;
+                    $catsPorArt   = [];
+                    $vencidas     = [];
                 }
 
                 if (abs($afinidade - $melhor) < 0.0001) {
                     $arts[(string) $linha['evi_art_numero']] = true;
 
-                    if (($linha['evi_cat_numero'] ?? null) !== null) {
-                        $temCat    = true;
-                        $catNumero = (string) $linha['evi_cat_numero'];
+                    // CAT vencida não reforça (D76): a certidão deixou de valer como prova, e a
+                    // ART continua contando pelo que é. As duas guardam a ART que cobrem, porque
+                    // a CAT herda a visibilidade da ART, e é pela ART que a tela decide se mostra
+                    // o número (`CompatibilizacaoService::evidenciasVisiveis`).
+                    $art = (string) $linha['evi_art_numero'];
+                    $cat = $linha['evi_cat_numero'] ?? null;
+
+                    if ($cat !== null && Cat::vigente($linha['evi_cat_dt_validade'] ?? null, $hoje)) {
+                        $temCat           = true;
+                        $catNumero      ??= (string) $cat;
+                        $catsPorArt[$art] = (string) $cat;
+                    } elseif ($cat !== null) {
+                        $vencidas[$art] = (string) $cat;
                     }
                 }
             }
@@ -133,6 +152,8 @@ final class Compatibilidade
                 'afinidade'      => round($melhor, 3),
                 'arts'           => array_keys($arts),
                 'cat'            => $catNumero,
+                'cats'           => $catsPorArt,
+                'cats_vencidas'  => $catsPorArt === [] ? $vencidas : [],
                 'contribuicao'   => round($valor, 3),
             ];
         }

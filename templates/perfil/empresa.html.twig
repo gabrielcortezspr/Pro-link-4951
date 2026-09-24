@@ -16,6 +16,11 @@
 {% block conteudo %}
 {% set p = perfil %}
 {% set n_arts = p.arts|length %}
+{#  A certidão de cada ART herdada (D76). A empresa não tem CAT própria: a de cada ART é a do
+    profissional que a registrou, e só existe na plataforma se ele tiver conta aqui. A contagem
+    mora no macro `cat_resumo`; aqui só se sabe se ALGUMA ART tem certidão, para o aviso do painel
+    de privacidade. #}
+{% set tem_cat = p.arts|filter(a => a.cats|default([]) is not empty)|length > 0 %}
 {% set n_quadro = p.quadro|length %}
 {% set n_vigentes = p.quadro|filter(m => m.vigente)|length %}
 
@@ -54,18 +59,24 @@
 
             {#  A linha de acervo. O selo verde água só acompanha afirmação sustentada por
                 documento: com a certidão vazia ele afirmaria o contrário do texto. #}
+            {#  Uma frase só, num <span> só, com o vínculo dentro: em 390px a contagem e o vínculo
+                como dois itens do flex dividiam a linha, e a contagem virava uma coluna de uma
+                palavra por linha. #}
             <p class="pl-acervo">
                 {% if n_arts > 0 %}
                     <svg class="pl-mark" role="img" aria-label="Conferidas na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
-                    {{ n_arts }} {{ n_arts == 1 ? 'ART na Certidão de Acervo Operacional' : 'ARTs na Certidão de Acervo Operacional' }}
                 {% else %}
                     <svg class="pl-mark nao" role="img" aria-label="Sem ART na certidão"><use href="#pl-sym-seal-x"/></svg>
-                    Nenhuma ART na Certidão de Acervo Operacional
                 {% endif %}
-                {% if n_vigentes > 0 %}
-                    <span aria-hidden="true">·</span>
-                    <span>{{ n_vigentes }} {{ n_vigentes == 1 ? 'vínculo vigente no quadro técnico' : 'vínculos vigentes no quadro técnico' }}</span>
-                {% endif %}
+                <span class="qt">
+                    {% if n_arts > 0 %}
+                        {{- n_arts }} {{ n_arts == 1 ? 'ART na Certidão de Acervo Operacional' : 'ARTs na Certidão de Acervo Operacional' }}
+                        {{- ui.cat_resumo(p.arts) }}
+                    {%- else -%}
+                        Nenhuma ART na Certidão de Acervo Operacional
+                    {%- endif -%}
+                    {%- if n_vigentes > 0 %} · {{ n_vigentes }} {{ n_vigentes == 1 ? 'vínculo vigente no quadro técnico' : 'vínculos vigentes no quadro técnico' }}{% endif %}
+                </span>
             </p>
         </div>
 
@@ -113,10 +124,7 @@
             A API oficial não respondeu quando a conta foi criada. Enquanto isso, o perfil não
             aparece para ninguém.
         </div>
-        <form method="post" action="{{ app_url }}/perfil/validar-registro">
-            {{ form.csrf() }}
-            <button type="submit" class="btn btn-warning">Validar o registro</button>
-        </form>
+        {{ ui.atualizar_acervo('Validar o registro', atualizacao|default(null), 'alerta') }}
     </div>
 {% elseif p.sincronizacao_incompleta %}
     <div class="alert alert-warning d-flex flex-wrap gap-3 align-items-center" role="alert">
@@ -124,10 +132,7 @@
             <strong>O quadro técnico e o acervo não foram importados.</strong>
             O registro está validado, mas não conseguimos ler a Certidão de Acervo Operacional.
         </div>
-        <form method="post" action="{{ app_url }}/perfil/validar-registro">
-            {{ form.csrf() }}
-            <button type="submit" class="btn btn-warning">Importar quadro técnico e acervo</button>
-        </form>
+        {{ ui.atualizar_acervo('Importar quadro técnico e acervo', atualizacao|default(null), 'alerta') }}
     </div>
 {% endif %}
 
@@ -167,54 +172,67 @@
 
     {# ---------------------------------------------------------------- aba 1: o acervo herdado #}
     <div class="pl-seg-painel padrao" id="acervo">
-        <section class="pl-card">
-            <div class="pl-linha-titulo">
+        {#  O acervo herdado, por profissional do quadro e, dentro de cada um, por certidão
+            (`acervo_por_certidao` em layout/_ui.html.twig). A CAT é sempre do profissional, então
+            é por ele que a leitura começa: um rótulo por pessoa, e os blocos dela embaixo. Rótulo,
+            e não card: um card por pessoa com cards de certidão dentro seria card dentro de card.
+            Dentro do grupo da pessoa o "Registrada por" de cada ART sai, porque o rótulo já diz
+            de quem ela é. #}
+        <div class="pl-stack">
+            <div class="pl-linha-titulo pl-acervo-topo">
                 <h2 class="pl-secao">Acervo operacional</h2>
                 {% if p.arts is not empty %}
-                    <span class="cnt">{{ n_arts }} {{ n_arts == 1 ? 'ART na Certidão de Acervo Operacional' : 'ARTs na Certidão de Acervo Operacional' }}</span>
+                    <span class="cnt">
+                        {{- n_arts }} {{ n_arts == 1 ? 'ART na Certidão de Acervo Operacional' : 'ARTs na Certidão de Acervo Operacional' }}
+                        {{- ui.cat_resumo(p.arts) -}}
+                    </span>
                 {% endif %}
                 {{ ui.info('De onde vem este acervo',
-                    'A empresa não registra ART. O acervo operacional é o das ARTs registradas pelos profissionais do quadro técnico, e a empresa responde por elas enquanto o vínculo estiver vigente. Vínculo encerrado não herda nada.') }}
+                    'A empresa não registra ART. O acervo operacional é o das ARTs registradas pelos profissionais do quadro técnico, e a empresa responde por elas enquanto o vínculo estiver vigente. Vínculo encerrado não herda nada. A Certidão de Acervo Técnico (CAT) de cada ART é a do profissional que a registrou, e aparece aqui quando ele tem conta na plataforma.') }}
                 {% if p.eh_dono and p.arts is not empty %}
-                    <form class="dir" method="post" action="{{ app_url }}/perfil/validar-registro">
-                        {{ form.csrf() }}
-                        <button type="submit" class="pl-btn sm">
-                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                            Reimportar do CREA
-                        </button>
-                    </form>
+                    {{ ui.atualizar_acervo('Atualizar o acervo no CREA', atualizacao|default(null)) }}
                 {% endif %}
             </div>
 
             {#  Certidão vazia é estado legítimo e sinalizado, nunca escondido. Para o dono o
                 quadro traz a saída; para quem visita, o mesmo fato sem adjetivo. #}
             {% if p.arts is empty %}
-                <div class="pl-vazio">
-                    <p class="t">Nenhuma ART no acervo ainda</p>
-                    <p class="s">
+                <section class="pl-card">
+                    <div class="pl-vazio">
+                        <p class="t">Nenhuma ART no acervo ainda</p>
+                        <p class="s">
+                            {% if p.eh_dono %}
+                                O acervo operacional é lido da Certidão de Acervo Operacional na API
+                                oficial do CREA-AM, e não é preenchido à mão. Ele começa a existir
+                                quando houver vínculo vigente com profissional que tenha ART
+                                registrada.
+                            {% else %}
+                                Esta empresa ainda não tem ART herdada do quadro técnico, ou escolheu
+                                não exibir nenhuma.
+                            {% endif %}
+                        </p>
                         {% if p.eh_dono %}
-                            O acervo operacional é lido da Certidão de Acervo Operacional na API
-                            oficial do CREA-AM, e não é preenchido à mão. Ele começa a existir
-                            quando houver vínculo vigente com profissional que tenha ART
-                            registrada.
-                        {% else %}
-                            Esta empresa ainda não tem ART herdada do quadro técnico, ou escolheu
-                            não exibir nenhuma.
+                            {{ ui.atualizar_acervo('Importar quadro técnico e acervo', atualizacao|default(null), 'a') }}
                         {% endif %}
-                    </p>
-                    {% if p.eh_dono %}
-                        <form class="a" method="post" action="{{ app_url }}/perfil/validar-registro">
-                            {{ form.csrf() }}
-                            <button type="submit" class="pl-btn">Importar quadro técnico e acervo</button>
-                        </form>
-                    {% endif %}
-                </div>
+                    </div>
+                </section>
             {% else %}
-                {% for art in p.arts %}
-                    {{ ui.art(art, {nome: art.profissional, rnp: art.rnp}) }}
+                {#  As pessoas na ordem em que as ARTs chegam. O RNP é a chave: o nome pode faltar
+                    na API, e dois homônimos no mesmo quadro não podem virar um grupo só. #}
+                {%- set rnps = [] -%}
+                {%- for art in p.arts %}{% if art.rnp not in rnps %}{% set rnps = rnps|merge([art.rnp]) %}{% endif %}{% endfor -%}
+                {% for rnp in rnps %}
+                    {%- set dela = p.arts|filter(a => a.rnp == rnp) -%}
+                    {%- set n_dela = dela|length -%}
+                    <div class="pl-cert-pessoa">
+                        <span class="nm">{{ (dela|first).profissional ? (dela|first).profissional|nome_proprio : 'Profissional do quadro técnico' }}</span>
+                        <span class="pl-mono">RNP {{ rnp }}</span>
+                        <span class="qt">{{ n_dela }} {{ n_dela == 1 ? 'ART no acervo da empresa' : 'ARTs no acervo da empresa' }}</span>
+                    </div>
+                    {{ ui.acervo_por_certidao(dela, 'p' ~ rnp ~ '-', p.eh_dono ? 'empresa' : 'visita', rnps|length == 1) }}
                 {% endfor %}
             {% endif %}
-        </section>
+        </div>
     </div>
 
     {# ---------------------------------------------------------------- aba 2: o quadro técnico #}
@@ -328,6 +346,9 @@
                             {% if p.arts is not empty %}
                                 <fieldset class="pl-vis">
                                     <legend class="pl-legenda">Cada ART do acervo, uma a uma</legend>
+                                    {% if tem_cat %}
+                                        <p class="pl-nota pl-vis-nota">Quem vê uma ART vê também a CAT que a certifica. Fechar a ART fecha a certidão junto.</p>
+                                    {% endif %}
                                     {% for art in p.arts %}
                                         {% set chave = 'ART:' ~ art.id ~ ':-' %}
                                         {% set id = 'vis-art-' ~ art.id %}
@@ -383,4 +404,5 @@
     aria-selected, e a página parada ao trocar de aba. Arquivo externo, e não script embutido,
     porque a CSP recusa inline. #}
 <script src="{{ url_assets }}/js/perfil-abas.js?v={{ assets_v }}" defer></script>
+<script src="{{ url_assets }}/js/atualizar-acervo.js?v={{ assets_v }}" defer></script>
 {% endblock %}

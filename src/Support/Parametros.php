@@ -67,6 +67,15 @@ final class Parametros
         // pequeno é conservador. O teto de 100 é a mesma proteção do item 10.4 que o piso de uma
         // hora dá ao intervalo: acima disso a sincronização vira varredura.
         'api.sincronizacao.lote' => ['min' => 1.0, 'max' => 100.0, 'passo' => 1.0, 'inteiro' => true],
+
+        // Espera entre dois cliques em "Atualizar meu acervo no CREA" (D77). Cada clique são
+        // várias chamadas à API oficial; o piso de 15 minutos é a mesma proteção do item 10.4
+        // que o piso de uma hora dá à sincronização. O teto é um dia.
+        'api.atualizacao.minutos' => ['min' => 15.0, 'max' => 1440.0, 'passo' => 5.0, 'inteiro' => true],
+
+        // Espera curta depois de uma tentativa em que a API não respondeu: deixa tentar de novo
+        // logo, sem que uma API caída vire rajada de chamadas.
+        'api.atualizacao.minutos_falha' => ['min' => 1.0, 'max' => 60.0, 'passo' => 1.0, 'inteiro' => true],
     ];
 
     /**

@@ -18,6 +18,10 @@
 {% block conteudo %}
 {% set p = perfil %}
 {% set n_arts = p.arts|length %}
+{#  A certidão de cada ART (D76). A contagem de "certificada" e "com CAT vencida" mora no macro
+    `cat_resumo`; aqui só se sabe se ALGUMA ART tem certidão, para o aviso do painel de
+    privacidade. #}
+{% set tem_cat = p.arts|filter(a => a.cats|default([]) is not empty)|length > 0 %}
 {% set n_exp = p.experiencias|length %}
 {% set modalidade_1 = p.modalidades is empty ? null : p.modalidades|first %}
 
@@ -68,7 +72,10 @@
             <p class="pl-acervo">
                 {% if n_arts > 0 %}
                     <svg class="pl-mark" role="img" aria-label="Conferidas na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
-                    {{ n_arts }} {{ n_arts == 1 ? 'ART verificada na API oficial' : 'ARTs verificadas na API oficial' }}
+                    <span class="qt">
+                        {{ n_arts }} {{ n_arts == 1 ? 'ART verificada na API oficial' : 'ARTs verificadas na API oficial' }}
+                        {{- ui.cat_resumo(p.arts) }}
+                    </span>
                 {% else %}
                     <svg class="pl-mark nao" role="img" aria-label="Sem ART no acervo"><use href="#pl-sym-seal-x"/></svg>
                     Nenhuma ART no acervo verificado
@@ -85,8 +92,8 @@
             {#  O estado "em construção" é dito uma vez, pela marca da linha de cima. O que sobra
                 aqui é o que a marca não cabe dizer, e que o edital pede que seja dito: começar
                 não tira ninguém da compatibilização. Uma linha, sem caixa, sem repetir o ícone e
-                sem repetir a frase da marca. A ação de buscar ARTs mora no acervo, que é onde ela
-                age, e não num quadro de recado no cabeçalho. #}
+                sem repetir a frase da marca. A ação de atualizar o acervo mora na aba dele, que é
+                onde ela age, e não num quadro de recado no cabeçalho. #}
             {% if p.eh_dono and p.em_construcao %}
                 <p class="pl-lin-apoio">
                     Seu acervo está começando, e você continua aparecendo nas compatibilizações
@@ -146,10 +153,7 @@
             A API oficial não respondeu quando você criou a conta. Enquanto isso, seu perfil não
             aparece para ninguém.
         </div>
-        <form method="post" action="{{ app_url }}/perfil/validar-registro">
-            {{ form.csrf() }}
-            <button type="submit" class="btn btn-warning">Validar meu registro</button>
-        </form>
+        {{ ui.atualizar_acervo('Validar meu registro', atualizacao|default(null), 'alerta') }}
     </div>
 {% elseif p.sincronizacao_incompleta %}
     <div class="alert alert-warning d-flex flex-wrap gap-3 align-items-center" role="alert">
@@ -157,10 +161,7 @@
             <strong>Seu acervo não foi importado.</strong>
             Seu registro está validado, mas não conseguimos ler suas ARTs no CREA.
         </div>
-        <form method="post" action="{{ app_url }}/perfil/validar-registro">
-            {{ form.csrf() }}
-            <button type="submit" class="btn btn-warning">Importar minhas ARTs</button>
-        </form>
+        {{ ui.atualizar_acervo('Importar minhas ARTs', atualizacao|default(null), 'alerta') }}
     </div>
 {% endif %}
 
@@ -206,31 +207,33 @@
     {# ---------------------------------------------------------------- aba 1: o acervo #}
     <div class="pl-seg-painel padrao" id="acervo">
         <div class="pl-cols">
+            {#  O acervo organizado por certidão (D76; `acervo_por_certidao` em layout/_ui.html.twig):
+                um card por CAT com as ARTs que ela certifica, e um card para as ARTs sem certidão,
+                no mesmo desenho. O título da aba sai do card e fica sobre a pilha: com um card por
+                certidão, o título dentro do primeiro pareceria o título só daquela certidão. #}
             <div class="pl-stack">
-                <section class="pl-card">
-                    <div class="pl-linha-titulo">
-                        <h2 class="pl-secao">Acervo técnico</h2>
-                        {% if p.arts is not empty %}
-                            <span class="cnt">{{ n_arts }} {{ n_arts == 1 ? 'ART importada da API oficial' : 'ARTs importadas da API oficial' }}</span>
-                            {#  A ação mora onde ela age. Antes ela vivia num quadro de recado no
-                                cabeçalho da página, repetindo a frase da marca de "em construção"
-                                e a do estado vazio logo abaixo: três lugares dizendo o mesmo. #}
-                            {% if p.eh_dono %}
-                                <form class="dir" method="post" action="{{ app_url }}/perfil/validar-registro">
-                                    {{ form.csrf() }}
-                                    <button type="submit" class="pl-btn sm">
-                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                                        Buscar novas ARTs no CREA
-                                    </button>
-                                </form>
-                            {% endif %}
+                <div class="pl-linha-titulo pl-acervo-topo">
+                    <h2 class="pl-secao">Acervo técnico</h2>
+                    {% if p.arts is not empty %}
+                        <span class="cnt">
+                            {{- n_arts }} {{ n_arts == 1 ? 'ART importada da API oficial' : 'ARTs importadas da API oficial' }}
+                            {{- ui.cat_resumo(p.arts) -}}
+                        </span>
+                        {{ ui.info('O que é a CAT',
+                            'A ART registra que o profissional foi responsável por uma obra ou serviço. A CAT é uma certidão que o CREA emite depois, a pedido dele, reunindo ARTs de obras já feitas. É o documento que se pede em licitação. Obras com CAT válida aparecem com destaque quando uma empresa procura esse tipo de serviço.') }}
+                        {#  A ação mora onde ela age. Traz ARTs e CATs, porque o cadastro importa
+                            as duas: "Buscar novas ARTs" prometia só metade do que o botão faz. #}
+                        {% if p.eh_dono %}
+                            {{ ui.atualizar_acervo('Atualizar meu acervo no CREA', atualizacao|default(null)) }}
                         {% endif %}
-                    </div>
+                    {% endif %}
+                </div>
 
-                    {#  Acervo vazio é estado legítimo e sinalizado, nunca escondido: o edital pede
-                        inclusão de quem está começando. Para o dono o quadro traz a saída; para quem
-                        visita, o mesmo fato sem adjetivo. #}
-                    {% if p.arts is empty %}
+                {#  Acervo vazio é estado legítimo e sinalizado, nunca escondido: o edital pede
+                    inclusão de quem está começando. Para o dono o quadro traz a saída; para quem
+                    visita, o mesmo fato sem adjetivo. #}
+                {% if p.arts is empty %}
+                    <section class="pl-card">
                         <div class="pl-vazio">
                             <p class="t">Nenhuma ART no acervo ainda</p>
                             <p class="s">
@@ -244,16 +247,13 @@
                                 {% endif %}
                             </p>
                             {% if p.eh_dono %}
-                                <form class="a" method="post" action="{{ app_url }}/perfil/validar-registro">
-                                    {{ form.csrf() }}
-                                    <button type="submit" class="pl-btn">Buscar minhas ARTs no CREA</button>
-                                </form>
+                                {{ ui.atualizar_acervo('Atualizar meu acervo no CREA', atualizacao|default(null), 'a') }}
                             {% endif %}
                         </div>
-                    {% else %}
-                        {% for art in p.arts %}{{ ui.art(art) }}{% endfor %}
-                    {% endif %}
-                </section>
+                    </section>
+                {% else %}
+                    {{ ui.acervo_por_certidao(p.arts, '', p.eh_dono ? 'dono' : 'visita', true) }}
+                {% endif %}
             </div>
 
             <div class="pl-stack">
@@ -619,6 +619,11 @@
                             {% if p.arts is not empty %}
                                 <fieldset class="pl-vis">
                                     <legend class="pl-legenda">Cada ART, uma a uma</legend>
+                                    {#  A CAT não tem controle próprio (D76): ela segue a ART. Dito
+                                        aqui, onde a escolha é feita, e não descoberto depois. #}
+                                    {% if tem_cat %}
+                                        <p class="pl-nota pl-vis-nota">Quem vê uma ART vê também a CAT que a certifica. Fechar a ART fecha a certidão junto.</p>
+                                    {% endif %}
                                     {% for art in p.arts %}
                                         {% set chave = 'ART:' ~ art.id ~ ':-' %}
                                         {% set id = 'vis-art-' ~ art.id %}
@@ -708,4 +713,5 @@
     está no HTML. #}
 <script src="{{ url_assets }}/js/perfil-abas.js?v={{ assets_v }}" defer></script>
 <script src="{{ url_assets }}/js/perfil-abrangencia.js?v={{ assets_v }}" defer></script>
+<script src="{{ url_assets }}/js/atualizar-acervo.js?v={{ assets_v }}" defer></script>
 {% endblock %}

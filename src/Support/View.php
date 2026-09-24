@@ -53,6 +53,7 @@ final class View
         // As seis dimensões do motor chegam ao feed pela chave do cálculo ('competencia'),
         // inclusive dentro da lista de dimensões que saíram da média.
         $twig->addFilter(new TwigFilter('rotulo_dimensao', [Rotulos::class, 'dimensao']));
+        $twig->addFilter(new TwigFilter('rotulo_documento', [Rotulos::class, 'documento']));
 
         // As duas preferências declaradas ficam gravadas como chave (`OBRA_CERTA`, `AM,RR`).
         // Mesma regra dos três acima: a tela mostra o rótulo, o cru fica em title="".

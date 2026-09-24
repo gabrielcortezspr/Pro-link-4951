@@ -492,6 +492,25 @@ Metade da nota depende disto. Não é "se sobrar tempo".
 
 ---
 
+## E8 — A CAT e a atualização do acervo (24/09, pós-entrega)
+
+> **Concluída em 24/09**, branch `e8/cat` mesclada na `main`. A organização liberou alterações até
+> 26/09, e a maior distância entre a proposta aprovada e a entrega (a CAT, D67) foi fechada:
+>
+> · **CAT importada no cadastro** junto com as ARTs, ligada a cada ART que certifica, com selo
+>   próprio, auditoria `VALIDAR_CAT` e reforço no motor só quando vigente (D76). Os 12
+>   profissionais já cadastrados receberam as certidões por `scripts/importar-cats.php` (24
+>   chamadas autorizadas pela equipe).
+> · **Aba Acervo organizada por certidão** (a alternativa C), com o bloco "ARTs sem certidão", CAT
+>   vencida em amarelo, renovada em linha única e texto em linguagem de usuário. Passou pelo
+>   `designer-ui` em três rodadas de prévia antes de virar template.
+> · **Espera no botão de atualizar o acervo** (D77): 60 minutos depois de concluída, 5 depois de
+>   falha da API, trava contra clique duplo, regra no servidor e reativação automática na tela.
+>
+> 208 testes · 72 conferências de padrão, 0 violações · 42 telas · E6 70.
+
+---
+
 ## Se apertar: o que cortar, nesta ordem
 
 1. Mensagens dentro da manifestação (E5) → só notificação por e-mail e exibição do contato
@@ -511,8 +530,7 @@ Declarar em `arquitetura.md` como evolução, não esconder: aviso proativo de r
 vencimento; preview do pool antes de publicar a demanda; sincronização de status agendada
 (entregue como script executável em 17/09); chat completo (entregue como mensagens simples).
 
-**Certidão de Acervo Técnico (CAT)**, acrescentada em 17/09 (D67). A estrutura está inteira
-(`crea_cats`, `crea_cat_arts`, os dois métodos do cliente da API, e a view `crea_evidencias` já
-lendo as duas tabelas) e **nenhum serviço a alimenta**: as tabelas têm zero linhas. Implementar é
-curto e foi recusado por onde o efeito cai, que é a evidência de cada candidato e o pool de toda
-demanda. O portfólio da entrega é ART e acervo operacional.
+**Certidão de Acervo Técnico (CAT)**, acrescentada em 17/09 (D67) e **entregue em 24/09 (D76)**:
+importada no cadastro junto com as ARTs, ligada a cada ART que certifica, com selo próprio, e
+reforçando a competência no motor quando vigente. Fica fora só a CAT de quem está no quadro
+técnico de uma empresa e nunca se cadastrou (D76, "o que continua fora").

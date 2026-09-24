@@ -191,6 +191,9 @@ Sinais de força dentro da dimensão de competência, em ordem:
 | Afinidade parcial (3 ou 2 componentes) | prefixo TOS | proporcional ao peso |
 | Modalidade compatível, sem ART nenhuma | `modalidades` | fraco: é atribuição, não execução |
 
+A CAT só reforça enquanto vigente (`cat_dt_validade` igual ou posterior à data da sessão; validade
+ausente conta como vigente). Vencida, a ART continua contando pelo que é (D76).
+
 Multiplicidade conta, mas com retorno decrescente: cinco ARTs no mesmo código valem mais que uma,
 e menos que cinco vezes uma. Use raiz ou logaritmo pra volume não esmagar precisão — e porque
 volume alto de ART não pode virar ranking implícito por antiguidade de carreira.

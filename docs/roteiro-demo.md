@@ -26,7 +26,7 @@ curl -s http://localhost:8080/saude          # tem que responder, com tos_carreg
 **A ordem de preparo do dado importa**, e está no `estado.md`. Resumida:
 
 1. `php scripts/criar-admin.php` (interativo, ou com `--nome --email --senha`)
-2. `php scripts/semear-candidatos.php` — cadastra pelo fluxo real, gastando duas chamadas da API
+2. `php scripts/semear-candidatos.php` — cadastra pelo fluxo real, gastando quatro chamadas da API por profissional (D76)
    por candidato
 3. `php scripts/abrir-visibilidade-demo.php` — visibilidade variada e determinística
 4. `php scripts/preencher-declarados-demo.php` — as quatro dimensões autodeclaradas

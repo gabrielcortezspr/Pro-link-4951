@@ -265,10 +265,14 @@
                         identificado.
                     </p>
                 {% else %}
+                    {#  `default` no filtro: o retrato gravado antes da D76 não tem a chave `cat`, e
+                        nele nenhuma ART diz "sem CAT", o que seria falso sobre um retrato tirado
+                        antes de a certidão existir na plataforma. #}
+                    {% set tem_cat = p.arts|filter(a => a.cat|default(null))|length > 0 %}
                     {% for art in p.arts %}
                         {{ eh_empresa
-                            ? ui.art(art, {nome: art.profissional, rnp: art.rnp})
-                            : ui.art(art) }}
+                            ? ui.art(art, {nome: art.profissional, rnp: art.rnp}, tem_cat)
+                            : ui.art(art, null, tem_cat) }}
                     {% endfor %}
                 {% endif %}
 

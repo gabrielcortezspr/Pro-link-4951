@@ -42,6 +42,8 @@ final class PerfilEmpresaService
         private readonly QuadroTecnicoRepository $quadros = new QuadroTecnicoRepository(),
         private readonly AcervoRepository $acervo = new AcervoRepository(),
         private readonly VisibilidadeService $visibilidades = new VisibilidadeService(),
+        // Parâmetro novo entra no fim, pela mesma razão registrada no PerfilService.
+        private readonly PortfolioService $portfolio = new PortfolioService(),
     ) {
     }
 
@@ -184,10 +186,23 @@ final class PerfilEmpresaService
                 'dt_consulta'  => $art['art_dt_consulta'],
                 'atividades'   => $art['atividades'],
                 'selo_confere' => $confere,
+                'cats'         => [],
+                'cat'          => null,
                 'nivel'        => $visao->nivel(Visibilidade::ART, $id),
                 'rnp'          => $rnp,
                 'profissional' => $nomes[$rnp] ?? null,
             ];
+        }
+
+        // A certidão de cada ART visível, numa consulta para a lista toda (D76). Só as visíveis:
+        // a CAT herda a visibilidade da ART que certifica.
+        $certidoes = $this->portfolio->certidoesPorArt(array_column($visiveis, 'id'), $espectadorId);
+
+        foreach ($visiveis as $i => $art) {
+            $visiveis[$i]['cats'] = $certidoes[$art['id']] ?? [];
+            // `cat` é a primeira da lista, para quem lê uma só: o retrato congelado de
+            // manifestação e o resumo do topo.
+            $visiveis[$i]['cat']  = $visiveis[$i]['cats'][0] ?? null;
         }
 
         return $visiveis;

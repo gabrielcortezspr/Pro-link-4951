@@ -4170,3 +4170,185 @@ html.js-seg .pl-seg-painel:focus-visible { outline: 0; box-shadow: 0 -3px 0 0 va
    deixou de ser duas colunas. Não removi as linhas porque o arquivo é compartilhado e havia outra
    pessoa escrevendo nele na mesma hora; quem consolidar o CSS pode apagá-las com segurança,
    conferindo antes que `grep -rn pl-par-duo templates/` continue não achando nada. */
+
+/* ---------- 42. A certidão pendurada na ART: ART verificada e ART certificada por CAT ----------
+   A CAT entrou no acervo (D76), e o cartão de ART da seção 18 não dizia nada sobre ela: a prova
+   que o mercado pede em licitação sumia da tela. A unidade de leitura continua sendo UMA ART.
+   Primário é o número dela com o selo e, colada nele, a certidão que a cobre; secundário o
+   objeto; terciário os campos do registro (onde a certidão ganha a linha "Certidão") e as
+   atividades.
+
+   Os quatro estados, e o que distingue cada um:
+
+   1. **ART sem CAT.** Nada na linha do número. Na linha "Certidão", quando alguma ART da mesma
+      lista tem CAT, a ausência é dita em cinza; quando nenhuma tem, não é dita em lugar nenhum,
+      porque "nenhuma" repetido em todas as linhas é coluna vazia.
+   2. **CAT vigente.** A ficha `.pl-cat` preenchida com o fundo da área de conteúdo, número em
+      tinta cheia e o selo da certidão. Mais forte sem nota nem posição: são dois documentos
+      selados lado a lado, contra um. É o único estado que os resumos chamam de "certificada".
+   3. **CAT vencida.** A mesma ficha sem preenchimento e com borda tracejada, número em tinta
+      média, e a pílula neutra "CAT vencida". O selo continua, porque verificação e vigência são
+      coisas diferentes: a certidão é autêntica e deixou de valer. A linha "Certidão" diz a data
+      e que ela não reforça mais a compatibilização.
+   4. **Selo da CAT divergente.** A ficha perde o selo e a pílula vermelha aparece, com o mesmo
+      vocabulário da ART ("Selo divergente", seção 18).
+
+   Nenhuma cor nova. A ficha é neutra de propósito: o verde água fica com o símbolo de
+   verificação (seção 4), e uma tarja verde de "certificada" seria o rótulo em tarja que o
+   docs/design.md recusa. */
+
+/* O contorno da vigente é o mais firme dos dois: com `--pl-border` ele sumia no branco do card, e
+   a vencida tracejada chamava mais atenção do que ela, que é a hierarquia ao contrário. */
+.pl-cat { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px;
+    border: 1px solid var(--pl-faint); border-radius: 8px; background: var(--pl-app);
+    font-size: 11.5px; line-height: 1.5; color: var(--pl-muted); white-space: nowrap; }
+.pl-cat .n { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px;
+    font-weight: 600; color: var(--pl-ink); font-variant-numeric: tabular-nums; }
+.pl-cat .pl-mark { width: 14px; height: 14px; vertical-align: 0; margin-left: 1px; }
+.pl-cat.vencida { background: transparent; border-style: dashed; color: var(--pl-faint); }
+.pl-cat.vencida .n { color: var(--pl-muted); font-weight: 500; }
+
+/* A linha "Certidão" nos campos do registro. A nota da vencida desce para a linha de baixo, em
+   corpo menor: ela explica a consequência, e não é mais um dado da certidão. */
+.pl-art-cert .nt { display: block; margin-top: 2px; font-size: 12px; line-height: 1.5;
+    color: var(--pl-muted); }
+.pl-art-cert .vaz { color: var(--pl-muted); }
+
+/* O aviso de que a CAT segue a ART, no painel de visibilidade: encosta na legenda do grupo que
+   ele qualifica, em vez de abrir mais um bloco de 16px entre a legenda e a primeira linha. */
+.pl-vis > .pl-vis-nota { margin: -8px 0 2px; font-size: 12px; }
+/* A contagem do retrato ficou mais longa com o complemento de CAT, e numa tela estreita ela
+   inteira descia para a linha de baixo, deixando o selo sozinho em cima. Aqui ela divide a linha
+   com o selo e quebra como frase. Só na faixa estreita: no desktop, crescer empurraria a marca de
+   "em construção" para a outra ponta do retrato. */
+@media (max-width: 640px) {
+    .pl-perfil-id .pl-acervo { align-items: flex-start; }
+    .pl-perfil-id .pl-acervo > .pl-mark { margin-top: 2px; }
+    /* A base é a linha inteira menos o selo, e não zero: com zero, qualquer irmão (a marca de
+       "em construção") dividia a linha com a frase e a espremia. Assim o irmão desce. */
+    .pl-perfil-id .pl-acervo > .qt { flex: 1 1 calc(100% - 26px); min-width: 0; }
+}
+/* Em 390px a ficha desce para baixo do número, inteira: `nowrap` de propósito, porque o número
+   da CAT partido em duas linhas leria como dois documentos. Ela mede uns 220px e cabe. */
+
+
+/* A célula "Documento registrado" da evidência (seção 13) agora empilha ART e CAT. O número da
+   ART de 13 caracteres não cabia na coluna e o selo descia sozinho para a linha de baixo, lendo
+   como um terceiro documento. Cada documento é uma unidade, número e selo juntos; a tabela já
+   rola dentro do próprio quadro quando falta largura. */
+.pl-more .doc { white-space: nowrap; }
+
+/* ---------- 42, parte b. O acervo organizado por certidão (alternativa C da prévia aprovada) ---
+   A aba Acervo dos dois perfis deixa de ser uma lista de ARTs e passa a ser uma pilha de
+   certidões (`acervo_por_certidao` em layout/_ui.html.twig). A unidade de leitura é a CERTIDÃO:
+   primário o número com o selo e, quando é exceção, o estado (vencida, selo divergente);
+   secundário tipo, emissão, finalidade, validade e quantas ARTs; terciário os cartões de ART
+   dentro dela, os mesmos da seção 18. As ARTs sem certidão formam um bloco no MESMO desenho, sem
+   pílula e sem cinza: ficar sem CAT é o caso mais comum, e não pode ler como nota baixa.
+
+   Só tokens da seção 1. O amarelo da vencida é SÓ a pílula (`.pl-pill.warn`, seção 6): a versão
+   com borda amarela no bloco inteiro foi comparada na prévia e recusada, porque fazia as obras de
+   dentro, que continuam valendo, lerem como problema. */
+
+/* O título da aba sai do card e fica sobre a pilha: com um card por certidão, dentro do primeiro
+   ele pareceria o título só daquela certidão. A margem de baixo sai, porque quem espaça é a
+   pilha. */
+.pl-acervo-topo { margin-bottom: 0; }
+
+/* O bloco de uma certidão é um card da pilha, e não um quadro dentro do quadro do acervo. O
+   cabeçalho leva o fundo da área de conteúdo: é a etiqueta da pasta, e é ele que o olho varre
+   quando a pilha tem dez certidões. O raio de 15px é o do card (16px) menos a borda. */
+.pl-cert { padding: 0; scroll-margin-top: 92px; }
+.pl-cert > .cab { padding: 14px 18px 13px; background: var(--pl-app);
+    border-bottom: 1px solid var(--pl-border); border-radius: 15px 15px 0 0; }
+.pl-cert .cab .id { display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap; }
+.pl-cert .tt { margin: 0; display: inline-flex; align-items: center; gap: 7px;
+    font-family: var(--pl-display); font-weight: 600; font-size: 15.5px; letter-spacing: -.01em;
+    color: var(--pl-ink); }
+.pl-cert .tt .sg { color: var(--pl-muted); font-weight: 600; }
+.pl-cert .tt .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14.5px;
+    font-weight: 600; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.pl-cert .qt { margin-left: auto; font-size: 12px; color: var(--pl-muted);
+    font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pl-cert .meta { margin: 4px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--pl-muted); }
+/* A consequência do estado, uma linha abaixo dos dados, em tinta cheia: é a frase que quem lê
+   precisa levar. Sem filete: com a medida de leitura, ele parava no meio do cabeçalho. */
+.pl-cert .nt { margin: 7px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--pl-ink);
+    max-width: 80ch; }
+.pl-cert .nt b { font-weight: 600; white-space: nowrap; }
+.pl-cert > .corpo { padding: 16px 18px 18px; }
+.pl-cert .pl-info { margin-left: -4px; }
+
+/* Vencida: o bloco continua, tracejado, número em tinta média, sem preenchimento. O conteúdo de
+   dentro não esmaece: as obras continuam valendo. */
+.pl-cert.vencida { border-style: dashed; border-color: var(--pl-faint); box-shadow: none; }
+.pl-cert.vencida > .cab { background: transparent; border-bottom-style: dashed; }
+.pl-cert.vencida .tt, .pl-cert.vencida .tt .mono { color: var(--pl-muted); }
+
+/* Renovada: a vencida cujas obras estão todas numa certidão vigente. Sem cartões, uma linha só; o
+   cabeçalho é o bloco inteiro, então ele fecha os quatro cantos e perde o filete de baixo. */
+.pl-cert.renovada > .cab { border-bottom: 0; border-radius: 15px; padding-block: 11px; }
+.pl-cert .rn { font-size: 12.5px; color: var(--pl-muted); }
+.pl-cert .rn a { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+    font-weight: 600; text-decoration: none; white-space: nowrap; }
+.pl-cert .rn a:hover { text-decoration: underline; }
+.pl-cert .rn a:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; border-radius: 4px; }
+
+/* "Também na CAT X": terciário, na linha do número, e um link de verdade para o outro bloco. */
+.pl-tambem { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 0 5px;
+    font-size: 11.5px; color: var(--pl-muted); }
+.pl-tambem a { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px;
+    font-weight: 600; text-decoration: none; }
+.pl-tambem a:hover { text-decoration: underline; }
+.pl-tambem a:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; border-radius: 4px; }
+.pl-tambem .vc { color: var(--pl-faint); }
+
+/* O índice, a partir de três blocos: atalhos do tamanho de .pl-btn.mini, contornados em neutro,
+   porque são lugar e não ação. O tracejado da vencida é o mesmo do bloco a que ele leva. Encosta
+   no título (12px) em vez dos 18px da pilha: é o sumário do título, e não mais um bloco. */
+.pl-cert-indice { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -6px 0 0; }
+.pl-cert-indice a { display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 10px;
+    border: 1px solid var(--pl-border); border-radius: 8px; background: var(--pl-card);
+    font-size: 12px; font-weight: 600; color: var(--pl-ink); text-decoration: none; white-space: nowrap;
+    transition: border-color .14s ease, color .14s ease; }
+.pl-cert-indice a:hover { border-color: var(--pl-data); color: var(--pl-data); }
+.pl-cert-indice a:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; }
+.pl-cert-indice a.vencida { border-style: dashed; border-color: var(--pl-faint); color: var(--pl-muted); }
+.pl-cert-indice .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; }
+.pl-cert-indice .vc { font-weight: 500; color: var(--pl-faint); }
+.pl-cert-indice .n { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+    display: inline-grid; place-items: center; background: var(--pl-app); color: var(--pl-muted);
+    font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* O acervo da empresa: um rótulo por profissional do quadro, e os blocos dele embaixo. O filete
+   separa uma pessoa da outra; logo abaixo do título da aba ele sobraria, e sai. */
+.pl-cert-pessoa { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px;
+    margin: 8px 0 -4px; padding-top: 16px; border-top: 1px solid var(--pl-border); }
+.pl-acervo-topo + .pl-cert-pessoa { margin-top: 0; padding-top: 0; border-top: 0; }
+.pl-cert-pessoa .nm { font-family: var(--pl-display); font-weight: 600; font-size: 15px; color: var(--pl-ink); }
+.pl-cert-pessoa .qt { margin-left: auto; font-size: 12px; color: var(--pl-muted); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 640px) {
+    .pl-cert > .cab { padding: 13px 14px 12px; }
+    .pl-cert > .corpo { padding: 14px 14px 16px; }
+    /* A contagem desce para baixo do número em vez de espremer ao lado dele. */
+    .pl-cert .qt, .pl-cert-pessoa .qt { margin-left: 0; width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .pl-cert-indice a { transition: none; } }
+
+/* ---------- 42, parte c. O botão de atualizar o acervo fora da janela (D77) -------------------
+   Depois de uma atualização o titular espera 60 minutos, e depois de uma falha da API, 5. O
+   servidor recusa o POST; a tela antecipa com o botão desabilitado e uma linha curta que diz por
+   quê e até quando (`atualizar_acervo` em layout/_ui.html.twig).
+
+   Desabilitado é tinta fraca e contorno neutro, e não opacidade: com opacidade o azul escuro do
+   contorno virava um cinza azulado que ainda lia como botão ativo. O hover some, porque não há
+   ação para anunciar. */
+.pl-btn[disabled], .pl-btn[disabled]:hover { border-color: var(--pl-border); background: transparent;
+    color: var(--pl-faint); cursor: not-allowed; }
+.pl-atualiza { display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap; }
+.pl-atualiza-nota { font-size: 12px; color: var(--pl-muted); font-variant-numeric: tabular-nums; }
+/* No estado vazio, centralizado, a nota desce para baixo do botão. No DOM ela vem antes, para o
+   leitor de tela ler o motivo antes do controle. */
+.pl-vazio .a.pl-atualiza { flex-direction: column; gap: 8px; }
+.pl-vazio .a .pl-atualiza-nota { order: 2; }
