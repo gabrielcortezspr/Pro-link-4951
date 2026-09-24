@@ -10,6 +10,7 @@ use ProLink\Repository\ManifestacaoRepository;
 use ProLink\Repository\MensagemRepository;
 use ProLink\Support\Auditoria;
 use ProLink\Support\Database;
+use ProLink\Support\RespostaInteresse;
 use ProLink\Support\Validacao;
 
 /**
@@ -74,6 +75,7 @@ final class InteressadoService
 
         foreach ($lista as $i => $item) {
             $lista[$i]['nao_lidas'] = $naoLidas[(int) $item['man_id']] ?? 0;
+            $lista[$i]['respostas'] = $this->respostas($demanda, $item);
         }
 
         return ['demanda' => $demanda, 'interessados' => $lista];
@@ -112,7 +114,31 @@ final class InteressadoService
             'integro'       => hash('sha256', (string) $manifestacao['man_snapshot'])
                                === $manifestacao['man_snapshot_hash'],
             'mensagens'     => $this->mensagens->daManifestacao($manifestacaoId),
+            'respostas'     => $this->respostas(
+                $this->demandas->porId((int) $manifestacao['man_dem_id']) ?? [],
+                $manifestacao,
+            ),
         ];
+    }
+
+    /**
+     * O que a empresa pediu ao lado do que o interessado respondeu (D78).
+     *
+     * Só quando foi o candidato que manifestou: interesse registrado pelo demandante (origem 'D')
+     * não passa pelo formulário, e mostrar "não respondeu" ali acusaria o candidato de uma omissão
+     * que não é dele.
+     *
+     * @param array<string, mixed> $demanda
+     * @param array<string, mixed> $manifestacao
+     * @return list<array{chave: string, rotulo: string, pedido: string, resposta: string, atende: ?bool}>
+     */
+    private function respostas(array $demanda, array $manifestacao): array
+    {
+        if (($manifestacao['man_origem'] ?? 'C') !== 'C' || $demanda === []) {
+            return [];
+        }
+
+        return RespostaInteresse::quadro($demanda, $manifestacao);
     }
 
     /**

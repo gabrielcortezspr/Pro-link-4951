@@ -231,7 +231,7 @@ final class DemandaService
     /**
      * @param array<string, mixed> $entrada
      * @return array{titulo: string, escopo: string, local_uf: ?string, local_municipio: ?string,
-     *               tipo_contrato: ?string, alvo: string}
+     *               tipo_contrato: ?string, inicio_ate: ?string, alvo: string}
      */
     private function validar(array $entrada): array
     {
@@ -241,6 +241,9 @@ final class DemandaService
         $municipio = trim((string) ($entrada['local_municipio'] ?? ''));
         $contrato  = mb_strtoupper(trim((string) ($entrada['tipo_contrato'] ?? '')));
         $alvo      = trim((string) ($entrada['alvo'] ?? 'A'));
+        // Até quando o trabalho precisa começar. Vazio é "prazo em aberto", escolha legítima; o
+        // que se recusa é data que não existe ou que já passou (D78).
+        $inicioAte = trim((string) ($entrada['inicio_ate'] ?? ''));
 
         $v = new Validacao();
 
@@ -263,6 +266,10 @@ final class DemandaService
 
         $v->entre('alvo', $alvo, self::ALVOS, 'Escolha quem pode atender esta demanda.');
 
+        $v->data('inicio_ate', $inicioAte, 'Informe uma data válida, ou deixe o prazo em aberto.');
+        $v->exigir('inicio_ate', $inicioAte === '' || $v->temErro('inicio_ate') || $inicioAte >= date('Y-m-d'),
+            'O prazo de início não pode ser anterior a hoje.');
+
         $v->lancarSeInvalido();
 
         return [
@@ -271,6 +278,7 @@ final class DemandaService
             'local_uf'        => $uf === '' ? null : $uf,
             'local_municipio' => $municipio === '' ? null : $municipio,
             'tipo_contrato'   => $contrato === '' ? null : $contrato,
+            'inicio_ate'      => $inicioAte === '' ? null : $inicioAte,
             'alvo'            => $alvo,
         ];
     }

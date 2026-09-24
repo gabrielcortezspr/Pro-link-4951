@@ -140,7 +140,7 @@ final class Rotulos
         'localizacao'     => 'Localização',
         'experiencia'     => 'Experiência',
         'contrato'        => 'Tipo de contrato',
-        'disponibilidade' => 'Disponibilidade',
+        'disponibilidade' => 'Região de atendimento',
     ];
 
     /**

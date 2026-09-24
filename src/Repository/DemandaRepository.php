@@ -19,7 +19,7 @@ namespace ProLink\Repository;
 final class DemandaRepository extends Repositorio
 {
     private const CAMPOS = 'dem_id, dem_usu_id, dem_titulo, dem_escopo, dem_local_uf,
-                            dem_local_municipio, dem_tipo_contrato, dem_alvo, dem_situacao,
+                            dem_local_municipio, dem_tipo_contrato, dem_inicio_ate, dem_alvo, dem_situacao,
                             dem_dt_publicacao, dem_dt_encerramento, dem_dt_registro, dem_status';
 
     /** @return array<string, mixed>|null */
@@ -88,9 +88,9 @@ final class DemandaRepository extends Repositorio
         $stmt = $this->pdo->prepare(
             'INSERT INTO pro_demandas
                 (dem_usu_id, dem_titulo, dem_escopo, dem_local_uf, dem_local_municipio,
-                 dem_tipo_contrato, dem_alvo, dem_situacao, dem_status)
+                 dem_tipo_contrato, dem_inicio_ate, dem_alvo, dem_situacao, dem_status)
              VALUES
-                (:usuario, :titulo, :escopo, :uf, :municipio, :contrato, :alvo, :situacao, :ativo)'
+                (:usuario, :titulo, :escopo, :uf, :municipio, :contrato, :inicio, :alvo, :situacao, :ativo)'
         );
 
         $stmt->execute([
@@ -100,6 +100,7 @@ final class DemandaRepository extends Repositorio
             ':uf'        => $dados['local_uf'],
             ':municipio' => $dados['local_municipio'],
             ':contrato'  => $dados['tipo_contrato'],
+            ':inicio'    => $dados['inicio_ate'] ?? null,
             ':alvo'      => $dados['alvo'],
             ':situacao'  => 'ABERTA',
             ':ativo'     => STATUS_ATIVO,
@@ -118,7 +119,7 @@ final class DemandaRepository extends Repositorio
             'UPDATE pro_demandas
                 SET dem_titulo = :titulo, dem_escopo = :escopo, dem_local_uf = :uf,
                     dem_local_municipio = :municipio, dem_tipo_contrato = :contrato,
-                    dem_alvo = :alvo
+                    dem_inicio_ate = :inicio, dem_alvo = :alvo
               WHERE dem_id = :id'
         );
 
@@ -128,6 +129,7 @@ final class DemandaRepository extends Repositorio
             ':uf'        => $dados['local_uf'],
             ':municipio' => $dados['local_municipio'],
             ':contrato'  => $dados['tipo_contrato'],
+            ':inicio'    => $dados['inicio_ate'] ?? null,
             ':alvo'      => $dados['alvo'],
             ':id'        => $id,
         ]);

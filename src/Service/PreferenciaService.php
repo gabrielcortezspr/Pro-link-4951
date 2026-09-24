@@ -84,6 +84,60 @@ final class PreferenciaService
     }
 
     /**
+     * Completa as preferências do perfil com o que o profissional acabou de responder ao
+     * manifestar interesse, quando ele marca "usar como minhas preferências" (D78).
+     *
+     * Acrescenta, nunca substitui. A região da obra entra na lista de UFs que ele atende (quem já
+     * marcou "qualquer lugar" continua assim). O regime só é gravado se o perfil ainda não tinha
+     * nenhum: aceitar PJ nesta demanda não quer dizer que PJ passou a ser a preferência de quem
+     * tinha declarado CLT. Só entra o que ele respondeu que aceita ou atende.
+     *
+     * @return bool true se algo mudou
+     */
+    public function acrescentarDaManifestacao(int $usuarioId, ?string $contratoAceito, ?string $ufAtendida): bool
+    {
+        $profissional = $this->profissionais->porUsuario($usuarioId);
+
+        if ($profissional === null) {
+            return false;
+        }
+
+        $atual = [
+            'resumo'          => $profissional['prf_resumo'] ?? null,
+            'tipo_contrato'   => $profissional['prf_tipo_contrato'] ?? null,
+            'disponibilidade' => $profissional['prf_disponibilidade'] ?? null,
+        ];
+
+        $novo = $atual;
+
+        if ($contratoAceito !== null && ($atual['tipo_contrato'] ?? '') === ''
+            && Preferencias::contratoValido($contratoAceito)) {
+            $novo['tipo_contrato'] = $contratoAceito;
+        }
+
+        if ($ufAtendida !== null && Preferencias::abrangenciaCobre($atual['disponibilidade'], $ufAtendida) !== true) {
+            $ufs = Preferencias::ufsDaAbrangencia($atual['disponibilidade']);
+            $ufs[] = $ufAtendida;
+            $novo['disponibilidade'] = Preferencias::normalizarAbrangencia($ufs);
+        }
+
+        if ($novo === $atual) {
+            return false;
+        }
+
+        Database::transacao(function (PDO $pdo) use ($usuarioId, $profissional, $atual, $novo): void {
+            (new ProfissionalRepository($pdo))->salvarDeclarado((int) $profissional['prf_id'], $novo);
+
+            Auditoria::registrar(
+                Auditoria::EDITAR, 'pro_profissionais', (int) $profissional['prf_id'], null,
+                $atual, $novo + ['origem' => 'manifestação de interesse'], $usuarioId, $pdo,
+            );
+        });
+
+        return true;
+    }
+
+    /**
      * @param  array<string, mixed> $entrada
      * @return array{resumo: ?string, tipo_contrato: ?string, disponibilidade: ?string}
      * @throws ValidacaoException

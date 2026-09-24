@@ -472,6 +472,7 @@ CREATE TABLE pro_demandas (
   dem_local_uf        CHAR(2)      NULL,
   dem_local_municipio VARCHAR(120) NULL,
   dem_tipo_contrato   VARCHAR(40)  NULL COMMENT 'mesmo vocabulário de prf_tipo_contrato; sem isso as duas pontas não se comparam',
+  dem_inicio_ate      DATE         NULL COMMENT 'início desejado até esta data; NULL = prazo em aberto (D78)',
   dem_alvo            CHAR(1)      NOT NULL DEFAULT 'P' COMMENT 'P = profissional, E = empresa, A = ambos',
   dem_situacao        VARCHAR(20)  NOT NULL DEFAULT 'ABERTA' COMMENT 'ABERTA|COM_INTERESSADOS|ENCERRADA',
   dem_dt_publicacao   DATETIME     NULL,
@@ -510,6 +511,12 @@ CREATE TABLE pro_manifestacoes (
   man_candidato_tipo CHAR(1)      NOT NULL DEFAULT 'P',
   man_origem         CHAR(1)      NOT NULL DEFAULT 'C' COMMENT 'C = candidato manifestou | D = demandante registrou interesse (Anexo I item 3)',
   man_mensagem       TEXT         NULL,
+  -- As respostas às preferências da demanda, dadas por quem manifestou (D78). NULL em cada uma
+  -- quer dizer "não foi perguntado": a demanda não tinha aquela preferência, ou a manifestação
+  -- nasceu do lado do demandante (man_origem = 'D'), que não passa pelo formulário.
+  man_aceita_contrato CHAR(1)     NULL COMMENT 'S = aceita | N = não aceita | C = prefere conversar',
+  man_atende_local   CHAR(1)      NULL COMMENT 'S = atende a região da demanda | N = não atende',
+  man_inicio_em      DATE         NULL COMMENT 'quando pode começar',
   man_snapshot       LONGTEXT     NOT NULL COMMENT 'JSON do perfil no instante do envio',
   man_snapshot_hash  CHAR(64)     NOT NULL,
   man_situacao       VARCHAR(20)  NOT NULL DEFAULT 'ENVIADA' COMMENT 'ENVIADA|VISUALIZADA|RESPONDIDA|ARQUIVADA',
