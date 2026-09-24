@@ -25,6 +25,18 @@
     </span>
 {% endmacro %}
 
+{#
+  A UF com a preposição certa: "no AM", "na BA", "em SP". A sigla sozinha depois de "no" lê
+  errado em metade dos estados ("no SP"), e as frases da D78 ("Atende no AM", "Já tem obra
+  registrada no AM") são justamente as que se leem em voz alta. Estados sem artigo levam "em";
+  Bahia e Paraíba, "na"; os demais, "no".
+#}
+{% macro em_uf(uf) %}
+    {%- set sem_artigo = ['AL', 'GO', 'MT', 'MS', 'MG', 'PE', 'RO', 'RR', 'SC', 'SP', 'SE'] -%}
+    {%- set u = uf|upper -%}
+    {{- u in sem_artigo ? 'em' : (u in ['BA', 'PB'] ? 'na' : 'no') }} {{ u -}}
+{% endmacro %}
+
 {% macro iniciais(nome) %}
     {%- set lista = nome|trim|split(' ')|filter(p => p is not empty) -%}
     {{- (lista|first|slice(0, 1) ~ (lista|length > 1 ? lista|last|slice(0, 1) : ''))|upper -}}
@@ -523,6 +535,51 @@
         <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Arquivada</span>
     {%- else -%}
         <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Enviada</span>
+    {%- endif -%}
+{% endmacro %}
+
+{#
+  O que a demanda pediu ao lado do que o interessado respondeu (D78), em Interessados e na
+  conversa. `lado` é quem lê: 'demandante' (quem publicou) ou 'candidato' (quem respondeu), e só
+  o cabeçalho muda.
+
+  A marca é discreta e nunca vermelha: resposta diferente do pedido não é falha de ninguém, é
+  informação para a conversa. "Atende" em verde (`ok`), "Diferente do pedido" em amarelo (`warn`),
+  e "prefiro conversar" sem marca. Não há soma nem contagem de "atende" em lugar nenhum: isso
+  seria nota por pessoa (item 10.1), e por isso a lista de interessados também não é ordenada por
+  elas.
+
+  Lista vazia não desenha nada: é o interesse registrado pela própria empresa (D70), que não passa
+  pelo formulário, e "não respondeu" ali seria uma acusação falsa.
+#}
+{% macro respostas(lista, lado = 'demandante') %}
+    {%- if lista is not empty -%}
+    <table class="pl-table pl-respostas">
+        <caption class="visually-hidden">Perguntas da demanda e respostas de quem manifestou interesse</caption>
+        <thead>
+            <tr>
+                <th scope="col"><span class="visually-hidden">Assunto</span></th>
+                <th scope="col">{{ lado == 'demandante' ? 'O que você pediu' : 'O que a empresa pediu' }}</th>
+                <th scope="col">{{ lado == 'demandante' ? 'O que respondeu' : 'O que você respondeu' }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in lista %}
+                <tr>
+                    <th scope="row">{{ r.rotulo }}</th>
+                    <td>{{ r.pedido }}</td>
+                    <td>
+                        <span class="resp">{{ r.resposta }}</span>
+                        {% if r.atende is same as(true) %}
+                            <span class="pl-pill ok mini"><span class="pd" aria-hidden="true"></span>Atende</span>
+                        {% elseif r.atende is same as(false) %}
+                            <span class="pl-pill warn mini"><span class="pd" aria-hidden="true"></span>Diferente do pedido</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
     {%- endif -%}
 {% endmacro %}
 

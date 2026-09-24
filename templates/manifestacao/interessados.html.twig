@@ -24,9 +24,11 @@
 
 {% block titulo_tela %}Interessados{% endblock %}
 
-{#  Lista de pessoas comparáveis entre si sobre uma mesma demanda. Tabela, e densa: a mensagem que
-    cada uma escreveu é o que distingue uma linha da outra, e ela precisa de largura para caber em
-    duas linhas sem virar um bloco de texto. #}
+{#  Lista de pessoas sobre uma mesma demanda. Era tabela; com a D78 cada interessado traz a
+    mensagem e o quadro "o que você pediu · o que respondeu", e as duas coisas espremidas numa
+    célula viravam um bloco ilegível. Agora cada um é um cartão, numa coluna só, em ordem de
+    chegada: coluna única porque a ordem precisa ser lida de cima para baixo, e duas colunas de
+    cartões fariam o olho ir e voltar sem saber quem chegou antes. #}
 {% block classe_main %}pl-wrap densa{% endblock %}
 
 {% block conteudo %}
@@ -77,7 +79,7 @@
 {% else %}
     <div class="pl-card">
         <div class="pl-linha-titulo">
-            {#  Origem-neutro de propósito: a mesma tabela recebe a manifestação que partiu do
+            {#  Origem-neutro de propósito: a mesma lista recebe a manifestação que partiu do
                 titular do perfil e o interesse que você registrou a partir dos compatíveis. Sem
                 `man_origem` na consulta, "quem manifestou" afirmaria a primeira origem para as
                 duas. #}
@@ -89,65 +91,61 @@
 
         {#  Declaração visível, e não atrás do "i" (D53, regra 3): esta é uma lista de pessoas
             reunidas por uma demanda, e sem a frase alguém leria a ordem como classificação. #}
-        <p class="pl-nota">
+        <p class="pl-nota mb-0">
             Em ordem de chegada. A plataforma não classifica, ordena por mérito nem recomenda
-            interessados: a decisão é sua.
+            interessados, e as respostas de cada um não mudam essa ordem: a decisão é sua.
         </p>
 
-        {#  Alcance de teclado e nome no quadro rolável: o Chrome não dá foco a contêiner de
-            rolagem sozinho, e sem os três atributos quem navega por teclado não chega às
-            colunas da direita. Mesmo padrão da trilha de auditoria. #}
-        <div class="table-responsive" tabindex="0" role="region"
-             aria-label="Profissionais e empresas que manifestaram interesse">
-            <table class="pl-table">
-                <caption class="visually-hidden">
-                    Interessados nesta demanda, na ordem em que manifestaram, com a mensagem enviada e a situação de cada uma
-                </caption>
-                <thead>
-                    <tr>
-                        <th scope="col">Interessado</th>
-                        <th scope="col">Situação</th>
-                        <th scope="col">Conversa</th>
-                        <th scope="col">Recebida</th>
-                        <th scope="col"><span class="visually-hidden">Ação</span></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for i in interessados %}
-                        <tr>
-                            <td>
-                                <a class="lin-tt" href="{{ app_url }}/manifestacoes/{{ i.man_id }}">{{ i.nome }}</a>
-                                <span class="lin-sub">{{ ui.tipo_candidato(i.man_candidato_tipo) }} registrado no CREA</span>
-                                {#  A mensagem é o que distingue um interessado do outro, e por isso
-                                    mora na linha, presa ao nome, em vez de numa coluna que ficaria
-                                    vazia sempre que alguém não escrevesse nada. #}
-                                {% if i.man_mensagem %}
-                                    <p class="lin-msg">{{ i.man_mensagem }}</p>
-                                {% endif %}
-                            </td>
-                            <td>{{ ui.situacao_manifestacao(i.man_situacao) }}</td>
-                            <td>
-                                {% if i.nao_lidas > 0 %}
-                                    <span class="pl-novas">
-                                        <span class="pd" aria-hidden="true"></span>
-                                        {{ i.nao_lidas }} {{ i.nao_lidas == 1 ? 'mensagem nova' : 'mensagens novas' }}
-                                    </span>
-                                {% elseif i.mensagens > 0 %}
-                                    <span class="lin-sub">{{ i.mensagens }}
-                                        {{ i.mensagens == 1 ? 'mensagem trocada' : 'mensagens trocadas' }}</span>
-                                {% else %}
-                                    <span class="lin-sub">Sem resposta sua ainda</span>
-                                {% endif %}
-                            </td>
-                            <td><span class="pl-mono">{{ i.man_dt_registro|date('d/m/Y') }}</span></td>
-                            <td class="text-end">
-                                <a class="pl-btn sm" href="{{ app_url }}/manifestacoes/{{ i.man_id }}">Ver perfil</a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    </div>
+
+    <div class="pl-int-lista">
+        {% for i in interessados %}
+            {%- set resp = i.respostas|default([]) -%}
+            <article class="pl-card pl-int" aria-labelledby="int-{{ i.man_id }}">
+                <header class="cab">
+                    <div class="id">
+                        <a class="nm" id="int-{{ i.man_id }}" href="{{ app_url }}/manifestacoes/{{ i.man_id }}">{{ i.nome|nome_proprio }}</a>
+                        <span class="sub">
+                            {{ i.man_candidato_tipo == 'E' ? 'Empresa registrada no CREA' : 'Profissional registrado no CREA' }}
+                            <span class="pl-sep" aria-hidden="true"></span>
+                            Recebida em <span class="pl-mono">{{ i.man_dt_registro|date('d/m/Y') }}</span>
+                        </span>
+                    </div>
+                    <div class="st">
+                        {{ ui.situacao_manifestacao(i.man_situacao) }}
+                        {% if i.nao_lidas > 0 %}
+                            <span class="pl-novas">
+                                <span class="pd" aria-hidden="true"></span>
+                                {{ i.nao_lidas }} {{ i.nao_lidas == 1 ? 'mensagem nova' : 'mensagens novas' }}
+                            </span>
+                        {% elseif i.mensagens > 0 %}
+                            <span class="conv">{{ i.mensagens }} {{ i.mensagens == 1 ? 'mensagem trocada' : 'mensagens trocadas' }}</span>
+                        {% else %}
+                            <span class="conv">Sem resposta sua ainda</span>
+                        {% endif %}
+                        <a class="pl-btn sm" href="{{ app_url }}/manifestacoes/{{ i.man_id }}">Ver perfil e conversar</a>
+                    </div>
+                </header>
+
+                {#  A mensagem em destaque: a equipe não sabia onde ela aparecia. Ela é a voz do
+                    interessado, e vem antes do quadro, que é a resposta a um formulário. Sem
+                    mensagem e com quadro, diz-se que não houve mensagem; sem os dois (interesse
+                    registrado pela empresa), o cartão é só o cabeçalho. #}
+                {% if i.man_mensagem or resp is not empty %}
+                    <div class="corpo{% if resp is not empty and i.man_mensagem %} com-quadro{% endif %}">
+                        {% if i.man_mensagem %}
+                            <blockquote class="pl-msg-envio">
+                                <p class="rot">Mensagem enviada com o interesse</p>
+                                <p class="tx">{{ i.man_mensagem }}</p>
+                            </blockquote>
+                        {% else %}
+                            <p class="pl-msg-sem">Não escreveu mensagem no envio.</p>
+                        {% endif %}
+                        {{ ui.respostas(resp, 'demandante') }}
+                    </div>
+                {% endif %}
+            </article>
+        {% endfor %}
     </div>
 
     {#  A promessa do retrato, dita na lista e não só dentro de cada registro: quem varre esta
@@ -156,7 +154,7 @@
     <p class="pl-miniinfo mt-3">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></svg>
         <span>
-            Cada linha abre o perfil congelado no instante do envio, com o que aquele titular
+            Cada cartão abre o perfil congelado no instante do envio, com o que aquele titular
             tinha aberto para você. O perfil de hoje pode estar diferente, e o que você recebeu
             não muda com ele.
         </span>

@@ -94,6 +94,9 @@
         <span{% if demanda.dem_tipo_contrato %} title="{{ demanda.dem_tipo_contrato }}"{% endif %}>
             <b>Contrato:</b> {{ demanda.dem_tipo_contrato|rotulo_contrato ?: 'A combinar' }}
         </span>
+        <span>
+            <b>Início:</b> {{ demanda.dem_inicio_ate|default(null) ? 'até ' ~ demanda.dem_inicio_ate|date('d/m/Y') : 'prazo em aberto' }}
+        </span>
         {% if demanda.dem_dt_publicacao %}
             <span><b>Publicada em:</b> {{ demanda.dem_dt_publicacao|date('d/m/Y') }}</span>
         {% endif %}
@@ -249,7 +252,112 @@
               data-confirmar="Manifestar interesse nesta demanda? O envio não pode ser desfeito e só acontece uma vez por demanda.">
             {{ form.csrf() }}
 
-            {{ form.area('mensagem', 'Mensagem para o demandante (opcional)', '', null,
+            {#  As perguntas da demanda (D78). Regime, região e início eram "dimensões" que só
+                existiam se o profissional tivesse preenchido o perfil antes, sem saber que alguma
+                demanda ia perguntar. Agora quem manifesta responde aqui, sobre ESTA demanda.
+                Pergunta só o que a demanda pede (contrato "qualquer regime" não pergunta nada;
+                local sem UF também não); início, sempre. Pergunta feita é resposta obrigatória.
+
+                As respostas não mudam a compatibilidade (D78): servem à decisão de quem publicou,
+                e aparecem para ele como "atende" ou "não atende", nunca como número. #}
+            {%- set q = perguntas|default({}) -%}
+            {%- set reg_rot = q.contrato|default(null) ? q.contrato|rotulo_contrato : '' -%}
+            {%- set reg_txt = reg_rot == reg_rot|upper ? reg_rot : reg_rot|slice(0, 1)|lower ~ reg_rot|slice(1) -%}
+            {%- set lugar = q.local|default(null) is null ? '' : (q.local.municipio
+                ? 'em ' ~ q.local.municipio ~ '/' ~ q.local.uf : ui.em_uf(q.local.uf)) -%}
+            {%- set dia = hoje|default('now'|date('Y-m-d')) -%}
+            {#  Formulário devolvido com erro: o que foi marcado volta marcado, e a mensagem de
+                cada pergunta aparece embaixo dela. #}
+            {%- set val = valores|default({}) -%}
+            {%- set err = erros|default({}) -%}
+            <div class="pl-perguntas">
+                <p class="pl-grp">O que esta demanda pergunta</p>
+
+                {% if q.contrato|default(null) %}
+                    <fieldset class="pl-pergunta"{% if err.aceita_contrato is defined %} aria-invalid="true" aria-describedby="erro-aceita_contrato"{% endif %}>
+                        <legend>
+                            Esta demanda pede contrato {{ reg_txt }}. Você aceita?
+                            <span class="text-danger" aria-hidden="true">*</span>
+                        </legend>
+                        <div class="pl-opcoes" role="presentation">
+                            {% for v, t in {'S': 'Sim', 'N': 'Não', 'C': 'Prefiro conversar'} %}
+                                <label class="pl-opcao">
+                                    <input type="radio" name="aceita_contrato" value="{{ v }}" required
+                                           {%- if val.aceita_contrato|default('') == v %} checked{% endif %}>
+                                    <span>{{ t }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                        {% if err.aceita_contrato is defined %}
+                            <p class="invalid-feedback d-block mb-0" id="erro-aceita_contrato">{{ err.aceita_contrato }}</p>
+                        {% endif %}
+                    </fieldset>
+                {% endif %}
+
+                {% if q.local|default(null) %}
+                    <fieldset class="pl-pergunta"{% if err.atende_local is defined %} aria-invalid="true" aria-describedby="erro-atende_local"{% endif %}>
+                        <legend>
+                            A obra é {{ lugar }}. Você atende essa região?
+                            <span class="text-danger" aria-hidden="true">*</span>
+                        </legend>
+                        <div class="pl-opcoes" role="presentation">
+                            {% for v, t in {'S': 'Sim', 'N': 'Não'} %}
+                                <label class="pl-opcao">
+                                    <input type="radio" name="atende_local" value="{{ v }}" required
+                                           {%- if val.atende_local|default('') == v %} checked{% endif %}>
+                                    <span>{{ t }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                        {% if err.atende_local is defined %}
+                            <p class="invalid-feedback d-block mb-0" id="erro-atende_local">{{ err.atende_local }}</p>
+                        {% endif %}
+                    </fieldset>
+                {% endif %}
+
+                <div class="pl-pergunta">
+                    <label class="pl-pergunta-t" for="campo-inicio_em">
+                        Quando você pode começar?
+                        <span class="text-danger" aria-hidden="true">*</span>
+                    </label>
+                    <div class="pl-inicio-resp">
+                        <input type="date" name="inicio_em" id="campo-inicio_em"
+                               class="form-control{% if err.inicio_em is defined %} is-invalid{% endif %}"
+                               min="{{ dia }}" required value="{{ val.inicio_em|default('') }}"
+                               {%- if err.inicio_em is defined %} aria-invalid="true" aria-describedby="erro-inicio_em"
+                               {%- elseif q.inicio_ate|default(null) %} aria-describedby="campo-inicio_em-prazo"{% endif %}>
+                        {% if q.inicio_ate|default(null) %}
+                            <span class="prazo" id="campo-inicio_em-prazo">A empresa precisa começar até {{ q.inicio_ate|date('d/m/Y') }}</span>
+                        {% endif %}
+                    </div>
+                    {% if err.inicio_em is defined %}
+                        <p class="invalid-feedback d-block mb-0" id="erro-inicio_em">{{ err.inicio_em }}</p>
+                    {% endif %}
+                </div>
+
+                {#  Desmarcada de propósito: responder a uma demanda não pode mudar o perfil sem a
+                    pessoa pedir. E só aparece quando há o que guardar: início não vira preferência,
+                    então sem pergunta de regime nem de região a caixa não teria efeito nenhum. A
+                    explicação diz só o que vale para as perguntas que existem. #}
+                {% if pode_salvar_preferencias|default(false) and (q.contrato|default(null) or q.local|default(null)) %}
+                    <div class="form-check pl-salvar-pref">
+                        <input class="form-check-input" type="checkbox" name="salvar_preferencias" value="1"
+                               id="campo-salvar_preferencias" aria-describedby="campo-salvar_preferencias-ajuda"
+                               {%- if val.salvar_preferencias|default('') == '1' %} checked{% endif %}>
+                        <label class="form-check-label" for="campo-salvar_preferencias">
+                            Usar estas respostas como minhas preferências no perfil
+                        </label>
+                        <p class="form-text mb-0" id="campo-salvar_preferencias-ajuda">
+                            {%- if q.local|default(null) %}Se atender, {{ q.local.uf }} passa a fazer parte da sua região de atendimento.{% endif %}
+                            {%- if q.local|default(null) and q.contrato|default(null) %} {% endif %}
+                            {%- if q.contrato|default(null) %}Se aceitar o regime, ele só é gravado se o seu perfil ainda não tiver um.{% endif %}
+                            Nada do que você já declarou é substituído.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+
+            {{ form.area('mensagem', 'Mensagem para o demandante (opcional)', val.mensagem|default(''), err.mensagem|default(null),
                 {rows: 4, maxlength: 1000},
                 'Até 1000 caracteres. Uma ou duas frases sobre por que esta demanda combina com o seu acervo ajudam mais do que um texto longo.') }}
 

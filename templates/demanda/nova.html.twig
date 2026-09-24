@@ -58,8 +58,7 @@
     <p class="pl-nota">
         Escreva o escopo do serviço. A compatibilização cruza as atividades da Tabela de Obras e
         Serviços desta demanda com as atividades das ARTs verificadas de cada profissional, que é
-        o eixo principal e o único conferível na API do CREA-AM. Local e tipo de contrato entram
-        como dimensões complementares.
+        o eixo principal e o único conferível na API do CREA-AM.
     </p>
 
     {#  O caminho inteiro, na tela onde ele começa. Sem isto, "Salvar rascunho" parece o fim do
@@ -89,9 +88,21 @@
             declarada pelo candidato. Texto livre nunca casava. #}
         {{ form.selecao('local_uf', 'UF', ufs_mapa, valores.local_uf|default(''),
             erros.local_uf|default(null), {}, 'Não informada') }}
-        {{ form.selecao('tipo_contrato', 'Tipo de contrato', contratos_possiveis,
-            valores.tipo_contrato|default(''), erros.tipo_contrato|default(null), {}, 'A combinar') }}
+        {#  Sem "A combinar" (D78): ele gravava vazio, e vazio não vira pergunta para ninguém. O
+            padrão é "Aberta a qualquer regime", que é uma escolha e aparece assim para quem
+            manifesta interesse. #}
+        {{ form.selecao('tipo_contrato', 'Tipo de contrato',
+            contratos_possiveis|merge({'QUALQUER': 'Aberta a qualquer regime'}),
+            valores.tipo_contrato|default('QUALQUER'), erros.tipo_contrato|default(null), {}, false) }}
     </div>
+
+    {{ form.inicio_ate(valores.inicio_ate|default(''), erros.inicio_ate|default(null)) }}
+
+    {#  O que estes três campos viram, dito onde eles são preenchidos. #}
+    <p class="pl-nota pl-nota-perguntas">
+        Regime, local e início viram perguntas para quem manifestar interesse: cada pessoa diz se
+        aceita o regime, se atende a região e quando pode começar.
+    </p>
 
     {{ form.selecao('alvo', 'Quem pode atender', {
         'A': 'Profissionais e empresas',
@@ -104,4 +115,8 @@
         {{ form.botao('Salvar rascunho') }}
     </div>
 </form>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_assets }}/js/demanda-inicio.js?v={{ assets_v }}" defer></script>
 {% endblock %}

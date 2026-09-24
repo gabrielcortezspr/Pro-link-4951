@@ -17,8 +17,11 @@
     ordem exibida, e ela é sorteada pela semente da sessão. O indicador do trilho é contínuo e
     sem número justamente para não virar colocação.
 
-    **O que não foi medido é declarado** (item 12.3). Dimensão nula não vira barra zerada: ela
-    saiu da média, e zero é outra coisa.
+    **Só a competência técnica é grau** (D78). Ela é a única dimensão que o cálculo mede em escala;
+    as outras valem 100, 60 ou 0, e mostrar "Localização 60%" dava uma precisão que não existe e
+    somava notas na tela. Elas viram frases lidas do mesmo valor. O que não foi informado não vira
+    linha "não medida": vira uma nota curta no fim do grupo (item 12.3 continua atendido, só que
+    dito uma vez e em palavras). Frase não é pontuação: não há marca de certo ou errado nelas.
 
     **Verificado e declarado não se confundem** (D33, D48). As três primeiras dimensões saem de
     documento registrado no CREA e levam o selo verde água; as três últimas saem do que a pessoa
@@ -52,13 +55,21 @@
 {# Texto de cada dimensão: o que ela compara, e de onde sai o dado. É o "critério explicável"
    do Anexo VI, e por isso mora na tela, não num documento que ninguém abre na hora. #}
 {% set explicacoes = {
-    'competencia':     'O quanto o acervo de ART e CAT registrado no CREA cobre as atividades da Tabela de Obras e Serviços que esta demanda pede. Mais de uma ART na mesma atividade reforça o valor, e CAT vigente reforça de novo.',
-    'area':            'A modalidade do registro no CREA contra a modalidade que as atividades desta demanda exigem. Empresa não tem modalidade própria: quem a tem é o profissional do quadro técnico, então a dimensão sai da média dela.',
-    'localizacao':     'Onde as ARTs do acervo foram registradas, contra o município e a UF da obra desta demanda.',
-    'experiencia':     'Quantas experiências a pessoa lançou no próprio perfil e quantas delas têm ART vinculada. Não é comparada com o escopo desta demanda: cruzar relato livre com código da tabela exigiria classificar texto.',
-    'contrato':        'O regime de contratação que esta demanda propõe contra o que a pessoa declarou aceitar no perfil.',
-    'disponibilidade': 'A abrangência de atuação declarada no perfil contra a UF da obra desta demanda.'
+    'competencia':     'O quanto as obras registradas no CREA (ARTs e CATs) cobrem as atividades que esta demanda pede. Mais de uma obra na mesma atividade conta mais, e obra com CAT válida conta mais ainda.',
+    'area':            'A modalidade do registro no CREA comparada à que as atividades desta demanda exigem. Empresa não tem modalidade própria: quem tem é o profissional do quadro técnico.',
+    'localizacao':     'Onde estão as obras registradas no CREA, comparado ao município e ao estado da obra desta demanda.',
+    'experiencia':     'Experiências que a pessoa escreveu no próprio perfil. Conta mais quando o relato está ligado a uma ART dela.',
+    'contrato':        'O regime que esta demanda propõe comparado ao que a pessoa marcou no perfil.',
+    'disponibilidade': 'Os estados que a pessoa marcou no perfil como região de atendimento, comparados ao estado da obra.'
 } %}
+
+{#  O que a demanda pede, para as frases (D78). O regime vem do vocabulário fechado e sai como
+    palavra minúscula dentro da frase ("Aceita contrato pessoa jurídica"); sigla continua sigla. #}
+{% set dem_uf  = demanda.dem_local_uf|default(null) %}
+{% set dem_mun = demanda.dem_local_municipio|default(null) %}
+{% set dem_reg = demanda.dem_tipo_contrato|default(null) %}
+{% set reg_rot = dem_reg ? dem_reg|rotulo_contrato : '' %}
+{% set reg_txt = reg_rot == reg_rot|upper ? reg_rot : reg_rot|slice(0, 1)|lower ~ reg_rot|slice(1) %}
 
 <h1 class="visually-hidden">Compatíveis com a demanda {{ demanda.dem_titulo }}</h1>
 
@@ -193,13 +204,47 @@
                     </p>
                 {% endif %}
 
+                {#  As frases de cada dimensão (D78). O valor numérico que chega é o mesmo de antes; o
+                    que muda é a leitura. Valor nulo não gera linha. #}
+                {%- set d = c.dimensoes -%}
+                {%- set frases_doc = {
+                    'area': d.area|default(null) is null ? null
+                        : (d.area >= 1 ? 'A modalidade do registro cobre esta demanda' : 'A modalidade do registro é de outra área'),
+                    'localizacao': d.localizacao|default(null) is null ? null
+                        : (d.localizacao >= 1 and dem_mun ? 'Já tem obra registrada em ' ~ dem_mun
+                        : (d.localizacao > 0 ? 'Já tem obra registrada ' ~ ui.em_uf(dem_uf)
+                        : 'Nenhuma obra registrada ' ~ ui.em_uf(dem_uf)))
+                } -%}
+                {%- set frases_dec = {
+                    'experiencia': d.experiencia|default(null) is null ? null
+                        : (d.experiencia >= 1 ? 'Tem experiência declarada ligada a ART' : 'Tem experiência declarada'),
+                    'contrato': d.contrato|default(null) is null ? null
+                        : (d.contrato >= 1
+                            ? (dem_reg == 'QUALQUER' or not dem_reg ? 'Aceita o regime desta demanda' : 'Aceita contrato ' ~ reg_txt)
+                            : 'Prefere outro regime'),
+                    'disponibilidade': d.disponibilidade|default(null) is null ? null
+                        : (d.disponibilidade >= 1 ? 'Atende ' ~ ui.em_uf(dem_uf) : 'Não atende ' ~ ui.em_uf(dem_uf))
+                } -%}
+                {#  O que falta, dito uma vez. Só conta como falta do candidato o que a demanda pede:
+                    sem regime na demanda, contrato nulo não é lacuna de ninguém. Empresa não declara
+                    experiência nem preferências no perfil, então para ela a nota diz isso, e não
+                    "ainda não informou", que seria cobrar o que a tela nunca ofereceu. #}
+                {%- set faltam = [] -%}
+                {%- if c.tipo != 'E' -%}
+                    {%- if frases_dec.experiencia is null %}{% set faltam = faltam|merge(['experiência']) %}{% endif -%}
+                    {%- if frases_dec.contrato is null and dem_reg %}{% set faltam = faltam|merge(['contrato']) %}{% endif -%}
+                    {%- if frases_dec.disponibilidade is null and dem_uf %}{% set faltam = faltam|merge(['região']) %}{% endif -%}
+                {%- endif -%}
                 <div class="pl-adher">
                     <p class="pl-grp">
                         <svg class="pl-mark" role="img" aria-label="Verificado"><use href="#pl-sym-seal"/></svg>
                         Comprovado por documento no CREA
                     </p>
-                    {% for k in ['competencia', 'area', 'localizacao'] %}
-                        {{ feed.dimensao(k, c.dimensoes[k]|default(null), sessao.pesos[k]|default(null), explicacoes[k], idc) }}
+                    {{ feed.dimensao('competencia', d.competencia|default(null), sessao.pesos.competencia|default(null), explicacoes.competencia, idc) }}
+                    {% for k in ['area', 'localizacao'] %}
+                        {% if frases_doc[k] is not null %}
+                            {{ feed.frase(k, frases_doc[k], sessao.pesos[k]|default(null), explicacoes[k], idc) }}
+                        {% endif %}
                     {% endfor %}
 
                     <p class="pl-grp">
@@ -207,8 +252,20 @@
                         Informado pelo próprio perfil
                     </p>
                     {% for k in ['experiencia', 'contrato', 'disponibilidade'] %}
-                        {{ feed.dimensao(k, c.dimensoes[k]|default(null), sessao.pesos[k]|default(null), explicacoes[k], idc) }}
+                        {% if frases_dec[k] is not null %}
+                            {{ feed.frase(k, frases_dec[k], sessao.pesos[k]|default(null), explicacoes[k], idc) }}
+                        {% endif %}
                     {% endfor %}
+                    {% if c.tipo == 'E' %}
+                        <p class="pl-falta">Empresa não declara experiência nem preferências no perfil.</p>
+                    {% elseif faltam is not empty %}
+                        <p class="pl-falta">
+                            Ainda não informou
+                            {% for f in faltam -%}
+                                {{ f }}{{ loop.revindex == 2 ? ' e ' : (loop.last ? '' : ', ') }}
+                            {%- endfor %} no perfil.
+                        </p>
+                    {% endif %}
                 </div>
 
                 <button type="button" class="pl-toggle" aria-expanded="false" aria-controls="ev-{{ idc }}">
@@ -295,27 +352,6 @@
                         </div>
                     {% endif %}
 
-                    {% if c.ausentes is not empty %}
-                        <p class="pl-fine">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5" stroke-linecap="round"/></svg>
-                            <span>
-                                Fora da média desta sessão:
-                                {% for a in c.ausentes %}{{ a|rotulo_dimensao }}{{ not loop.last ? ', ' : '' }}{% endfor %}.
-                                Dimensão sem dado dos dois lados fica de fora em vez de valer zero, que seria
-                                uma medida que ninguém fez.
-                            </span>
-                        </p>
-                    {% endif %}
-
-                    {% if c.resumo %}
-                        <p class="pl-fine">
-                            <svg class="pl-mark nao" role="img" aria-label="Não verificado"><use href="#pl-sym-seal-x"/></svg>
-                            <span>
-                                <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Autodeclarado</span>
-                                {{ c.resumo }}
-                            </span>
-                        </p>
-                    {% endif %}
                 </div>
 
                 {#  As duas ações do mockup: a preenchida laranja e a contornada. O rótulo não é o
@@ -447,22 +483,39 @@
 {% endblock %}
 
 {#
-    Uma dimensão: rótulo, barra e valor, com a explicação atrás de hover ou foco. Valor nulo não
-    vira barra zerada — a dimensão saiu da média, e dizer isso é exigência do item 12.3.
+    A dimensão que é grau, a competência técnica: rótulo, barra e valor, com a explicação atrás de
+    hover ou foco. Valor nulo não vira barra zerada: a dimensão saiu da média, e isso é dito.
 #}
 {% macro dimensao(chave, valor, peso, explicacao, prefixo) %}
     {% set alvo = 'tip-' ~ prefixo ~ '-' ~ chave %}
     <div class="pl-dim" tabindex="0" aria-describedby="{{ alvo }}">
         <span class="dlab">{{ chave|rotulo_dimensao }}</span>
         {% if valor is null %}
-            <span class="na">Não medida nesta sessão</span>
+            <span class="na">Sem obra registrada para comparar</span>
             <span></span>
         {% else %}
             <span class="pl-bar"><span style="width: {{ (valor * 100)|round }}%"></span></span>
             <span class="pct">{{ (valor * 100)|round }}%</span>
         {% endif %}
         <span class="pl-tip" id="{{ alvo }}" role="tooltip">
-            <b>{{ chave|rotulo_dimensao }}{% if peso is not null %} · peso {{ (peso * 100)|round }}% na composição{% endif %}</b>
+            <b>{{ chave|rotulo_dimensao }}{% if peso is not null %} · conta {{ (peso * 100)|round }}% na compatibilidade{% endif %}</b>
+            {{ explicacao }}
+        </span>
+    </div>
+{% endmacro %}
+
+{#
+    Uma dimensão que não é grau (D78): rótulo e frase, com a mesma explicação atrás de hover ou
+    foco que a barra tem. Sem marca de certo ou errado: a frase diz o fato, e um sinal verde ou
+    vermelho ao lado de cada uma viraria pontuação por outro caminho (item 10.1).
+#}
+{% macro frase(chave, texto, peso, explicacao, prefixo) %}
+    {% set alvo = 'tip-' ~ prefixo ~ '-' ~ chave %}
+    <div class="pl-dim frase" tabindex="0" aria-describedby="{{ alvo }}">
+        <span class="dlab">{{ chave|rotulo_dimensao }}</span>
+        <span class="fr">{{ texto }}</span>
+        <span class="pl-tip" id="{{ alvo }}" role="tooltip">
+            <b>{{ chave|rotulo_dimensao }}{% if peso is not null %} · conta {{ (peso * 100)|round }}% na compatibilidade{% endif %}</b>
             {{ explicacao }}
         </span>
     </div>

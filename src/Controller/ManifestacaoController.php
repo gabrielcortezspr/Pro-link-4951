@@ -8,6 +8,7 @@ use ProLink\Service\InteressadoService;
 use ProLink\Service\ManifestacaoService;
 use ProLink\Service\ValidacaoException;
 use ProLink\Support\Flash;
+use ProLink\Support\RespostaInteresse;
 use ProLink\Support\Sessao;
 use ProLink\Support\View;
 
@@ -68,22 +69,72 @@ final class ManifestacaoController
             View::redirecionar('/manifestacoes/' . $previa['manifestacao_id']);
         }
 
+        return $this->telaDeConfirmacao($demanda, $previa);
+    }
+
+    /**
+     * A tela de confirmação, também usada para devolver o formulário com erro: pergunta
+     * obrigatória em branco não pode custar a mensagem que a pessoa já tinha escrito (D78).
+     *
+     * @param array<string, mixed>  $demanda
+     * @param array<string, mixed>  $previa
+     * @param array<string, mixed>  $valores o que veio do formulário
+     * @param array<string, string> $erros   campo => mensagem
+     */
+    private function telaDeConfirmacao(array $demanda, array $previa, array $valores = [], array $erros = []): string
+    {
         return View::render('manifestacao/confirmar.html.twig', [
-            'titulo'  => 'Manifestar interesse',
-            'demanda' => $demanda,
-            'previa'  => $previa,
+            'titulo'    => 'Manifestar interesse',
+            'demanda'   => $demanda,
+            'previa'    => $previa,
+            // O que a demanda pergunta a quem manifesta (D78). A caixa "usar como minhas
+            // preferências" só faz sentido para profissional: empresa não tem essa aba.
+            'perguntas' => RespostaInteresse::perguntas($demanda),
+            'pode_salvar_preferencias' => Sessao::temPerfil(PERFIL_PROFISSIONAL),
+            'hoje'      => date('Y-m-d'),
+            'valores'   => $valores,
+            'erros'     => $erros,
         ]);
     }
 
-    public function enviar(string $id): never
+    public function enviar(string $id): string
     {
         try {
             $this->manifestacoes->manifestar(
                 (int) Sessao::usuarioId(),
                 (int) $id,
                 (string) ($_POST['mensagem'] ?? ''),
+                [
+                    'aceita_contrato' => $_POST['aceita_contrato'] ?? '',
+                    'atende_local'    => $_POST['atende_local'] ?? '',
+                    'inicio_em'       => $_POST['inicio_em'] ?? '',
+                ],
+                ($_POST['salvar_preferencias'] ?? '') === '1',
             );
         } catch (ValidacaoException $e) {
+            // Erro de campo volta para a mesma tela, com o que foi digitado. Recusa que não é de
+            // campo (demanda encerrada, limite por hora, já manifestou) continua indo pelo
+            // caminho de antes, que sabe para onde mandar cada caso.
+            if ($e->erros() !== []) {
+                $usuarioId = (int) Sessao::usuarioId();
+
+                try {
+                    $demanda = $this->manifestacoes->demandaAberta((int) $id);
+                } catch (ValidacaoException) {
+                    Flash::erro($e->getMessage());
+                    View::redirecionar('/demandas/abertas');
+                }
+
+                Flash::erro('Confira as respostas marcadas abaixo.');
+
+                return $this->telaDeConfirmacao(
+                    $demanda,
+                    $this->manifestacoes->previa($usuarioId, (int) $id),
+                    $_POST,
+                    $e->erros(),
+                );
+            }
+
             Flash::erro($e->getMessage());
             View::redirecionar('/demandas/' . (int) $id . '/manifestar');
         }

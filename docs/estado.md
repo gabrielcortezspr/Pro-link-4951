@@ -5,36 +5,35 @@ Máximo de ~30 linhas: se passar disso, algo aqui deveria estar num commit ou nu
 
 ## Última sessão
 
-24/09/2026 — Gabriel, com Claude Code. E8 concluída e mesclada na `main`.
+24/09/2026 (tarde) — Gabriel, com Claude Code. E8 fechada e mesclada na `main`.
 
 ## Onde parou
 
-**A CAT entrou no produto** (D76): importada no cadastro, ligada às ARTs, com selo, reforçando o
-motor quando vigente, e a aba Acervo organizada por certidão. O botão de atualizar o acervo tem
-espera de 60 min (D77). Os 12 profissionais semeados já têm CAT. O deck do Demo Day está em
-rascunho no artifact `claude.ai/artifact/6qhS4HKwjyD3ZKjrhwaCjY`, esperando a revisão da Camila.
+**A CAT está no produto** (D76), o botão de atualizar o acervo tem espera (D77), e as preferências
+da demanda viraram perguntas a quem manifesta interesse, com o cartão de compatíveis dando grau só
+à competência (D78). O banco local tem 42 profissionais, 14 empresas, 11 demandas completas e 44
+interesses (D79). O deck está no artifact `claude.ai/artifact/6qhS4HKwjyD3ZKjrhwaCjY`.
 
 ## Próximo passo
 
-**Ensaiar a demo por `docs/roteiro-demo.md`**, trocando a conta que ele cita (Alfa Engenharia,
-que não existe no banco local) pela Construtora Manauara e a demanda 96 (plano setorial regional,
-`TOS_10.4.2.3`), que é o exemplo do deck. Antes, "Atualizar e sortear de novo" em cada demanda.
+**Ensaiar a demo por `docs/roteiro-demo.md`**, que ainda descreve o caminho antigo: trocar pela
+Construtora Manauara e a demanda 96 (já com contrato PJ, prazo e 4 interessados), e acrescentar a
+manifestação com as perguntas e a lista de interessados com "pediu × respondeu".
 
 ## Decisões pendentes
 
-- **Confirmar com a organização** se a alteração pós-entrega pede tag nova ou reenvio do `.zip`,
-  para o repositório bater com a demo (13.6e).
-- Reforço da CAT proporcional à afinidade (`+0,30 × (1 − v) × afinidade`): hoje ela quase triplica
-  evidência de atividade vizinha (0,15 → 0,405). Adiado pela equipe em 24/09; mexe no deck.
-- `ARQUIVADA` em `man_situacao`, `prf_em_construcao` derivado na leitura, e o par excluído (D74).
+- **Confirmar com a organização** se a alteração pós-entrega pede tag nova ou reenvio do `.zip`.
+- Reforço da CAT proporcional à afinidade (`+0,30 × (1 − v) × afinidade`), adiado pela equipe.
+- O deck (slide da afinidade e o das seis dimensões) ainda descreve o cartão antigo, com
+  porcentagem em todas as dimensões: alinhar com a D78 antes da Camila revisar.
 
 ## Lembrar
 
-- **Sessão do motor gravada antes da importação da CAT não mostra CAT**: sortear de novo.
-- **Na massa toda CAT cobre 100% das ARTs**: vencida, renovada e "ARTs sem certidão" só existem na
-  prévia, nunca com dado real. Não fabricar dado para mostrar.
-- **Pull que muda `_arq/estrutura.sql` não altera o banco local.** Em 24/09 faltavam `man_origem`
-  e mais três itens (erro 500 em `/inicio`); alinhar comparando com um banco de referência.
-- **Cada cadastro de profissional custa quatro chamadas da API** desde a D76.
-- A senha da administração mora em `e2e/.env.local`; a das contas semeadas é `ProLinkDemo2026!`.
-- `git pull` que toque `docker/nginx/default.conf` exige `up -d --force-recreate nginx`.
+- **Banco criado antes da D78 precisa de `_arq/migracoes/2026-09-24-d78-*.sql`** (idempotente).
+  `git pull` não altera banco existente: foi o erro 500 de `man_origem` em 24/09.
+- **`semear-demandas.php` encerra as demandas de verificação** que o `verificar-e4.php` cria; rodar
+  de novo depois de cada bateria de verificação.
+- **Sessão do motor gravada antes de uma mudança de acervo mostra o estado antigo**: sortear de novo.
+- Na massa toda CAT cobre 100% das ARTs; vencida e renovada só existem na prévia.
+- Cadastro de profissional custa quatro chamadas da API (D76). A senha da administração mora em
+  `e2e/.env.local`; a das contas semeadas é `ProLinkDemo2026!`.

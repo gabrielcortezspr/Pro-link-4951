@@ -69,6 +69,40 @@
 {% endmacro %}
 
 {#
+    O prazo de início de uma demanda (D78): "Prazo em aberto" envia vazio, "Até" envia a data.
+
+    As duas opções são rádio de um grupo próprio (`inicio_modo`, que o servidor não lê), e só a
+    data se chama `inicio_ate`. Sem script a data vem sempre habilitada, para quem precisa de prazo
+    conseguir informá-lo; com script (`demanda-inicio.js`) ela fica desabilitada enquanto o prazo
+    está em aberto, e o navegador deixa de enviá-la. O servidor valida a data e recusa data passada;
+    `min` só antecipa isso no seletor.
+#}
+{% macro inicio_ate(valor = '', erro = null) %}
+    {%- set hoje = 'now'|date('Y-m-d') -%}
+    {%- set com_data = valor is not empty or erro -%}
+    <fieldset class="mb-3 pl-inicio-campo" data-inicio>
+        <legend class="form-label">Início</legend>
+        <div class="pl-inicio-opcoes">
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="inicio_modo" value="aberto"
+                       id="campo-inicio-aberto" data-inicio-aberto{% if not com_data %} checked{% endif %}>
+                <label class="form-check-label" for="campo-inicio-aberto">Prazo em aberto</label>
+            </div>
+            <div class="form-check pl-inicio-ate">
+                <input class="form-check-input" type="radio" name="inicio_modo" value="ate"
+                       id="campo-inicio-ate" data-inicio-ate{% if com_data %} checked{% endif %}>
+                <label class="form-check-label" for="campo-inicio-ate">Até</label>
+                <input type="date" name="inicio_ate" id="campo-inicio_ate" value="{{ valor }}" min="{{ hoje }}"
+                       class="form-control{% if erro %} is-invalid{% endif %}"
+                       aria-label="Data limite para começar"
+                       {%- if erro %} aria-invalid="true" aria-describedby="campo-inicio_ate-erro"{% endif %}>
+            </div>
+        </div>
+        {% if erro %}<div id="campo-inicio_ate-erro" class="invalid-feedback d-block">{{ erro }}</div>{% endif %}
+    </fieldset>
+{% endmacro %}
+
+{#
     Caixa de seleção. O rótulo é **texto**, sempre escapado.
 
     `link` e `sufixo` existem porque os dois aceites de termo precisam de uma âncora dentro do

@@ -33,7 +33,8 @@ final class ManifestacaoRepository extends Repositorio
     //  tratavam toda linha como candidatura, e as duas linhas de origem 'D' apareciam com a
     //  mensagem do demandante assinada como "Você" para quem a recebeu.
     private const CAMPOS = 'm.man_id, m.man_dem_id, m.man_usu_id, m.man_candidato_tipo,
-                            m.man_origem, m.man_mensagem, m.man_situacao, m.man_dt_visualizacao,
+                            m.man_origem, m.man_mensagem, m.man_aceita_contrato, m.man_atende_local,
+                            m.man_inicio_em, m.man_situacao, m.man_dt_visualizacao,
                             m.man_dt_registro, m.man_snapshot_hash';
 
     /** @param array<string, mixed> $dados */
@@ -42,9 +43,11 @@ final class ManifestacaoRepository extends Repositorio
         $stmt = $this->pdo->prepare(
             'INSERT INTO pro_manifestacoes
                 (man_dem_id, man_usu_id, man_candidato_tipo, man_origem, man_mensagem,
+                 man_aceita_contrato, man_atende_local, man_inicio_em,
                  man_snapshot, man_snapshot_hash)
              VALUES
-                (:demanda, :usuario, :tipo, :origem, :mensagem, :snapshot, :hash)'
+                (:demanda, :usuario, :tipo, :origem, :mensagem,
+                 :aceita_contrato, :atende_local, :inicio_em, :snapshot, :hash)'
         );
 
         $stmt->execute([
@@ -55,6 +58,10 @@ final class ManifestacaoRepository extends Repositorio
             // caminho que existiu até 17/09, e a coluna nasceu com ele para não reescrever linha.
             ':origem'   => $dados['origem'] ?? 'C',
             ':mensagem' => $dados['mensagem'],
+            // As respostas às preferências da demanda (D78). Nulas quando não foram perguntadas.
+            ':aceita_contrato' => $dados['aceita_contrato'] ?? null,
+            ':atende_local'    => $dados['atende_local'] ?? null,
+            ':inicio_em'       => $dados['inicio_em'] ?? null,
             ':snapshot' => $dados['snapshot'],
             ':hash'     => $dados['hash'],
         ]);

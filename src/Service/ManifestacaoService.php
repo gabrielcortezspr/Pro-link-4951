@@ -11,6 +11,7 @@ use ProLink\Repository\ParametroRepository;
 use ProLink\Repository\UsuarioRepository;
 use ProLink\Support\Auditoria;
 use ProLink\Support\Database;
+use ProLink\Support\RespostaInteresse;
 use ProLink\Support\Validacao;
 
 /**
@@ -119,11 +120,22 @@ final class ManifestacaoService
     /**
      * Grava a manifestação, move a demanda e enfileira o aviso.
      *
+     * Junto vêm as respostas às preferências da demanda (D78): se aceita o regime de contrato, se
+     * atende a região da obra e quando pode começar. Elas ficam na manifestação, para a empresa
+     * avaliar, e não entram no motor. Com `$salvarPreferencias`, o que o profissional disse que
+     * aceita e atende completa o perfil dele (`PreferenciaService::acrescentarDaManifestacao`).
+     *
+     * @param array<string, mixed> $respostas campos crus: aceita_contrato, atende_local, inicio_em
      * @throws ValidacaoException demanda inexistente, não publicada, própria, repetida, com o
-     *                            perfil fechado, ou acima do limite por hora
+     *                            perfil fechado, acima do limite por hora, ou resposta faltando
      */
-    public function manifestar(int $candidatoId, int $demandaId, string $mensagem = ''): int
-    {
+    public function manifestar(
+        int $candidatoId,
+        int $demandaId,
+        string $mensagem = '',
+        array $respostas = [],
+        bool $salvarPreferencias = false,
+    ): int {
         $mensagem = trim($mensagem);
 
         (new Validacao())
@@ -133,6 +145,8 @@ final class ManifestacaoService
         // Rascunho não existe para o resto da plataforma, e demanda encerrada não recebe mais
         // interessado. Um lugar só decide isso, e a tela de confirmação usa o mesmo.
         $demanda = $this->demandaAberta($demandaId);
+
+        $respostas = RespostaInteresse::validar($respostas, $demanda, date('Y-m-d'));
 
         if ((int) $demanda['dem_usu_id'] === $candidatoId) {
             throw new ValidacaoException('Você não pode manifestar interesse na própria demanda.');
@@ -180,14 +194,17 @@ final class ManifestacaoService
 
         $destinatario = $this->usuarios->porId((int) $demanda['dem_usu_id']);
 
-        return Database::transacao(function (PDO $pdo) use (
-            $candidatoId, $demandaId, $demanda, $mensagem, $json, $ehEmpresa, $destinatario
+        $id = Database::transacao(function (PDO $pdo) use (
+            $candidatoId, $demandaId, $demanda, $mensagem, $json, $ehEmpresa, $destinatario, $respostas
         ): int {
             $id = (new ManifestacaoRepository($pdo))->criar([
                 'demanda_id'     => $demandaId,
                 'usuario_id'     => $candidatoId,
                 'candidato_tipo' => $ehEmpresa ? 'E' : 'P',
                 'mensagem'       => $mensagem === '' ? null : $mensagem,
+                'aceita_contrato' => $respostas['aceita_contrato'],
+                'atende_local'    => $respostas['atende_local'],
+                'inicio_em'       => $respostas['inicio_em'],
                 'snapshot'       => $json,
                 // sha256 do mesmo JSON que foi gravado. Não protege contra quem tem o banco;
                 // protege contra alteração acidental, que é o risco que existe de verdade.
@@ -228,6 +245,18 @@ final class ManifestacaoService
 
             return $id;
         });
+
+        // Fora da transação da manifestação, de propósito: completar o perfil é conveniência do
+        // titular, e uma falha aqui não pode desfazer o interesse que ele acabou de manifestar.
+        if ($salvarPreferencias && !$ehEmpresa) {
+            (new PreferenciaService())->acrescentarDaManifestacao(
+                $candidatoId,
+                $respostas['aceita_contrato'] === RespostaInteresse::SIM ? (string) $demanda['dem_tipo_contrato'] : null,
+                $respostas['atende_local'] === RespostaInteresse::SIM ? (string) $demanda['dem_local_uf'] : null,
+            );
+        }
+
+        return $id;
     }
 
     /**

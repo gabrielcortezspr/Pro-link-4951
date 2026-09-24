@@ -156,6 +156,23 @@ export function aceitarConfirmacoes(pagina) {
  */
 export async function manifestar(pagina, demandaId) {
   await pagina.goto(`/demandas/${demandaId}/manifestar`);
+
+  // As preferências da demanda viram perguntas obrigatórias (D78). Pelo `name`, e não pelo
+  // rótulo, para o seletor não depender do desenho: a pergunta de contrato e a de região só
+  // existem quando a demanda as faz, e a de início existe sempre.
+  for (const campo of ['aceita_contrato', 'atende_local']) {
+    const sim = pagina.locator(`input[name="${campo}"][value="S"]`);
+
+    if (await sim.count()) await sim.check({ force: true });
+  }
+
+  const inicio = pagina.locator('input[name="inicio_em"]');
+
+  if (await inicio.count()) {
+    const daqui = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    await inicio.fill(daqui);
+  }
+
   await pagina.getByRole('button', { name: /Manifestar interesse/i }).click();
 
   try {
