@@ -103,6 +103,22 @@
 <div class="pl-cols">
     <div class="pl-stack">
 
+        {#  As respostas às perguntas da demanda (D78), antes da conversa: para quem publicou,
+            são o que decide se vale responder; para quem manifestou, o registro do que ele
+            disse. Só na manifestação do candidato: o interesse registrado pela empresa não passa
+            pelo formulário, e a lista chega vazia. #}
+        {% set resp = respostas|default([]) %}
+        {% if resp is not empty %}
+            <section class="pl-card">
+                <div class="pl-linha-titulo">
+                    <h2 class="pl-secao">{{ eh_demandante ? 'Respostas às perguntas da demanda' : 'Suas respostas às perguntas da demanda' }}</h2>
+                    {{ ui.info('De onde vêm estas respostas',
+                        'Regime, local e início são perguntados a quem manifesta interesse, sobre esta demanda. As respostas não mudam a compatibilidade: servem para a conversa entre as duas partes.', 'fim') }}
+                </div>
+                {{ ui.respostas(resp, eh_demandante ? 'demandante' : 'candidato') }}
+            </section>
+        {% endif %}
+
         {#  A conversa vem primeiro para os dois lados: para quem manifestou é o retorno que ele
             veio buscar, e para quem publicou é a única coisa da tela que pede ação. #}
         <section class="pl-card">
@@ -126,8 +142,10 @@
                     {#  A mensagem escrita no envio é a primeira da conversa, e não um campo solto
                         do registro: ela foi escrita pela mesma pessoa, sobre o mesmo assunto, e
                         lida como cabeçalho ficaria fora da ordem cronológica. #}
+                    {#  A mensagem do envio ganha destaque (D78): é a apresentação de quem
+                        manifestou, e a equipe não sabia onde ela aparecia. #}
                     {% if m.man_mensagem %}
-                        <li class="{{ envio_meu ? '' : 'deles' }}">
+                        <li class="{{ envio_meu ? '' : 'deles' }} envio">
                             <p class="qm">
                                 {#  `m.usu_nome` é o nome de `man_usu_id`, que é sempre o candidato:
                                     do lado do candidato lendo uma linha aberta pelo demandante não

@@ -4352,3 +4352,132 @@ html.js-seg .pl-seg-painel:focus-visible { outline: 0; box-shadow: 0 -3px 0 0 va
    leitor de tela ler o motivo antes do controle. */
 .pl-vazio .a.pl-atualiza { flex-direction: column; gap: 8px; }
 .pl-vazio .a .pl-atualiza-nota { order: 2; }
+
+/* ---------- 43. As preferências da demanda viram perguntas, e o cartão para de dar nota (D78) --
+   Quatro telas, um assunto. Regime, local e início deixam de ser "dimensões" que só existiam se o
+   profissional tivesse preenchido o perfil antes: a empresa declara o que prefere ao publicar,
+   quem manifesta interesse responde, e a empresa lê a resposta ao lado do pedido.
+
+   a) **Compatíveis.** Só a competência técnica continua barra e porcentagem. As outras dimensões
+      viram frase (`.pl-dim.frase`): a mesma linha, o mesmo rótulo, a mesma explicação no hover,
+      e o texto no lugar da barra. Sem marca de certo ou errado ao lado: sinal verde e vermelho em
+      cada frase faria pontuação por outro caminho (item 10.1). O que falta é uma nota só, no fim
+      do grupo (`.pl-falta`), e não uma linha "não medida" por dimensão.
+   b) **Formulário da demanda.** O campo "Início": duas opções e a data colada na segunda.
+   c) **Manifestar interesse.** Cada pergunta é um grupo de rádio desenhado como escolha
+      segmentada (`.pl-opcao`): três respostas curtas lado a lado leem como uma pergunta de
+      múltipla escolha, que é o que são. Escolhido fica em azul escuro, como a aba acesa, porque
+      é estado e não ação.
+   d) **Interessados e conversa.** A mensagem do envio em destaque (`.pl-msg-envio`) e o quadro
+      "o que você pediu · o que respondeu" (`.pl-respostas`), com marca `ok` ou `warn` e nunca
+      vermelha: resposta diferente do pedido não é falha de ninguém.
+
+   Nenhuma cor nova: tudo sai da seção 1. */
+
+/* ---- a) A frase no lugar da barra ---- */
+.pl-dim.frase .fr { grid-column: 2 / -1; color: var(--pl-ink); line-height: 1.45; }
+.pl-feed .pl-adher .pl-dim.frase .fr { font-size: 13px; }
+.pl-adher .pl-falta { margin: 4px 0 0; font-size: 12px; line-height: 1.5; color: var(--pl-muted); }
+/* O grupo declarado pode ficar só com a nota: ela encosta no rótulo do grupo, sem o respiro de
+   uma linha de dimensão que não existe. */
+.pl-adher .pl-grp + .pl-falta { margin-top: -4px; }
+@media (max-width: 640px) {
+    .pl-feed .pl-adher .pl-dim.frase .fr { grid-column: 1 / -1; }
+    /* Rótulo em cima da frase: na seção 30 ele ganha tinta cheia para não sumir ao lado da
+       barra, e aqui, acima de outra linha de texto, ele e a frase liam como duas frases. */
+    .pl-feed .pl-adher .pl-dim.frase .dlab { color: var(--pl-muted); font-size: 12px; }
+}
+
+/* ---- b) O campo "Início" da demanda ---- */
+.pl-inicio-campo { border: 0; padding: 0; min-width: 0; }
+.pl-inicio-campo > legend { float: none; width: auto; }
+.pl-inicio-opcoes { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 22px; }
+/* As duas opções na altura do campo de data (38px) e alinhadas pelo centro: o `.form-check` do
+   Bootstrap flutua o rádio e o desce 4px, e "Prazo em aberto" ficava abaixo de "Até". */
+.pl-inicio-opcoes .form-check { display: flex; align-items: center; gap: 8px; min-height: 38px;
+    margin: 0; padding-left: 0; }
+.pl-inicio-opcoes .form-check-input { float: none; margin: 0; flex: none; }
+.pl-inicio-opcoes .form-check-label { margin: 0; }
+.pl-inicio-ate { gap: 10px; }
+.pl-inicio-ate .form-control { width: 178px; height: 38px; }
+.pl-inicio-ate .form-control:disabled { background: var(--pl-app); color: var(--pl-faint); }
+.pl-nota-perguntas { margin: -4px 0 16px; }
+
+/* ---- c) As perguntas ao manifestar interesse ---- */
+.pl-perguntas { margin: 0 0 20px; padding: 16px 18px; background: var(--pl-app);
+    border: 1px solid var(--pl-border); border-radius: 12px; }
+.pl-perguntas > .pl-grp { margin: 0 0 12px; }
+.pl-pergunta { border: 0; padding: 0; margin: 0; min-width: 0; }
+.pl-pergunta + .pl-pergunta { margin-top: 16px; }
+.pl-pergunta > legend, .pl-pergunta-t { float: none; width: auto; display: block; margin: 0 0 8px;
+    font-size: 13.5px; font-weight: 600; line-height: 1.45; color: var(--pl-ink); }
+.pl-opcoes { display: flex; flex-wrap: wrap; gap: 8px; }
+.pl-opcao { position: relative; display: inline-flex; align-items: center; height: 36px;
+    padding: 0 16px; border: 1px solid var(--pl-border); border-radius: 10px;
+    background: var(--pl-card); font-size: 13px; font-weight: 600; color: var(--pl-ink);
+    cursor: pointer; transition: border-color .14s ease, background .14s ease, color .14s ease; }
+/* O rádio continua no DOM e alcançável por teclado e leitor de tela; quem se vê é o rótulo. */
+.pl-opcao input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.pl-opcao:hover { border-color: var(--pl-data); }
+.pl-opcao:has(input:checked) { background: var(--pl-data); border-color: var(--pl-data); color: #fff; }
+.pl-opcao:has(input:focus-visible) { outline: 2px solid var(--pl-blue); outline-offset: 2px; }
+.pl-inicio-resp { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; }
+.pl-inicio-resp .form-control { width: 190px; height: 38px; }
+.pl-inicio-resp .prazo { font-size: 12.5px; color: var(--pl-muted); }
+.pl-salvar-pref { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--pl-border); }
+.pl-salvar-pref .form-check-label { font-size: 13px; font-weight: 600; color: var(--pl-ink); }
+.pl-salvar-pref .form-text { font-size: 12px; margin-top: 3px; }
+@media (prefers-reduced-motion: reduce) { .pl-opcao { transition: none; } }
+
+/* ---- d) Interessados: um cartão por pessoa, em ordem de chegada ---- */
+.pl-int-lista { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+.pl-int { padding: 0; }
+.pl-int > .cab { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    gap: 10px 16px; padding: 15px 18px; }
+.pl-int .id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pl-int .nm { font-family: var(--pl-display); font-weight: 600; font-size: 15.5px; letter-spacing: -.01em;
+    color: var(--pl-ink); text-decoration: none; overflow-wrap: anywhere; }
+.pl-int .nm:hover { color: var(--pl-blue); }
+.pl-int .nm:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; border-radius: 4px; }
+.pl-int .sub { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px 8px;
+    font-size: 12px; color: var(--pl-muted); }
+.pl-int .sub .pl-mono { font-size: 11.5px; }
+.pl-int .st { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.pl-int .conv { font-size: 12px; color: var(--pl-muted); }
+/* Mensagem e quadro lado a lado quando há os dois: a mensagem é a voz da pessoa, o quadro é o
+   formulário. Em tela estreita, um embaixo do outro, na mesma ordem. */
+.pl-int > .corpo { padding: 14px 18px 18px; border-top: 1px solid var(--pl-border-2);
+    display: grid; gap: 14px 22px; }
+.pl-int > .corpo.com-quadro { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); align-items: start; }
+@media (max-width: 1080px) { .pl-int > .corpo.com-quadro { grid-template-columns: minmax(0, 1fr); } }
+
+/* A mensagem do envio: fundo da área de conteúdo e fio azul escuro, que é a cor de dado. Não é
+   laranja, que é ação, nem verde água, que é verificação. */
+.pl-msg-envio { margin: 0; padding: 12px 14px; background: var(--pl-app);
+    border-left: 3px solid var(--pl-data); border-radius: 0 10px 10px 0; }
+.pl-msg-envio .rot { margin: 0 0 4px; font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--pl-muted); }
+.pl-msg-envio .tx { margin: 0; font-size: 14px; line-height: 1.6; color: var(--pl-ink);
+    white-space: pre-line; overflow-wrap: anywhere; max-width: 72ch; }
+.pl-msg-sem { margin: 0; font-size: 12.5px; color: var(--pl-faint); }
+
+/* O quadro pedido × resposta. Tabela de três colunas, compacta: o assunto em tinta média, o
+   pedido em tinta média, a resposta em tinta cheia, que é o que se lê. */
+.pl-respostas { font-size: 12.5px; }
+.pl-respostas thead th { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--pl-faint); padding: 0 10px 7px; }
+.pl-respostas tbody th, .pl-respostas tbody td { padding: 8px 10px; vertical-align: top; }
+.pl-respostas tbody th { font-weight: 600; color: var(--pl-muted); white-space: nowrap; width: 1%; }
+.pl-respostas tbody td:nth-of-type(1) { color: var(--pl-muted); }
+.pl-respostas .resp { color: var(--pl-ink); margin-right: 6px; }
+.pl-respostas tbody tr:hover td, .pl-respostas tbody tr:hover th { background: transparent; }
+.pl-pill.mini { font-size: 10.5px; padding: 2px 7px; gap: 5px; vertical-align: 1px; }
+.pl-pill.mini .pd { width: 5px; height: 5px; }
+
+/* Na conversa, a mensagem do envio abre a lista com o mesmo destaque. */
+.pl-conversa > li.envio { background: var(--pl-app); border-left-width: 3px; border-left-color: var(--pl-data);
+    border-radius: 0 10px 10px 0; padding: 12px 14px; }
+.pl-conversa > li.envio .tx { font-size: 14px; }
+/* Sem mensagem, o quadro ocupa o cartão sozinho: esticado na largura de 1400px, o pedido e a
+   resposta ficavam a meia tela um do outro. A medida é a da coluna que ele teria ao lado dela. */
+.pl-int > .corpo:not(.com-quadro) .pl-respostas { max-width: 760px; }

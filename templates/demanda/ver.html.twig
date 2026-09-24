@@ -45,6 +45,10 @@
                 valor cru fica no title para quem audita. #}
             <span{% if d.dem_tipo_contrato %} title="{{ d.dem_tipo_contrato }}"{% endif %}>{{ d.dem_tipo_contrato|rotulo_contrato ?: 'Contrato a combinar' }}</span>
             <span class="pl-sep" aria-hidden="true"></span>
+            {#  O prazo de início (D78), junto com local e contrato: são as três coisas que viram
+                pergunta para quem manifesta interesse. #}
+            <span>{{ d.dem_inicio_ate|default(null) ? 'Início até ' ~ d.dem_inicio_ate|date('d/m/Y') : 'Início em aberto' }}</span>
+            <span class="pl-sep" aria-hidden="true"></span>
             <span><span class="n">{{ d.tos|length }}</span>
                 {{ d.tos|length == 1 ? 'atividade da tabela' : 'atividades da tabela' }}</span>
         </p>
@@ -258,8 +262,17 @@
                                     erros.local_uf|default(null), {}, 'Não informada') }}
                             </div>
                         </div>
-                        {{ form.selecao('tipo_contrato', 'Tipo de contrato', contratos_possiveis,
-                            d.dem_tipo_contrato, erros.tipo_contrato|default(null), {}, 'A combinar') }}
+                        {#  Sem "A combinar" (D78). Demanda antiga gravada vazia chega sem opção
+                            marcada, e o navegador marca a primeira, "Aberta a qualquer regime":
+                            salvar a edição converte o vazio antigo no padrão novo. #}
+                        {{ form.selecao('tipo_contrato', 'Tipo de contrato',
+                            contratos_possiveis|merge({'QUALQUER': 'Aberta a qualquer regime'}),
+                            d.dem_tipo_contrato ?: 'QUALQUER', erros.tipo_contrato|default(null), {}, false) }}
+                        {#  Sem este campo, salvar a edição apagaria o prazo gravado. #}
+                        {{ form.inicio_ate(d.dem_inicio_ate|default(''), erros.inicio_ate|default(null)) }}
+                        <p class="pl-nota pl-nota-perguntas">
+                            Regime, local e início viram perguntas para quem manifestar interesse.
+                        </p>
                         {{ form.selecao('alvo', 'Quem pode atender', alvos, d.dem_alvo,
                             erros.alvo|default(null), {required: true}, false) }}
                         <div class="pl-acoes-form">
@@ -284,6 +297,8 @@
                     </dd>
                     <dt>Regime</dt>
                     <dd{% if d.dem_tipo_contrato %} title="{{ d.dem_tipo_contrato }}"{% endif %}>{{ d.dem_tipo_contrato|rotulo_contrato ?: 'A combinar' }}</dd>
+                    <dt>Início</dt>
+                    <dd>{{ d.dem_inicio_ate|default(null) ? 'Até ' ~ d.dem_inicio_ate|date('d/m/Y') : 'Prazo em aberto' }}</dd>
                     <dt>Quem pode atender</dt>
                     <dd>{{ alvos[d.dem_alvo]|default('Profissionais e empresas') }}</dd>
                     <dt>Publicada em</dt>
@@ -331,4 +346,10 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{% if editavel|default(false) %}
+<script src="{{ url_assets }}/js/demanda-inicio.js?v={{ assets_v }}" defer></script>
+{% endif %}
 {% endblock %}
