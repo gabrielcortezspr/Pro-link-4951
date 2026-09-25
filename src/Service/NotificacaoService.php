@@ -6,6 +6,7 @@ namespace ProLink\Service;
 
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
 use PHPMailer\PHPMailer\PHPMailer;
+use ProLink\Repository\ConsentimentoRepository;
 use ProLink\Repository\NotificacaoRepository;
 use ProLink\Support\View;
 use Throwable;
@@ -28,9 +29,27 @@ final class NotificacaoService
     public const CADASTRO           = 'CADASTRO';
     public const RECUPERACAO_SENHA  = 'RECUPERACAO_SENHA';
 
+    /**
+     * Avisos de relacionamento, os que dependem do consentimento NOTIFICACOES (D85).
+     *
+     * A tela de privacidade oferece "Receber notificações por e-mail sobre demandas e
+     * manifestações", e até a D85 o sistema mandava esses avisos mesmo para quem tinha revogado:
+     * uma promessa na tela que o código não cumpria (item 11.3, consentimento revogável). Cadastro
+     * e recuperação de senha ficam fora da lista de propósito: são transacionais, a pessoa pediu
+     * pela própria ação, e sem eles ela não consegue entrar na conta.
+     */
+    public const DEPENDEM_DE_CONSENTIMENTO = ['MANIFESTACAO', 'DEMANDA', 'MENSAGEM'];
+
     public function __construct(
         private readonly NotificacaoRepository $notificacoes = new NotificacaoRepository(),
+        private readonly ?ConsentimentoRepository $consentimentos = null,
     ) {
+    }
+
+    /** O tipo de aviso só sai com o consentimento NOTIFICACOES vigente? Regra pura, testável sem banco. */
+    public static function dependeDeConsentimento(string $tipo): bool
+    {
+        return in_array($tipo, self::DEPENDEM_DE_CONSENTIMENTO, true);
     }
 
     /**
@@ -46,13 +65,24 @@ final class NotificacaoService
         string $template,
         array $dados = [],
     ): int {
-        return $this->notificacoes->enfileirar(
-            $usuarioId,
-            $tipo,
-            $destinatario,
-            $assunto,
-            View::render($template, $dados),
-        );
+        $corpo = View::render($template, $dados);
+
+        // Quem revogou continua vendo o interesse dentro da plataforma (o sino e a lista de
+        // manifestações não mudam); só o e-mail deixa de sair. Ausência de consentimento é
+        // ausência, nunca presunção: é a mesma regra de `ConsentimentoRepository::concedido()`.
+        if (self::dependeDeConsentimento($tipo)
+            && !($this->consentimentos ?? new ConsentimentoRepository())->concedido($usuarioId, FINALIDADE_NOTIFICACOES)) {
+            return $this->notificacoes->registrarSemEnvio(
+                $usuarioId,
+                $tipo,
+                $destinatario,
+                $assunto,
+                $corpo,
+                'Não enviado: o titular revogou o consentimento de notificações por e-mail (D85).',
+            );
+        }
+
+        return $this->notificacoes->enfileirar($usuarioId, $tipo, $destinatario, $assunto, $corpo);
     }
 
     /**

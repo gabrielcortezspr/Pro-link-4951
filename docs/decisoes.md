@@ -2870,3 +2870,48 @@ Bateria: 230 testes, 983 asserções, OK. Pelo navegador, sem enviar denúncia: 
 formulário mostra "Demanda nº 203 · título" com `DEMANDA` e 203; nenhum dos dois vê o link no
 próprio perfil nem a Alfa na própria demanda; o anônimo não vê; demanda inexistente dá 404; em
 390 px o link aparece e a página não rola de lado.
+
+## D85 · Quem revogou o consentimento de notificações deixa de receber e-mail de relacionamento, e o aviso não enviado fica registrado
+
+`25/09/2026` · E8 · `NotificacaoService::enfileirar`, `NotificacaoRepository::registrarSemEnvio`
+
+**Contexto.** A tela de privacidade oferece o consentimento "Receber notificações por e-mail
+sobre demandas e manifestações" (`FINALIDADE_NOTIFICACOES`) e deixa revogar, como pede o item
+11.3. A revogação ficava gravada em `sis_consentimentos`, mas ninguém a lia antes de mandar: o
+`ManifestacaoService` punha na fila o "Novo interessado" para o dono da demanda e o "Registraram
+interesse no seu perfil" para o profissional sem perguntar nada. Era uma promessa na tela que o
+código não cumpria. No banco de demonstração, a Alfa (177) e a Sophia (166) estão com o
+consentimento revogado, e cada uma recebia o seu.
+
+**Decisão.** O filtro mora num ponto só, `NotificacaoService::enfileirar`, e não em cada
+chamador. Os tipos de relacionamento (`MANIFESTACAO`, `DEMANDA`, `MENSAGEM`, lista em
+`DEPENDEM_DE_CONSENTIMENTO`) só entram na fila com o consentimento vigente, pela mesma regra de
+`ConsentimentoRepository::concedido()`: ausência é ausência, nunca presunção. `CADASTRO` e
+`RECUPERACAO_SENHA` ficam fora da lista de propósito: são transacionais, a pessoa pediu pela
+própria ação, e sem eles ela não consegue entrar na conta.
+
+O aviso recusado não some. `registrarSemEnvio` grava a linha com situação `N` e o motivo em
+`not_erro` ("Não enviado: o titular revogou o consentimento de notificações por e-mail"). O
+despacho (`despachar-fila.php` e `pendentes()`) só lê `A`, então a linha nunca sai; e quem
+audita vê que o evento aconteceu e que o e-mail não saiu por escolha do titular, e não por falha
+de SMTP. Dentro da plataforma nada muda: o sino da topbar e a lista de manifestações contam o
+interesse como antes (D72), porque o consentimento é sobre e-mail.
+
+**Alternativa recusada: checar no despacho.** Deixaria a linha entrar como `A` e decidiria na
+hora de mandar. O consentimento vale para o momento do evento, e uma pessoa que concede de novo
+depois receberia de uma vez os avisos do período em que tinha dito não.
+
+**Alternativa recusada: não gravar nada.** Mais simples, e apagaria a prova de que a revogação
+foi respeitada, que é justamente o que o item 11.3 pede para demonstrar.
+
+**Consequência.** `DEMANDA` e `MENSAGEM` ainda não têm chamador; entram na lista para que o
+primeiro aviso desses tipos já nasça obedecendo. Na demonstração do Demo Day (cenário 4b), o
+e-mail do "Novo interessado" só chega se a Alfa conceder de novo pela tela de privacidade antes
+do palco: é um clique no fluxo do produto, sem mexer no banco, e a checklist da demo passou a
+pedir isso.
+
+**Verificação.** `tests/Service/NotificacaoServiceTest.php` (3 testes): os três tipos de
+relacionamento dependem do consentimento, cadastro e recuperação de senha não, e a situação `N`
+não é `A`. Bateria: 233 testes, 989 asserções, OK. Contra o banco real, dentro de uma transação
+desfeita no fim: a Alfa e a Sophia, com consentimento revogado, geram linha `N` com o motivo; a
+recuperação de senha da Alfa gera linha `A`; a fila tinha 243 linhas antes e 243 depois.
