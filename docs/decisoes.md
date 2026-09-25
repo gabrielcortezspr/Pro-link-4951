@@ -2915,3 +2915,53 @@ relacionamento dependem do consentimento, cadastro e recuperação de senha não
 não é `A`. Bateria: 233 testes, 989 asserções, OK. Contra o banco real, dentro de uma transação
 desfeita no fim: a Alfa e a Sophia, com consentimento revogado, geram linha `N` com o motivo; a
 recuperação de senha da Alfa gera linha `A`; a fila tinha 243 linhas antes e 243 depois.
+
+## D86 · O cookie de sessão ganha o prefixo __Host- e Secure atado ao HTTPS, não ao ambiente
+
+`25/09/2026` · E8 · `src/Support/Sessao.php`, `tests/Support/SessaoCookieTest.php`
+
+**Contexto.** Desde a D81 a aplicação roda em HTTPS, mas o `Secure` do cookie de sessão dependia
+de `APP_ENV !== 'dev'`. O notebook do Demo Day roda como `dev`, então servia o `PHPSESSID` em
+HTTPS **sem** `Secure` (conferido: `Set-Cookie: PHPSESSID=...; HttpOnly; SameSite=Lax`, sem
+`secure`). Num evento presencial, todo mundo na mesma rede, isso é um roubo de sessão de um
+pedido só: basta uma resposta forçar o navegador a pedir qualquer `http://` do mesmo host, e o
+cookie viaja em texto puro para quem estiver escutando. Quem captura replica o cookie e **é**
+aquele usuário, sem senha. Se o logado for o administrador, é a plataforma inteira. É o furo que
+a maioria dos protótipos deixa quando prende o HTTPS no fim: o transporte cifra, o cookie não.
+
+**Decisão.** O `Secure` passa a depender do esquema real da conexão, não do ambiente, e o nome do
+cookie ganha o prefixo `__Host-` quando a conexão é HTTPS. O esquema vem só de cabeçalho que o
+nginx escreve (`HTTPS=on`, `REQUEST_SCHEME=https`, os dois em `fastcgi_params`), nunca de
+`X-Forwarded-Proto`, que o cliente forjaria. Em HTTPS o cookie é
+`__Host-PHPSESSID; Secure; HttpOnly; SameSite=Lax; Path=/`, sem `Domain`. Fora de HTTPS (a CLI
+dos testes, e o HTTP da 8080 que só redireciona) o nome volta a ser `PHPSESSID` sem `Secure`,
+senão o navegador recusaria o cookie e o login não funcionaria em texto puro.
+
+O prefixo `__Host-` é a diferença entre "o cookie tem `Secure`" e "o navegador recusa qualquer
+versão insegura dele": o navegador só grava um cookie `__Host-` se ele vier com `Secure`, `Path=/`
+e **sem** `Domain`, então nenhuma outra página do mesmo host, nem um subdomínio, nem um `/caminho`
+diferente, nem uma resposta em HTTP, consegue plantar ou sobrescrever o `__Host-PHPSESSID` do
+titular. Fecha, junto com o `Secure`, o roubo por rede e a fixação de sessão por subdomínio ou
+caminho.
+
+A decisão do cookie saiu para uma função pura, `Sessao::parametrosCookie(bool $https, int)`, para
+o teste conferir a regra sem subir servidor. `session_name()` é chamado antes de `session_start()`;
+`encerrar()` e `reiniciar()` já leem `session_name()` na hora, então apagam e reabrem o cookie
+certo sem mudança. Trocar o nome do cookie desloga quem já estava logado com o `PHPSESSID` antigo:
+as janelas da demo são abertas depois desta troca (a checklist já manda logar até 1h30 antes).
+
+**Alternativa recusada: só ligar o `Secure` (sem o prefixo).** Fecharia o roubo por texto puro,
+mas não a fixação por subdomínio ou caminho, e não impede uma resposta HTTP de sobrescrever o
+cookie. O prefixo custa uma linha e cobre os três.
+
+**Alternativa recusada: `SameSite=Strict`.** Cortaria o cookie na navegação de nível superior que
+vem do link de redefinição de senha por e-mail, quebrando aquele fluxo. `Lax` já corta o POST
+cross-site, que é o vetor de CSRF que importa aqui, e o CSRF por token (D-CSRF) cobre o resto.
+
+**Verificação.** `tests/Support/SessaoCookieTest.php` (3 testes, função pura): em HTTPS o nome é
+`__Host-PHPSESSID` com `Secure`, `Path=/` e sem `Domain`; fora de HTTPS o nome é `PHPSESSID` sem
+`Secure`; `HttpOnly` e `SameSite=Lax` valem nos dois. Bateria: 236 testes, 1001 asserções, OK.
+Pelo navegador (Playwright, HTTPS 8443, conta descartável de Terceiro que não chama a API,
+excluída logicamente depois): o navegador aceita o `__Host-PHPSESSID`, e cadastro, login, `/inicio`
+e `/perfil` funcionam com o nome novo. Por `curl` em 8443 o `Set-Cookie` traz `secure` e o prefixo;
+em 8080 a resposta é o 307 de redirecionamento, sem cookie.

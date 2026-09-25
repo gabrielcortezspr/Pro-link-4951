@@ -22,6 +22,19 @@ final class Sessao
     private const CHAVE_ATIVIDADE = 'ultima_atividade';
     private const CHAVE_TOKEN     = 'sessao_servidor';
 
+    /**
+     * Prefixo `__Host-` no nome do cookie de sessão quando a conexão é HTTPS (D86).
+     *
+     * O prefixo é uma trava que o navegador aplica sozinho: só aceita gravar um cookie assim se ele
+     * vier com `Secure`, `Path=/` e SEM atributo `Domain`. O efeito é fechar a fixação de sessão
+     * por subdomínio ou por caminho: nenhuma outra página do mesmo host (nem um subdomínio, nem um
+     * `/caminho` diferente, nem uma resposta em HTTP) consegue plantar ou sobrescrever o
+     * `__Host-PHPSESSID` do titular. É a diferença entre "o cookie tem Secure" e "o navegador
+     * recusa qualquer versão insegura dele".
+     */
+    private const NOME_COOKIE_SEGURO = '__Host-PHPSESSID';
+    private const NOME_COOKIE        = 'PHPSESSID';
+
     /** Abre a sessão com os parâmetros de cookie seguros e aplica a expiração por inatividade. */
     public static function iniciar(): void
     {
@@ -34,13 +47,9 @@ final class Sessao
         ini_set('session.gc_maxlifetime', (string) $segundos);
         ini_set('session.use_strict_mode', '1');
 
-        session_set_cookie_params([
-            'lifetime' => $segundos,
-            'path'     => '/',
-            'httponly' => true,
-            'samesite' => 'Lax',
-            'secure'   => APP_ENV !== 'dev',
-        ]);
+        $cookie = self::parametrosCookie(self::conexaoSegura(), $segundos);
+        session_name($cookie['nome']);
+        session_set_cookie_params($cookie['params']);
 
         session_start();
 
@@ -52,6 +61,44 @@ final class Sessao
         }
 
         $_SESSION[self::CHAVE_ATIVIDADE] = time();
+    }
+
+    /**
+     * Nome do cookie e parâmetros, decididos só pelo esquema da conexão (D86). Função pura, sem
+     * tocar em `$_SERVER` nem em `$_SESSION`, para o teste conferir a regra sem subir servidor.
+     *
+     * Em HTTPS: nome com prefixo `__Host-` e `Secure`, que juntos exigem `Path=/` e proíbem
+     * `Domain` (por isso `domain` não é passado). Fora de HTTPS (CLI dos testes, e o HTTP da 8080
+     * que só redireciona): nome simples e sem `Secure`, senão o navegador recusaria o cookie e o
+     * login não funcionaria em texto puro.
+     *
+     * @return array{nome: string, params: array{lifetime:int, path:string, httponly:bool, samesite:string, secure:bool}}
+     */
+    public static function parametrosCookie(bool $https, int $segundos): array
+    {
+        return [
+            'nome'   => $https ? self::NOME_COOKIE_SEGURO : self::NOME_COOKIE,
+            'params' => [
+                'lifetime' => $segundos,
+                'path'     => '/',
+                'httponly' => true,
+                'samesite' => 'Lax',
+                'secure'   => $https,
+            ],
+        ];
+    }
+
+    /**
+     * A requisição chegou por HTTPS? Só cabeçalhos que o nginx escreve (D81): `HTTPS=on` e
+     * `REQUEST_SCHEME=https`, os dois em `fastcgi_params`. Nada de `X-Forwarded-Proto`, que o
+     * cliente poderia forjar. Antes disto o `Secure` dependia de `APP_ENV !== 'dev'`, e o notebook
+     * do Demo Day roda como `dev`: servia o cookie de sessão em HTTPS sem `Secure`, que é o furo
+     * que esta troca fecha.
+     */
+    private static function conexaoSegura(): bool
+    {
+        return (($_SERVER['HTTPS'] ?? '') === 'on')
+            || (($_SERVER['REQUEST_SCHEME'] ?? '') === 'https');
     }
 
     /**
