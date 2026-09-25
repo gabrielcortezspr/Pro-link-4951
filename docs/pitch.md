@@ -157,20 +157,19 @@ partir da fonte. Nunca dado escrito à mão.
 
 > [Slide: "O que declaramos", três linhas.]
 
-E honestidade sobre o que ficou de fora. A CAT tem a estrutura pronta e não foi alimentada neste
-MVP, e isso está declarado. Perfil sem nenhuma ART não entra no feed, porque recomendar alguém sem
+E honestidade sobre os limites. Perfil sem nenhuma ART não entra no feed, porque recomendar alguém sem
 evidência contradiria a tese; ele continua encontrável na busca. E quem está começando, com uma
 ou duas ARTs, entra no pool sinalizado, sem ser punido por campo vazio.
 
-São **75 decisões registradas**, cada uma com a alternativa que recusamos e o motivo.
+São **79 decisões registradas**, cada uma com a alternativa que recusamos e o motivo.
 
 ### 7 · Maturidade e impacto · Gabriel · 6:40
 
-> [Slide: a stack em uma linha, e três números. 193 testes · 6 cenários de ponta a ponta · 75
+> [Slide: a stack em uma linha, e três números. 216 testes · 6 cenários de ponta a ponta · 79
 > decisões.]
 
 Tudo isso na stack que o CREA-AM já usa: PHP 8.2, MariaDB, Twig e Bootstrap 5, em MVC com camada
-de serviço, e sobe com um único `docker compose`. São 193 testes automatizados, e uma suíte que
+de serviço, e sobe com um único `docker compose`. São 216 testes automatizados, e uma suíte que
 percorre os seis cenários do edital no navegador.
 
 > [Slide: três colunas. CREA-AM · Profissional · Quem contrata.]
@@ -197,9 +196,9 @@ Cada item abaixo é uma frase natural que a banca pode derrubar numa pergunta.
 - **"Melhor candidato", "top", "mais compatível", "primeiro lugar".** É ranking (10.1). O que se
   diz é "compatível" e "por quê".
 - **"O selo prova que o dado veio do CREA."** Não prova. Prova integridade em repouso (D17).
-- **"Validamos ARTs e CATs."** Validamos ARTs. A CAT está no modelo de dados e fora do MVP (D67).
-  Atenção: o texto da landing ainda diz "ARTs e CATs validadas"; se a banca apontar, a resposta é
-  a D67, sem rodeio.
+- **"A CAT dá pontos ao profissional."** Não dá. Ela reforça a competência **na atividade que
+  certifica**, e só enquanto vigente (D76). Não é dimensão própria e não cria diferença entre quem
+  já tem o código exato.
 - **"Perfil em construção nunca sai do pool."** Vale para quem tem pelo menos uma ART (D37).
 - **"Usamos IA."** Não há IA no produto. Houve assistência de IA no desenvolvimento, e isso está
   declarado (12.3).
@@ -255,6 +254,7 @@ cadastro. O que muda em produção é a origem do dado, não a arquitetura. E a 
 (Anexo V) já prevê a evolução institucional.
 
 **"O que vocês fariam com mais tempo?"** · qualquer um
-A CAT, que tem estrutura pronta. O convite ativo do demandante com modelo de dados próprio, se
+O reforço da CAT proporcional à pertinência da ART, que hoje pesa mais justamente onde a evidência
+é mais fraca (decisão adiada em 24/09). O convite ativo do demandante com modelo de dados próprio, se
 o Conselho entender que não fere o 10.1. E auditoria de acessibilidade com quem usa leitor de
 tela, que não foi feita.
