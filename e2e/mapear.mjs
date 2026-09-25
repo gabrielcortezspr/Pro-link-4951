@@ -9,7 +9,7 @@
 import { chromium } from '@playwright/test';
 
 const [email, senha, ...rotas] = process.argv.slice(2);
-const base = process.env.PROLINK_URL ?? 'http://localhost:8080';
+const base = process.env.PROLINK_URL ?? 'https://localhost:8443';
 
 const navegador = await chromium.launch();
 const pagina = await navegador.newPage({ viewport: { width: 1440, height: 900 } });

@@ -37,7 +37,7 @@ Nenhum dado pessoal real entra na plataforma. As contas de demonstração usam o
 ## 3. Possui instruções reproduzíveis de instalação e execução
 
 **Sim.** `_arq/README.md`: requisitos mínimos, instalação, configuração, execução e atualização.
-Sobe com `docker compose up -d --build`, e `curl http://localhost:8080/saude` responde o estado
+Sobe com `docker compose up -d --build`, e `curl -k https://localhost:8443/saude` responde o estado
 das peças: `tos_carregada: 2000` confirma que a carga inicial entrou.
 
 A ordem de preparo do dado, que importa e não é adivinhável, está em `docs/estado.md` e resumida

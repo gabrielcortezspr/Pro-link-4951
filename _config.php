@@ -59,7 +59,8 @@ if (APP_DEBUG) {
 
 // ---------------------------------------------------------------- URLs
 
-define('APP_URL', rtrim((string) env('APP_URL', 'http://localhost:8080'), '/'));
+// Padrão em HTTPS (D81): a 8080 só redireciona, e uma URL em http faria a CSP bloquear CSS e formulários.
+define('APP_URL', rtrim((string) env('APP_URL', 'https://localhost:8443'), '/'));
 define('URL_ASSETS', APP_URL . '/assets');
 define('URL_IMG', URL_ASSETS . '/img');
 
@@ -83,8 +84,28 @@ define('PATH_IMG', PATH_PUBLIC . '/assets/img');
 define('DB_HOST', env('DB_HOST', 'mariadb'));
 define('DB_PORT', (int) env('DB_PORT', 3306));
 define('DB_DATABASE', env('DB_DATABASE', 'prolink'));
-define('DB_USERNAME', env('DB_USERNAME', 'prolink'));
-define('DB_PASSWORD', env('DB_PASSWORD', ''));
+// Dois usuários de banco (D82). DB_APP_* é o de menor privilégio: SELECT, INSERT e UPDATE por
+// tabela, só SELECT e INSERT na trilha de auditoria, nenhum DELETE e nenhum privilégio de
+// estrutura (_arq/usuarios.sh). DB_USERNAME é o administrativo que o contêiner do MariaDB cria,
+// com ALL PRIVILEGES, e fica para o que precisa de estrutura: migração, povoamento, verificador.
+//
+// A requisição web usa SEMPRE o restrito: é por ela que um ataque chega. A linha de comando usa o
+// administrativo por padrão, porque quem roda script já está dentro do contêiner e lê o mesmo
+// .env, e os verificadores limpam o próprio rastro com DELETE. DB_CONEXAO=app força o restrito na
+// linha de comando, para provar que um script funciona sem privilégio.
+//
+// Sem DB_APP_USERNAME no ambiente (um .env anterior à D82), cai no administrativo para não
+// derrubar quem ainda não atualizou; o .env.example já traz a variável.
+$dbUsuarioApp = env('DB_APP_USERNAME');
+$dbConexaoAdmin = PHP_SAPI === 'cli' && env('DB_CONEXAO', 'admin') !== 'app';
+if ($dbUsuarioApp !== null && !$dbConexaoAdmin) {
+    define('DB_USERNAME', (string) $dbUsuarioApp);
+    define('DB_PASSWORD', (string) env('DB_APP_PASSWORD', ''));
+} else {
+    define('DB_USERNAME', env('DB_USERNAME', 'prolink'));
+    define('DB_PASSWORD', env('DB_PASSWORD', ''));
+}
+unset($dbUsuarioApp, $dbConexaoAdmin);
 define('DB_CHARSET', env('DB_CHARSET', 'utf8mb4'));
 define('DB_COLLATION', env('DB_COLLATION', 'utf8mb4_unicode_ci'));
 define('DB_DSN', sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s', DB_HOST, DB_PORT, DB_DATABASE, DB_CHARSET));

@@ -20,7 +20,7 @@ atribui àquele perfil. Este roteiro é o da narrativa dos seis cenários; os ou
 ```bash
 docker compose up -d
 docker compose exec php composer install
-curl -s http://localhost:8080/saude          # tem que responder, com tos_carregada = 2000
+curl -sk https://localhost:8443/saude          # tem que responder, com tos_carregada = 2000
 ```
 
 **A ordem de preparo do dado importa**, e está no `estado.md`. Resumida:

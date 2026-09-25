@@ -1,9 +1,13 @@
 {% extends 'layout/base.html.twig' %}
 
 {#
-    A tela de exceção, para as cinco respostas que View::erro() produz: 401, 403, 404, 419 e 500.
+    A tela de exceção, para as seis respostas que View::erro() produz: 401, 403, 404, 419, 429 e 500.
 
-    Uma moldura só, cinco saídas diferentes. O que muda entre elas não é a decoração: é a frase do
+    O 429 é o teto de requisições da busca e do perfil público (D83). Usa a classe `expirado`, a
+    de cor de espera, porque o caso é o mesmo em espírito: nada está errado, é só aguardar. O tempo
+    exato chega pela mensagem, que vira o detalhe da tela, e pelo cabeçalho Retry-After.
+
+    Uma moldura só, seis saídas diferentes. O que muda entre elas não é a decoração: é a frase do
     que houve, a frase do que a plataforma já fez, e o botão que resolve. A ordem é a que a ficha
     de estados críticos fixa em docs/mockups/prolink-estados-criticos.html: **o que houve, o que o
     sistema já fez, o que fazer**, com uma única ação primária ao final.
@@ -37,8 +41,8 @@
 {% block conteudo %}
 {% set u = usuario() %}
 
-{#  As cinco situações, e o que cada uma responde. Fica num mapa, e não numa escada de {% if %},
-    porque assim as cinco são lidas lado a lado: dá para ver de uma vez que nenhuma culpa quem
+{#  As seis situações, e o que cada uma responde. Fica num mapa, e não numa escada de {% if %},
+    porque assim as seis são lidas lado a lado: dá para ver de uma vez que nenhuma culpa quem
     lê, e que cada uma tem exatamente uma ação primária. #}
 {% set casos = {
     401: {
@@ -69,6 +73,13 @@
         'houve':  'A plataforma assina cada formulário e recusa envios assinados por uma sessão que não é mais a atual. É o que impede que outro site envie um formulário no seu nome.',
         'fez':    'O envio foi recusado inteiro. Nada foi gravado pela metade, e o que estava escrito não saiu deste navegador.'
     },
+    429: {
+        'classe': 'expirado',
+        'olho':   'Muitas consultas seguidas',
+        'titulo': 'A plataforma pausou as consultas deste endereço por um instante',
+        'houve':  'Chegaram muitas buscas ou aberturas de perfil em pouco tempo a partir desta conexão. A pausa existe para que ninguém copie o cadastro inteiro dos profissionais de uma vez.',
+        'fez':    'Nada foi bloqueado na sua conta e nada foi gravado. Passado o tempo indicado, a consulta volta a funcionar sozinha.'
+    },
     500: {
         'classe': 'falha',
         'olho':   'Falha interna',
@@ -78,7 +89,7 @@
     }
 } %}
 
-{#  Código fora dos cinco não deixa a tela em branco: cai num caso genérico, com a mesma moldura.
+{#  Código fora dos seis não deixa a tela em branco: cai num caso genérico, com a mesma moldura.
     Silêncio aqui seria um quadro vazio em cima de um erro que ninguém previu. #}
 {% set c = casos[codigo]|default({
     'classe': 'falha',

@@ -33,7 +33,7 @@ nenhum, porque todas as telas **funcionavam**. São quatro réguas:
 
 ## Como rodar
 
-O ambiente precisa estar de pé (`docker compose up -d`) e respondendo em `http://localhost:8080`.
+O ambiente precisa estar de pé (`docker compose up -d`) e respondendo em `https://localhost:8443` (a 8080 só redireciona, D81).
 
 As telas do painel administrativo só são conferidas com uma conta de administração no ambiente, e
 o teste **pula** em vez de falhar quando ela não está configurada, porque falta de configuração de

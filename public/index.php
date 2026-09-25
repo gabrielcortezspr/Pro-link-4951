@@ -32,6 +32,7 @@ use ProLink\Service\NotificacaoService;
 use ProLink\Support\Auditoria;
 use ProLink\Support\Csrf;
 use ProLink\Support\Flash;
+use ProLink\Support\LimiteDeRequisicoes;
 use ProLink\Support\Requisicao;
 use ProLink\Support\Router;
 use ProLink\Support\Sessao;
@@ -268,6 +269,35 @@ try {
         if (!Sessao::temPerfil(...$rota['perfis'])) {
             Auditoria::registrar(Auditoria::ACESSO_NEGADO, 'rota', null, null, null, Requisicao::caminho());
             echo View::erro(403, 'Seu perfil não tem acesso a esta página.');
+            exit;
+        }
+    }
+
+    // Teto por IP nas rotas públicas que entregam dado de profissional (D83, item 10.4). Depois da
+    // autorização, para a conta só gastar vaga com quem chegaria à tela; antes do controller,
+    // para a recusa não custar a consulta que o limite existe para evitar.
+    //
+    // O IP é o REMOTE_ADDR que o nginx repassa, via Requisicao::ip(), que ignora
+    // X-Forwarded-For de propósito: um cabeçalho que o cliente escreve deixaria cada pedido do
+    // coletor chegar com um IP inventado e zerar a própria contagem.
+    $limitador = match ([$rota['controller'], $rota['metodo']]) {
+        [BuscaController::class, 'profissionais'] => ['busca', LimiteDeRequisicoes::daBusca()],
+        [PerfilController::class, 'publico']      => ['perfil', LimiteDeRequisicoes::doPerfil()],
+        default                                   => null,
+    };
+
+    if ($limitador !== null) {
+        [$balde, $limite] = $limitador;
+        $espera = $limite->consumir($balde . '|' . Requisicao::ip());
+
+        if ($espera > 0) {
+            header('Retry-After: ' . $espera);
+            error_log(sprintf('Limite de requisicoes (%s) atingido pelo IP %s', $balde, Requisicao::ip()));
+            echo View::erro(429, sprintf(
+                'Tente de novo em %d segundo%s.',
+                $espera,
+                $espera === 1 ? '' : 's',
+            ));
             exit;
         }
     }

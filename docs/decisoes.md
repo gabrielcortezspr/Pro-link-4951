@@ -2626,3 +2626,195 @@ para denúncias que deixaram de existir.
 **Consequência.** A ordem antes de uma demonstração passa a ser: bateria de verificação, depois
 `limpar-rastro-de-verificacao.php`. O `semear-demandas.php` continua encerrando as demandas de
 verificação que encontra, e as duas limpezas convivem sem conflito.
+
+---
+
+## D83 · A busca e o perfil público têm teto por IP, contado em arquivo e não em tabela
+
+`25/09/2026` · véspera do Demo Day · `src/Support/LimiteDeRequisicoes.php`, `public/index.php`,
+`templates/erro.html.twig`, `tests/Support/LimiteDeRequisicoesTest.php`
+
+**Contexto.** A busca de profissionais é a única tela aberta a quem não tem conta (Anexo I item
+3), e o perfil público por identificador é o passo seguinte dela. A visibilidade por campo decide
+o que cada visitante vê, mas nada limitava quantas vezes ele podia pedir: um script percorria a
+busca e `/perfil/1`, `/perfil/2`... e levava tudo o que os titulares abriram, em minutos. É a
+coleta automatizada que o item 10.4 veda, e um limite que a proposta prometeu e não estava no
+código.
+
+**Decisão.** Teto por IP, com janela deslizante de 60 segundos, verificado no front controller
+depois da autorização e antes do controller:
+
+- `/profissionais`: 30 por minuto (`LimiteDeRequisicoes::BUSCA_MAXIMO`). Três vezes o ritmo de uma
+  pessoa refinando a busca; a demonstração faz menos de dez.
+- `/perfil/{id}`: 60 por minuto (`PERFIL_MAXIMO`), porque cada busca leva a vários perfis.
+
+As duas contagens são separadas. Ao estourar, HTTP 429 com `Retry-After` e a tela de erro do
+produto com um caso novo ("Muitas consultas seguidas"), que diz o tempo de espera em segundos.
+
+**Quatro escolhas dentro da decisão:**
+
+1. **O IP é o `REMOTE_ADDR` que o nginx repassa**, por `Requisicao::ip()`, que já ignorava
+   `X-Forwarded-For`. Conferido por curl: com a contagem cheia, um pedido com `X-Forwarded-For`
+   inventado continua recebendo 429.
+2. **Recusa não conta.** Quem insiste durante a espera não a empurra para a frente, e o
+   `Retry-After` é exato.
+3. **Na falha de disco, libera** e registra no log. Recusar tudo derrubaria a busca pública por um
+   problema de permissão num clone limpo, contra o item 8.8.
+4. **O IP não fica em claro no disco**: o arquivo tem o nome do SHA-256 da chave e guarda só
+   instantes. Contagens de quem não aparece há duas janelas são removidas de tempos em tempos; é
+   cache descartável, não registro de negócio, e a regra de exclusão lógica não se aplica.
+
+**Alternativa recusada: tabela de contagem no MariaDB.** Seria o caminho de `manifestacao.limite_hora`,
+mas pede mudança de estrutura na véspera, com outra frente mexendo em privilégios do banco, e põe
+uma escrita no banco a cada busca anônima. Arquivo em `storage/cache/limite/` com `flock`
+exclusivo resolve a concorrência sem esquema novo.
+
+**Alternativa recusada: janela fixa por minuto cheio.** Deixa passar o dobro do teto na virada
+do minuto.
+
+**Alternativa recusada: limitar só o anônimo.** Quem entra vê mais campos (alcance
+`AUTENTICADO`), então a conta logada é o coletor mais valioso, não o menos.
+
+**Limitações declaradas.** O teto é por IP: usuários atrás do mesmo NAT dividem a cota, e um
+coletor com muitos IPs não é contido por ele. Os valores ficam em constante, e não em
+`sis_parametros`, porque entrar na tela de Integrações pediria linha nova na carga inicial.
+Na máquina da demonstração todo pedido do host chega com o IP do gateway do Docker, então a
+suíte do navegador e a apresentação dividem a mesma contagem, folgada para as duas.
+
+**Verificação.** `tests/Support/LimiteDeRequisicoesTest.php` (9 testes). Por curl em 25/09: 30
+buscas seguidas deram 200 e a 31ª deu 429 com `Retry-After: 59`; a busca voltou a 200 sozinha
+depois da janela; cinco buscas no ritmo da demonstração, todas 200; o 61º perfil seguido deu 429
+enquanto a busca seguia em 200.
+
+---
+
+## D82 · A aplicação conecta ao banco com um usuário sem DELETE e sem estrutura, e a trilha é insert-only também por privilégio
+
+`25/09/2026` · véspera do Demo Day · `_arq/usuarios.sh`, `_config.php`, `.env.example`,
+`docker-compose.yml`
+
+**Contexto.** A aplicação conectava com o usuário `prolink`, o que o contêiner do MariaDB cria a
+partir de `MARIADB_USER`, com `ALL PRIVILEGES` em `prolink.*`. A proposta promete trilha de
+auditoria imutável, e os triggers `trg_aud_bloqueia_update` e `trg_aud_bloqueia_delete` só
+protegem contra quem não pode removê-los: com aquele usuário, uma injeção de SQL que escapasse
+dos prepared statements, ou um controller comprometido, podia rodar `DROP TRIGGER` e depois
+`DELETE FROM sis_auditoria`, ou `DROP TABLE` qualquer coisa. O menor privilégio estava prometido
+e não estava no banco.
+
+**Decisão.** Dois usuários. A requisição web conecta como `prolink_app` (`DB_APP_USERNAME`), que
+tem, tabela por tabela: `SELECT, INSERT, UPDATE` em todas; **só `SELECT, INSERT` em
+`sis_auditoria`**; `SELECT` na view `crea_evidencias`. Nenhum `DELETE`, porque o `src/` não tem
+`DELETE` em lugar nenhum (exclusão é lógica, 8.6j), e nenhum privilégio de estrutura (`CREATE`,
+`ALTER`, `DROP`, `INDEX`, `TRIGGER`, `REFERENCES`, `GRANT`). O `prolink` continua existindo como
+administrativo, para migração, povoamento e verificadores.
+
+O usuário nasce em `_arq/usuarios.sh`, montado como terceiro arquivo de
+`docker-entrypoint-initdb.d`, depois da estrutura e da carga. A senha vem de `DB_APP_PASSWORD`
+no `.env`; sem ela o script recusa e a inicialização para, em vez de criar usuário sem senha. A
+lista de tabelas sai do `information_schema`, então tabela nova no `estrutura.sql` já nasce com o
+privilégio padrão. O script é idempotente (`REVOKE ALL` e concede de novo) e serve também para o
+banco que já existe.
+
+`_config.php` escolhe: requisição web usa sempre o restrito; linha de comando usa o
+administrativo, e `DB_CONEXAO=app` força o restrito para provar que um script vive sem
+privilégio.
+
+**Alternativa recusada: `GRANT SELECT, INSERT, UPDATE ON prolink.*` e revogar o `UPDATE` só na
+auditoria.** O MariaDB não faz revogação parcial de privilégio de banco: o `UPDATE` em `prolink.*`
+vale para `sis_auditoria` e não existe `REVOKE` que a exclua. Por isso o privilégio é por tabela.
+
+**Alternativa recusada: um usuário só, restrito, também para os scripts.** Os verificadores
+`verificar-e2.php` e `verificar-e4.php` limpam o próprio rastro com `DELETE`, e as migrações
+precisam de `ALTER`. Dar esses privilégios ao usuário da web desfaria a decisão; trocar os
+scripts na véspera, sem necessidade, arriscaria a bateria. A fronteira que importa é a da rede:
+quem roda script já está dentro do contêiner e lê o mesmo `.env`.
+
+**Alternativa recusada: criar o usuário no `carga-inicial.sql`.** Arquivo SQL de inicialização
+não lê variável de ambiente, e a senha teria de estar escrita nele, o que o Anexo VI veta.
+
+**Consequência.** Tabela criada por migração depois da subida não tem privilégio até rodar o
+`usuarios.sh` de novo (o `_arq/README.md` diz como). O `.env` passa a ter uma senha a mais. O
+arquivo vai com bit de execução e shebang: no Docker Desktop do macOS o entrypoint trata qualquer
+arquivo montado como executável, e um `.sh` sem o bit falhou com "Permission denied" no teste de
+clone limpo. Um `.env` anterior à D82, sem `DB_APP_USERNAME`, cai no administrativo para não
+derrubar ninguém: é degradação conhecida, não silêncio, e está escrita aqui e no `_config.php`.
+O `verificar-e1.php` segue conferindo o trigger (roda como administrativo na linha de comando).
+
+**Verificação.** Em 25/09, no banco local já existente, sem recriar o volume: 29 concessões por
+tabela. Como `prolink_app`: `UPDATE` e `DELETE` em `sis_auditoria`, `DROP TRIGGER`, `DELETE` em
+`sis_usuarios`, `ALTER TABLE`, `CREATE TABLE`, `DROP TABLE`, `TRUNCATE` e `GRANT` recusados com
+erro 1142; `SELECT` na view respondeu. As requisições web conectaram como `prolink_app`
+(estatística por usuário do MariaDB, zero acesso negado) e os seis cenários do Anexo I em
+`e2e/specs/cenarios.spec.js` passaram no desktop, com `seguranca.spec.js`. Clone limpo simulado
+num MariaDB 10.11 descartável com os três arquivos de inicialização: usuário criado, 2000 códigos
+TOS legíveis, `UPDATE` na auditoria recusado; com `DB_APP_PASSWORD` vazio a inicialização parou
+com a mensagem do script. PHPUnit: 225 testes, 974 asserções, verde.
+
+---
+
+## D81 · HTTPS local com TLS 1.2 ou superior, certificado que nunca falta e HSTS de cinco minutos
+
+`25/09/2026` · véspera do Demo Day · `docker/nginx/default.conf`, `docker/nginx/Dockerfile`,
+`docker/nginx/escolher-certificado.sh`, `docker-compose.yml`, `scripts/gerar-certificado-local.sh`,
+`.gitignore`, `e2e/playwright.config.js`, `README.md`
+
+**Contexto.** A proposta prometeu transporte cifrado, e o ambiente só falava HTTP na 8080. A banca
+sobe o projeto com um único `docker compose up` a partir de um clone limpo (item 8.8), e chave
+privada não pode estar no repositório (Anexo VI). As duas coisas juntas proíbem o caminho óbvio,
+que seria versionar um certificado.
+
+**Decisão.** O nginx serve HTTPS na **8443** (mesma porta dentro e fora do contêiner, para o
+redirecionamento valer dos dois lados) com `ssl_protocols TLSv1.2 TLSv1.3` e as suítes do perfil
+*intermediate* da Mozilla. A **8080** continua de pé e só redireciona para o HTTPS. O certificado
+nunca falta: a imagem do nginx (agora construída por `docker/nginx/Dockerfile`) fabrica no build
+um autoassinado de reserva, e a cada subida `escolher-certificado.sh` usa o do mkcert quando
+`scripts/gerar-certificado-local.sh` o gerou em `docker/nginx/certs/` (fora do versionamento), ou
+o de reserva quando não. Um `server` só ouve nas duas portas, para a CSP continuar existindo num
+lugar só, que é o que `verificar-padrao.php` compara com a política servida.
+
+- **HSTS com `max-age=300`**, sem `includeSubDomains` e sem `preload`, só na resposta HTTPS. HSTS
+  vale para o host inteiro, sem distinguir porta: um ano em `localhost` obrigaria o navegador a
+  usar https em todo serviço local da máquina (Mailpit na 8025, qualquer outro projeto) até
+  alguém limpar à mão. Em produção, com domínio próprio, o valor seria `31536000`.
+- **Redirecionamento 307**, não 301: o 301 fica em cache no navegador sem prazo e seguiria
+  mandando a 8080 desta máquina para a 8443 depois do Demo Day. O 307 também preserva o método.
+- **Exceção do nome interno `nginx`**: os verificadores rodam no contêiner php e chegam por
+  `http://nginx`, numa rede do Docker que não sai da máquina. Esse Host é atendido em HTTP sem
+  redirecionar; o navegador nunca o envia, e quem forja o cabeçalho só deixa em claro a própria
+  conexão.
+
+**Alternativa recusada: versionar um certificado autoassinado.** Subiria no clone limpo, mas
+poria uma chave privada no repositório, que o Anexo VI veda, e a mesma chave em toda máquina.
+
+**Alternativa recusada: gerar o certificado na subida com `apk add openssl`.** A imagem oficial
+não traz o openssl de linha de comando, e instalar na subida faria o `docker compose up` depender
+de rede a cada início. No build, a dependência de rede é a mesma que o contêiner php já tem.
+
+**Alternativa recusada: HSTS de um ano "porque é o recomendado".** É o recomendado para domínio
+de produção; em `localhost` prende a máquina de quem avalia.
+
+**Consequência.** `APP_URL` precisa passar a `https://localhost:8443` (`.env`, `.env.example` e o
+padrão de `_config.php`), e o contêiner php ser recriado (`docker compose up -d --no-deps php`)
+para reler o `.env`. Sem isso, a página servida em HTTPS monta CSS, JS e `action` de formulário
+com `http://localhost:8080`, e a CSP (`'self'`, `form-action 'self'`) bloqueia tudo: a tela abre
+sem estilo e o login não sai. Para o navegador abrir sem alerta, uma vez por máquina:
+`mkcert -install` e `./scripts/gerar-certificado-local.sh`. A suíte de ponta a ponta aponta para
+`https://localhost:8443` e aceita o certificado local.
+
+**Verificação.** `curl -v` na 8443: TLSv1.3 negociado, certificado do mkcert verificado contra a
+autoridade local, `Strict-Transport-Security: max-age=300` e a CSP de sempre. Forçando TLS 1.2,
+conecta; TLS 1.0 e 1.1 recebem do servidor o alerta `protocol version` (70). A 8080 devolve `307`
+para `https://localhost:8443` com o mesmo caminho e consulta. `http://nginx` de dentro do
+contêiner php devolve 200 sem HSTS. `nginx -t` passou com e sem certificado montado, que é o
+clone limpo. `verificar-padrao.php`: a política servida é a do arquivo versionado.
+
+**Correção da verificação (25/09, mesma véspera).** A primeira passada deixou o `APP_URL` em
+`http://localhost:8080` e o `docker-compose.yml` sem as linhas da D82 no mariadb. No navegador,
+a página em HTTPS saiu sem estilo e o login não enviava (CSP); num clone limpo, o `prolink_app`
+não existia e `/saude` dava 503. Corrigido: `APP_URL=https://localhost:8443` no `.env`, no
+`.env.example` e no padrão do `_config.php`; no mariadb, `DB_APP_USERNAME`, `DB_APP_PASSWORD`
+com `:?` (o compose recusa subir com a senha vazia) e o volume `03-usuarios.sh`. Conferido de
+novo: fumaça pelo navegador em https://localhost:8443 (landing, login da empresa, busca,
+demandas, compatíveis, perfil) com 3 de 3 folhas de estilo e zero erro de console; clone limpo
+com `.env` saído do `.env.example` sobe, provisiona o `prolink_app` com 29 concessões e
+responde `/saude` 200 com `tos_carregada: 2000`.

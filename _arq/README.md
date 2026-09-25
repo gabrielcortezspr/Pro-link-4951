@@ -33,12 +33,13 @@ cd pro-link
 cp .env.example .env
 ```
 
-Preencha o `.env`. Três valores não têm padrão utilizável:
+Preencha o `.env`. Quatro valores não têm padrão utilizável:
 
 | Variável | Como obter |
 |---|---|
 | `APP_KEY` | `php -r "echo base64_encode(random_bytes(32)), PHP_EOL;"` — ou qualquer gerador de 32 bytes em base64 |
 | `DB_PASSWORD` e `DB_ROOT_PASSWORD` | escolha livre; o MariaDB é criado com o que estiver aqui |
+| `DB_APP_PASSWORD` | escolha livre, diferente das duas acima: é a senha do usuário restrito com que a aplicação conecta (D82). Vazia, o banco **não sobe** |
 | `PROLINK_API_TOKEN` | token individual da equipe, na plataforma oficial do desafio |
 
 Suba o ambiente:
@@ -48,7 +49,8 @@ docker compose up -d --build
 docker compose exec php composer install
 ```
 
-Na primeira subida o MariaDB executa sozinho `_arq/estrutura.sql` e `_arq/carga-inicial.sql`:
+Na primeira subida o MariaDB executa sozinho `_arq/estrutura.sql`, `_arq/carga-inicial.sql` e
+`_arq/usuarios.sh` (este cria o usuário da aplicação, ver "Usuários do banco" abaixo):
 o banco já sobe com as **28 tabelas mais a view `crea_evidencias`**, 28 chaves estrangeiras, as
 duas triggers que tornam a trilha de auditoria imutável, os 5 perfis de acesso, as 25 modalidades,
 os 2000 códigos da Tabela de Obras e Serviços, os 12 parâmetros da aplicação (9 do motor de
@@ -62,7 +64,31 @@ exatamente isso.
 Conferido em 17/09/2026 subindo um MariaDB limpo só com esses dois arquivos montados em
 `docker-entrypoint-initdb.d`, que é o caminho que o `docker-compose.yml` usa.
 
-Crie o usuário administrador (nenhuma credencial viaja no repositório):
+### Usuários do banco
+
+São dois, de propósito (D82):
+
+| Usuário | Privilégios | Quem usa |
+|---|---|---|
+| `DB_APP_USERNAME` (`prolink_app`) | `SELECT, INSERT, UPDATE` por tabela; só `SELECT, INSERT` em `sis_auditoria`; `SELECT` na view. Nenhum `DELETE`, nenhum privilégio de estrutura | toda requisição web |
+| `DB_USERNAME` (`prolink`) | `ALL PRIVILEGES` em `prolink.*` | scripts em `scripts/` na linha de comando: povoamento, verificadores, migração |
+
+A escolha é do `_config.php`: requisição web conecta sempre como o restrito; `php` na linha de
+comando conecta como o administrativo, a não ser que receba `DB_CONEXAO=app`:
+
+```bash
+docker compose exec -T -e DB_CONEXAO=app php php scripts/despachar-fila.php --fila
+```
+
+Para conferir que o restrito é restrito (todas devem falhar com erro 1142):
+
+```bash
+docker compose exec -T mariadb sh -c 'mariadb -h127.0.0.1 -uprolink_app -p prolink \
+  -e "UPDATE sis_auditoria SET aud_acao = aud_acao LIMIT 1"'
+# idem com DELETE FROM sis_auditoria LIMIT 1 e com DROP TRIGGER trg_aud_bloqueia_update
+```
+
+Crie o usuário administrador da aplicação (nenhuma credencial viaja no repositório):
 
 ```bash
 docker compose exec php php scripts/criar-admin.php
@@ -118,12 +144,12 @@ cd e2e && ./rodar.sh                                              # a suíte pel
 ```
 
 `verificar-e1.php` roda **de dentro do contêiner e com a URL interna** (`http://nginx`): com
-`APP_URL` ele tentaria `localhost:8080`, que lá dentro não existe.
+`APP_URL` ele tentaria `localhost:8443`, que lá dentro não existe.
 
 E o estado das peças, sem entrar em contêiner nenhum:
 
 ```bash
-curl -s http://localhost:8080/saude
+curl -sk https://localhost:8443/saude   # -k: sem mkcert, o certificado é o autoassinado de reserva (D81)
 ```
 
 Resposta esperada:
@@ -142,7 +168,8 @@ Resposta esperada:
 
 | Endereço | O quê |
 |---|---|
-| http://localhost:8080 | aplicação |
+| https://localhost:8443 | aplicação (TLS 1.2 ou 1.3, D81) |
+| http://localhost:8080 | só redireciona para o HTTPS |
 | http://localhost:8025 | Mailpit — os e-mails da RF07 em desenvolvimento |
 | `localhost:3307` | MariaDB, se quiser conectar de fora |
 
@@ -167,6 +194,18 @@ Mudanças no schema entram como arquivo novo em `_arq/migracoes/` e são aplicad
 docker compose exec -T mariadb mariadb -u root -p"$DB_ROOT_PASSWORD" prolink < _arq/migracoes/NNN-descricao.sql
 ```
 
+O privilégio do usuário da aplicação é **por tabela**. Migração que cria tabela exige rodar de
+novo o provisionamento, senão a tela que usa a tabela nova recebe "command denied". O mesmo
+comando serve para um banco criado antes da D82, que não tem o `prolink_app` (acrescente antes
+`DB_APP_USERNAME` e `DB_APP_PASSWORD` ao `.env` e rode `docker compose up -d php` para o PHP ler):
+
+```bash
+DB_APP_PASSWORD="$(grep '^DB_APP_PASSWORD=' .env | cut -d= -f2-)" \
+  docker compose exec -T -e DB_APP_PASSWORD -e DB_APP_USERNAME=prolink_app mariadb bash -s < _arq/usuarios.sh
+```
+
+É idempotente: revoga tudo e concede de novo a partir da lista de tabelas do banco.
+
 Para recriar o banco do zero (apaga tudo):
 
 ```bash
@@ -178,9 +217,16 @@ docker compose down -v && docker compose up -d
 **`tos_carregada: 0`** — a carga só roda na criação do volume. `docker compose down -v` e suba
 de novo.
 
-**`banco: indisponivel`** — o MariaDB ainda está subindo, ou `DB_PASSWORD` no `.env` não bate
-com o volume já criado. No segundo caso, `docker compose down -v`.
+**`banco: indisponivel`** — o MariaDB ainda está subindo, ou `DB_APP_PASSWORD` no `.env` não
+bate com o usuário `prolink_app` do volume já criado. No segundo caso, rode de novo o
+provisionamento de "Atualização" (ele redefine a senha), sem apagar o volume.
+
+**`command denied to user 'prolink_app'`** — uma tabela nova entrou por migração e ainda não tem
+privilégio. Rode o provisionamento de "Atualização".
+
+**O MariaDB para na primeira subida com `DB_APP_PASSWORD vazio`** — preencha no `.env`. Como a
+inicialização parou no meio, o volume ficou incompleto: `docker compose down -v` e suba de novo.
 
 **`Token da API recusado`** — `PROLINK_API_TOKEN` vazio ou expirado. Confira na plataforma oficial.
 
-**Porta 8080 ocupada** — mude o mapeamento no `docker-compose.yml` e o `APP_URL` no `.env`.
+**Porta 8443 ocupada** — mude o mapeamento no `docker-compose.yml`, a porta do `listen` e do redirecionamento em `docker/nginx/default.conf` (dentro e fora são a mesma, D81) e o `APP_URL` no `.env`.

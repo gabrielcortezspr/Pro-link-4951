@@ -122,7 +122,8 @@ Nenhum campo vedado pelo item 12.2 existe no modelo.
 | Escape de saída automático | Twig, `autoescape: html` | 8.5d |
 | Token CSRF em toda escrita | `Support/Csrf.php`, front controller | 8.5e |
 | Segregação de perfis | `sis_perfis`; perfis por rota no `Router`, conferidos a cada requisição em `public/index.php` via `Support/Sessao` | 8.5f |
-| Trilha de auditoria imutável | `Support/Auditoria` é o único caminho de escrita em `sis_auditoria`; triggers bloqueiam UPDATE/DELETE | 8.5g |
+| Trilha de auditoria imutável | `Support/Auditoria` é o único caminho de escrita em `sis_auditoria`; triggers bloqueiam UPDATE/DELETE; o usuário da aplicação só tem SELECT e INSERT nela | 8.5g |
+| Menor privilégio no banco | a web conecta como `prolink_app` (`_arq/usuarios.sh`): SELECT/INSERT/UPDATE por tabela, sem DELETE, sem DDL, sem TRIGGER; o administrativo fica para scripts de linha de comando (D82) | 8.5c e 8.5g, em profundidade |
 | Cifragem em repouso de CPF/CNPJ | `Support/Crypto.php`, AES-256-GCM | 11.3 |
 | Expiração de sessão e bloqueio por tentativas | `Support/Sessao` (inatividade, regeneração de id), `sis_sessoes`, `sis_usuarios` | 11.3 |
 | Consentimento revogável | `sis_consentimentos` | 11.3 |

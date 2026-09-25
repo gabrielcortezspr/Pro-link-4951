@@ -30,7 +30,12 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   outputDir: './resultados',
   use: {
-    baseURL: process.env.PROLINK_URL ?? 'http://localhost:8080',
+    // HTTPS desde a D81. O http://localhost:8080 ainda responde, mas só redireciona para cá.
+    baseURL: process.env.PROLINK_URL ?? 'https://localhost:8443',
+    // O certificado é local: do mkcert, que o Chromium da suíte não necessariamente conhece, ou o
+    // autoassinado que o nginx fabrica num clone limpo. Aceitar aqui não afrouxa nada na aplicação;
+    // o que se prova com o TLS (versão, redirecionamento, cabeçalhos) é conferido por curl na D81.
+    ignoreHTTPSErrors: true,
     locale: 'pt-BR',
     timezoneId: 'America/Manaus',
     video: { mode: 'on', size: { width: 1440, height: 900 } },

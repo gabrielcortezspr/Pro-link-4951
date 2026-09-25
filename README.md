@@ -10,15 +10,30 @@ cp .env.example .env      # preencha APP_KEY, DB_PASSWORD, DB_ROOT_PASSWORD e PR
 docker compose up -d --build
 docker compose exec php composer install
 docker compose exec php php scripts/criar-admin.php
-curl -s http://localhost:8080/saude
+curl -sk https://localhost:8443/saude
 docker compose exec php php scripts/verificar-e1.php http://nginx   # 74 verificações da RF01, por HTTP
 docker compose exec php php scripts/verificar-e2.php                # 138 verificações do portfólio, sem rede
 docker compose exec php php scripts/verificar-api.php              # 38 verificações contra a API oficial
 ```
 
+A aplicação responde em **https://localhost:8443** (TLS 1.2 ou 1.3, D81). O
+`http://localhost:8080` continua de pé, mas só redireciona para o HTTPS. Num clone limpo o nginx
+sobe com um certificado autoassinado que ele mesmo gera, e o navegador mostra o alerta de conexão
+não segura; para abrir sem alerta, uma vez por máquina:
+
+```bash
+brew install mkcert
+mkcert -install                         # pede a senha do sistema: confia na autoridade local
+./scripts/gerar-certificado-local.sh    # gera o certificado em docker/nginx/certs/ e reinicia o nginx
+```
+
+A chave fica em `docker/nginx/certs/`, que o `.gitignore` recusa: nunca vai para o repositório.
+
 Dentro do container, o `verificar-e1.php` precisa da URL do nginx: o `APP_URL` padrão é o
-endereço visto do host. O `verificar-api.php` gasta quinze chamadas à API oficial, que a
-organização registra — rode para confirmar que nada mudou do lado deles, não em laço.
+endereço visto do host. Esse nome interno, `http://nginx`, é o único que o servidor atende em HTTP
+sem redirecionar, porque só existe dentro da rede do Docker. O `verificar-api.php` gasta quinze
+chamadas à API oficial, que a organização registra — rode para confirmar que nada mudou do lado
+deles, não em laço.
 
 Guia completo de instalação, atualização e problemas comuns: [`_arq/README.md`](_arq/README.md).
 
