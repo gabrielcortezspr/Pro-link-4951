@@ -258,7 +258,12 @@ try {
         str_contains($e->getMessage(), 'não consta como sua'));
 }
 
-conferir('a ART recusada não entrou no acervo', $acervo->porNumero(ART_ALHEIA) === null);
+// A ART alheia pode existir no banco pelo acervo operacional de uma empresa cujo quadro tem o
+// titular dela (foi o que aconteceu quando as empresas da massa foram semeadas em 24/09). O que a
+// recusa garante é que ela não entrou no acervo de QUEM TENTOU associar, e é isso que se confere.
+$alheia = $acervo->porNumero(ART_ALHEIA);
+conferir('a ART recusada não entrou no acervo de quem tentou',
+    $alheia === null || (string) $alheia['art']['art_pro_rnp'] !== RNP);
 
 // A regra da mescla, de ponta a ponta: a validação não traz local, e o local não pode sumir.
 $associada = $portfolio->associarArt($usuario, RNP, ART);
