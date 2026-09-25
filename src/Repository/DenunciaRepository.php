@@ -74,6 +74,48 @@ final class DenunciaRepository extends Repositorio
      *
      * @return list<array<string, mixed>>
      */
+    /**
+     * Denúncias ainda abertas com uma destas descrições exatas, com o e-mail de quem denunciou.
+     *
+     * Serve ao `scripts/limpar-rastro-de-verificacao.php`, que trata como improcedentes as
+     * denúncias que os verificadores abrem a cada execução. Descrição exata, e não "contém": a
+     * limpeza não pode alcançar uma denúncia real que por acaso cite a palavra "verificação".
+     *
+     * @param list<string> $descricoes
+     * @return list<array{den_id: int, den_descricao: string, usu_email: string}>
+     */
+    public function abertasComDescricao(array $descricoes): array
+    {
+        if ($descricoes === []) {
+            return [];
+        }
+
+        $marcas = [];
+        $params = [':ativo' => STATUS_ATIVO, ':resolvida' => 'RESOLVIDA'];
+
+        foreach (array_values($descricoes) as $i => $texto) {
+            $marcas[]         = ":d{$i}";
+            $params[":d{$i}"] = $texto;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT d.den_id, d.den_descricao, u.usu_email
+               FROM pro_denuncias d
+               JOIN sis_usuarios u ON u.usu_id = d.den_usu_id
+              WHERE d.den_status = :ativo
+                AND d.den_situacao <> :resolvida
+                AND d.den_descricao IN (' . implode(', ', $marcas) . ')
+              ORDER BY d.den_id'
+        );
+        $stmt->execute($params);
+
+        return array_map(static fn (array $l): array => [
+            'den_id'        => (int) $l['den_id'],
+            'den_descricao' => (string) $l['den_descricao'],
+            'usu_email'     => (string) $l['usu_email'],
+        ], $stmt->fetchAll());
+    }
+
     public function fila(?string $situacao, ?string $tipo, int $limite = 50): array
     {
         // O alvo entra por LEFT JOIN condicionado à entidade: quando é conta, a fila mostra o
