@@ -10,13 +10,18 @@
 export const SENHA_DEMO = process.env.PROLINK_E2E_SENHA_DEMO ?? 'ProLinkDemo2026!';
 
 /**
- * Profissional escolhido olhando o índice de evidência, não o nome: ele tem acervo em
- * `TOS_10.4.2.3`, que é o código com mais candidatos na massa fictícia. Os vínculos de ART para
- * código TOS da massa são aleatórios, então escolher a pessoa antes de olhar o índice produziria
- * um cenário sem compatível nenhum.
+ * Profissionais escolhidos olhando o índice de evidência, não o nome. Arthur e Sophia têm acervo
+ * exatamente em `TOS_10.4.2.3`, o código da demanda do roteiro; Pedro entra no mesmo conjunto pela
+ * atividade vizinha (`TOS_10.1.1`), o que também exercita a afinidade parcial. Os vínculos de ART
+ * para código TOS da massa são aleatórios, então escolher a pessoa antes de olhar o índice
+ * produziria um cenário sem compatível nenhum.
+ *
+ * O e-mail do Pedro mudou em 25/09: `pedro.henrique.alves.0451@prolink.local` era o do volume em
+ * que a suíte foi escrita e não existe no banco atual, onde a mesma pessoa (RNP 0412340046) foi
+ * cadastrada como `pedro.alves@prolink.local`.
  */
 const COMPATIVEIS = [
-  { email: 'pedro.henrique.alves.0451@prolink.local', senha: SENHA_DEMO, nome: 'PEDRO HENRIQUE ALVES' },
+  { email: 'pedro.alves@prolink.local',               senha: SENHA_DEMO, nome: 'PEDRO HENRIQUE ALVES' },
   { email: 'sophia.martins.0702@prolink.local',       senha: SENHA_DEMO, nome: 'SOPHIA MARTINS' },
   { email: 'arthur.gomes.0613@prolink.local',         senha: SENHA_DEMO, nome: 'ARTHUR GOMES' },
 ];
