@@ -513,7 +513,13 @@ Metade da nota depende disto. Não é "se sobrar tempo".
 > · **Banco de demonstração povoado** (D79): 42 profissionais e 14 empresas pela API, 11 demandas
 >   completas e 44 interesses pelos serviços, vitrine sem as demandas de verificação.
 >
-> 216 testes · 72 conferências de padrão, 0 violações · 42 telas · E6 70.
+> · **Repositório e bateria acertados em 25/09**: só a `main` (a branch paralela do feed guardada
+>   na tag `arquivo/feed-paralelo-2026-09-15`), o roteiro do pitch mesclado e corrigido, a suíte do
+>   navegador instalada e com contas que existem, e o rastro dos verificadores tirado da vista
+>   pelos serviços (D80).
+>
+> **Bateria completa (`scripts/verificar-tudo.sh`): 9 de 9 no verde, 0 pulados**: 216 testes ·
+> 42 telas · 72 conferências de padrão · E1 80 · E2 159 · E4 62 · E6 70 · 31 cenários no navegador.
 
 ---
 

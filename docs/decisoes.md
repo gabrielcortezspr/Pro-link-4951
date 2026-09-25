@@ -36,7 +36,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E7 — entrega | D60 a D68 |
 | E7 — auditoria de RF por entidade e refino visual | D69, D70, D71, D72, D73 |
 | E7 — fechamento da entrega | D74, D75 |
-| E8 — CAT, atualização do acervo e preferências da demanda (pós-entrega) | D76, D77, D78, D79 |
+| E8 — CAT, atualização do acervo e preferências da demanda (pós-entrega) | D76, D77, D78, D79, D80 |
 
 ---
 
@@ -2596,3 +2596,33 @@ custaram chamadas registradas, e documento da massa usado uma vez fica consumido
 **Consequência.** O `verificar-e4.php` continua criando demandas de verificação a cada execução; o
 `semear-demandas.php` as encerra de novo quando roda. Os e-mails de aviso das 44 manifestações
 foram para a fila local (Mailpit), como iriam de um clique.
+
+---
+
+## D80 · O rastro dos verificadores sai da vista pelos serviços, depois da bateria, e não é apagado
+
+`25/09/2026` · E8 · `scripts/limpar-rastro-de-verificacao.php`, `src/Repository/DenunciaRepository.php`
+
+**Contexto.** Os verificadores provam o fluxo criando dado de verdade (D66): o `verificar-e4.php`
+publica "Demandas de verificação" e o `verificar-e6.php` abre denúncias, a cada execução. Em
+25/09 a fila de moderação tinha 39 denúncias pendentes, todas de teste, e a vitrine já tinha
+chegado a 75 demandas de teste (D79). Quem abrisse o painel na demonstração via primeiro o lixo.
+
+**Decisão.** Um script que roda depois da bateria e resolve pelo caminho da tela: demanda de
+verificação é encerrada pelo `DemandaService::encerrar`; denúncia de verificação é tratada como
+**improcedente** pelo `DenunciaService::tratar`, a providência que não atinge ninguém, com o
+administrador como moderador e a trilha registrando. Para não alcançar dado real, exige as duas
+coisas juntas: conta de verificação (`camila@`, `cobaia@` ou `@verificacao.local`) e o texto exato
+que o verificador escreve.
+
+**Alternativa recusada: cada verificador apagar o que criou ao terminar.** A regra é que nada se
+apaga (8.6j), a auditoria é insert-only, e um verificador que desfaz o que fez deixa de provar que
+o dado persiste. Também deixaria de valer quando o verificador falha no meio, que é justamente
+quando o rastro mais aparece.
+
+**Alternativa recusada: excluir as linhas por SQL.** Mesmo motivo, e a trilha ficaria apontando
+para denúncias que deixaram de existir.
+
+**Consequência.** A ordem antes de uma demonstração passa a ser: bateria de verificação, depois
+`limpar-rastro-de-verificacao.php`. O `semear-demandas.php` continua encerrando as demandas de
+verificação que encontra, e as duas limpezas convivem sem conflito.
