@@ -122,6 +122,10 @@
                     <span class="pd" aria-hidden="true"></span>Registro ativo
                 </span>
             {% endif %}
+
+            {#  Denunciar, para quem tem conta e não é o dono (D84). Discreto e depois do selo:
+                o fato de registro vem primeiro, a ação de exceção fica no canto. #}
+            {{ ui.denunciar('USUARIO', p.usuario_id, 'este perfil', p.eh_dono) }}
         </div>
     </div>
 </section>

@@ -2818,3 +2818,55 @@ novo: fumaça pelo navegador em https://localhost:8443 (landing, login da empres
 demandas, compatíveis, perfil) com 3 de 3 folhas de estilo e zero erro de console; clone limpo
 com `.env` saído do `.env.example` sobe, provisiona o `prolink_app` com 29 concessões e
 responde `/saude` 200 com `tos_carregada: 2000`.
+
+## D84 · A denúncia ganha ponto de entrada na tela: link discreto no perfil e na demanda, só para quem tem conta
+
+`25/09/2026` · E8 · `templates/layout/_ui.html.twig` (macro `denunciar`), `DenunciaController`
+
+**Contexto.** O cenário 5 do Anexo I (item 7) pede que o usuário "registre denúncia". O
+formulário existia desde a E6, mas nenhuma tela tinha link para ele: só se chegava por
+`/denuncias/nova?entidade=...&alvo=...` digitado. O roteiro do Demo Day abria o formulário numa
+aba já pronta, e a pergunta "como o usuário chega aqui?" não tinha resposta na interface. O
+formulário também mostrava o alvo de demanda como `DEMANDA #203`, porque o rótulo legível tinha
+ficado para quando a RF04 existisse, e o Cancelar mandava para `/inicio` de qualquer lugar.
+
+**Decisão.** Uma macro, `ui.denunciar(entidade, alvo, o_que, dono)`, chamada em três lugares: no
+retrato do perfil público do profissional e no da empresa (canto direito, depois do selo
+"Registro ativo", alvo `USUARIO`) e no cabeçalho da demanda para quem não é o dono (lugar onde o
+dono tem as ações dele, alvo `DEMANDA`). A regra de quem vê mora na macro, e não em cada tela:
+só quem tem conta, porque a rota é de `PERFIS_AUTENTICADOS` e o anônimo cairia num 401; e nunca
+o dono do alvo, que o `DenunciaService` já recusa. Peso de ação terciária (`pl-btn mini ghost`,
+texto cinza sem contorno) e ícone de bandeira em SVG monocromático, sem CSS novo. O texto visível
+é "Denunciar"; o nome acessível completa com "este perfil", "esta empresa" ou "esta demanda".
+
+No formulário, o alvo de demanda passa a ser "Demanda nº 203 · título", o mesmo "Demanda nº"
+da fila do moderador, e obedece à regra de `DemandaController::ver`: rascunho alheio, demanda
+excluída ou inexistente dão 404, para trocar o número na URL não revelar título de rascunho de
+outra conta. O Cancelar devolve para a página de onde a pessoa veio (o perfil ou a demanda).
+
+**Alternativa recusada: botão contornado ou laranja ao lado do nome.** Denunciar é um direito
+que precisa ser achado, e não um convite; com peso de ação principal ao lado do nome de alguém,
+leria como acusação, e na demanda competiria com o "Manifestar interesse" (D34).
+
+**Alternativa recusada: link também para o anônimo, levando ao login.** A denúncia é ato
+identificado (a tela diz que não é anônima), e o perfil público é a vitrine sem conta: oferecer
+a ação a quem não pode executá-la é o que a página da demanda já evita no "Manifestar
+interesse": oferecer a ação e recusá-la no envio é pior do que não oferecer.
+
+**Alternativa recusada: mudar para onde o envio redireciona.** O comentário do controller prevê
+trocar `/privacidade` pelo perfil do alvo, e seria o certo. Ficou fora porque só se prova
+enviando uma denúncia, e a véspera não é hora de sujar a fila de moderação para conferir.
+
+**Consequência.** Mensagem e experiência continuam aceitas pelo serviço como alvo, sem link e
+com o rótulo cru (`MENSAGEM #id`): o rótulo legível entra junto com o link que as denunciar. O
+roteiro do Demo Day, no 5b, pode sair da demanda pelo link em vez da aba pronta, e a banca vê
+"Demanda nº {R} · título" no alto do formulário, não mais `DEMANDA #{R}`.
+
+**Verificação.** `tests/Support/DenunciarLinkTest.php` (5 testes): o anônimo não vê o link, quem
+tem conta vê com `entidade` e `alvo` certos, o dono não vê, e as três telas chamam a macro.
+Bateria: 230 testes, 983 asserções, OK. Pelo navegador, sem enviar denúncia: a Alfa vê
+"Denunciar" no perfil da Sophia (166) e no de uma empresa (174), o link abre o formulário com
+`USUARIO` e o id certos, e o Cancelar volta ao perfil; a Sophia vê o link na demanda 203 e o
+formulário mostra "Demanda nº 203 · título" com `DEMANDA` e 203; nenhum dos dois vê o link no
+próprio perfil nem a Alfa na própria demanda; o anônimo não vê; demanda inexistente dá 404; em
+390 px o link aparece e a página não rola de lado.

@@ -89,7 +89,7 @@
 
     <div class="pl-acoes-form">
         {{ form.botao('Enviar denúncia') }}
-        <a class="pl-btn ghost" href="{{ app_url }}/inicio">Cancelar</a>
+        <a class="pl-btn ghost" href="{{ app_url }}{{ voltar|default('/inicio') }}">Cancelar</a>
     </div>
 </form>
 {% endblock %}

@@ -66,6 +66,13 @@
                 </a>
             {% endif %}
         </div>
+    {% elseif not eh_dono %}
+        {#  Denunciar (D84), no canto do cabeçalho onde o dono tem as ações dele. Quem lê a
+            demanda de outra conta não tem ação de página além desta, e ela fica em peso de
+            ação terciária para não competir com o "Manifestar interesse" do painel ao lado. #}
+        <div class="pl-head-acoes">
+            {{ ui.denunciar('DEMANDA', d.dem_id, 'esta demanda', eh_dono) }}
+        </div>
     {% endif %}
 </div>
 

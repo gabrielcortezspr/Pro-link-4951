@@ -590,3 +590,28 @@
 {% macro tipo_candidato(tipo) %}
     {{- tipo == 'E' ? 'Empresa' : 'Profissional' -}}
 {% endmacro %}
+
+{#
+  O ponto de entrada da denúncia (RF06; Anexo I, item 7, cenário 5). Até a D84 o formulário só
+  se abria pelo endereço, e "como o usuário chega aqui?" não tinha resposta na tela.
+
+  Ação terciária: `ghost` e `mini`, texto cinza sem contorno, a mesma caixa das ações de linha.
+  Denunciar é um direito que precisa ser achado, e não um convite: ao lado do nome de alguém, um
+  botão com peso de ação principal leria como acusação.
+
+  A regra de quem vê mora aqui, e não em cada tela, para as três telas não divergirem: só quem
+  tem conta, porque a rota é de PERFIS_AUTENTICADOS e oferecer o link ao anônimo seria mandá-lo
+  para um 401; e nunca o dono do alvo, que não denuncia a si mesmo (DenunciaService recusa).
+
+  `entidade` é uma das DenunciaService::ENTIDADES; `alvo` é o id na tabela dela. `o_que` completa
+  o nome acessível ("Denunciar este perfil"), sem mudar o texto visível.
+#}
+{% macro denunciar(entidade, alvo, o_que, dono = false) %}
+    {%- if usuario() and not dono -%}
+        <a class="pl-btn mini ghost" href="{{ app_url }}/denuncias/nova?entidade={{ entidade|url_encode }}&amp;alvo={{ alvo|url_encode }}"
+           title="Abre o formulário de denúncia, que vai para a moderação da plataforma">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4.5h11.5l-2.2 4 2.2 4H5"/></svg>
+            Denunciar<span class="visually-hidden"> {{ o_que }}</span>
+        </a>
+    {%- endif -%}
+{% endmacro %}

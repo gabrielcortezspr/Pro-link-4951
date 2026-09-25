@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ProLink\Controller;
 
+use ProLink\Repository\DemandaRepository;
 use ProLink\Repository\UsuarioRepository;
 use ProLink\Service\DenunciaService;
 use ProLink\Service\ValidacaoException;
@@ -24,6 +25,7 @@ final class DenunciaController
     public function __construct(
         private readonly DenunciaService $denuncias = new DenunciaService(),
         private readonly UsuarioRepository $usuarios = new UsuarioRepository(),
+        private readonly DemandaRepository $demandas = new DemandaRepository(),
     ) {
     }
 
@@ -92,16 +94,37 @@ final class DenunciaController
             }
 
             $rotulo = (string) $alvo['usu_nome'];
+            $voltar = '/perfil/' . $alvoId;
+        } elseif ($entidade === 'DEMANDA') {
+            // A página da demanda tem o link "Denunciar" desde a D84, e o formulário diz qual
+            // demanda é pelo título, como a pessoa acabou de lê-la. A regra de quem enxerga é a
+            // de DemandaController::ver: rascunho é só do dono, e a exclusão lógica fecha. Sem
+            // ela, trocar o número na URL revelaria o título de rascunho alheio.
+            $demanda = $this->demandas->porId($alvoId);
+            $visivel = $demanda !== null
+                && $demanda['dem_status'] === STATUS_ATIVO
+                && ($demanda['dem_dt_publicacao'] !== null
+                    || (int) $demanda['dem_usu_id'] === Sessao::usuarioId());
+
+            if (!$visivel) {
+                return View::erro(404, 'Alvo de denúncia não encontrado.');
+            }
+
+            $rotulo = 'Demanda nº ' . $alvoId . ' · ' . $demanda['dem_titulo'];
+            $voltar = '/demandas/' . $alvoId;
         } else {
-            // Demanda e mensagem só existem a partir da RF04 e da RF05. Enquanto as tabelas
-            // estão vazias, resolver o rótulo delas seria código sem chamador.
+            // Mensagem e experiência não têm ponto de entrada na interface ainda. O serviço já
+            // as aceita como alvo; o rótulo legível entra junto com o link que as denuncia.
             $rotulo = $entidade . ' #' . $alvoId;
+            $voltar = '/inicio';
         }
 
         return View::render('denuncia/nova.html.twig', [
             'entidade'    => $entidade,
             'alvo_id'     => $alvoId,
             'alvo_rotulo' => $rotulo,
+            // Cancelar devolve a pessoa para onde ela estava, e não para o início.
+            'voltar'      => $voltar,
             'tipos'       => DenunciaService::TIPOS,
             'valores'     => $valores,
             'erros'       => $erros,
