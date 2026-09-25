@@ -37,6 +37,7 @@ Guia completo de instalação, atualização e problemas comuns: [`_arq/README.m
 | [`docs/matching.md`](docs/matching.md) | vai mexer no motor de compatibilização |
 | [`docs/fluxos.md`](docs/fluxos.md) | o caminho das telas e os seis cenários da demo |
 | [`docs/roteiro-demo.md`](docs/roteiro-demo.md) | vai apresentar: o roteiro dos seis cenários, com os identificadores que funcionam |
+| [`docs/pitch.md`](docs/pitch.md) | vai apresentar no Demo Day: o texto dos 8 minutos de pitch, o que não dizer e as perguntas prováveis |
 | [`docs/definicao-de-pronto.md`](docs/definicao-de-pronto.md) | o que conta como pronto, da micro-etapa à entrega |
 | [`e2e/README.md`](e2e/README.md) | a suíte de ponta a ponta: como rodar, e o que ela confere |
 | [`docs/design.md`](docs/design.md) | vai mexer no visual: tokens, cor, selo de verificação, componentes |
