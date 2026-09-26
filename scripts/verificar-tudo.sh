@@ -67,7 +67,7 @@ passo "Telas compilam"               docker compose exec -T php php scripts/veri
 passo "Padrão visual"                docker compose exec -T php php scripts/verificar-padrao.php
 
 # ---------------------------------------------------------------- contra o banco
-passo "E1, identidade e consentimento" docker compose exec -T php php scripts/verificar-e1.php http://nginx
+passo "E1, identidade e consentimento" docker compose exec -T php php scripts/verificar-e1.php https://nginx:8443
 passo "E2, portfólio e sincronização"  docker compose exec -T php php scripts/verificar-e2.php
 passo "E4, motor de compatibilização"  docker compose exec -T php php scripts/verificar-e4.php
 passo "E6, denúncias e painel"         docker compose exec -T php php scripts/verificar-e6.php

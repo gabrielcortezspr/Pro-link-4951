@@ -135,7 +135,13 @@ final class ManifestacaoRepository extends Repositorio
         $stmt = $this->pdo->prepare(
             'SELECT ' . self::CAMPOS . ', u.usu_nome, COALESCE(pr.prf_nome_api, e.emp_razao_social, u.usu_nome) AS nome,
                     (SELECT COUNT(*) FROM pro_mensagens g
-                      WHERE g.msg_man_id = m.man_id AND g.msg_status = :ativo_g) AS mensagens
+                      WHERE g.msg_man_id = m.man_id AND g.msg_status = :ativo_g) AS mensagens,
+                    -- O titular do perfil escreveu ao menos uma vez (D87). É o que "respondeu"
+                    -- quer dizer num convite; man_situacao = RESPONDIDA vira com a mensagem de
+                    -- qualquer das partes, e uma segunda mensagem da empresa já a marcaria.
+                    EXISTS (SELECT 1 FROM pro_mensagens r
+                             WHERE r.msg_man_id = m.man_id AND r.msg_usu_id = m.man_usu_id
+                               AND r.msg_status = :ativo_r) AS respondeu
                FROM pro_manifestacoes m
                JOIN sis_usuarios u ON u.usu_id = m.man_usu_id
                LEFT JOIN pro_profissionais pr ON pr.prf_usu_id = m.man_usu_id
@@ -145,6 +151,7 @@ final class ManifestacaoRepository extends Repositorio
         );
         $stmt->execute([
             ':demanda' => $demandaId, ':ativo' => STATUS_ATIVO, ':ativo_g' => STATUS_ATIVO,
+            ':ativo_r' => STATUS_ATIVO,
         ]);
 
         return $stmt->fetchAll();
@@ -188,9 +195,13 @@ final class ManifestacaoRepository extends Repositorio
     public function doUsuario(int $usuarioId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT ' . self::CAMPOS . ', d.dem_titulo, d.dem_situacao, d.dem_id
+            'SELECT ' . self::CAMPOS . ', d.dem_titulo, d.dem_situacao, d.dem_id,
+                    -- Quem publicou a demanda: num convite recebido, é quem convidou (D87).
+                    COALESCE(pe.emp_razao_social, pu.usu_nome) AS publicante
                FROM pro_manifestacoes m
-               JOIN pro_demandas d ON d.dem_id = m.man_dem_id
+               JOIN pro_demandas d  ON d.dem_id = m.man_dem_id
+               JOIN sis_usuarios pu ON pu.usu_id = d.dem_usu_id
+               LEFT JOIN pro_empresas pe ON pe.emp_usu_id = d.dem_usu_id
               WHERE m.man_usu_id = :usuario AND m.man_status = :ativo
               ORDER BY m.man_dt_registro DESC'
         );

@@ -28,10 +28,10 @@ flowchart TD
 
   subgraph PROF["PERFIL PROFISSIONAL"]
     CADP["Cadastro profissional<br/>+ consentimento LGPD<br/>API: profissionais?cpf, /arts, /cats"]
-    DASHP["Início /inicio<br/>onde apareço, o que enviei, o que o acervo sustenta"]
+    DASHP["Início /inicio (D90)<br/>para fazer agora, demandas na área, atividade recente"]
     PORT["Portfólio verificado + selo ART<br/>API: validação de art, art/atividades, validação de cat"]
-    VISP["Visibilidade + dados complementares"]
-    FEEDP["Demandas compatíveis"]
+    VISP["Meu perfil: acervo, preferências,<br/>Visibilidade e Conta e dados (D88)"]
+    FEEDP["Demandas abertas (D89)<br/>por área da TOS, na minha área por padrão"]
     CADP --> DASHP
     DASHP --> PORT
     DASHP --> VISP
@@ -40,7 +40,7 @@ flowchart TD
 
   subgraph EMP["PERFIL EMPRESA"]
     CADE["Cadastro empresa<br/>+ consentimento LGPD<br/>API: empresas?cnpj, quadro-técnico, cao"]
-    DASHE["Início /inicio<br/>o que publiquei, quem chegou"]
+    DASHE["Início /inicio (D90)<br/>para fazer agora, suas demandas, na área, atividade"]
     PERFE["Acervo operacional da empresa<br/>API: cao"]
     PUBD["Publicar demanda<br/>seleção de TOS. API: tos?search"]
     MIND["Minhas demandas"]
@@ -56,7 +56,7 @@ flowchart TD
 
   FEEDP -->|Manifestar interesse| MANIF
   PERFV -->|Manifestar interesse| MANIF
-  FEEDE -->|Registrar interesse no candidato| MANIF
+  FEEDE -->|Convidar, com mensagem do modelo da empresa| MANIF
 
   MANIF["Manifestar interesse<br/>grava snapshot do perfil"]
   COMM["Mensagens simples na plataforma<br/>sem expor contato, sem chat completo"]

@@ -349,6 +349,12 @@
     var travaDaRoda = 0;
 
     raiz.addEventListener('wheel', function (evento) {
+        // Quem rola dentro da mensagem de um convite (D88) está escrevendo, e não navegando: o
+        // cartão não pode trocar debaixo do texto.
+        if (evento.target.closest && evento.target.closest('.pl-convidar[open], .pl-modelo[open], textarea')) {
+            return;
+        }
+
         var documento = document.documentElement;
         var doTopo    = window.scrollY || documento.scrollTop || 0;
         var aSobrar   = documento.scrollHeight - window.innerHeight - doTopo;

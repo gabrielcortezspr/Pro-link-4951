@@ -136,15 +136,16 @@ Os passos individuais, se você quiser um de cada vez:
 docker compose exec -T php composer test                          # 193 testes de unidade
 docker compose exec -T php php scripts/verificar-telas.php        # as 42 telas compilam
 docker compose exec -T php php scripts/verificar-padrao.php       # 72 conferências de padrão
-docker compose exec -T php php scripts/verificar-e1.php http://nginx   # identidade e consentimento
+docker compose exec -T php php scripts/verificar-e1.php https://nginx:8443   # identidade e consentimento
 docker compose exec -T php php scripts/verificar-e2.php           # portfólio e sincronização
 docker compose exec -T php php scripts/verificar-e4.php           # motor de compatibilização
 docker compose exec -T php php scripts/verificar-e6.php           # denúncias e painel
 cd e2e && ./rodar.sh                                              # a suíte pelo navegador
 ```
 
-`verificar-e1.php` roda **de dentro do contêiner e com a URL interna** (`http://nginx`): com
-`APP_URL` ele tentaria `localhost:8443`, que lá dentro não existe.
+`verificar-e1.php` roda **de dentro do contêiner e com a URL interna em HTTPS**
+(`https://nginx:8443`): com `APP_URL` ele tentaria `localhost:8443`, que lá dentro não existe, e
+pela porta HTTP o cadastro recebe o redirecionamento da D81 e nunca cria a conta.
 
 E o estado das peças, sem entrar em contêiner nenhum:
 

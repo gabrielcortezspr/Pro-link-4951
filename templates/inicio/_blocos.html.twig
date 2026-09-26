@@ -1,0 +1,216 @@
+{#
+    Os blocos do Início (D90), comuns ao profissional, à empresa e ao contratante. Cada template
+    compõe os que servem ao seu papel; o desenho de cada bloco mora aqui, num lugar só.
+
+    O Início responde a três perguntas, nesta ordem: o que pede ação agora, o trabalho em
+    andamento, e o que aconteceu por último. Os indicadores de antes saíram: o número mudava pouco
+    e não levava a decisão nenhuma. Dele sobra uma linha discreta de identidade, embaixo do nome.
+#}
+
+{#  A linha de identidade: com que perfil a conta se apresenta, sem virar painel. Zero ART não
+    vira "0 ARTs": vira a frase do que falta. `id` é null para o contratante. #}
+{% macro identidade(id) %}
+    {%- if id is null -%}
+        <p class="pl-ini-id"><span>Contratante</span><span class="pl-sep" aria-hidden="true"></span><span>Publica demandas e encontra quem já comprovou fazer o serviço</span></p>
+    {%- else -%}
+        {%- set partes = [] -%}
+        {%- if id.tipo == 'P' -%}
+            {%- set partes = partes|merge([id.arts > 0 ? id.arts ~ (id.arts == 1 ? ' ART' : ' ARTs') : 'Nenhuma ART no acervo ainda']) -%}
+            {%- if id.cats_vigentes|default(0) > 0 -%}
+                {%- set partes = partes|merge([id.cats_vigentes ~ (id.cats_vigentes == 1 ? ' CAT vigente' : ' CATs vigentes')]) -%}
+            {%- elseif id.cats|default(0) > 0 -%}
+                {%- set partes = partes|merge([id.cats == 1 ? '1 CAT vencida' : id.cats ~ ' CATs vencidas']) -%}
+            {%- endif -%}
+        {%- else -%}
+            {%- set partes = partes|merge([id.acervo > 0 ? id.acervo ~ (id.acervo == 1 ? ' ART no acervo do quadro' : ' ARTs no acervo do quadro') : 'Nenhuma ART no acervo do quadro']) -%}
+            {%- set partes = partes|merge([id.quadro ~ (id.quadro == 1 ? ' profissional no quadro' : ' profissionais no quadro')]) -%}
+        {%- endif -%}
+        {%- set partes = partes|merge([id.perfil_aberto ? 'perfil visível' : 'perfil fechado']) -%}
+        <p class="pl-ini-id">
+            {%- if (id.tipo == 'P' ? id.arts : id.acervo) > 0 -%}
+                <svg class="pl-mark" role="img" aria-label="Conferido na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+            {%- endif -%}
+            {%- for p in partes -%}
+                <span>{{ p }}</span>{% if not loop.last %}<span class="pl-sep" aria-hidden="true"></span>{% endif %}
+            {%- endfor -%}
+            {%- if id.acervo_em|default(null) -%}
+                <span class="pl-sep" aria-hidden="true"></span><span class="qd">acervo consultado no CREA em {{ id.acervo_em|date('d/m/Y') }}</span>
+            {%- endif -%}
+            <a class="lk" href="{{ app_url }}/perfil">Ver meu perfil</a>
+        </p>
+    {%- endif -%}
+{% endmacro %}
+
+{#  Para fazer agora: a lista já vem na ordem (quem espera resposta, depois o trabalho da conta,
+    depois o perfil), e cada item leva à tela que o resolve. Vazia, a tela diz que está tudo em dia,
+    com uma marca de "ok" e não com o cinza de estado vazio, porque não é falta de nada. #}
+{% macro para_fazer(itens, dica = '') %}
+    <section class="pl-card pl-ini-fazer" aria-labelledby="ini-fazer">
+        <div class="pl-linha-titulo">
+            <h2 class="pl-secao" id="ini-fazer">Para fazer agora</h2>
+            {% if itens is not empty %}<span class="cnt">{{ itens|length }}</span>{% endif %}
+        </div>
+        {% if itens is empty %}
+            <div class="pl-ini-emdia">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16.5 9.5"/></svg>
+                <div>
+                    <p class="t">Tudo em dia</p>
+                    <p class="s">Nada esperando por você agora.{% if dica %} {{ dica }}{% endif %}</p>
+                </div>
+            </div>
+        {% else %}
+            <ol class="pl-fazer">
+                {% for it in itens %}
+                    <li>
+                        <div class="tx">
+                            <p class="t">{{ it.titulo }}</p>
+                            {% if it.detalhe %}<p class="d">{{ it.detalhe }}</p>{% endif %}
+                        </div>
+                        <a class="pl-btn sm" href="{{ app_url }}{{ it.url }}">{{ it.acao }}{% if it.detalhe %}<span class="visually-hidden">: {{ it.detalhe }}</span>{% endif %}</a>
+                    </li>
+                {% endfor %}
+            </ol>
+        {% endif %}
+    </section>
+{% endmacro %}
+
+{#  Demandas na sua área (D89): as abertas em que o acervo de quem olha tem a mesma atividade ou
+    uma do mesmo subgrupo, já sem as que têm contato e sem as próprias. Mesma linha e mesma frase de
+    relação da vitrine, sem escopo, porque aqui a lista é para varrer. #}
+{% macro na_area(na) %}
+    {%- import 'layout/_ui.html.twig' as ui -%}
+    <section class="pl-card pl-ini-area" aria-labelledby="ini-area">
+        <div class="pl-linha-titulo">
+            <h2 class="pl-secao" id="ini-area">Demandas na sua área</h2>
+            {% if na.tem_acervo and na.total > 0 %}
+                <span class="cnt">{{ na.total }} {{ na.total == 1 ? 'aberta' : 'abertas' }}{% if na.sem_contato < na.total %} · {{ na.sem_contato }} sem contato seu{% endif %}</span>
+            {% endif %}
+            <a class="dir lk" href="{{ app_url }}/demandas/abertas">Ver na vitrine</a>
+        </div>
+
+        {% if not na.tem_acervo %}
+            <div class="pl-ini-vazio">
+                <p class="t">Sua área vem do seu acervo</p>
+                <p class="s">
+                    Sem ART importada do CREA, a plataforma ainda não sabe em que atividades você
+                    atua. Atualize o acervo, ou veja todas as demandas abertas.
+                </p>
+                <div class="a">
+                    <a class="pl-btn sm" href="{{ app_url }}/perfil#acervo">Atualizar meu acervo</a>
+                    <a class="pl-btn sm ghost" href="{{ app_url }}/demandas/abertas?minha_area=0">Ver todas as demandas</a>
+                </div>
+            </div>
+        {% elseif na.demandas is empty %}
+            <div class="pl-ini-vazio">
+                {% if na.total > 0 %}
+                    <p class="t">Você já está em contato em todas as demandas da sua área</p>
+                    <p class="s">A conversa de cada uma segue em <a href="{{ app_url }}/manifestacoes">Candidaturas e convites</a>.</p>
+                {% else %}
+                    <p class="t">Nenhuma demanda aberta na sua área agora</p>
+                    <p class="s">Há demandas abertas em outras áreas.</p>
+                {% endif %}
+                <div class="a">
+                    <a class="pl-btn sm ghost" href="{{ app_url }}/demandas/abertas?minha_area=0">Ver todas as demandas</a>
+                </div>
+            </div>
+        {% else %}
+            <ul class="pl-dem-lista">
+                {% for d in na.demandas %}{{ ui.demanda_linha(d) }}{% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+{% endmacro %}
+
+{#  Suas demandas (D87): cada uma com o que espera, levando à aba certa. Abertas primeiro. #}
+{% macro proprias(pr) %}
+    {%- import 'layout/_ui.html.twig' as ui -%}
+    <section class="pl-card pl-ini-prop" aria-labelledby="ini-prop">
+        <div class="pl-linha-titulo">
+            <h2 class="pl-secao" id="ini-prop">Suas demandas</h2>
+            {% if pr.total > 0 %}<span class="cnt">{{ pr.total }}</span>{% endif %}
+            {% if pr.total > pr.demandas|length %}
+                <a class="dir lk" href="{{ app_url }}/demandas">Ver todas as {{ pr.total }}</a>
+            {% elseif pr.total > 0 %}
+                <a class="dir lk" href="{{ app_url }}/demandas">Minhas demandas</a>
+            {% endif %}
+        </div>
+
+        {% if pr.demandas is empty %}
+            <div class="pl-ini-vazio">
+                <p class="t">Você ainda não publicou nenhuma demanda</p>
+                <p class="s">
+                    Publique o que precisa ser feito e escolha as atividades da Tabela de Obras e
+                    Serviços: é por elas que a plataforma encontra quem já comprovou fazer aquilo.
+                </p>
+                <div class="a"><a class="pl-cta" href="{{ app_url }}/demandas/nova">Publicar demanda</a></div>
+            </div>
+        {% else %}
+            <ul class="pl-prop-lista">
+                {% for d in pr.demandas %}
+                    <li>
+                        <div class="tx">
+                            <a class="tt" href="{{ app_url }}/demandas/{{ d.dem_id }}">{{ d.dem_titulo }}</a>
+                            <p class="meta">
+                                {{ ui.situacao(d.dem_situacao, d.dem_dt_publicacao is not null) }}
+                                {% if d.dem_dt_publicacao %}
+                                    <span>publicada {{ ui.quando(d.dem_dt_publicacao) }}</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="ac">{{ ui.acompanhamento(d, d.painel|default(null)) }}</div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+{% endmacro %}
+
+{#  Atividade recente: a linha do tempo da conta, com o que ela mesma fez, porque é assim que a
+    pessoa reconstrói onde parou. Nunca evento de leitura (D88, D90). Cada item é uma frase com o
+    nome em tinta cheia e a demanda como link: para a conversa quando há uma, para a demanda
+    quando não. #}
+{% macro atividade(eventos) %}
+    {%- import 'layout/_ui.html.twig' as ui -%}
+    <section class="pl-card pl-ini-ativ" aria-labelledby="ini-ativ">
+        <div class="pl-linha-titulo"><h2 class="pl-secao" id="ini-ativ">Atividade recente</h2></div>
+        {% if eventos is empty %}
+            <p class="pl-nota mb-0">
+                Nada por aqui ainda. Candidaturas, convites, mensagens e demandas publicadas aparecem
+                aqui, na ordem em que acontecem.
+            </p>
+        {% else %}
+            <ol class="pl-linha-tempo">
+                {% for e in eventos %}
+                    {%- set quem = e.quem ? e.quem|nome_proprio : '' -%}
+                    {%- set destino = e.man_id ? app_url ~ '/manifestacoes/' ~ e.man_id : (e.dem_id ? app_url ~ '/demandas/' ~ e.dem_id : null) -%}
+                    {%- set dem -%}{% if e.demanda %}{% if destino %}<a href="{{ destino }}">{{ e.demanda }}</a>{% else %}{{ e.demanda }}{% endif %}{% endif %}{%- endset -%}
+                    <li class="ev {{ e.tipo in ['convite_recebido', 'candidatura_recebida', 'mensagem_recebida'] ? 'deles' : 'meu' }}">
+                        <p class="tx">
+                            {%- if e.tipo == 'convite_recebido' -%}
+                                <b>{{ quem }}</b> convidou você para {{ dem }}
+                            {%- elseif e.tipo == 'convite_enviado' -%}
+                                Você convidou <b>{{ quem }}</b> para {{ dem }}
+                            {%- elseif e.tipo == 'candidatura_recebida' -%}
+                                <b>{{ quem }}</b> se candidatou a {{ dem }}
+                            {%- elseif e.tipo == 'candidatura_enviada' -%}
+                                Você se candidatou a {{ dem }}{% if quem %}, publicada por <b>{{ quem }}</b>{% endif %}
+                            {%- elseif e.tipo == 'mensagem_recebida' -%}
+                                Mensagem de <b>{{ quem }}</b> sobre {{ dem }}
+                            {%- elseif e.tipo == 'demanda_publicada' -%}
+                                Você publicou {{ dem }}
+                            {%- elseif e.tipo == 'acervo_atualizado' -%}
+                                Seu acervo foi atualizado no CREA
+                            {%- elseif e.tipo == 'cats_importadas' -%}
+                                {%- set n = e.detalhe|default(1) -%}
+                                {{ n }} {{ n == 1 ? 'CAT importada' : 'CATs importadas' }} do CREA para o seu acervo
+                            {%- else -%}
+                                {{ e.demanda ?: 'Atividade na sua conta' }}
+                            {%- endif -%}
+                        </p>
+                        <span class="qd">{{ ui.quando(e.quando) }}</span>
+                    </li>
+                {% endfor %}
+            </ol>
+        {% endif %}
+    </section>
+{% endmacro %}

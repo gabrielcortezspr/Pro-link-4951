@@ -191,11 +191,13 @@ test.describe('Fluxos do titular', () => {
     await sair(page);
   });
 
-  test('a tela de interessados de uma demanda alheia é recusada', async ({ page }) => {
+  test('a tela de contatos de uma demanda alheia é recusada', async ({ page }) => {
     await entrar(page, EMPRESA);
 
     // Demanda 1 é de outra conta: o painel do demandante é de quem publicou.
-    const resposta = await page.request.get('/demandas/1/interessados', {
+    // `/contatos` desde a D87. O endereço antigo `/interessados` só redireciona para cá, e um 303
+    // dele passaria por esta asserção sem provar recusa nenhuma: é a rota nova que se confere.
+    const resposta = await page.request.get('/demandas/1/contatos', {
       maxRedirects: 0,
       failOnStatusCode: false,
     });

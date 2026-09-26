@@ -157,7 +157,7 @@ test.describe('Os seis cenários do Anexo I', () => {
     expect(confirmacoes.textos.join(' '), 'a ação irreversível não pediu confirmação')
       .toMatch(/não pode ser desfeit/i);
 
-    await expect(page.locator('body'), 'a manifestação não apareceu em "Meus interesses"')
+    await expect(page.locator('body'), 'a candidatura não apareceu em "Candidaturas e convites"')
       .toContainText(demanda.titulo);
 
     await sair(page);
@@ -165,7 +165,7 @@ test.describe('Os seis cenários do Anexo I', () => {
     // A outra metade do cenário: a empresa vê quem manifestou e abre o perfil.
     await entrar(page, EMPRESA);
 
-    resposta = await page.goto(`/demandas/${demanda.id}/interessados`);
+    resposta = await page.goto(`/demandas/${demanda.id}/contatos`);
     await telaSaudavel(page, resposta);
     await expect(page.locator('body')).toContainText(comoNaTela(PROFISSIONAL.nome));
 

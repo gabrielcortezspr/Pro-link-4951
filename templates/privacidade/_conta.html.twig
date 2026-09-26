@@ -1,0 +1,232 @@
+{#
+    Conta e dados: o que a plataforma guarda sobre a conta, e o que o titular pode mudar (LGPD).
+
+    Um partial, e não uma tela, desde a D88: o conteúdo mora numa aba do Meu perfil (profissional
+    e empresa) e continua na tela /privacidade da administração, que não tem perfil. Três lugares
+    com o mesmo texto, e um lugar só para escrevê-lo, para nenhum divergir do outro.
+
+    Incluído com `only`. Recebe:
+      painel       o painel de `PrivacidadeService::painel()`
+      finalidades  `PrivacidadeService::FINALIDADES_REVOGAVEIS`
+      ponte        true no perfil: diz onde fica a visibilidade de cada item
+
+    Os formulários continuam nas rotas de sempre (/privacidade/consentimento, /exportar,
+    /excluir); depois do POST o servidor volta para /privacidade, que leva o titular a
+    /perfil#conta com o aviso preservado.
+#}
+{% import 'layout/_form.html.twig' as form %}
+{% import 'layout/_ui.html.twig' as ui %}
+{% set ponte = ponte|default(false) %}
+{% set perfis = {
+    'PROFISSIONAL': 'Profissional', 'EMPRESA': 'Empresa',
+    'TERCEIRO': 'Terceiro', 'ADMIN': 'Administração'
+} %}
+{% set pode_excluir = painel.usuario.perfil != 'ADMIN' %}
+
+
+
+{#  ------------------------------------------------------------------ as três faixas
+
+    A tela tinha duas colunas de altura livre: uma de 1fr com consentimentos e sessões, outra de
+    372px com conta, exportação e exclusão. Cinco quadros de pesos diferentes empilhados em dois
+    montes deixavam as colunas terminando em alturas diferentes, com um buraco embaixo da mais
+    curta, e o desenho ficava à mercê de quantas sessões a conta tem naquele dia. Numa conta de
+    empresa, em que a razão social ocupa duas linhas, a coluna estreita crescia e a torta virava
+    outra.
+
+    A correção não é esticar card: é parar de misturar assuntos numa coluna só. Cada faixa
+    responde a uma pergunta e fecha, e dentro dela os quadros têm a MESMA altura (align-items:
+    stretch), então nenhuma faixa termina torta:
+
+      1. quem você é aqui, e o que você autorizou      duas colunas iguais
+      2. onde a sua conta está aberta agora            uma coluna de largura inteira
+      3. os dois direitos que você exerce sozinho      duas colunas iguais
+
+    A ordem também é a dos direitos do titular: acesso, consentimento, sessão, portabilidade,
+    eliminação. A ação irreversível fica por último, que é onde o olho termina de ler. #}
+
+<div class="pl-faixas">
+
+    {# ---------------------------------------------------------------- faixa 1 #}
+    <div class="pl-faixa dois">
+        <section class="pl-card" aria-labelledby="h-conta">
+            <div class="pl-linha-titulo"><h2 class="pl-secao" id="h-conta">Minha conta</h2></div>
+            <dl class="pl-dl mini mt-0">
+                <dt>Nome</dt><dd>{{ painel.usuario.nome }}</dd>
+                <dt>E-mail</dt>
+                {#  <wbr> depois do arroba: o endereço não tem espaço, e num painel estreito ele
+                    quebrava no meio do domínio ("prolink.l / ocal"). Com uma oportunidade de
+                    quebra declarada, o navegador prefere ela à quebra de emergência do
+                    overflow-wrap, e o endereço parte onde a leitura espera. #}
+                <dd>
+                    {%- set em = painel.usuario.email -%}
+                    {%- if '@' in em -%}
+                        {{ em|split('@')|first }}@<wbr>{{ em|split('@')|last }}
+                    {%- else -%}
+                        {{ em }}
+                    {%- endif -%}
+                </dd>
+                <dt>Perfil</dt>
+                <dd title="{{ painel.usuario.perfil }}">{{ perfis[painel.usuario.perfil]|default('Conta') }}</dd>
+                <dt>CPF ou CNPJ</dt>
+                <dd>
+                    <span class="pl-mono">{{ painel.usuario.documento }}</span>
+                    <span class="lin-sub">Guardado cifrado. O valor completo sai apenas na sua exportação.</span>
+                </dd>
+                <dt>Telefone</dt><dd>{{ painel.usuario.telefone ?: 'Não informado' }}</dd>
+                <dt>Conta criada em</dt><dd class="mono">{{ painel.usuario.desde|date('d/m/Y') }}</dd>
+            </dl>
+
+            {#  A outra "privacidade" da aplicação, dita aqui para as duas nunca serem confundidas:
+                esta seção é a da CONTA; quem vê cada item do PERFIL se decide na aba Visibilidade.
+                Só no perfil: a administração não tem perfil, e a ponte levaria a lugar nenhum. #}
+            {% if ponte %}
+                <p class="pl-nota pl-ponte">
+                    Quem enxerga cada item do seu perfil se decide na aba Visibilidade.
+                    <a href="#privacidade">Abrir a visibilidade do perfil</a>
+                </p>
+            {% endif %}
+        </section>
+
+        <section class="pl-card" aria-labelledby="h-consentimentos">
+            <div class="pl-linha-titulo">
+                <h2 class="pl-secao" id="h-consentimentos">Consentimentos</h2>
+                {{ ui.info('Como cada finalidade funciona',
+                    'Cada finalidade é independente das outras e pode ser concedida ou revogada quando você quiser. A revogação tem efeito imediato: a plataforma reconfere a escolha em toda leitura, e não guarda cópia do que ficou fora.') }}
+            </div>
+
+            <div class="table-responsive" tabindex="0" role="region"
+                 aria-label="Finalidades de uso dos seus dados">
+                <table class="pl-table">
+                    <caption class="visually-hidden">Finalidades de uso dos seus dados e situação de cada uma</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col" class="assunto">Finalidade</th>
+                            <th scope="col">Situação</th>
+                            <th scope="col"><span class="visually-hidden">Ação</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for chave, descricao in finalidades %}
+                        {% set estado = painel.consentimentos[chave] %}
+                        <tr>
+                            <th scope="row" class="fw-normal assunto">{{ descricao }}</th>
+                            <td>
+                                {% if estado.concedido %}
+                                    <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Concedido</span>
+                                    {% if estado.concessao %}<span class="lin-sub">em {{ estado.concessao|date('d/m/Y') }}</span>{% endif %}
+                                {% else %}
+                                    <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Não concedido</span>
+                                    {% if estado.revogacao %}<span class="lin-sub">revogado em {{ estado.revogacao|date('d/m/Y') }}</span>{% endif %}
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <form method="post" action="{{ app_url }}/privacidade/consentimento" class="d-inline">
+                                    {{ form.csrf() }}
+                                    <input type="hidden" name="finalidade" value="{{ chave }}">
+                                    <input type="hidden" name="acao" value="{{ estado.concedido ? 'revogar' : 'conceder' }}">
+                                    <button type="submit" class="pl-btn sm{{ estado.concedido ? ' risco' : '' }}">
+                                        {{ estado.concedido ? 'Revogar' : 'Conceder' }}
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    {# ---------------------------------------------------------------- faixa 2
+
+        Largura inteira porque o conteúdo pede: o navegador de uma sessão é uma linha de mais de
+        cem caracteres sem espaço útil, e na coluna estreita ela virava três linhas cinzas por
+        sessão. Aqui a identificação fica à esquerda e o navegador à direita, uma sessão por
+        linha. #}
+    <div class="pl-faixa um">
+        <section class="pl-card" aria-labelledby="h-sessoes">
+            <div class="pl-linha-titulo">
+                <h2 class="pl-secao" id="h-sessoes">Sessões abertas</h2>
+                {% if painel.sessoes is not empty %}
+                    <span class="cnt">{{ painel.sessoes|length }} {{ painel.sessoes|length == 1 ? 'sessão ativa agora' : 'sessões ativas agora' }}</span>
+                {% endif %}
+                {{ ui.info('O que é uma sessão aberta',
+                    'Cada entrada sua na plataforma abre uma sessão, que expira sozinha na data indicada. Excluir a conta encerra todas na hora. O endereço de origem e o navegador ficam registrados porque é por eles que você reconhece um acesso que não é seu.') }}
+            </div>
+
+            {% if painel.sessoes is empty %}
+                <p class="pl-nota mb-0">Nenhuma sessão ativa registrada.</p>
+            {% else %}
+                <ul class="pl-sessoes larga">
+                    {% for sessao in painel.sessoes %}
+                        <li>
+                            <div class="id">
+                                <span class="pl-mono ip">{{ sessao.ses_ip ?: 'Origem desconhecida' }}</span>
+                                <span class="qd">aberta em {{ sessao.ses_dt_registro|date('d/m/Y H:i') }}, expira em {{ sessao.ses_dt_expiracao|date('d/m/Y H:i') }}</span>
+                            </div>
+                            <p class="ua" title="{{ sessao.ses_user_agent ?: 'Navegador não informado' }}">{{ sessao.ses_user_agent ?: 'Navegador não informado' }}</p>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+    </div>
+
+    {# ---------------------------------------------------------------- faixa 3 #}
+    <div class="pl-faixa dois">
+        <section class="pl-card" aria-labelledby="h-portabilidade">
+            <div class="pl-linha-titulo"><h2 class="pl-secao" id="h-portabilidade">Levar meus dados</h2></div>
+            {#  O que vai no arquivo, item a item: quem exerce portabilidade precisa saber o que
+                está levando antes de clicar, e a lista é o que equilibra este quadro com o da
+                exclusão ao lado, em vez de deixar o par com um vazio de uma mão de altura. #}
+            <p class="pl-nota mb-2">O arquivo traz, em JSON:</p>
+            <ul class="pl-chips mb-3">
+                <li><span class="pl-tag">Dados da conta</span></li>
+                <li><span class="pl-tag">Consentimentos e datas</span></li>
+                <li><span class="pl-tag">Sessões registradas</span></li>
+                <li><span class="pl-tag">Histórico das suas ações</span></li>
+            </ul>
+            <p class="pl-nota">
+                O CPF ou CNPJ sai completo nele, e em nenhum outro lugar da plataforma.
+            </p>
+            <div class="pl-acoes-form">
+                <a class="pl-btn" href="{{ app_url }}/privacidade/exportar">Baixar meus dados (JSON)</a>
+            </div>
+        </section>
+
+        {% if pode_excluir %}
+            <section class="pl-card pl-perigo" aria-labelledby="h-excluir">
+                <div class="pl-linha-titulo"><h2 class="pl-secao" id="h-excluir">Excluir minha conta</h2></div>
+                {#  Consequência de ação irreversível fica visível, curta, diante de quem vai
+                    clicar: isso é consentimento informado, não dica de uso. A versão completa
+                    aparece de novo na confirmação, no momento do clique. #}
+                <p class="pl-nota">
+                    Sua conta sai de toda consulta da plataforma, seu perfil deixa de aparecer em
+                    buscas e compatibilizações, e todas as suas sessões são encerradas na hora.
+                    O pedido fica registrado na trilha de auditoria, que é o que comprova o
+                    atendimento. Esta ação não pode ser desfeita por você.
+                </p>
+
+                <form method="post" action="{{ app_url }}/privacidade/excluir"
+                      data-confirmar="Excluir sua conta agora? Seu perfil sai de todas as buscas e compatibilizações, suas sessões são encerradas, e você não consegue desfazer.">
+                    {{ form.csrf() }}
+                    {{ form.campo('confirmacao', 'Digite EXCLUIR para confirmar', 'text', '', null,
+                        {autocomplete: 'off', required: true}) }}
+                    <div class="pl-acoes-form">
+                        <button type="submit" class="btn btn-danger">Excluir minha conta</button>
+                    </div>
+                </form>
+            </section>
+        {% else %}
+            <section class="pl-card" aria-labelledby="h-excluir">
+                <div class="pl-linha-titulo"><h2 class="pl-secao" id="h-excluir">Excluir minha conta</h2></div>
+                <p class="pl-nota mb-0">
+                    Contas de administração não são excluídas nesta tela. A remoção é feita por
+                    outro administrador, para que a plataforma não fique sem moderação nem trilha
+                    de auditoria.
+                </p>
+            </section>
+        {% endif %}
+    </div>
+</div>

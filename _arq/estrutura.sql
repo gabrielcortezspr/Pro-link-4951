@@ -59,6 +59,7 @@ CREATE TABLE sis_usuarios (
   usu_documento_cif   VARBINARY(255)   NULL COMMENT 'CPF/CNPJ cifrado (AES-256-GCM)',
   usu_documento_hash  CHAR(64)         NULL COMMENT 'SHA-256 com pepper, só para busca exata',
   usu_telefone        VARCHAR(20)      NULL,
+  usu_modelo_convite  TEXT             NULL COMMENT 'modelo da mensagem de convite, com {nome}, {demanda} e {local}; NULL = o padrão da plataforma (D88)',
   usu_email_verificado TINYINT(1)      NOT NULL DEFAULT 0,
   usu_dt_ultimo_login DATETIME         NULL,
   usu_tentativas      TINYINT UNSIGNED NOT NULL DEFAULT 0,
@@ -528,6 +529,26 @@ CREATE TABLE pro_manifestacoes (
   CONSTRAINT uq_man_dem_usu UNIQUE (man_dem_id, man_usu_id),
   CONSTRAINT fk_man_dem_id FOREIGN KEY (man_dem_id) REFERENCES pro_demandas (dem_id),
   CONSTRAINT fk_man_usu_id FOREIGN KEY (man_usu_id) REFERENCES sis_usuarios (usu_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- Perfis que a dona da demanda dispensou no feed de compatíveis (D87). Dispensar tira o perfil
+-- da lista de quem ainda falta avaliar, e só isso: não avisa o titular, não mexe no motor nem no
+-- sorteio (a sessão continua gravando o conjunto inteiro). Desfazer volta dsp_status para 'X';
+-- dispensar de novo reativa a mesma linha, porque o índice único é de duas colunas NOT NULL.
+CREATE TABLE pro_dispensas (
+  dsp_id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  dsp_dem_id      BIGINT UNSIGNED NOT NULL,
+  dsp_usu_id      BIGINT UNSIGNED NOT NULL COMMENT 'titular do perfil dispensado',
+  dsp_usu_autor   BIGINT UNSIGNED NOT NULL COMMENT 'quem dispensou: a dona da demanda',
+  dsp_dt_registro DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  dsp_log         TEXT         NULL,
+  dsp_status      CHAR(1)      NOT NULL DEFAULT 'A',
+  CONSTRAINT pk_dsp_id PRIMARY KEY (dsp_id),
+  CONSTRAINT uq_dsp_dem_usu UNIQUE (dsp_dem_id, dsp_usu_id),
+  CONSTRAINT fk_dsp_dem_id FOREIGN KEY (dsp_dem_id) REFERENCES pro_demandas (dem_id),
+  CONSTRAINT fk_dsp_usu_id FOREIGN KEY (dsp_usu_id) REFERENCES sis_usuarios (usu_id),
+  CONSTRAINT fk_dsp_usu_autor FOREIGN KEY (dsp_usu_autor) REFERENCES sis_usuarios (usu_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 

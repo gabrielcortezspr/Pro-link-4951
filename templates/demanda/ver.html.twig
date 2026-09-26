@@ -55,17 +55,8 @@
     </div>
 
     {% if eh_dono and d.dem_dt_publicacao is not null %}
-        <div class="pl-head-acoes">
-            {#  Quem já se ofereceu vem antes de quem o motor aproxima: um é gente que decidiu, o
-                outro é uma lista indicativa. #}
-            <a class="pl-btn" href="{{ app_url }}/demandas/{{ d.dem_id }}/interessados">Ver interessados</a>
-            {% if d.tos is not empty %}
-                <a class="pl-btn" href="{{ app_url }}/demandas/{{ d.dem_id }}/compativeis">
-                    Ver perfis compatíveis
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="M13 6l6 6-6 6"/></svg>
-                </a>
-            {% endif %}
-        </div>
+        {#  "Ver interessados" e "Ver perfis compatíveis" saíram daqui (D87): a sub-navegação
+            logo abaixo leva às duas telas e diz, com número, o que espera em cada uma. #}
     {% elseif not eh_dono %}
         {#  Denunciar (D84), no canto do cabeçalho onde o dono tem as ações dele. Quem lê a
             demanda de outra conta não tem ação de página além desta, e ela fica em peso de
@@ -75,6 +66,12 @@
         </div>
     {% endif %}
 </div>
+
+{#  A sub-navegação da demanda (D87), só para a dona e só depois de publicada: rascunho não tem
+    compatíveis nem contatos. #}
+{% if eh_dono and d.dem_dt_publicacao is not null %}
+    {{ ui.abas_demanda(d, painel|default(null), 'demanda') }}
+{% endif %}
 
 {#  Modo leitura, como no detalhe do mockup: a demanda encerrada continua inteira e só não aceita
     mais edição. Nota, e não alerta: nada deu errado e nada foi apagado. #}
@@ -233,25 +230,10 @@
                 {% endif %}
             </section>
 
-            {#  O feed de compatíveis só faz sentido depois de publicada e com atividade
-                escolhida: sem código da tabela não há por onde procurar, e o controller
-                devolveria a pessoa para cá com um aviso. #}
-            {% if d.dem_dt_publicacao is not null and d.tos is not empty %}
-                <section class="pl-card">
-                    <div class="pl-linha-titulo">
-                        <h2 class="pl-secao">Quem já comprovou fazer isto</h2>
-                        {{ ui.info('Como a lista é montada',
-                            'A plataforma cruza as atividades escolhidas ao lado com o acervo de ART e CAT registrado no CREA, e mede a aderência por dimensão. A ordem é sorteada a cada sessão, com semente registrada.', 'fim') }}
-                    </div>
-                    <p class="pl-nota">
-                        A correspondência é apenas indicativa: não há ranking nem nota, e a decisão
-                        continua sendo sua.
-                    </p>
-                    <a class="pl-btn" href="{{ app_url }}/demandas/{{ d.dem_id }}/compativeis">
-                        Ver perfis compatíveis
-                    </a>
-                </section>
-            {% endif %}
+            {#  O quadro "Quem já comprovou fazer isto", que só levava aos compatíveis, saiu (D87):
+                a aba Compatíveis da sub-navegação faz o mesmo e diz quantos perfis há para
+                avaliar. A frase de não-ranking continua na tela onde o motor apresenta o
+                resultado, que é a de compatíveis. #}
 
             {% if editavel %}
                 <section class="pl-card">
@@ -278,7 +260,7 @@
                         {#  Sem este campo, salvar a edição apagaria o prazo gravado. #}
                         {{ form.inicio_ate(d.dem_inicio_ate|default(''), erros.inicio_ate|default(null)) }}
                         <p class="pl-nota pl-nota-perguntas">
-                            Regime, local e início viram perguntas para quem manifestar interesse.
+                            Regime, local e início viram perguntas para quem se candidatar.
                         </p>
                         {{ form.selecao('alvo', 'Quem pode atender', alvos, d.dem_alvo,
                             erros.alvo|default(null), {required: true}, false) }}
@@ -323,17 +305,17 @@
                         {% if manifestacao_id %}
                             <div class="pl-acoes-form">
                                 <a class="pl-btn" href="{{ app_url }}/manifestacoes/{{ manifestacao_id }}">
-                                    Abrir a sua manifestação
+                                    Abrir a sua candidatura
                                 </a>
                             </div>
                             <p class="pl-nota mt-2 mb-0">
-                                Você já manifestou interesse nesta demanda. O envio vale uma vez
+                                Você já se candidatou a esta demanda. O envio vale uma vez
                                 por demanda; o que houver de novo acontece na conversa.
                             </p>
                         {% else %}
                             <div class="pl-acoes-form">
                                 <a class="pl-cta" href="{{ app_url }}/demandas/{{ d.dem_id }}/manifestar">
-                                    Manifestar interesse
+                                    Candidatar-me
                                 </a>
                             </div>
                             <p class="pl-nota mt-2 mb-0">
@@ -345,7 +327,7 @@
                         <p class="pl-nota mt-3 mb-0">
                             Esta demanda está dirigida a
                             {{ d.dem_alvo == 'E' ? 'empresas' : 'profissionais' }} registrados no
-                            CREA, então ela não recebe manifestação da sua conta.
+                            CREA, então ela não recebe candidatura da sua conta.
                         </p>
                     {% endif %}
                 {% endif %}

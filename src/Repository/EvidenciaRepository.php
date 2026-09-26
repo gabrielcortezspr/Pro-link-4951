@@ -97,6 +97,26 @@ final class EvidenciaRepository extends Repositorio
      * decrescente da multiplicidade. Conta ART, não linha da view: uma ART com cinco atividades
      * aparece cinco vezes ali.
      */
+    /**
+     * Os códigos TOS distintos do acervo de um candidato. Serve à vitrine (D89), que diz a quem
+     * olha se a demanda cai na área em que ele já tem acervo.
+     *
+     * @return list<string>
+     */
+    public function codigosDoCandidato(string $tipo, int $candidatoId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT DISTINCT evi_tos_codigo
+               FROM crea_evidencias
+              WHERE evi_candidato_tipo = :tipo AND evi_candidato_id = :id'
+        );
+        $stmt->bindValue(':tipo', $tipo);
+        $stmt->bindValue(':id', $candidatoId, \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return array_map('strval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
+    }
+
     public function totalDeArts(string $tipo, int $candidatoId): int
     {
         $stmt = $this->pdo->prepare(

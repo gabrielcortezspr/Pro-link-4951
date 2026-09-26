@@ -23,7 +23,8 @@
 {% set ativo = 'manifestacoes' %}
 {% set medida = 'registro' %}
 
-{% block titulo_tela %}Interesse{% endblock %}
+{#  Convite ou candidatura (D87): a origem diz qual, e o nome da tela acompanha. #}
+{% block titulo_tela %}{{ (manifestacao.man_origem|default('C')) == 'D' ? 'Convite' : 'Candidatura' }}{% endblock %}
 
 {#  Um registro com painel de ação ao lado: à esquerda a conversa e o retrato, à direita o que
     identifica esta manifestação. #}
@@ -58,9 +59,9 @@
 <div class="pl-head">
     <div class="tit">
         <p class="mb-2">
-            <a class="pl-link-voltar" href="{{ eh_demandante ? app_url ~ '/demandas/' ~ m.man_dem_id ~ '/interessados' : app_url ~ '/manifestacoes' }}">
+            <a class="pl-link-voltar" href="{{ eh_demandante ? app_url ~ '/demandas/' ~ m.man_dem_id ~ '/contatos' : app_url ~ '/manifestacoes' }}">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H6"/><path d="M11 6l-6 6 6 6"/></svg>
-                {{ eh_demandante ? 'Voltar para os interessados' : 'Voltar para meus interesses' }}
+                {{ eh_demandante ? 'Voltar para os contatos' : 'Voltar para candidaturas e convites' }}
             </a>
         </p>
 
@@ -72,12 +73,12 @@
             {{ ui.situacao_manifestacao(m.man_situacao) }}
             <span class="pl-sep" aria-hidden="true"></span>
             {% if eh_demandante %}
-                <span>{{ ui.tipo_candidato(m.man_candidato_tipo) }} interessado em
+                <span>{{ do_demandante ? 'Convidado por você para' : 'Candidatou-se a' }}
                     <a href="{{ app_url }}/demandas/{{ m.man_dem_id }}">{{ m.dem_titulo }}</a></span>
             {% else %}
                 {#  Sem repetir o título da demanda, que já é o <h1> logo acima: o que falta dizer
                     aqui é de quem partiu o interesse, não qual é a demanda. #}
-                <span>{{ do_demandante ? 'Interesse registrado pelo demandante' : 'Manifestação enviada por você' }}</span>
+                <span>{{ do_demandante ? 'Convite da empresa que publicou' : 'Candidatura enviada por você' }}</span>
             {% endif %}
             <span class="pl-sep" aria-hidden="true"></span>
             <span>Enviada em {{ m.man_dt_registro|date('d/m/Y') }} às {{ m.man_dt_registro|date('H\\hi') }}</span>
@@ -113,7 +114,7 @@
                 <div class="pl-linha-titulo">
                     <h2 class="pl-secao">{{ eh_demandante ? 'Respostas às perguntas da demanda' : 'Suas respostas às perguntas da demanda' }}</h2>
                     {{ ui.info('De onde vêm estas respostas',
-                        'Regime, local e início são perguntados a quem manifesta interesse, sobre esta demanda. As respostas não mudam a compatibilidade: servem para a conversa entre as duas partes.', 'fim') }}
+                        'Regime, local e início são perguntados a quem se candidata, sobre esta demanda. As respostas não mudam a compatibilidade: servem para a conversa entre as duas partes.', 'fim') }}
                 </div>
                 {{ ui.respostas(resp, eh_demandante ? 'demandante' : 'candidato') }}
             </section>
@@ -125,13 +126,13 @@
             <div class="pl-linha-titulo">
                 <h2 class="pl-secao">Conversa</h2>
                 {{ ui.info('Onde esta conversa vive',
-                    'O canal é desta manifestação, e não uma caixa de entrada entre duas pessoas: ele existe enquanto o assunto existir. Nem e-mail nem telefone são entregues pela plataforma. Se as duas partes quiserem trocar contato, escrevem aqui.') }}
+                    'O canal é deste contato, e não uma caixa de entrada entre duas pessoas: ele existe enquanto o assunto existir. Nem e-mail nem telefone são entregues pela plataforma. Se as duas partes quiserem trocar contato, escrevem aqui.') }}
             </div>
 
             {% if m.man_mensagem is null and mensagens is empty %}
                 <p class="pl-nota mb-0">
                     {% if eh_demandante %}
-                        Nenhuma mensagem ainda. Responder aqui avisa quem manifestou que você leu o
+                        Nenhuma mensagem ainda. Responder aqui avisa a pessoa que você leu o
                         perfil, sem expor o seu contato.
                     {% else %}
                         Você não escreveu nada no envio, e o demandante ainda não respondeu.
@@ -152,7 +153,7 @@
                                     há nome do outro na consulta, e o papel é o que resta de
                                     verdadeiro. #}
                                 <span class="nm">{{ envio_meu ? 'Você' : (eh_demandante ? nome_candidato : 'Quem publicou a demanda') }}</span>
-                                <span class="papel">{{ do_demandante ? 'Enviada com o interesse registrado' : 'Enviada com a manifestação' }}</span>
+                                <span class="papel">{{ do_demandante ? 'Enviada com o convite' : 'Enviada com a candidatura' }}</span>
                                 <span class="qd">{{ m.man_dt_registro|date('d/m/Y') }} às {{ m.man_dt_registro|date('H\\hi') }}</span>
                             </p>
                             <p class="tx">{{ m.man_mensagem }}</p>
@@ -165,7 +166,7 @@
                             <p class="qm">
                                 <span class="nm">{{ minha ? 'Você' : (msg.msg_usu_id == m.man_usu_id ? nome_candidato : msg.usu_nome) }}</span>
                                 <span class="papel">
-                                    {{- msg.msg_usu_id == m.man_usu_id ? 'Quem manifestou' : 'Quem publicou a demanda' -}}
+                                    {{- msg.msg_usu_id == m.man_usu_id ? (do_demandante ? 'Quem foi convidado' : 'Quem se candidatou') : 'Quem publicou a demanda' -}}
                                 </span>
                                 <span class="qd">{{ msg.msg_dt_registro|date('d/m/Y') }} às {{ msg.msg_dt_registro|date('H\\hi') }}</span>
                             </p>
@@ -387,13 +388,13 @@
 
     <div class="pl-stack">
         <section class="pl-card">
-            <div class="pl-linha-titulo"><h2 class="pl-secao">Esta manifestação</h2></div>
+            <div class="pl-linha-titulo"><h2 class="pl-secao">{{ do_demandante ? 'Este convite' : 'Esta candidatura' }}</h2></div>
 
             <dl class="pl-dl mini mt-0">
                 <dt>Demanda</dt>
                 <dd><a href="{{ app_url }}/demandas/{{ m.man_dem_id }}">{{ m.dem_titulo }}</a></dd>
 
-                <dt>{{ eh_demandante ? 'Interessado' : (do_demandante ? 'Perfil procurado' : 'Enviada por') }}</dt>
+                <dt>{{ eh_demandante ? (do_demandante ? 'Convidado' : 'Candidato') : (do_demandante ? 'Convidado' : 'Enviada por') }}</dt>
                 <dd>{{ eh_demandante ? nome_candidato : 'Você' }}
                     <span class="lin-sub">{{ ui.tipo_candidato(m.man_candidato_tipo) }} registrado no CREA</span></dd>
 
@@ -403,14 +404,9 @@
                 <dt>Situação</dt>
                 <dd>{{ ui.situacao_manifestacao(m.man_situacao) }}</dd>
 
-                <dt>{{ eh_demandante ? 'Aberta por você' : 'Aberta pelo demandante' }}</dt>
-                <dd>
-                    {% if m.man_dt_visualizacao %}
-                        <span class="pl-mono">{{ m.man_dt_visualizacao|date('d/m/Y') }} às {{ m.man_dt_visualizacao|date('H\\hi') }}</span>
-                    {% else %}
-                        Ainda não
-                    {% endif %}
-                </dd>
+                {#  Sem "Aberta pela empresa em" nem "Aberto pela pessoa em" (D88): nenhuma das partes
+                    vê quando a outra abriu. O que importa, se houve resposta, é a mensagem, e ela
+                    está na conversa ao lado. #}
             </dl>
         </section>
 

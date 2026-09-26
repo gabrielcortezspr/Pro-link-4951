@@ -84,9 +84,10 @@ final class InteressadoService
     /**
      * Uma manifestação aberta por uma das partes: o perfil congelado e a conversa.
      *
-     * Marcar como visualizada só acontece quando quem abre é o **demandante**: a data serve para
-     * dizer a quem manifestou que foi visto, e carimbá-la quando o próprio autor reabre a própria
-     * manifestação tornaria o dado uma mentira.
+     * Marcar como visualizada só acontece quando quem abre é **quem recebeu** o contato: a empresa,
+     * numa candidatura; o profissional, num convite (D87). A data serve para dizer a quem começou
+     * que foi visto, e carimbá-la quando o próprio autor reabre o que enviou tornaria o dado uma
+     * mentira.
      *
      * @throws ValidacaoException não existe, ou quem pede não é parte
      */
@@ -96,7 +97,13 @@ final class InteressadoService
 
         $ehDemandante = (int) $manifestacao['dem_usu_id'] === $usuarioId;
 
-        if ($ehDemandante) {
+        // "Visto" é de quem RECEBEU (D87): numa candidatura (origem C), a empresa; num convite
+        // (origem D), o profissional convidado. Antes só a empresa carimbava, e um convite ficava
+        // "visto" quando a própria empresa o reabria, enquanto o convidado nunca tinha "novo".
+        // É o mesmo sentido que `DashboardRepository::naoVistas()` já conta.
+        $recebeu = ($manifestacao['man_origem'] ?? 'C') === 'D' ? !$ehDemandante : $ehDemandante;
+
+        if ($recebeu) {
             $this->manifestacoes->marcarVisualizada($manifestacaoId);
         }
 

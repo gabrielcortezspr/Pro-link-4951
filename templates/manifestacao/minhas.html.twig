@@ -1,125 +1,209 @@
 {% extends 'layout/base.html.twig' %}
 {% import 'layout/_ui.html.twig' as ui %}
 
-{% block titulo %}Meus interesses · Pro-Link{% endblock %}
+{% block titulo %}Candidaturas e convites · Pro-Link{% endblock %}
 
 {#
-    A lista de quem manifestou, irmã da confirmação no cenário 4.
+    O lado de quem tem registro no CREA (D87): os convites que recebeu e as candidaturas que
+    enviou. Era "Meus interesses", uma tabela só que chamava tudo de "manifestação enviada", e o
+    convite que a empresa mandou aparecia como se a própria pessoa o tivesse enviado.
 
-    docs/mockups/prolink-interacoes.html não desenha esta tela: das duas que ele traz, a primeira
-    é a confirmação (portada em confirmar.html.twig) e a segunda é a denúncia. O que vem de lá são
-    as peças, não a composição: a nota neutra `.miniinfo` (aqui `.pl-miniinfo`), o vocabulário de
-    situação em pílula e a entrada "Minhas manifestações" da barra lateral, que nesta aplicação se
-    chama "Meus interesses" porque a lista também recebe a linha aberta pelo demandante.
+    Dois grupos, com vocabulário próprio:
+    - **Convites recebidos** (`man_origem = 'D'`), primeiro, porque é o que pede resposta. A marca
+      "Novo" enquanto a pessoa não abriu (`man_dt_visualizacao` nulo, que num convite é de quem
+      recebeu).
+    - **Minhas candidaturas** (`man_origem = 'C'`): o que ela enviou pela vitrine, e se há
+      mensagem nova da empresa. Sem "Vista pela empresa em" (D88): nenhuma das partes vê quando a
+      outra abriu.
+
+    Os termos do edital ficam no "i". Cada linha abre a conversa.
 #}
 
 {#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
 {% set shell = 'app' %}
 {% set ativo = 'manifestacoes' %}
 
-{% block titulo_tela %}Meus interesses{% endblock %}
+{% block titulo_tela %}Candidaturas e convites{% endblock %}
 
-{#  Lista de registros comparáveis entre si: a pergunta de quem abre é "o que aconteceu com o que
-    eu mandei", e comparar quatro linhas pede colunas alinhadas. #}
+{#  Listas de registros comparáveis entre si: colunas alinhadas. #}
 {% block classe_main %}pl-wrap densa{% endblock %}
 
 {% block conteudo %}
-{% set nao_lidas = manifestacoes|reduce((soma, m) => soma + m.nao_lidas, 0) %}
+{% set convites     = manifestacoes|filter(m => (m.man_origem|default('C')) == 'D') %}
+{% set candidaturas = manifestacoes|filter(m => (m.man_origem|default('C')) == 'C') %}
+{% set novos        = convites|filter(m => not m.man_dt_visualizacao)|length %}
+{% set nao_lidas    = manifestacoes|reduce((soma, m) => soma + m.nao_lidas, 0) %}
 
 <div class="pl-head">
     <div class="tit">
-        <h1>Meus interesses</h1>
-        {% if manifestacoes is not empty %}
-            <p class="sub">
-                <span><span class="n">{{ manifestacoes|length }}</span>
-                    {{ manifestacoes|length == 1 ? 'manifestação enviada' : 'manifestações enviadas' }}</span>
-                {% if nao_lidas > 0 %}
-                    <span class="pl-sep" aria-hidden="true"></span>
-                    <span><span class="n">{{ nao_lidas }}</span>
-                        {{ nao_lidas == 1 ? 'mensagem não lida' : 'mensagens não lidas' }}</span>
-                {% endif %}
-            </p>
-        {% endif %}
+        <h1>Candidaturas e convites</h1>
+        <div class="sub">
+            <span><span class="n">{{ convites|length }}</span> {{ convites|length == 1 ? 'convite recebido' : 'convites recebidos' }}</span>
+            <span class="pl-sep" aria-hidden="true"></span>
+            <span><span class="n">{{ candidaturas|length }}</span> {{ candidaturas|length == 1 ? 'candidatura enviada' : 'candidaturas enviadas' }}</span>
+            {% if nao_lidas > 0 %}
+                <span class="pl-sep" aria-hidden="true"></span>
+                <span><span class="n">{{ nao_lidas }}</span> {{ nao_lidas == 1 ? 'mensagem não lida' : 'mensagens não lidas' }}</span>
+            {% endif %}
+            {{ ui.info('Convite e candidatura',
+                'Convite é quando uma empresa encontra o seu perfil entre os compatíveis de uma demanda e chama você; o edital chama isso de "registrar interesse". Candidatura é quando você se oferece para uma demanda aberta; o edital chama isso de "manifestar interesse". Os dois abrem uma conversa com quem publicou.') }}
+        </div>
     </div>
     <div class="pl-head-acoes">
         <a class="pl-btn" href="{{ app_url }}/demandas/abertas">Ver demandas abertas</a>
     </div>
 </div>
 
-{% if manifestacoes is empty %}
-    <div class="pl-card pl-vazio">
-        <p class="t">Você ainda não manifestou interesse em nenhuma demanda</p>
-        <p class="s">
-            Ao manifestar, a plataforma envia ao demandante um retrato do seu perfil com o que
-            estiver aberto para ele, e abre aqui um canal para os dois conversarem.
-        </p>
-        <div class="a">
-            <a class="pl-cta" href="{{ app_url }}/demandas/abertas">Ver demandas abertas</a>
-        </div>
-    </div>
-{% else %}
-    <div class="pl-card">
-        <div class="table-responsive" tabindex="0" role="region"
-             aria-label="Manifestações de interesse que você enviou">
-            <table class="pl-table">
-                <caption class="visually-hidden">
-                    Demandas em que você manifestou interesse, com a situação de cada envio e o retorno do demandante
-                </caption>
-                <thead>
-                    <tr>
-                        <th scope="col" class="assunto">Demanda</th>
-                        <th scope="col">Situação</th>
-                        <th scope="col">Retorno do demandante</th>
-                        <th scope="col">Enviada</th>
-                        <th scope="col"><span class="visually-hidden">Ação</span></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for m in manifestacoes %}
-                        <tr>
-                            <td class="assunto">
-                                <a class="lin-tt" href="{{ app_url }}/manifestacoes/{{ m.man_id }}">{{ m.dem_titulo }}</a>
-                                {#  A demanda encerrada muda o que a pessoa pode esperar daqui, e é
-                                    a única situação da demanda que vale ocupar espaço na linha. #}
-                                {% if m.dem_situacao == 'ENCERRADA' %}
-                                    <span class="lin-sub">Demanda encerrada pelo demandante</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ ui.situacao_manifestacao(m.man_situacao) }}</td>
-                            <td>
-                                {#  Mensagem não lida é o que pede ação de quem lê esta lista, e por
-                                    isso vem antes da data; a data de visualização fica de apoio,
-                                    embaixo, em vez de disputar a mesma linha. #}
-                                {% if m.nao_lidas > 0 %}
-                                    <span class="pl-novas">
-                                        <span class="pd" aria-hidden="true"></span>
-                                        {{ m.nao_lidas }} {{ m.nao_lidas == 1 ? 'mensagem nova' : 'mensagens novas' }}
-                                    </span>
-                                {% endif %}
-                                {% if m.man_dt_visualizacao %}
-                                    <span class="lin-sub">Vista em {{ m.man_dt_visualizacao|date('d/m/Y') }}</span>
-                                {% elseif m.nao_lidas == 0 %}
-                                    <span class="lin-sub">Ainda não aberta</span>
-                                {% endif %}
-                            </td>
-                            <td><span class="pl-mono">{{ m.man_dt_registro|date('d/m/Y') }}</span></td>
-                            <td class="text-end">
-                                <a class="pl-btn sm" href="{{ app_url }}/manifestacoes/{{ m.man_id }}">Abrir</a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+{# ---------------------------------------------------------------- convites recebidos #}
+<section class="pl-contatos-grupo" aria-labelledby="grupo-convites">
+    <div class="pl-linha-titulo">
+        <h2 class="pl-secao" id="grupo-convites">Convites recebidos</h2>
+        <span class="cnt">{{ convites|length }}</span>
+        {% if novos > 0 %}
+            <span class="pl-novas"><span class="pd" aria-hidden="true"></span>{{ novos }} {{ novos == 1 ? 'novo' : 'novos' }}</span>
+        {% endif %}
     </div>
 
-    {#  A nota neutra do mockup, e não `.pl-nota` em texto corrido: é a mesma promessa que a
-        confirmação faz antes do clique, e as duas telas passaram a dizê-la na mesma caixa. #}
+    {% if convites is empty %}
+        <div class="pl-card pl-vazio pl-vazio-grupo">
+            <p class="t">Nenhum convite por enquanto</p>
+            <p class="s">
+                Quando uma empresa encontrar o seu perfil entre os compatíveis de uma demanda e
+                chamar você, o convite aparece aqui e chega por e-mail.
+            </p>
+        </div>
+    {% else %}
+        <div class="pl-card">
+            <div class="table-responsive" tabindex="0" role="region" aria-label="Convites que você recebeu">
+                <table class="pl-table">
+                    <caption class="visually-hidden">Convites recebidos, com a demanda, a data, se você já abriu e as mensagens não lidas</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col" class="assunto">Demanda</th>
+                            <th scope="col">Recebido em</th>
+                            <th scope="col">Situação</th>
+                            <th scope="col">Conversa</th>
+                            <th scope="col"><span class="visually-hidden">Ação</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in convites %}
+                            <tr{% if not m.man_dt_visualizacao %} class="novo"{% endif %}>
+                                <td class="assunto">
+                                    <a class="lin-tt" href="{{ app_url }}/manifestacoes/{{ m.man_id }}">{{ m.dem_titulo }}</a>
+                                    {% if m.publicante|default(null) %}
+                                        <span class="lin-sub">Convite de {{ m.publicante|nome_proprio }}</span>
+                                    {% endif %}
+                                    {% if m.dem_situacao == 'ENCERRADA' %}
+                                        <span class="lin-sub">Demanda encerrada pela empresa</span>
+                                    {% endif %}
+                                </td>
+                                <td><span class="pl-mono">{{ m.man_dt_registro|date('d/m/Y') }}</span></td>
+                                <td>
+                                    {#  "Novo" é sobre o que a própria pessoa ainda não abriu, e só
+                                        ela vê. Depois disso, a situação comum a todos. #}
+                                    {% if not m.man_dt_visualizacao %}
+                                        <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Novo</span>
+                                    {% elseif m.man_situacao == 'RESPONDIDA' %}
+                                        <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Em conversa</span>
+                                    {% else %}
+                                        <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Recebido</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if m.nao_lidas > 0 %}
+                                        <span class="pl-novas">
+                                            <span class="pd" aria-hidden="true"></span>
+                                            {{ m.nao_lidas }} {{ m.nao_lidas == 1 ? 'mensagem nova' : 'mensagens novas' }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a class="pl-btn sm" href="{{ app_url }}/manifestacoes/{{ m.man_id }}">Abrir<span class="visually-hidden"> o convite para {{ m.dem_titulo }}</span></a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+</section>
+
+{# ---------------------------------------------------------------- minhas candidaturas #}
+<section class="pl-contatos-grupo" aria-labelledby="grupo-candidaturas">
+    <div class="pl-linha-titulo">
+        <h2 class="pl-secao" id="grupo-candidaturas">Minhas candidaturas</h2>
+        <span class="cnt">{{ candidaturas|length }}</span>
+    </div>
+
+    {% if candidaturas is empty %}
+        <div class="pl-card pl-vazio pl-vazio-grupo">
+            <p class="t">Você ainda não se candidatou a nenhuma demanda</p>
+            <p class="s">
+                Ao se candidatar, a plataforma envia à empresa um retrato do seu perfil com o que
+                estiver aberto para ela, e abre aqui um canal para vocês conversarem.
+            </p>
+            <div class="a">
+                <a class="pl-cta" href="{{ app_url }}/demandas/abertas">Ver demandas abertas</a>
+            </div>
+        </div>
+    {% else %}
+        <div class="pl-card">
+            <div class="table-responsive" tabindex="0" role="region" aria-label="Candidaturas que você enviou">
+                <table class="pl-table">
+                    <caption class="visually-hidden">Demandas a que você se candidatou, com a situação de cada envio e o retorno da empresa</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col" class="assunto">Demanda</th>
+                            <th scope="col">Situação</th>
+                            <th scope="col">Conversa</th>
+                            <th scope="col">Enviada em</th>
+                            <th scope="col"><span class="visually-hidden">Ação</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in candidaturas %}
+                            <tr>
+                                <td class="assunto">
+                                    <a class="lin-tt" href="{{ app_url }}/manifestacoes/{{ m.man_id }}">{{ m.dem_titulo }}</a>
+                                    {#  A demanda encerrada muda o que a pessoa pode esperar daqui, e é
+                                        a única situação da demanda que vale ocupar espaço na linha. #}
+                                    {% if m.dem_situacao == 'ENCERRADA' %}
+                                        <span class="lin-sub">Demanda encerrada pela empresa</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ ui.situacao_manifestacao(m.man_situacao) }}</td>
+                                <td>
+                                    {#  Só mensagem nova, ou nada (D88). A data em que a empresa abriu
+                                        saiu: ninguém vê quando o outro abriu. #}
+                                    {% if m.nao_lidas > 0 %}
+                                        <span class="pl-novas">
+                                            <span class="pd" aria-hidden="true"></span>
+                                            {{ m.nao_lidas }} {{ m.nao_lidas == 1 ? 'mensagem nova' : 'mensagens novas' }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td><span class="pl-mono">{{ m.man_dt_registro|date('d/m/Y') }}</span></td>
+                                <td class="text-end">
+                                    <a class="pl-btn sm" href="{{ app_url }}/manifestacoes/{{ m.man_id }}">Abrir<span class="visually-hidden"> a candidatura para {{ m.dem_titulo }}</span></a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+</section>
+
+{% if manifestacoes is not empty %}
+    {#  A mesma promessa da confirmação, na mesma caixa neutra. #}
     <p class="pl-miniinfo mt-3">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></svg>
         <span>
-            O retrato enviado em cada manifestação continua como estava no dia do envio. Mudar o
-            seu perfil hoje não muda o que já foi entregue.
+            O retrato do seu perfil que foi em cada candidatura ou convite continua como estava no
+            dia do envio. Mudar o seu perfil hoje não muda o que já foi entregue.
         </span>
     </p>
 {% endif %}

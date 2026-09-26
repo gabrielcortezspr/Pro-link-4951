@@ -2,7 +2,7 @@
 {% import 'layout/_form.html.twig' as form %}
 {% import 'layout/_ui.html.twig' as ui %}
 
-{% block titulo %}Manifestar interesse · Pro-Link{% endblock %}
+{% block titulo %}Candidatar-me · Pro-Link{% endblock %}
 
 {#
     A confirmação de manifestação de interesse, portada da tela "01 Manifestação de Interesse
@@ -35,7 +35,7 @@
 {% set ativo = 'abertas' %}
 {% set medida = 'leitura' %}
 
-{% block titulo_tela %}Manifestar interesse{% endblock %}
+{% block titulo_tela %}Candidatura{% endblock %}
 
 {#  Medida de leitura: esta tela é uma decisão, não um registro nem uma lista. O que ela pede é
     que a pessoa leia o que vai sair do perfil dela antes de apertar o botão. #}
@@ -57,7 +57,7 @@
 
 <div class="pl-head">
     <div class="tit">
-        <h1>Manifestar interesse</h1>
+        <h1>Candidatar-me a esta demanda</h1>
         {#  <div> e não <p>: o "i" é um <details>, que não pode viver dentro de parágrafo. O
             próprio analisador do navegador fecharia o <p> antes dele, e ele cairia numa linha
             solta embaixo do texto que explica. Mesmo caso já corrigido em busca/profissionais. #}
@@ -249,7 +249,7 @@
 
         <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/manifestar"
               class="pl-form-embutido"
-              data-confirmar="Manifestar interesse nesta demanda? O envio não pode ser desfeito e só acontece uma vez por demanda.">
+              data-confirmar="Enviar a sua candidatura a esta demanda? O envio não pode ser desfeito e só acontece uma vez por demanda.">
             {{ form.csrf() }}
 
             {#  As perguntas da demanda (D78). Regime, região e início eram "dimensões" que só
@@ -373,7 +373,7 @@
             </p>
 
             <div class="pl-acoes-form">
-                <button type="submit" class="pl-cta">Manifestar interesse</button>
+                <button type="submit" class="pl-cta">Enviar candidatura</button>
                 <a class="pl-btn ghost" href="{{ app_url }}/demandas/{{ demanda.dem_id }}">Voltar para a demanda</a>
             </div>
         </form>

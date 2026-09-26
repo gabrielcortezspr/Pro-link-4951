@@ -72,6 +72,18 @@
             demandante sem registro no conselho, e a palavra que o Anexo I usa é "contratante". #}
         <small>{% if pl_u.perfil == 'PROFISSIONAL' %}Profissional{% elseif pl_u.perfil == 'EMPRESA' %}Empresa{% else %}Contratante{% endif %}</small>
 
+        {#  O que chegou e não foi aberto, mais as mensagens não lidas (D87): um número só para
+            o sino e para o item do menu a que ele leva, para os dois nunca discordarem. O
+            profissional recebe convites e mensagens em /manifestacoes; empresa e contratante,
+            candidaturas e mensagens em /demandas. #}
+        {#- Separado por papel: uma empresa publica demandas (candidaturas chegam em /demandas) e
+            também se candidata (convites chegam em /manifestacoes). Cada item do menu mostra o
+            seu, o sino mostra a soma e leva a quem tem pendência, a demanda primeiro. -#}
+        {%- set pl_pd = pendencias() -%}
+        {%- set pl_pend = pl_pd.total|default(0) -%}
+        {%- set pl_pend_dem = pl_pd.como_demandante|default(0) -%}
+        {%- set pl_pend_cand = pl_pd.como_candidato|default(0) -%}
+        {%- set pl_pend_destino = pl_u.perfil == 'PROFISSIONAL' or (pl_pend_dem == 0 and pl_pend_cand > 0) ? 'manifestacoes' : 'demandas' -%}
         <nav class="pl-nav" aria-label="Seções da sua conta">
             <a href="{{ app_url }}/inicio" title="Início"{% if ativo|default('') == 'inicio' %} class="active" aria-current="page"{% endif %}>
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg></span>
@@ -87,6 +99,9 @@
                 <a href="{{ app_url }}/demandas" title="Minhas demandas"{% if ativo|default('') == 'demandas' %} class="active" aria-current="page"{% endif %}>
                     <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2h6v2"/><path d="M8 10h8M8 14h8M8 18h5"/></svg></span>
                     <span class="lb">Minhas demandas</span>
+                    {%- if pl_pend_dem > 0 %}
+                        <span class="ct" aria-hidden="true">{{ pl_pend_dem }}</span>
+                    {%- endif %}
                 </a>
             {% endif %}
             <a href="{{ app_url }}/demandas/abertas" title="Demandas abertas"{% if ativo|default('') == 'abertas' %} class="active" aria-current="page"{% endif %}>
@@ -97,19 +112,23 @@
                 servida a PERFIS_COM_REGISTRO_CREA. Para o contratante a entrada não aparece:
                 seria item de menu que devolve 403 na demonstração. #}
             {% if pl_u.perfil in ['PROFISSIONAL', 'EMPRESA'] %}
-                <a href="{{ app_url }}/manifestacoes" title="Meus interesses"{% if ativo|default('') == 'manifestacoes' %} class="active" aria-current="page"{% endif %}>
+                <a href="{{ app_url }}/manifestacoes" title="Candidaturas e convites"{% if ativo|default('') == 'manifestacoes' %} class="active" aria-current="page"{% endif %}>
                     <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4V5z"/><path d="M8.5 10.5h7"/></svg></span>
-                    <span class="lb">Meus interesses</span>
+                    <span class="lb">Candidaturas e convites</span>
+                    {%- if pl_pend_cand > 0 %}
+                        <span class="ct" aria-hidden="true">{{ pl_pend_cand }}</span>
+                    {%- endif %}
                 </a>
             {% endif %}
-            {#  "Conta e dados", e não "Privacidade": o perfil ganhou uma aba com esse nome, que
-                governa a exposição de cada campo. Esta tela governa a conta, que é outra coisa.
-                Dois itens com o mesmo nome em lugares diferentes é o tipo de ambiguidade que
-                faz a pessoa procurar no lugar errado. #}
+            {#  "Conta e dados" saiu do menu (D88): virou uma aba do Meu perfil, e /privacidade leva
+                para ela. Fica só para a administração, que não tem Meu perfil e continua com a tela
+                própria, e para quem este item é o único caminho até ela. #}
+            {% if pl_u.perfil == 'ADMIN' %}
             <a href="{{ app_url }}/privacidade" title="Conta e dados"{% if ativo|default('') == 'privacidade' %} class="active" aria-current="page"{% endif %}>
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5.5c0 4.4-3 8-7 9.5-4-1.5-7-5.1-7-9.5V6l7-3z"/><path d="M9.2 12.2l2 2 3.6-4"/></svg></span>
                 <span class="lb">Conta e dados</span>
             </a>
+            {% endif %}
         </nav>
 
         <div class="foot">
@@ -125,12 +144,19 @@
         <header class="pl-topbar">
             <p class="pl-topbar-tt">{% block titulo_tela %}{% endblock %}</p>
             <div class="pl-topbar-acoes">
-                {#  Sino sem contador: quem sabe quantas manifestações chegaram e não foram
-                    abertas é DashboardRepository::naoVistas(), e nenhum controller o chama ainda.
-                    Número inventado aqui seria pior que a ausência dele. #}
-                <a class="pl-ibtn" href="{{ app_url }}/manifestacoes" title="Interesses e mensagens">
+                {#  O sino (D87): o que chegou e não foi aberto, mais as mensagens não lidas, em
+                    `pendencias()`. O número vai no sino e no item do menu a que ele leva; zero
+                    não aparece, porque um "0" pendurado no sino leria como alerta vazio. O nome
+                    acessível diz o número por extenso, e não só "sino". #}
+                <a class="pl-ibtn{% if pl_pend > 0 %} tem{% endif %}" href="{{ app_url }}/{{ pl_pend_destino }}"
+                   title="{{ pl_pend > 0 ? pl_pend ~ (pl_pend == 1 ? ' novidade' : ' novidades') ~ ': contatos não abertos e mensagens não lidas' : 'Nada novo por enquanto' }}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M9.5 20a2.5 2.5 0 005 0"/></svg>
-                    <span class="visually-hidden">Interesses e mensagens</span>
+                    {% if pl_pend > 0 %}
+                        <span class="ct" aria-hidden="true">{{ pl_pend > 99 ? '99+' : pl_pend }}</span>
+                        <span class="visually-hidden">{{ pl_pend }} {{ pl_pend == 1 ? 'novidade' : 'novidades' }}: contatos não abertos e mensagens não lidas</span>
+                    {% else %}
+                        <span class="visually-hidden">Nada novo por enquanto</span>
+                    {% endif %}
                 </a>
                 <a class="pl-av xs" href="{{ app_url }}/perfil" title="{{ pl_u.nome|nome_proprio }}">
                     <span aria-hidden="true">{{ pl_u.nome|slice(0, 1)|upper }}</span>

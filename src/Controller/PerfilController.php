@@ -240,8 +240,14 @@ final class PerfilController
         // rota do dono. A regra vale no servidor; aqui ela só vira estado do botão.
         $janela = (new AtualizacaoAcervoService())->janela($usuarioId);
 
+        // A aba "Conta e dados" (D88): o que era a tela /privacidade, agora dentro do perfil do
+        // titular. Mesma montagem, pelo mesmo serviço; as ações continuam nas rotas de antes.
+        $conta = (new \ProLink\Service\PrivacidadeService())->painel($usuarioId);
+
         return View::render($ehEmpresa ? 'perfil/empresa.html.twig' : 'perfil/index.html.twig',
             $this->variaveis($perfil, 'Meu perfil', $erros, $aviso) + [
+                'conta'       => $conta,
+                'finalidades' => \ProLink\Service\PrivacidadeService::FINALIDADES_REVOGAVEIS,
                 'atualizacao' => [
                     'libera'    => $janela['libera']?->format('H:i'),
                     // Segundos até liberar, contados no servidor: o script da tela reativa o
