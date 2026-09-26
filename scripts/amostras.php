@@ -192,7 +192,10 @@ return (static function (): array {
         ->fetchColumn();
 
     $primeiraDemandaId = $pdo
-        ->query('SELECT dem_id FROM pro_demandas WHERE dem_status = \'A\' ORDER BY dem_id LIMIT 1')
+        // Aberta e publicada: a confirmação da candidatura recusa demanda encerrada, e o histórico
+        // semeado (semear-historico.php) põe encerradas nos primeiros ids.
+        ->query('SELECT dem_id FROM pro_demandas WHERE dem_status = \'A\' AND dem_dt_publicacao IS NOT NULL
+                   AND dem_situacao <> \'ENCERRADA\' ORDER BY dem_id LIMIT 1')
         ->fetchColumn();
 
     $perfil = $usuarioProfissional === false
@@ -439,7 +442,10 @@ return (static function (): array {
     // base de demonstração. Por isso o detalhe é montado aqui a partir dos mesmos repositórios,
     // com a mesma conferência de hash que o serviço faz na leitura.
     $umaManifestacao = $pdo
-        ->query('SELECT man_id FROM pro_manifestacoes WHERE man_status = \'A\' ORDER BY man_id LIMIT 1')
+        // De demanda aberta: a confirmação da candidatura recusa demanda encerrada, e o histórico
+        // semeado (semear-historico.php) põe as encerradas nos primeiros ids.
+        ->query('SELECT m.man_id FROM pro_manifestacoes m JOIN pro_demandas d ON d.dem_id = m.man_dem_id
+                  WHERE m.man_status = \'A\' AND d.dem_situacao <> \'ENCERRADA\' ORDER BY m.man_id LIMIT 1')
         ->fetchColumn();
 
     if ($umaManifestacao !== false) {

@@ -68,6 +68,22 @@ function conta(UsuarioRepository $usuarios, string $email): ?array
 // Cada demanda: dona, texto, local, regime, prazo (null = em aberto), público e atividades.
 // `principal` pesa mais na competência que `secundaria` (DemandaService::PESO_*).
 $catalogo = [
+    // As duas demandas da Manauara que o roteiro e a suíte do navegador usam. Antes elas só
+    // existiam se a suíte tivesse rodado; recriar o banco as perdia.
+    [
+        'dona'   => 'construtora.manauara.ltda.0167@prolink.local',
+        'titulo' => 'Plano setorial regional para a Região Metropolitana de Manaus',
+        'escopo' => 'Elaboração de plano setorial regional de planejamento urbano, com diagnóstico, diretrizes de uso do solo e integração entre os municípios da região metropolitana.',
+        'uf' => 'AM', 'municipio' => 'Manaus', 'contrato' => 'PJ', 'inicio' => 30, 'alvo' => 'A',
+        'tos' => ['TOS_10.4.2.3' => 'principal'],
+    ],
+    [
+        'dona'   => 'construtora.manauara.ltda.0167@prolink.local',
+        'titulo' => 'Implantação de cultivo florestal em ambiente controlado',
+        'escopo' => 'Projeto e acompanhamento técnico de produção de espécies florestais em ambiente controlado, com responsável técnico habilitado e acervo registrado na atividade correspondente da Tabela de Obras e Serviços.',
+        'uf' => 'AM', 'municipio' => 'Manaus', 'contrato' => 'OBRA_CERTA', 'inicio' => null, 'alvo' => 'A',
+        'tos' => ['TOS_39.1.2.12' => 'principal'],
+    ],
     [
         'dona'   => 'construtora.manauara.ltda.0167@prolink.local',
         'titulo' => 'Galpão logístico com projeto de prevenção e combate a incêndio',

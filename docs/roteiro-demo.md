@@ -26,10 +26,18 @@ curl -sk https://localhost:8443/saude          # tem que responder, com tos_carr
 **A ordem de preparo do dado importa**, e está no `estado.md`. Resumida:
 
 1. `php scripts/criar-admin.php` (interativo, ou com `--nome --email --senha`)
-2. `php scripts/semear-candidatos.php` — cadastra pelo fluxo real, gastando quatro chamadas da API por profissional (D76)
-   por candidato
-3. `php scripts/abrir-visibilidade-demo.php` — visibilidade variada e determinística
+2. `php scripts/semear-candidatos.php --profissionais=40 --empresas=15` — cadastra pelo fluxo real,
+   gastando quatro chamadas da API por profissional (D76) e duas por empresa. Com `--lista=arquivo`
+   (um e-mail por linha) cadastra exatamente as mesmas contas de uma base anterior
+3. `php scripts/abrir-visibilidade-demo.php` — visibilidade variada e determinística, inclusive das
+   ARTs do quadro das empresas (D95)
 4. `php scripts/preencher-declarados-demo.php` — as quatro dimensões autodeclaradas
+5. `php scripts/semear-historico.php` — nove demandas publicadas de 3 a 11 semanas atrás, com
+   candidaturas, convites e conversa, e encerradas: a aba Encerradas e a linha do tempo têm passado
+6. `php scripts/semear-demandas.php` — as demandas abertas de hoje, com candidaturas e convites
+
+**Guarde um retrato do banco depois do passo 4** (`mariadb-dump`): é o último passo que chama a API,
+e refazer os passos 5 e 6 a partir dele não gasta nenhuma chamada.
 
 E uma limpeza, porque os verificadores deixam rastro que a banca veria primeiro:
 

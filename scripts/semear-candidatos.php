@@ -20,6 +20,11 @@ declare(strict_types=1);
  * Uso:
  *   docker compose exec php php scripts/semear-candidatos.php --profissionais=12 --empresas=5
  *   docker compose exec php php scripts/semear-candidatos.php --simular     (não grava nem chama)
+ *   docker compose exec php php scripts/semear-candidatos.php --lista=contas.txt --profissionais=100
+ *
+ * `--lista` recebe um arquivo com um e-mail por linha (o que `emailDe()` produz) e só cadastra
+ * quem está nele. Serve para recriar o banco com as mesmas contas de antes, sem que a ordem do CSV
+ * decida quem entra. Quem está fora da lista é pulado antes de qualquer chamada à API.
  *
  * Idempotente: documento já cadastrado é pulado, porque `documentoEmUso()` não filtra status e
  * conta excluída continua segurando o CPF dela (D15).
@@ -35,12 +40,25 @@ use ProLink\Service\EmpresaCreaService;
 use ProLink\Service\PerfilCreaService;
 use ProLink\Support\Crypto;
 
-$opcoes = getopt('', ['profissionais::', 'empresas::', 'simular', 'senha::']);
+$opcoes = getopt('', ['profissionais::', 'empresas::', 'simular', 'senha::', 'lista::']);
 
 $limiteProfissionais = (int) ($opcoes['profissionais'] ?? 10);
 $limiteEmpresas      = (int) ($opcoes['empresas'] ?? 4);
 $simular             = isset($opcoes['simular']);
 $senha               = (string) ($opcoes['senha'] ?? 'ProLinkDemo2026!');
+$lista               = null;
+
+if (isset($opcoes['lista'])) {
+    $linhas = file((string) $opcoes['lista'], FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+
+    if ($linhas === false) {
+        fwrite(STDERR, "Não consegui ler a lista {$opcoes['lista']}.\n");
+        exit(1);
+    }
+
+    // Primeira coluna, para aceitar também a saída de um SELECT com o perfil ao lado.
+    $lista = array_fill_keys(array_map(static fn (string $l): string => trim((string) preg_split('/\s+/', trim($l))[0]), $linhas), true);
+}
 
 $usuarios      = new UsuarioRepository();
 $profissionais = new ProfissionalRepository();
@@ -104,6 +122,10 @@ foreach (lerCsv(dirname(__DIR__) . '/data/csv/profissionais.csv') as $pessoa) {
     }
 
     $email = emailDe($pessoa['nome'], $cpf);
+
+    if ($lista !== null && !isset($lista[$email])) {
+        continue;
+    }
 
     if ($simular) {
         printf("  \e[2msimular\e[0m  %-28s %s\n", substr($pessoa['nome'], 0, 28), $email);
@@ -173,6 +195,10 @@ foreach (lerCsv(dirname(__DIR__) . '/data/csv/empresas.csv') as $empresa) {
 
     $nome  = $empresa['razao_social'] ?? $empresa['nome'] ?? 'Empresa';
     $email = emailDe($nome, $cnpj);
+
+    if ($lista !== null && !isset($lista[$email])) {
+        continue;
+    }
 
     if ($simular) {
         printf("  \e[2msimular\e[0m  %-28s %s\n", substr($nome, 0, 28), $email);
