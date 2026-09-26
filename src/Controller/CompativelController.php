@@ -7,6 +7,8 @@ namespace ProLink\Controller;
 use ProLink\Service\CompatibilizacaoService;
 use ProLink\Service\DemandaService;
 use ProLink\Service\ManifestacaoService;
+use ProLink\Service\PainelDemandaService;
+use ProLink\Repository\UsuarioRepository;
 use ProLink\Service\ValidacaoException;
 use ProLink\Support\Flash;
 use ProLink\Support\Requisicao;
@@ -34,6 +36,7 @@ final class CompativelController
         private readonly DemandaService $demandas = new DemandaService(),
         private readonly CompatibilizacaoService $motor = new CompatibilizacaoService(),
         private readonly ManifestacaoService $manifestacoes = new ManifestacaoService(),
+        private readonly PainelDemandaService $painel = new PainelDemandaService(),
     ) {
     }
 
@@ -57,10 +60,24 @@ final class CompativelController
             View::redirecionar('/demandas/' . (int) $id);
         }
 
+        // O feed mostra só quem ainda falta avaliar (D87): quem já é contato (candidatura ou
+        // convite) ou foi dispensado sai dele, porque a empresa já decidiu sobre essa pessoa. A
+        // sessão gravada continua com o conjunto inteiro; o recorte é só desta tela.
+        $jaAnalisados = $this->painel->jaAnalisados((int) $id);
+        $total        = count($sessao['candidatos']);
+
+        $sessao['candidatos'] = array_values(array_filter(
+            $sessao['candidatos'],
+            static fn (array $c): bool => !isset($jaAnalisados[(int) ($c['usuario_id'] ?? 0)]),
+        ));
+
         return View::render('demanda/compativeis.html.twig', [
-            'titulo'  => 'Compatíveis',
-            'demanda' => $demanda,
-            'sessao'  => $sessao,
+            'titulo'      => 'Compatíveis',
+            'demanda'     => $demanda,
+            'sessao'      => $sessao,
+            'painel'      => $this->painel->painel($usuarioId, (int) $id),
+            'no_conjunto' => $total,
+            'dispensados' => $this->painel->dispensados($usuarioId, (int) $id),
         ]);
     }
 
@@ -105,10 +122,53 @@ final class CompativelController
             View::redirecionar('/demandas/' . (int) $id . '/compativeis');
         }
 
-        Flash::sucesso(
-            'Interesse registrado. A pessoa foi avisada por e-mail e pode responder por aqui. '
-            . 'O perfil dela ficou guardado como estava agora.'
-        );
-        View::redirecionar('/demandas/' . (int) $id . '/interessados');
+        // Fica no feed, e não salta para Contatos (D87): quem convida está avaliando perfil por
+        // perfil, e perder o lugar a cada convite quebra justamente essa tarefa. O convidado sai
+        // da lista e o próximo aparece.
+        Flash::sucesso(sprintf(
+            'Convite enviado para %s. A pessoa foi avisada por e-mail, e a conversa está em Contatos.',
+            $this->nome((int) ($_POST['candidato'] ?? 0)),
+        ));
+        View::redirecionar('/demandas/' . (int) $id . '/compativeis');
+    }
+
+    /** "Dispensar": tira o perfil da lista de quem falta avaliar, sem avisar ninguém (D87). */
+    public function dispensar(string $id): never
+    {
+        $candidato = (int) ($_POST['candidato'] ?? 0);
+
+        try {
+            $this->painel->dispensar((int) Sessao::usuarioId(), (int) $id, $candidato);
+        } catch (ValidacaoException $e) {
+            Flash::erro($e->getMessage());
+            View::redirecionar('/demandas/' . (int) $id . '/compativeis');
+        }
+
+        Flash::info(sprintf('%s saiu da lista. Dá para trazer de volta em Dispensados.', $this->nome($candidato)));
+        View::redirecionar('/demandas/' . (int) $id . '/compativeis');
+    }
+
+    /** Desfaz a dispensa: o perfil volta à lista de quem falta avaliar. */
+    public function desfazerDispensa(string $id): never
+    {
+        $candidato = (int) ($_POST['candidato'] ?? 0);
+
+        try {
+            $this->painel->desfazerDispensa((int) Sessao::usuarioId(), (int) $id, $candidato);
+        } catch (ValidacaoException $e) {
+            Flash::erro($e->getMessage());
+            View::redirecionar('/demandas/' . (int) $id . '/compativeis');
+        }
+
+        Flash::sucesso(sprintf('%s voltou para a lista de perfis a avaliar.', $this->nome($candidato)));
+        View::redirecionar('/demandas/' . (int) $id . '/compativeis');
+    }
+
+    /** O nome que a mensagem de retorno usa; genérico se a conta não for achada. */
+    private function nome(int $usuarioId): string
+    {
+        $usuario = $usuarioId > 0 ? (new UsuarioRepository())->porId($usuarioId) : null;
+
+        return $usuario === null ? 'O perfil' : \ProLink\Support\Rotulos::nomeProprio((string) $usuario['usu_nome']);
     }
 }

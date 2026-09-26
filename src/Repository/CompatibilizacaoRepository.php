@@ -152,6 +152,38 @@ final class CompatibilizacaoRepository extends Repositorio
      *
      * @return list<array<string, mixed>>
      */
+    /**
+     * Os titulares (usuário) do conjunto gravado na sessão mais recente da demanda, ou null se a
+     * demanda ainda não teve sessão. Serve aos contadores de "a analisar" (D87), que leem o que
+     * já foi calculado em vez de rodar o motor de novo a cada tela.
+     *
+     * @return list<int>|null
+     */
+    public function usuariosDoUltimoPool(int $demandaId): ?array
+    {
+        $ultima = $this->daDemanda($demandaId, 1)[0] ?? null;
+
+        if ($ultima === null) {
+            return null;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT COALESCE(p.prf_usu_id, e.emp_usu_id) AS usuario_id
+               FROM mat_sessao_pool s
+               LEFT JOIN pro_profissionais p
+                      ON s.msp_candidato_tipo = :tipo_p AND p.prf_id = s.msp_candidato_id
+               LEFT JOIN pro_empresas e
+                      ON s.msp_candidato_tipo = :tipo_e AND e.emp_id = s.msp_candidato_id
+              WHERE s.msp_mts_id = :sessao AND s.msp_status = :ativo'
+        );
+        $stmt->execute([
+            ':tipo_p' => 'P', ':tipo_e' => 'E',
+            ':sessao' => (int) $ultima['mts_id'], ':ativo' => STATUS_ATIVO,
+        ]);
+
+        return array_values(array_filter(array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN))));
+    }
+
     public function daDemanda(int $demandaId, int $limite = 20): array
     {
         $stmt = $this->pdo->prepare(

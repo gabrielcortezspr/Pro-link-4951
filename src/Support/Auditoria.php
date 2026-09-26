@@ -42,6 +42,7 @@ final class Auditoria
     public const VALIDAR_ART     = 'VALIDAR_ART';
     public const VALIDAR_CAT     = 'VALIDAR_CAT';
     public const ATUALIZAR_ACERVO = 'ATUALIZAR_ACERVO';
+    public const DISPENSAR       = 'DISPENSAR';
     public const SELO_DIVERGENTE = 'SELO_DIVERGENTE';
     public const BLOQUEAR        = 'BLOQUEAR';
     public const MODERAR         = 'MODERAR';

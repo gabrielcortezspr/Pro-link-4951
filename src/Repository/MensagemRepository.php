@@ -94,6 +94,48 @@ final class MensagemRepository extends Repositorio
      * @param  list<int> $manifestacaoIds
      * @return array<int, int> manifestação => não lidas
      */
+    /**
+     * Mensagens não lidas por este usuário em todas as conversas de que ele é parte: como quem
+     * manifestou (ou foi convidado) e como dono da demanda. Alimenta o contador do sino (D87).
+     */
+    public function naoLidasDoUsuario(int $usuarioId): int
+    {
+        $papeis = $this->naoLidasPorPapel($usuarioId);
+
+        return $papeis['demandante'] + $papeis['candidato'];
+    }
+
+    /**
+     * As não lidas separadas pelo papel do leitor na conversa: dono da demanda, ou titular do
+     * perfil (quem se candidatou ou foi convidado). Uma empresa pode ser os dois, e cada papel
+     * mora numa tela diferente (D87).
+     *
+     * @return array{demandante: int, candidato: int}
+     */
+    public function naoLidasPorPapel(int $usuarioId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT
+                COALESCE(SUM(d.dem_usu_id = :dono), 0)     AS demandante,
+                COALESCE(SUM(m.man_usu_id = :titular), 0)  AS candidato
+               FROM pro_mensagens g
+               JOIN pro_manifestacoes m ON m.man_id = g.msg_man_id AND m.man_status = :ativo_m
+               JOIN pro_demandas d      ON d.dem_id = m.man_dem_id
+              WHERE (m.man_usu_id = :parte_candidato OR d.dem_usu_id = :parte_demandante)
+                AND g.msg_usu_id <> :leitor
+                AND g.msg_dt_leitura IS NULL
+                AND g.msg_status = :ativo_g'
+        );
+        $stmt->execute([
+            ':dono' => $usuarioId, ':titular' => $usuarioId,
+            ':ativo_m' => STATUS_ATIVO, ':parte_candidato' => $usuarioId,
+            ':parte_demandante' => $usuarioId, ':leitor' => $usuarioId, ':ativo_g' => STATUS_ATIVO,
+        ]);
+        $linha = $stmt->fetch();
+
+        return ['demandante' => (int) $linha['demandante'], 'candidato' => (int) $linha['candidato']];
+    }
+
     public function naoLidasEmLote(array $manifestacaoIds, int $leitorId): array
     {
         $linhas = $this->buscarPorIds(

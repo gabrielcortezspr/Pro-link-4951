@@ -233,12 +233,12 @@ final class ManifestacaoService
                     (int) $demanda['dem_usu_id'],
                     'MANIFESTACAO',
                     (string) $destinatario['usu_email'],
-                    'Novo interessado em "' . $demanda['dem_titulo'] . '"',
+                    'Nova candidatura em "' . $demanda['dem_titulo'] . '"',
                     'email/manifestacao.html.twig',
                     [
                         'demanda'      => $demanda['dem_titulo'],
                         'tem_mensagem' => $mensagem !== '',
-                        'url'          => APP_URL . '/demandas/' . $demandaId . '/interessados',
+                        'url'          => APP_URL . '/demandas/' . $demandaId . '/contatos',
                     ],
                 );
             }
@@ -376,7 +376,7 @@ final class ManifestacaoService
                     $candidatoId,
                     'MANIFESTACAO',
                     (string) $destinatario['usu_email'],
-                    'Registraram interesse no seu perfil',
+                    'Você recebeu um convite para uma demanda',
                     'email/interesse.html.twig',
                     [
                         'demanda'      => $demanda['dem_titulo'],

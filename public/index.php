@@ -117,6 +117,8 @@ $router->get('/demandas/{id}/compativeis',  CompativelController::class, 'index'
 $router->post('/demandas/{id}/compativeis', CompativelController::class, 'atualizar', PERFIS_DEMANDANTES);
 // O caminho inverso do Anexo I item 3: o demandante registra interesse num candidato.
 $router->post('/demandas/{id}/interesse',  CompativelController::class, 'registrarInteresse', PERFIS_DEMANDANTES);
+$router->post('/demandas/{id}/dispensar',  CompativelController::class, 'dispensar', PERFIS_DEMANDANTES);
+$router->post('/demandas/{id}/dispensados/desfazer', CompativelController::class, 'desfazerDispensa', PERFIS_DEMANDANTES);
 
 // ---------------------------------------------------------------- manifestação (RF05)
 // Quem manifesta é o candidato, e candidato sai de crea_evidencias, que deriva de ART: Terceiro
@@ -126,7 +128,8 @@ $router->post('/demandas/{id}/manifestar',  ManifestacaoController::class, 'envi
 
 // A lista de interessados é do dono da demanda; a manifestação em si é das duas partes, e quem
 // decide se a pessoa é parte é o serviço.
-$router->get('/demandas/{id}/interessados', ManifestacaoController::class, 'interessados', PERFIS_DEMANDANTES);
+$router->get('/demandas/{id}/contatos',     ManifestacaoController::class, 'interessados', PERFIS_DEMANDANTES);
+$router->get('/demandas/{id}/interessados', ManifestacaoController::class, 'interessadosAntigo', PERFIS_DEMANDANTES);
 
 // Sem parâmetro antes da com parâmetro: o Router percorre na ordem de registro.
 $router->get('/manifestacoes',                   ManifestacaoController::class, 'minhas',    PERFIS_COM_REGISTRO_CREA);

@@ -78,6 +78,21 @@ final class View
             return $id === null ? 0 : (new DashboardRepository())->naoVistas($id);
         }));
 
+        // O que espera pelo usuário em toda a plataforma (D87): contatos recebidos e não abertos
+        // (candidatura, para a empresa; convite, para o profissional) e mensagens não lidas. Serve
+        // ao sino e ao contador do menu, que perguntam mais de uma vez por tela: o resultado fica
+        // guardado para a requisição inteira.
+        $twig->addFunction(new TwigFunction('pendencias', static function (): array {
+            static $cache = [];
+            $id = Sessao::usuarioId();
+
+            if ($id === null) {
+                return ['nao_vistas' => 0, 'nao_lidas' => 0, 'total' => 0, 'como_demandante' => 0, 'como_candidato' => 0];
+            }
+
+            return $cache[$id] ??= (new \ProLink\Service\PainelDemandaService())->pendenciasDoUsuario($id);
+        }));
+
         self::$twig = $twig;
 
         return $twig;

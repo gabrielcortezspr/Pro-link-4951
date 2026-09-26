@@ -98,6 +98,36 @@ final class DashboardRepository extends Repositorio
      * demandante, o que chegou nas demandas dele; para o candidato, o interesse que registraram
      * no perfil dele.
      */
+    /**
+     * `naoVistas()` separado pelo papel (D87): candidaturas que chegaram às demandas deste
+     * usuário, e convites que ele recebeu como titular de perfil.
+     *
+     * @return array{demandante: int, candidato: int}
+     */
+    public function naoVistasPorPapel(int $usuarioId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT
+                (SELECT COUNT(*)
+                   FROM pro_manifestacoes m
+                   JOIN pro_demandas d ON d.dem_id = m.man_dem_id
+                  WHERE d.dem_usu_id = :demandante AND m.man_origem = :do_candidato
+                    AND m.man_dt_visualizacao IS NULL AND m.man_status = :ativo) AS demandante,
+                (SELECT COUNT(*)
+                   FROM pro_manifestacoes m2
+                  WHERE m2.man_usu_id = :candidato AND m2.man_origem = :do_demandante
+                    AND m2.man_dt_visualizacao IS NULL AND m2.man_status = :ativo2) AS candidato'
+        );
+        $stmt->execute([
+            ':demandante' => $usuarioId, ':candidato' => $usuarioId,
+            ':do_candidato' => 'C', ':do_demandante' => 'D',
+            ':ativo' => STATUS_ATIVO, ':ativo2' => STATUS_ATIVO,
+        ]);
+        $linha = $stmt->fetch();
+
+        return ['demandante' => (int) $linha['demandante'], 'candidato' => (int) $linha['candidato']];
+    }
+
     public function naoVistas(int $usuarioId): int
     {
         $stmt = $this->pdo->prepare(

@@ -8,6 +8,7 @@ use ProLink\Repository\DemandaRepository;
 use ProLink\Repository\ManifestacaoRepository;
 use ProLink\Repository\TosRepository;
 use ProLink\Service\DemandaService;
+use ProLink\Service\PainelDemandaService;
 use ProLink\Service\ValidacaoException;
 use ProLink\Support\Flash;
 use ProLink\Support\Preferencias;
@@ -31,12 +32,23 @@ final class DemandaController
     ) {
     }
 
-    /** Painel do demandante: as demandas dele, com situação e contagem de interessados. */
+    /**
+     * Painel do demandante: as demandas dele, cada uma com o que ainda falta fazer nela (D87):
+     * quantos perfis faltam avaliar, candidaturas novas e mensagens não lidas.
+     */
     public function index(): string
     {
+        $usuarioId = (int) Sessao::usuarioId();
+        $demandas  = $this->repositorio->doUsuario($usuarioId);
+        $painel    = new PainelDemandaService();
+
+        foreach ($demandas as $i => $d) {
+            $demandas[$i]['painel'] = $painel->painel($usuarioId, (int) $d['dem_id']);
+        }
+
         return View::render('demanda/index.html.twig', [
             'titulo'   => 'Minhas demandas',
-            'demandas' => $this->repositorio->doUsuario((int) Sessao::usuarioId()),
+            'demandas' => $demandas,
         ]);
     }
 
@@ -104,6 +116,8 @@ final class DemandaController
             'titulo'    => $demanda['dem_titulo'],
             'demanda'   => $demanda,
             'eh_dono'   => $ehDono,
+            // Os contadores das abas da demanda (D87), só para a dona.
+            'painel'    => $ehDono ? (new PainelDemandaService())->painel((int) $usuarioId, (int) $id) : null,
             'busca'     => $busca,
             'resultados' => $ehDono && $busca !== '' ? $this->resultados($busca) : [],
 

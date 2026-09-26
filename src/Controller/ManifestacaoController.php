@@ -163,10 +163,17 @@ final class ManifestacaoController
         }
 
         return View::render('manifestacao/interessados.html.twig', [
-            'titulo'       => 'Interessados',
+            'titulo'       => 'Contatos',
             'demanda'      => $dados['demanda'],
             'interessados' => $dados['interessados'],
+            'painel'       => (new \ProLink\Service\PainelDemandaService())->painel((int) Sessao::usuarioId(), (int) $id),
         ]);
+    }
+
+    /** O endereço antigo de Interessados continua funcionando: leva a Contatos (D87). */
+    public function interessadosAntigo(string $id): never
+    {
+        View::redirecionar('/demandas/' . (int) $id . '/contatos');
     }
 
     /** O perfil congelado e a conversa. Serve às duas partes. */
