@@ -37,7 +37,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E7 — auditoria de RF por entidade e refino visual | D69, D70, D71, D72, D73 |
 | E7 — fechamento da entrega | D74, D75 |
 | E8 — CAT, atualização do acervo e preferências da demanda (pós-entrega) | D76, D77, D78, D79, D80 |
-| E9 — navegação da demanda (Teste-Demo) | D87, D88, D89, D90, D92, D93 |
+| E9 — navegação da demanda (Teste-Demo) | D87, D88, D89, D90, D92, D93, D94 |
 
 ---
 
@@ -3208,3 +3208,23 @@ cada uma, que já era calculado para a lista inteira. Paginar só esconderia dem
 
 **Ordenar por pendência não é ranking** (item 10.1): ordena as demandas da própria conta pelo que
 espera resposta nelas, sem comparar pessoa nenhuma.
+
+## D94 · Toda demanda com atividade tem ao menos uma principal
+
+`26/09/2026` · E9 · `src/Service/DemandaService.php` (`exigirPrincipal`), `docs/matching.md`
+
+**Contexto.** Na revisão da demo, a equipe viu que dava para tornar secundária a única atividade
+da TOS de uma demanda. O serviço aceitava qualquer troca de peso, e a tela oferecia o botão em
+toda linha.
+
+**Decisão.** O conjunto de atividades de uma demanda, depois de qualquer alteração, tem ao menos
+uma principal. Tornar secundária a única principal é recusado, e removê-la também, quando sobram
+só secundárias. A tela não oferece esses botões, e o serviço recusa mesmo assim, para a regra não
+depender da tela. O conjunto vazio continua permitido no rascunho; a publicação é que o recusa.
+
+**Alternativa recusada: promover sozinha outra atividade a principal.** Mudaria uma escolha da
+empresa sem ela pedir, e com várias secundárias não haveria critério para escolher qual.
+
+**Alternativa recusada: permitir e deixar o motor tratar.** O motor faz média ponderada pelos
+pesos: com todas secundárias o resultado é o mesmo de todas principais, e a marcação diria à
+empresa que algo pesa menos quando nada pesa menos.

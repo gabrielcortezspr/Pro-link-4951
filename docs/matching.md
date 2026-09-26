@@ -72,6 +72,10 @@ Três abordagens, da mais barata à mais elaborada:
 
 Vale permitir peso por código: atividade principal versus secundária.
 
+Principal pesa 1,0 e secundária 0,5 (`DemandaService::PESO_*`). **Toda demanda com atividade tem
+ao menos uma principal** (D94): o motor faz média ponderada, e com todas secundárias o peso some
+da conta. Tornar secundária a única principal, ou removê-la deixando só secundárias, é recusado.
+
 ## Etapa 2: do candidato à capacidade
 
 Pra cada candidato, montar o conjunto `C = {tos_codigo...}` do que ele comprovou.

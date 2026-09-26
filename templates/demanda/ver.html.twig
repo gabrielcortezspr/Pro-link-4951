@@ -110,8 +110,14 @@
                     publicada: não haveria por onde procurar quem a atende.
                 </p>
             {% else %}
+                {#  Toda demanda com atividade tem ao menos uma principal (D94): a única principal
+                    não oferece "Tornar secundária" nem "Remover" enquanto houver secundária, porque o
+                    servidor recusaria. #}
+                {% set principais = d.tos|filter(x => x.peso >= 1)|length %}
+                {% set secundarias = d.tos|length - principais %}
                 <ul class="pl-tos-lista">
                     {% for t in d.tos %}
+                        {% set unica_principal = t.peso >= 1 and principais == 1 %}
                         <li>
                             <div class="esq">
                                 {{ ui.tos(t.codigo, t.descricao, true) }}
@@ -123,20 +129,24 @@
                             </div>
                             {% if editavel %}
                                 <div class="acoes">
-                                    <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/tos">
-                                        {{ form.csrf() }}
-                                        <input type="hidden" name="codigo" value="{{ t.codigo }}">
-                                        <input type="hidden" name="acao" value="{{ t.peso >= 1 ? 'secundaria' : 'principal' }}">
-                                        <button type="submit" class="pl-btn mini">
-                                            {{ t.peso >= 1 ? 'Tornar secundária' : 'Tornar principal' }}
-                                        </button>
-                                    </form>
-                                    <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/tos">
-                                        {{ form.csrf() }}
-                                        <input type="hidden" name="codigo" value="{{ t.codigo }}">
-                                        <input type="hidden" name="acao" value="remover">
-                                        <button type="submit" class="pl-btn mini risco">Remover</button>
-                                    </form>
+                                    {% if not unica_principal %}
+                                        <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/tos">
+                                            {{ form.csrf() }}
+                                            <input type="hidden" name="codigo" value="{{ t.codigo }}">
+                                            <input type="hidden" name="acao" value="{{ t.peso >= 1 ? 'secundaria' : 'principal' }}">
+                                            <button type="submit" class="pl-btn mini">
+                                                {{ t.peso >= 1 ? 'Tornar secundária' : 'Tornar principal' }}
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                    {% if not (unica_principal and secundarias > 0) %}
+                                        <form method="post" action="{{ app_url }}/demandas/{{ d.dem_id }}/tos">
+                                            {{ form.csrf() }}
+                                            <input type="hidden" name="codigo" value="{{ t.codigo }}">
+                                            <input type="hidden" name="acao" value="remover">
+                                            <button type="submit" class="pl-btn mini risco">Remover</button>
+                                        </form>
+                                    {% endif %}
                                 </div>
                             {% endif %}
                         </li>
