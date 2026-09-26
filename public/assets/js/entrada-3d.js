@@ -123,6 +123,8 @@
 
     if (h <= 1) return;
 
+    // A tampa entra por opacidade, e não de um quadro para o outro quando a altura cruza 1.
+    ctx.globalAlpha = suavizar((h - 1) / 0.35);
     ctx.fillStyle = 'rgba(143,227,255,.10)';
     ctx.beginPath();
     topo.forEach(function (q, k) { k ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); });
@@ -132,9 +134,23 @@
     for (var j = 0; j < 4; j++) linha(topo[j], topo[(j + 1) % 4], COR.z, 1.8, COR.z);
 
     topo.forEach(function (q) { ponto(q, 2.6, COR.no, COR.z); });
+    ctx.globalAlpha = 1;
   }
 
-  var DUR = 3600, ESPERA = 1800, CICLO = DUR + ESPERA, t0 = null;
+  // Depois da espera no quadro final, o volume desce de volta ao plano e só então se ergue de
+  // novo. Sem a volta, o módulo levava o progresso de 1 a 0 num quadro só e o desenho cortava.
+  var DUR = 3600, ESPERA = 1800, VOLTA = 1600, PAUSA = 500;
+  var CICLO = DUR + ESPERA + VOLTA + PAUSA, t0 = null;
+
+  function progresso(e) {
+    if (e < DUR) return e / DUR;
+    e -= DUR;
+    if (e < ESPERA) return 1;
+    e -= ESPERA;
+    if (e < VOLTA) return 1 - e / VOLTA;
+
+    return 0;
+  }
 
   if (parado) {
     desenhar(1, 0.5);
@@ -144,7 +160,7 @@
 
   function quadro(ts) {
     if (t0 === null) t0 = ts;
-    desenhar(Math.min(1, ((ts - t0) % CICLO) / DUR), 0.35 + (ts - t0) / 1000 * 0.05);
+    desenhar(progresso((ts - t0) % CICLO), 0.35 + (ts - t0) / 1000 * 0.05);
     requestAnimationFrame(quadro);
   }
 
