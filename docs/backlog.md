@@ -536,6 +536,18 @@ Metade da nota depende disto. Não é "se sobrar tempo".
 > · **"Visto" é de quem recebe** o contato, e "respondeu" é do convidado de fato.
 > · **Bateria de volta a 9 de 9**: o E1 estava quebrado desde a D81/D86 (HTTP só redireciona, e o
 >   cookie `__Host-` não voltava a um host sem ponto); corrigido no verificador.
+>
+> **Concluída em 26/09 e mesclada na `main`** (commits `d82edd1`..`bd8815c`), com mais três
+> frentes pedidas na mesma revisão:
+>
+> · **Convite com mensagem** (D88): modelo editável por conta, mensagem montada e editável a cada
+>   convite; "Conta e dados" como aba do perfil; nenhuma das partes vê quando a outra abriu.
+> · **Vitrine pela TOS** (D89): chips de área, atividade, local, regime, prazo e público; "na minha
+>   área" ligado para quem tem acervo; o cartão diz quem publicou e se já há contato.
+> · **Início que pede ação** (D90): "Para fazer agora", demandas na área ou próprias, e atividade
+>   recente com as ações da própria pessoa. Os indicadores saíram.
+> · Verificado: 255 testes · 44 telas · 74 conferências de padrão · E2 159 · E4 62 · E6 70. E1 e
+>   navegador não rodaram nesta rodada (o E1 gasta chamadas da API).
 
 ## Se apertar: o que cortar, nesta ordem
 

@@ -18,7 +18,6 @@ declare(strict_types=1);
 use ProLink\Repository\IntegracaoRepository;
 use ProLink\Repository\AuditoriaRepository;
 use ProLink\Repository\CompatibilizacaoRepository;
-use ProLink\Repository\DashboardRepository;
 use ProLink\Repository\DemandaRepository;
 use ProLink\Repository\IndicadorRepository;
 use ProLink\Repository\LixeiraRepository;
@@ -30,6 +29,7 @@ use ProLink\Service\CompatibilizacaoService;
 use ProLink\Service\ContaService;
 use ProLink\Service\DemandaService;
 use ProLink\Service\DenunciaService;
+use ProLink\Service\InicioService;
 use ProLink\Service\InteressadoService;
 use ProLink\Service\LixeiraService;
 use ProLink\Service\ManifestacaoService;
@@ -304,25 +304,25 @@ return (static function (): array {
           LIMIT 1'
     )->fetchColumn();
 
-    $dashboard     = new DashboardRepository();
-    $demandaRepo   = new DemandaRepository();
-    $manifestaRepo = new ManifestacaoRepository();
+    // O Início pelo mesmo serviço do controller (D90): o que sai daqui é o que a pessoa vê.
+    $inicio = new InicioService();
 
     if ($umProfissional !== false) {
         $telas['inicio/profissional.html.twig'] = [
-            'titulo'   => 'Início',
-            'numeros'  => $dashboard->doProfissional((int) $umProfissional),
-            'demandas' => array_slice($demandaRepo->abertas(10), 0, 5),
-            'enviadas' => array_slice($manifestaRepo->doUsuario((int) $umProfissional), 0, 5),
+            'titulo' => 'Início',
+            'inicio' => $inicio->montar((int) $umProfissional, PERFIL_PROFISSIONAL),
         ];
     }
 
     if ($umDemandante !== false) {
+        $perfilDemandante = (string) $pdo->query(
+            'SELECT p.per_codigo FROM sis_usuarios u JOIN sis_perfis p ON p.per_id = u.usu_per_id
+              WHERE u.usu_id = ' . (int) $umDemandante
+        )->fetchColumn();
+
         $telas['inicio/demandante.html.twig'] = [
-            'titulo'       => 'Início',
-            'numeros'      => $dashboard->daEmpresa((int) $umDemandante),
-            'demandas'     => array_slice($demandaRepo->doUsuario((int) $umDemandante), 0, 5),
-            'tem_registro' => true,
+            'titulo' => 'Início',
+            'inicio' => $inicio->montar((int) $umDemandante, $perfilDemandante),
         ];
     }
 
