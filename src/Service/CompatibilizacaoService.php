@@ -377,8 +377,46 @@ final class CompatibilizacaoService
             ];
         }
 
-        return $saida;
+        return $this->comNomesDaTos($saida);
     }
+
+    /**
+     * Acrescenta a cada linha de evidência o que a atividade do acervo tem em comum com a pedida
+     * (D96) e os nomes da TOS para a tela dizer isso em palavras: "só o mesmo grupo · Construção
+     * Civil" em vez de "atividade vizinha", que prometia uma proximidade que às vezes não existe.
+     *
+     * @param list<array<string, mixed>> $candidatos
+     * @return list<array<string, mixed>>
+     */
+    private function comNomesDaTos(array $candidatos): array
+    {
+        $codigos = [];
+
+        foreach ($candidatos as $c) {
+            foreach ($c['evidencias'] as $e) {
+                $codigos[] = (string) ($e['codigo_acervo'] ?? '');
+            }
+        }
+
+        $tos = (new \ProLink\Repository\TosRepository())->porCodigos($codigos);
+
+        foreach ($candidatos as $i => $c) {
+            foreach ($c['evidencias'] as $j => $e) {
+                $acervo = (string) ($e['codigo_acervo'] ?? '');
+                $linha  = $tos[$acervo] ?? [];
+
+                $candidatos[$i]['evidencias'][$j] += [
+                    'relacao'          => Tos::relacao((string) ($e['codigo_demanda'] ?? ''), $acervo),
+                    'grupo_nome'       => $linha['tos_grupo'] ?? null,
+                    'subgrupo_nome'    => $linha['tos_subgrupo'] ?? null,
+                    'descricao_acervo' => $linha['tos_obra_servico'] ?? null,
+                ];
+            }
+        }
+
+        return $candidatos;
+    }
+
 
     /**
      * O acervo de cada candidato reduzido às ARTs que o titular do perfil abriu para quem olha

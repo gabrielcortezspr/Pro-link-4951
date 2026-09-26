@@ -197,6 +197,9 @@ Sinais de força dentro da dimensão de competência, em ordem:
 
 A CAT só reforça enquanto vigente (`cat_dt_validade` igual ou posterior à data da sessão; validade
 ausente conta como vigente). Vencida, a ART continua contando pelo que é (D76).
+O reforço é proporcional à afinidade (D96): a CAT cobre `0,30 × afinidade` do caminho até 1. Na
+mesma atividade, 30% do que falta; numa atividade que só divide o grupo com a pedida (afinidade
+0,15), 4,5%. A certidão prova a atividade que certifica, não o grupo inteiro.
 
 **Só conta o que o titular abriu para quem publicou a demanda** (D95, que revê a D52). Antes de
 qualquer dimensão, o acervo de cada candidato é reduzido às ARTs que a `Visao` do dono do perfil

@@ -373,4 +373,29 @@ final class CompatibilidadeTest extends TestCase
             'ninguém pode sumir nem aparecer duas vezes no embaralhamento',
         );
     }
+
+    /**
+     * O reforço da CAT acompanha a afinidade (D96): numa atividade que só divide o grupo com a
+     * pedida, a certidão empurra pouco; na mesma atividade, empurra os 30% do que falta.
+     */
+    public function testReforcoDaCatEhProporcionalAAfinidade(): void
+    {
+        $soGrupo = Compatibilidade::competencia(
+            ['TOS_1.6.4' => 1.0],
+            $this->acervo(['evi_tos_codigo' => 'TOS_1.2.6', 'evi_cat_numero' => '999001/2026']),
+            self::PESOS_AFINIDADE,
+        );
+
+        // 0,15 + 0,85 × (0,30 × 0,15) = 0,188; antes da D96 eram 0,405.
+        self::assertEqualsWithDelta(0.188, $soGrupo['score'], 0.001);
+
+        $mesmoServico = Compatibilidade::competencia(
+            ['TOS_1.1.2.1' => 1.0],
+            $this->acervo(['evi_tos_codigo' => 'TOS_1.1.2.5', 'evi_cat_numero' => '999001/2026']),
+            self::PESOS_AFINIDADE,
+        );
+
+        // 0,75 + 0,25 × (0,30 × 0,75) = 0,806.
+        self::assertEqualsWithDelta(0.806, $mesmoServico['score'], 0.001);
+    }
 }

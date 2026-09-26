@@ -37,7 +37,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E7 — auditoria de RF por entidade e refino visual | D69, D70, D71, D72, D73 |
 | E7 — fechamento da entrega | D74, D75 |
 | E8 — CAT, atualização do acervo e preferências da demanda (pós-entrega) | D76, D77, D78, D79, D80 |
-| E9 — navegação da demanda (Teste-Demo) | D87, D88, D89, D90, D92, D93, D94, D95 |
+| E9 — navegação da demanda (Teste-Demo) | D87, D88, D89, D90, D92, D93, D94, D95, D96 |
 
 ---
 
@@ -3272,3 +3272,41 @@ compatíveis. O rótulo de perfil em construção continua derivado do total de 
 revela só que há ao menos três, e mudá-lo marcaria como iniciante quem escolheu privacidade. A
 Política de Privacidade (§8, "compara... com os códigos das suas ARTs") fica coerente, mas não diz
 "só as abertas"; deixar isso explícito é uma versão 1.1 da política, com novo aceite (§10).
+
+## D96 · Política de Privacidade 1.1, afinidade dita pelo nível e reforço da CAT proporcional
+
+`26/09/2026` · E9 · `_arq/migracoes/2026-09-26-d96-politica-privacidade-1-1.sql`,
+`src/Support/Compatibilidade.php`, `src/Support/Tos.php`
+
+**Contexto.** Três pontas que a revisão do feed de compatíveis deixou depois da D95. Uma linha da
+Júlia Melo dizia "TOS 1.6.4 · TOS 1.2.6 · Atividade vizinha na tabela · Certificada por CAT · 41%":
+as duas atividades só dividiam o grupo (Construção Civil), e quase dois terços dos 41% vinham da
+CAT de uma atividade que não era a pedida. E a Política dizia que o motor comparava a demanda
+"com os códigos das suas ARTs", sem dizer que só as abertas contam.
+
+**Decisão.**
+
+1. **Política de Privacidade 1.1**: os itens 4 e 8 dizem que documento fechado não entra na
+   compatibilização nem na busca de quem não pode vê-lo, que isso pode reduzir as listas em que a
+   pessoa aparece, e que o painel do próprio titular usa o acervo inteiro. O texto termina com o
+   que mudou em relação à 1.0. A 1.0 continua gravada, e o aceite de cada um aponta para a versão
+   que aceitou.
+2. **A relação entre atividades é dita pelo nível da tabela**: "mesmo serviço, em outra
+   variação", "mesmo subgrupo · nome" ou "só o mesmo grupo · nome", no lugar de "atividade
+   vizinha".
+3. **O reforço da CAT é proporcional à afinidade**: a CAT cobre `0,30 × afinidade` do caminho até
+   1. A mesma linha da Júlia passa de 41% a 19%; uma atividade idêntica com CAT continua indo a 1.
+
+**Alternativa recusada: exigir novo aceite da 1.1 de quem já tem conta.** A própria política diz
+que mudança relevante exige novo aceite, e a pergunta é se esta é relevante nesse sentido. Não é:
+ela só restringe o uso dos dados, não cria tratamento nem finalidade nova, e a pessoa não tem o que
+consentir além do que já consentiu. Um bloqueio de novo aceite para uma mudança que só protege
+seria atrito sem ganho. Quem se cadastra a partir de agora aceita a 1.1.
+
+**Alternativa recusada: reforço da CAT por degrau (só na mesma atividade).** Descartaria a CAT
+de uma variação do mesmo serviço, que é evidência forte; a proporção mantém esse caso e encolhe o
+reforço onde a ligação é fraca.
+
+**Consequência.** As sessões antigas guardam os números calculados com a regra anterior; as
+demandas abertas da demonstração foram recalculadas. O deck, que mostra porcentagem por dimensão,
+precisa ser conferido contra os números novos.

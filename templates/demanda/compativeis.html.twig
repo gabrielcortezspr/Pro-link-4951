@@ -372,11 +372,22 @@
                                                 células ela empurraria a tabela para fora do card. #}
                                             <td>{{ ui.tos(e.codigo_demanda, descricoes[e.codigo_demanda]|default(''), true) }}</td>
                                             <td>
+                                                {#  O que a atividade do acervo tem em comum com a pedida, dito
+                                                    pelo nível da tabela (D96). "Atividade vizinha" prometia uma
+                                                    proximidade que, no grupo só, não existe. #}
                                                 {% if e.codigo_acervo == e.codigo_demanda %}
                                                     <span class="rel">A mesma atividade, no acervo registrado</span>
                                                 {% else %}
-                                                    {{ ui.tos(e.codigo_acervo, descricoes[e.codigo_acervo]|default(''), true) }}
-                                                    <span class="rel">Atividade vizinha na tabela</span>
+                                                    {{ ui.tos(e.codigo_acervo, e.descricao_acervo|default(descricoes[e.codigo_acervo]|default('')), true) }}
+                                                    {% if e.relacao|default(null) == 'servico' %}
+                                                        <span class="rel">Mesmo serviço, em outra variação</span>
+                                                    {% elseif e.relacao|default(null) == 'subgrupo' %}
+                                                        <span class="rel">Mesmo subgrupo{% if e.subgrupo_nome|default(null) %} · {{ e.subgrupo_nome }}{% endif %}</span>
+                                                    {% elseif e.relacao|default(null) == 'grupo' %}
+                                                        <span class="rel">Só o mesmo grupo{% if e.grupo_nome|default(null) %} · {{ e.grupo_nome }}{% endif %}</span>
+                                                    {% else %}
+                                                        <span class="rel">Atividade relacionada na tabela</span>
+                                                    {% endif %}
                                                 {% endif %}
                                             </td>
                                             <td>
