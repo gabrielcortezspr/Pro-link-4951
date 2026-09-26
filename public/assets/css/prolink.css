@@ -1874,11 +1874,6 @@ main.p-0 > .alert { margin: 0; border-radius: 0; border-left: 0; border-right: 0
 .pl-lp-escudo .marca { fill: none; stroke: var(--pl-seal); stroke-width: 2.4;
     stroke-linecap: round; stroke-linejoin: round; }
 
-/* Quem já tem conta não recebe o par de botões de venda: recebe a volta para a aplicação. */
-.pl-lp-atalhos { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
-.pl-lp-atalhos .pl-btn { height: 40px; border-color: rgba(174,194,224,.55); color: #ccdcf1; }
-.pl-lp-atalhos .pl-btn:hover { background: rgba(255,255,255,.1); border-color: #fff; color: #fff; }
-
 /* ---- As ilustrações: o plano que vira volume ----
    Não é enfeite. É o argumento da proposta desenhado: dois eixos formam o plano e o terceiro é a
    profundidade que transforma o plano em volume. SVG inline, sem imagem externa e sem JS. */
@@ -1966,6 +1961,12 @@ main.p-0 > .alert { margin: 0; border-radius: 0; border-left: 0; border-right: 0
 .pl-lp-whocard::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
     background: linear-gradient(90deg, var(--pl-blue), var(--pl-blue-2)); }
 .pl-lp-whocard.emp::before { background: linear-gradient(90deg, var(--pl-blue-2), var(--pl-blue)); }
+/* "Para profissionais" e "Para empresas" apontam cada um para o seu cartão. A barra do hero não
+   é fixa, então a margem só evita que o cartão encoste no topo da janela. Lado a lado os dois
+   cartões param na mesma altura, e o contorno é o que diz qual dos dois foi pedido. */
+.pl-lp-whocard { scroll-margin-top: 24px; }
+.pl-lp-whocard:target { border-color: var(--pl-blue); box-shadow: 0 0 0 3px var(--pl-blue-100),
+    0 12px 32px rgba(11,42,74,.07); }
 .pl-lp-whead { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
 .pl-lp-whead .em { width: 50px; height: 50px; border-radius: 14px; flex: none; display: grid;
     place-items: center; background: var(--pl-blue-100); }
@@ -1986,9 +1987,14 @@ main.p-0 > .alert { margin: 0; border-radius: 0; border-left: 0; border-right: 0
 
 /* ---- Rodapé da landing ---- */
 .pl-lp-rodape { background: var(--pl-navy-2); color: #aec2e0; padding: 52px 0 30px; }
-.pl-lp-fgrid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 30px;
+/* Três colunas: a apresentação e dois grupos de links que levam a lugares que existem. No estreito
+   a apresentação ocupa a linha inteira e os dois grupos dividem a de baixo. */
+.pl-lp-fgrid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 30px;
     padding-bottom: 30px; border-bottom: 1px solid rgba(120,160,220,.14); }
-@media (max-width: 820px) { .pl-lp-fgrid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 820px) {
+    .pl-lp-fgrid { grid-template-columns: 1fr 1fr; }
+    .pl-lp-fgrid > :first-child { grid-column: 1 / -1; }
+}
 .pl-lp-rodape h4 { font-family: var(--pl-display); font-weight: 600; font-size: 13px; color: #fff;
     margin: 0 0 12px; }
 .pl-lp-rodape .col a { display: block; color: #8fa8cc; font-size: 13.5px; margin-bottom: 8px;

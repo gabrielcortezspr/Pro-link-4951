@@ -27,7 +27,14 @@
     5. A barra de navegação do layout não aparece: ela pertence a quem já está dentro da
        aplicação, e o mockup tem a própria barra dentro do hero. As entradas que ela dava a quem
        tem sessão (perfil, sair) continuam aqui, na barra do hero.
-    6. O texto foi revisto contra o produto de 26/09: candidatura, convite e contatos no lugar de
+    6. Cada cartão da faixa "Para quem" tem âncora própria (#profissional, #contratante), e é
+       para ela que apontam "Para profissionais" e "Para empresas", aqui e na barra pública do
+       layout. Com sessão a faixa não existe, e esses dois links também não.
+    7. Com sessão, a barra do hero já leva ao perfil, às demandas abertas e à aplicação: não há
+       segundo bloco de atalhos abaixo da busca repetindo os mesmos destinos.
+    8. O rodapé não tem coluna "Institucional". Não existe página sobre o desafio nem de contato,
+       e link que só rola a própria página até outra coisa promete o que não entrega.
+    9. O texto foi revisto contra o produto de 26/09: candidatura, convite e contatos no lugar de
        "manifestar interesse" (D87), ordem sorteada em vez de "por aderência" (item 10.1), quem
        contrata sem registro no CREA também publica, e o motor de regras não é chamado de IA.
 #}
@@ -55,8 +62,8 @@
                     <a href="{{ app_url }}/profissionais">Profissionais</a>
                     <a href="{{ app_url }}/demandas/abertas">Demandas abertas</a>
                 {% else %}
-                    <a href="#quem">Para profissionais</a>
-                    <a href="#quem">Para empresas</a>
+                    <a href="#profissional">Para profissionais</a>
+                    <a href="#contratante">Para empresas</a>
                 {% endif %}
             </nav>
             <div class="acoes">
@@ -109,13 +116,6 @@
                     <svg class="pl-lp-escudo" viewBox="0 0 24 24" aria-hidden="true"><path class="corpo" d="M12 2l7 3v6c0 5-3.5 8-7 9-3.5-1-7-4-7-9V5z"/><path class="marca" d="M8.5 12l2.5 2.5 4.5-5"/></svg>
                     Cada perfil é verificado pela API oficial do CREA-AM
                 </p>
-
-                {% if u %}
-                    <div class="pl-lp-atalhos">
-                        <a class="pl-btn" href="{{ app_url }}/perfil">Meu perfil</a>
-                        <a class="pl-btn" href="{{ app_url }}/demandas/abertas">Demandas abertas</a>
-                    </div>
-                {% endif %}
             </div>
 
             {#  A cena animada e, ao lado dela, o quadro final em SVG. Sem JavaScript o SVG é o
@@ -255,7 +255,7 @@
             <h2>Um lado encontra o outro</h2>
         </div>
         <div class="pl-lp-who">
-            <div class="pl-lp-whocard">
+            <div class="pl-lp-whocard" id="profissional">
                 <div class="pl-lp-whead">
                     <span class="em" aria-hidden="true"><span class="m"></span></span>
                     <div>
@@ -272,7 +272,7 @@
                     <a class="pl-btn" href="{{ app_url }}/cadastro">Criar perfil verificado &rarr;</a>
                 </div>
             </div>
-            <div class="pl-lp-whocard emp">
+            <div class="pl-lp-whocard emp" id="contratante">
                 <div class="pl-lp-whead">
                     <span class="em" aria-hidden="true"><span class="m"></span></span>
                     <div>
@@ -317,12 +317,6 @@
                     <a href="{{ app_url }}/login">Entrar</a>
                     <a href="{{ app_url }}/cadastro">Criar perfil</a>
                 {% endif %}
-            </div>
-            <div class="col">
-                <h4>Institucional</h4>
-                <a href="#eixos">Sobre o desafio</a>
-                <a href="#como">CREA-AM</a>
-                <a href="#quem">Contato</a>
             </div>
             <div class="col">
                 <h4>Privacidade</h4>
