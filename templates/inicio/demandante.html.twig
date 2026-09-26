@@ -97,14 +97,14 @@
     </div>
 
     <a class="pl-kpi" href="{{ app_url }}/demandas">
-        <div class="lab">Interessados que chegaram</div>
+        <div class="lab">Contatos nas suas demandas</div>
         <div class="val">{{ numeros.interessados }}</div>
         <div class="sub">
             <span>
                 {%- if numeros.interessados == 0 -%}
-                    Nenhuma manifestação recebida
+                    Nenhuma candidatura nem convite ainda
                 {%- else -%}
-                    Manifestações nas suas demandas
+                    Candidaturas e convites
                 {%- endif -%}
             </span>
             <svg class="ch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
@@ -176,13 +176,13 @@
         <div class="table-responsive" tabindex="0" role="region" aria-label="Suas demandas mais recentes">
             <table class="pl-table">
                 <caption class="visually-hidden">
-                    As demandas mais recentes desta conta, com situação, número de interessados e data de publicação
+                    As demandas mais recentes desta conta, com situação, número de contatos e data de publicação
                 </caption>
                 <thead>
                     <tr>
                         <th scope="col" class="assunto">Demanda</th>
                         <th scope="col">Situação</th>
-                        <th scope="col" class="num">Interessados</th>
+                        <th scope="col" class="num">Contatos</th>
                         <th scope="col">Publicada</th>
                         <th scope="col"><span class="visually-hidden">Ação</span></th>
                     </tr>
@@ -206,8 +206,8 @@
                                 lista de quem manifestou. #}
                             <td class="num{{ d.interessados > 0 ? '' : ' zero' }}">
                                 {%- if d.interessados > 0 -%}
-                                    <a class="lk" href="{{ app_url }}/demandas/{{ d.dem_id }}/interessados"
-                                       title="Ver quem manifestou interesse">{{ d.interessados }}</a>
+                                    <a class="lk" href="{{ app_url }}/demandas/{{ d.dem_id }}/contatos"
+                                       title="Ver os contatos desta demanda">{{ d.interessados }}</a>
                                 {%- else -%}
                                     {{ d.interessados }}
                                 {%- endif -%}

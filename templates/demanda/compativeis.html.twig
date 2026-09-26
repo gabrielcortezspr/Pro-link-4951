@@ -47,10 +47,26 @@
 {% block conteudo %}
 <div class="pl-feed">
 
+{#  A sub-navegação da demanda (D87): de qualquer uma das três telas, as outras duas e o que
+    espera em cada uma. #}
+<div class="pl-feed-abas">
+    {{ ui.abas_demanda(demanda, painel|default(null), 'compativeis') }}
+</div>
+
 {% set atividades = demanda.tos|default([]) %}
 {% set descricoes = atividades|reduce((m, t) => m|merge({(t.codigo): t.descricao|default('')}), {}) %}
 {% set pool = sessao.candidatos %}
-{% set ocultos = sessao.total_gravado - pool|length %}
+{#  Três contagens diferentes, e a tela não pode confundir nenhuma (D87):
+    - `pool` é quem falta avaliar: o controller já tirou quem virou contato ou foi dispensado;
+    - `no_conjunto` é o conjunto visível antes desse recorte;
+    - `ocultos` é quem o motor achou e o próprio titular escondeu depois. Antes da D87 era
+      `total_gravado - pool`, e com o recorte novo essa conta atribuiria ao titular a escolha que
+      foi da empresa. #}
+{% set no_conjunto = no_conjunto|default(pool|length) %}
+{% set ocultos = sessao.total_gravado - no_conjunto %}
+{% set painel = painel|default({}) %}
+{% set contatos = painel.contatos|default(0) %}
+{% set dispensados = dispensados|default([]) %}
 
 {# Texto de cada dimensão: o que ela compara, e de onde sai o dado. É o "critério explicável"
    do Anexo VI, e por isso mora na tela, não num documento que ninguém abre na hora. #}
@@ -98,7 +114,15 @@
         <a class="dm" href="{{ app_url }}/demandas/{{ demanda.dem_id }}">{{ demanda.dem_titulo }}</a>
 
         <p class="fato">
-            <span><span class="n">{{ pool|length }}</span> {{ pool|length == 1 ? 'perfil no pool' : 'perfis no pool' }}</span>
+            {#  Quanto falta, e de quanto (D87). Quem já é contato sai do feed, e o link diz para
+                onde foi: sem ele, o perfil convidado ontem "sumiria" da lista sem explicação. #}
+            <span><span class="n">{{ pool|length }}</span> {{ pool|length == 1 ? 'perfil para avaliar' : 'perfis para avaliar' }}</span>
+            <span class="sep" aria-hidden="true"></span>
+            <span><span class="n">{{ no_conjunto }}</span> no conjunto</span>
+            {% if contatos > 0 %}
+                <span class="sep" aria-hidden="true"></span>
+                <a class="ja" href="{{ app_url }}/demandas/{{ demanda.dem_id }}/contatos">{{ contatos }} já em Contatos</a>
+            {% endif %}
             {% if atividades is not empty %}
                 <span class="sep" aria-hidden="true"></span>
                 <span class="at">
@@ -354,33 +378,60 @@
 
                 </div>
 
-                {#  As duas ações do mockup: a preenchida laranja e a contornada. O rótulo não é o
-                    "Manifestar interesse" de lá: quem manifesta interesse é o candidato, a
-                    partir das demandas abertas (D51). Aqui é o demandante que registra interesse
-                    num perfil do pool, e o verbo precisa dizer de que lado a ação parte. #}
+                {#  As duas decisões sobre um perfil (D87). Convidar é a ação que compromete (avisa o
+                    titular e guarda o retrato), e por isso é a única laranja. Dispensar é a outra
+                    saída da triagem: neutra, em fantasma, sem vermelho e sem ícone de recusa,
+                    porque não é nota sobre a pessoa, e ela nem fica sabendo. As duas tiram o perfil
+                    desta lista; a de dispensar se desfaz no rodapé da tela. O perfil completo é
+                    consulta, não decisão, e fica como link na ponta da fileira. #}
                 <div class="pl-acoes">
                     <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/interesse">
                         {{ form.csrf() }}
                         <input type="hidden" name="candidato" value="{{ c.usuario_id }}">
-                        <button type="submit" class="pl-cta lg">Registrar interesse</button>
+                        <button type="submit" class="pl-cta lg">Convidar</button>
                     </form>
-                    <a class="pl-btn lg" href="{{ app_url }}/perfil/{{ c.usuario_id }}">
+                    <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/dispensar">
+                        {{ form.csrf() }}
+                        <input type="hidden" name="candidato" value="{{ c.usuario_id }}">
+                        <button type="submit" class="pl-btn ghost lg">Dispensar</button>
+                    </form>
+                    <a class="pl-perfil-lk" href="{{ app_url }}/perfil/{{ c.usuario_id }}">
                         Ver perfil completo
                         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="M13 6l6 6-6 6"/></svg>
                     </a>
                 </div>
-                <p class="pl-fine pl-nota-acao">
-                    Registrar interesse avisa o titular deste perfil por e-mail e guarda o perfil como
-                    ele está agora, com hash. O caminho inverso continua valendo: quem manifesta
-                    interesse na demanda é o próprio titular, pelas demandas abertas.
-                </p>
+                <div class="pl-fine pl-nota-acao">
+                    <span>
+                        Convidar avisa o titular por e-mail e guarda o perfil como ele está agora.
+                        Dispensar só tira o perfil desta lista: ele não é avisado, e você pode trazê-lo
+                        de volta.
+                    </span>
+                    {{ ui.info('Convite e candidatura',
+                        'No edital, convidar é "registrar interesse" num perfil compatível. O caminho inverso continua valendo: o profissional pode se candidatar pela vitrine de demandas abertas, o que o edital chama de "manifestar interesse". Os dois viram conversa em Contatos.', 'fim') }}
+                </div>
             </article>
         {% endfor %}
 
         {# Fim do pool, e pool vazio: o mesmo quadro, porque a pergunta dos dois é "e agora?". #}
         <article class="pl-focus is-end" {{ pool is empty ? '' : 'data-cartao' }}>
             <div class="pl-end">
-                {% if pool is empty and ocultos > 0 %}
+                {#  Quatro fins, e cada um diz o que houve de verdade (D87):
+                    - conjunto com gente, e todos já decididos: "você avaliou todos";
+                    - conjunto vazio porque os titulares se fecharam depois do cálculo;
+                    - conjunto vazio de origem: ninguém atingiu o limiar;
+                    - fim da lista depois de ver cada perfil. #}
+                {% if pool is empty and no_conjunto > 0 %}
+                    <p class="et">Você avaliou todos os perfis deste conjunto</p>
+                    {%- set feitos = [] -%}
+                    {%- if contatos > 0 %}{% set feitos = feitos|merge([contatos == 1 ? 'um virou contato' : contatos ~ ' viraram contato']) %}{% endif -%}
+                    {%- if dispensados is not empty %}{% set feitos = feitos|merge([dispensados|length == 1 ? 'um foi dispensado' : dispensados|length ~ ' foram dispensados']) %}{% endif -%}
+                    {%- set feito = feitos|join(' e ') -%}
+                    <p class="es">
+                        {% if feito %}{{ feito|slice(0, 1)|upper ~ feito|slice(1) }}. {% endif %}
+                        Atualizar a lista refaz o cálculo, e perfil que passou a cobrir estas
+                        atividades entra no conjunto novo.
+                    </p>
+                {% elseif pool is empty and ocultos > 0 %}
                     <p class="et">Nenhum perfil do pool está visível agora</p>
                     <p class="es">
                         {{ ocultos == 1 ? 'Um perfil atendia' : ocultos ~ ' perfis atendiam' }} a esta demanda no
@@ -397,7 +448,7 @@
                     </p>
                 {% else %}
                     <p class="et">
-                        Você viu {{ pool|length == 1 ? 'o único perfil compatível' : 'os ' ~ pool|length ~ ' perfis compatíveis' }}
+                        Você viu {{ pool|length == 1 ? 'o único perfil para avaliar' : 'os ' ~ pool|length ~ ' perfis para avaliar' }}
                         desta demanda
                     </p>
                     <p class="es">
@@ -411,10 +462,16 @@
                     um botão contornado, um link azul sublinhado e um botão de texto. Agora é uma
                     ação principal contornada e as outras duas em fantasma, todas com a mesma
                     altura e o mesmo componente. Nada aqui é laranja: o laranja desta tela é
-                    "Registrar interesse", que é a ação que compromete, e ela não mora neste
+                    "Convidar", que é a ação que compromete, e ela não mora neste
                     quadro. #}
                 <div class="ea">
-                    {% if pool is empty %}
+                    {% if pool is empty and no_conjunto > 0 %}
+                        <a class="pl-btn lg" href="{{ app_url }}/demandas/{{ demanda.dem_id }}/contatos">Ir para Contatos</a>
+                        <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/compativeis">
+                            {{ form.csrf() }}
+                            <button type="submit" class="pl-btn ghost lg">Atualizar e sortear de novo</button>
+                        </form>
+                    {% elseif pool is empty %}
                         <a class="pl-btn lg" href="{{ app_url }}/demandas/{{ demanda.dem_id }}">Rever as atividades da demanda</a>
                         <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/compativeis">
                             {{ form.csrf() }}
@@ -426,7 +483,11 @@
                             <button type="submit" class="pl-btn lg">Atualizar e sortear de novo</button>
                         </form>
                         <button type="button" class="pl-btn ghost lg" data-reiniciar hidden>Rever do início</button>
-                        <a class="pl-btn ghost lg" href="{{ app_url }}/demandas/{{ demanda.dem_id }}">Voltar à demanda</a>
+                        {% if contatos > 0 %}
+                            <a class="pl-btn ghost lg" href="{{ app_url }}/demandas/{{ demanda.dem_id }}/contatos">Ir para Contatos</a>
+                        {% else %}
+                            <a class="pl-btn ghost lg" href="{{ app_url }}/demandas/{{ demanda.dem_id }}">Voltar à demanda</a>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>
@@ -466,6 +527,31 @@
     /admin/sessoes/{id}, onde a plataforma refaz o mesmo sorteio a partir da semente na frente de
     quem pergunta. A qualificação do item 10.2 continua visível em dois lugares (no cabeçalho, em
     palavras, e aqui), porque ela é exigência do edital e não nota de rodapé. #}
+{#  Os dispensados (D87): discretos e recolhidos, porque são decisão já tomada, e com "Trazer de
+    volta" em cada um, porque dispensar se desfaz. <details> nativo: abre sem script e o teclado
+    já sabe usar. Não aparece quando não há ninguém. #}
+{% if dispensados is not empty %}
+    <details class="pl-dispensados">
+        <summary>
+            <svg class="ch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            {{ dispensados|length }} {{ dispensados|length == 1 ? 'perfil dispensado' : 'perfis dispensados' }} nesta demanda
+        </summary>
+        <ul>
+            {% for x in dispensados %}
+                <li>
+                    <span class="nm">{{ x.nome|nome_proprio }}</span>
+                    <span class="qd">Dispensado em {{ x.dt_registro|date('d/m/Y') }}</span>
+                    <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/dispensados/desfazer">
+                        {{ form.csrf() }}
+                        <input type="hidden" name="candidato" value="{{ x.usuario_id }}">
+                        <button type="submit" class="pl-btn mini">Trazer de volta<span class="visually-hidden"> {{ x.nome|nome_proprio }} para a lista</span></button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    </details>
+{% endif %}
+
 <p class="pl-proveniencia">
     <span>
         Sessão de compatibilização{% if sessao.dt_registro %} registrada em {{ sessao.dt_registro|date('d/m/Y H:i') }}{% endif %}
@@ -477,7 +563,7 @@
         <span>{{ ocultos == 1 ? '1 perfil saiu' : ocultos ~ ' perfis saíram' }} da lista por escolha do titular</span>
     {% endif %}
     <span class="sep" aria-hidden="true"></span>
-    <span>registrar interesse parte de você; manifestar interesse parte do titular do perfil</span>
+    <span>o convite parte de você; a candidatura parte do titular do perfil</span>
 </p>
 </div>
 {% endblock %}

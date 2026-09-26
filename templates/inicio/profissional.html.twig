@@ -81,12 +81,12 @@
     </div>
 
     <a class="pl-kpi" href="{{ app_url }}/manifestacoes">
-        <div class="lab">Interesses que você enviou</div>
+        <div class="lab">Candidaturas que você enviou</div>
         <div class="val">{{ numeros.manifestacoes }}</div>
         <div class="sub">
             <span>
                 {%- if numeros.manifestacoes == 0 -%}
-                    Nenhum enviado até agora
+                    Nenhuma enviada até agora
                 {%- else -%}
                     Acompanhar o que foi respondido
                 {%- endif -%}
@@ -119,12 +119,12 @@
         olho não é medida por ninguém aqui. O rótulo diz o que o número é, para não sobrar a
         leitura de audiência que o mockup sugeria. #}
     <a class="pl-kpi" href="{{ app_url }}/manifestacoes">
-        <div class="lab">Demandantes que registraram interesse em você</div>
+        <div class="lab">Convites que você recebeu</div>
         <div class="val">{{ numeros.interesses }}</div>
         <div class="sub">
             <span>
                 {%- if numeros.interesses == 0 -%}
-                    Nenhum registro até agora
+                    Nenhum convite até agora
                 {%- else -%}
                     Não é contagem de visitas ao perfil
                 {%- endif -%}
@@ -200,7 +200,7 @@
 {# ------------------------------------------------------------------ o que passou por esta conta #}
 <section class="pl-card">
     <div class="pl-linha-titulo">
-        <h2 class="pl-secao">Interesses recentes</h2>
+        <h2 class="pl-secao">Candidaturas e convites recentes</h2>
         <div class="dir">
             <a class="pl-btn sm" href="{{ app_url }}/manifestacoes">Ver todos</a>
         </div>
@@ -208,21 +208,21 @@
 
     {% if enviadas is empty %}
         <div class="pl-vazio">
-            <p class="t">Nenhum interesse registrado ainda</p>
+            <p class="t">Nenhuma candidatura nem convite ainda</p>
             <p class="s">
-                Ao manifestar interesse numa demanda, a plataforma envia ao demandante um retrato
-                do seu perfil com o que estiver aberto para ele, e abre aqui um canal entre os
-                dois.
+                Ao se candidatar a uma demanda, a plataforma envia à empresa um retrato do seu
+                perfil com o que estiver aberto para ela, e abre aqui um canal entre vocês. Quando
+                uma empresa convidar você, o convite também aparece aqui.
             </p>
             <div class="a">
                 <a class="pl-cta" href="{{ app_url }}/demandas/abertas">Ver demandas abertas</a>
             </div>
         </div>
     {% else %}
-        <div class="table-responsive" tabindex="0" role="region" aria-label="Interesses recentes desta conta">
+        <div class="table-responsive" tabindex="0" role="region" aria-label="Candidaturas e convites recentes desta conta">
             <table class="pl-table">
                 <caption class="visually-hidden">
-                    Os interesses mais recentes ligados a esta conta, com a situação de cada um
+                    As candidaturas e os convites mais recentes desta conta, com a situação de cada um
                 </caption>
                 <thead>
                     <tr>

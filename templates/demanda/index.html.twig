@@ -12,9 +12,10 @@
     1. A coluna "Atividade TOS" do mockup precisa das atividades de cada demanda, e
        DemandaRepository::doUsuario() não as carrega. No lugar dela fica o regime de contratação,
        que é dado real desta rota e ocupa o mesmo posto na leitura da linha.
-    2. A coluna "Compatíveis" do mockup é uma contagem do motor por demanda, que nenhuma consulta
-       desta tela faz. Fica só "Interessados", que é gente que decidiu e abre uma tela de verdade.
-       Nenhuma das duas é ordenação de pessoas (item 10.1).
+    2. As colunas "Compatíveis" e "Interessados" do mockup viraram uma só, "Acompanhamento" (D87):
+       o que espera em cada demanda, com cada número levando à aba certa dela ("3 para avaliar"
+       leva a Compatíveis; candidaturas, convites e mensagens levam a Contatos). É quantidade de
+       pendência, nunca nota, e nada aqui ordena pessoas (item 10.1).
     3. O filtro do mockup é instantâneo, sobre a lista já carregada, e aqui também: não há rota
        de busca em /demandas, e a lista é a da própria conta. Sem JavaScript o campo não aparece,
        porque campo de busca que não busca é pior que a ausência dele.
@@ -89,14 +90,14 @@
     <div class="pl-card">
         <div class="table-responsive" tabindex="0" role="region"
              aria-label="Demandas publicadas por você">
-            <table class="pl-table fixa">
-                <caption class="visually-hidden">Demandas publicadas por você, com situação e número de interessados</caption>
+            <table class="pl-table fixa acomp">
+                <caption class="visually-hidden">Demandas publicadas por você, com situação e o que espera em cada uma</caption>
                 {#  Largura por coluna, como o `colgroup` do mockup: sem ela a coluna do assunto
                     encolhia ou crescia conforme o título mais longo da página, e duas visitas à
                     mesma tela tinham desenhos diferentes. #}
                 <colgroup>
                     <col class="c-assunto"><col class="c-regime"><col class="c-data">
-                    <col class="c-situacao"><col class="c-conta"><col class="c-acao">
+                    <col class="c-situacao"><col class="c-acomp"><col class="c-acao">
                 </colgroup>
                 <thead>
                     <tr>
@@ -104,7 +105,7 @@
                         <th scope="col">Regime</th>
                         <th scope="col">Publicada</th>
                         <th scope="col">Situação</th>
-                        <th scope="col" class="cen">Interessados</th>
+                        <th scope="col">Acompanhamento</th>
                         <th scope="col"><span class="visually-hidden">Ação</span></th>
                     </tr>
                 </thead>
@@ -115,7 +116,7 @@
                             aparece abreviado na linha. #}
                         {% set situacao_texto = d.dem_dt_publicacao is null ? 'rascunho'
                             : (d.dem_situacao == 'ENCERRADA' ? 'encerrada'
-                            : (d.dem_situacao == 'COM_INTERESSADOS' ? 'com interessados' : 'aberta')) %}
+                            : (d.dem_situacao == 'COM_INTERESSADOS' ? 'com contatos' : 'aberta')) %}
                         <tr data-busca="{{ d.dem_titulo }} {{ d.dem_local_municipio }} {{ d.dem_local_uf }} {{ d.dem_tipo_contrato|rotulo_contrato }} {{ situacao_texto }}">
                             <td class="assunto">
                                 <a class="lin-tt trunc" href="{{ app_url }}/demandas/{{ d.dem_id }}"
@@ -139,17 +140,38 @@
                                 {%- endif -%}
                             </td>
                             <td>{{ ui.situacao(d.dem_situacao, d.dem_dt_publicacao is not null) }}</td>
-                            {#  Zero é um dado, e não um vazio: fica escrito, em cinza claro, para
-                                a coluna continuar comparável de cima a baixo. A partir de um, o
-                                número leva à lista de quem manifestou: contagem que não abre a
-                                coisa contada é um número morto. #}
-                            <td class="cen{{ d.interessados > 0 ? '' : ' zero' }}">
-                                {%- if d.interessados > 0 -%}
-                                    <a class="lk" href="{{ app_url }}/demandas/{{ d.dem_id }}/interessados"
-                                       title="Ver quem manifestou interesse">{{ d.interessados }}</a>
-                                {%- else -%}
-                                    {{ d.interessados }}
-                                {%- endif -%}
+                            {#  O que espera nesta demanda (D87), cada item levando à aba dele. Zero não
+                                vira número: "0 candidaturas" em cinza, repetido em vinte linhas, leria
+                                como acusação. Sem nada pendente, uma frase neutra diz isso; sem sessão
+                                do motor ainda, o convite para calcular. #}
+                            {%- set pn = d.painel|default({}) -%}
+                            {%- set base = app_url ~ '/demandas/' ~ d.dem_id -%}
+                            <td class="acomp">
+                                {% if d.dem_dt_publicacao is null %}
+                                    <span class="lin-sub">Publique para ver compatíveis</span>
+                                {% else %}
+                                    <ul class="pl-acomp">
+                                        {% if pn.nao_lidas|default(0) > 0 %}
+                                            <li><a class="dest" href="{{ base }}/contatos"><span class="pd" aria-hidden="true"></span>{{ pn.nao_lidas }} {{ pn.nao_lidas == 1 ? 'mensagem não lida' : 'mensagens não lidas' }}</a></li>
+                                        {% endif %}
+                                        {% if pn.candidaturas|default(0) > 0 %}
+                                            <li><a href="{{ base }}/contatos">{{ pn.candidaturas }} {{ pn.candidaturas == 1 ? 'candidatura' : 'candidaturas' }}
+                                                {%- if pn.candidaturas_novas|default(0) > 0 %} <span class="nv">· {{ pn.candidaturas_novas }} {{ pn.candidaturas_novas == 1 ? 'nova' : 'novas' }}</span>{% endif %}</a></li>
+                                        {% endif %}
+                                        {% if pn.convites|default(0) > 0 %}
+                                            <li><a href="{{ base }}/contatos">{{ pn.convites }} {{ pn.convites == 1 ? 'convite' : 'convites' }}</a></li>
+                                        {% endif %}
+                                        {% if pn.a_analisar is defined and pn.a_analisar is null %}
+                                            <li><a class="calc" href="{{ base }}/compativeis">Abra os compatíveis para calcular</a></li>
+                                        {% elseif pn.a_analisar|default(0) > 0 %}
+                                            <li><a href="{{ base }}/compativeis">{{ pn.a_analisar }} para avaliar</a></li>
+                                        {% endif %}
+                                        {% if pn.nao_lidas|default(0) == 0 and pn.candidaturas|default(0) == 0 and pn.convites|default(0) == 0
+                                              and pn.a_analisar is defined and pn.a_analisar is not null and pn.a_analisar == 0 %}
+                                            <li class="nada">Nada esperando por você</li>
+                                        {% endif %}
+                                    </ul>
+                                {% endif %}
                             </td>
                             <td class="text-end">
                                 <a class="pl-btn sm" href="{{ app_url }}/demandas/{{ d.dem_id }}">Ver detalhes</a>

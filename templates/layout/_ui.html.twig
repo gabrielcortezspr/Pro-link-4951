@@ -84,7 +84,7 @@
     {%- elseif situacao == 'ENCERRADA' -%}
         <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Encerrada</span>
     {%- elseif situacao == 'COM_INTERESSADOS' -%}
-        <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Com interessados</span>
+        <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Com contatos</span>
     {%- else -%}
         <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Aberta</span>
     {%- endif -%}
@@ -555,7 +555,7 @@
 {% macro respostas(lista, lado = 'demandante') %}
     {%- if lista is not empty -%}
     <table class="pl-table pl-respostas">
-        <caption class="visually-hidden">Perguntas da demanda e respostas de quem manifestou interesse</caption>
+        <caption class="visually-hidden">Perguntas da demanda e respostas de quem se candidatou</caption>
         <thead>
             <tr>
                 <th scope="col"><span class="visually-hidden">Assunto</span></th>
@@ -580,6 +580,76 @@
             {% endfor %}
         </tbody>
     </table>
+    {%- endif -%}
+{% endmacro %}
+
+{#
+  A sub-navegação da demanda (D87): Demanda · Compatíveis · Contatos, comum às três telas da
+  demanda de quem a publicou. É o pedido central da D87: dentro da demanda, saber na hora que há
+  gente esperando, sem precisar sair para a lista de demandas.
+
+  É o `.pl-seg` do perfil (seção 38 do prolink.css), porque é o mesmo gesto: lugares irmãos de um
+  mesmo assunto, e a aba atual acesa em azul escuro. Links, e não `role="tab"`: cada aba é uma
+  rota, e o leitor de tela anuncia a atual por `aria-current`.
+
+  Os contadores são quantidade, nunca nota:
+  - Compatíveis: `a_analisar`, quantos perfis do conjunto ainda não viraram contato nem foram
+    dispensados. Nulo quando a demanda nunca teve sessão do motor: aí não há número a mostrar.
+  - Contatos: o total de contatos em tinta de contador, e as novidades (`pendentes`: candidatura
+    ainda não aberta mais mensagem não lida) numa marca própria, que é o que pede ação agora.
+
+  `painel` pode faltar (demanda de outra conta, rascunho): o macro só é chamado para a dona de uma
+  demanda publicada, e mesmo assim lê tudo com `default`.
+#}
+{% macro abas_demanda(d, painel, atual) %}
+    {%- set p = painel|default({}) -%}
+    {%- set base = app_url ~ '/demandas/' ~ d.dem_id -%}
+    {%- set analisar = p.a_analisar|default(null) -%}
+    {%- set contatos = p.contatos|default(0) -%}
+    {%- set pendentes = p.pendentes|default(0) -%}
+    <nav class="pl-seg pl-abas-dem" aria-label="Seções desta demanda">
+        <a class="pl-seg-b{% if atual == 'demanda' %} aqui{% endif %}" href="{{ base }}"
+           {%- if atual == 'demanda' %} aria-current="page"{% endif %}>Demanda</a>
+        <a class="pl-seg-b{% if atual == 'compativeis' %} aqui{% endif %}" href="{{ base }}/compativeis"
+           {%- if atual == 'compativeis' %} aria-current="page"{% endif %}
+           {%- if analisar is null %} title="Abra os compatíveis para calcular quantos perfis há para avaliar"{% endif %}>
+            Compatíveis
+            {%- if analisar is not null %}
+                <span class="n">{{ analisar }}<span class="visually-hidden"> {{ analisar == 1 ? 'perfil para avaliar' : 'perfis para avaliar' }}</span></span>
+            {%- endif %}
+        </a>
+        <a class="pl-seg-b{% if atual == 'contatos' %} aqui{% endif %}" href="{{ base }}/contatos"
+           {%- if atual == 'contatos' %} aria-current="page"{% endif %}>
+            Contatos
+            <span class="n">{{ contatos }}<span class="visually-hidden"> {{ contatos == 1 ? 'contato' : 'contatos' }}</span></span>
+            {%- if pendentes > 0 %}
+                <span class="pl-seg-novas" title="Candidaturas ainda não abertas e mensagens não lidas">
+                    <span class="pd" aria-hidden="true"></span>{{ pendentes }} {{ pendentes == 1 ? 'nova' : 'novas' }}
+                    <span class="visually-hidden">: candidaturas ainda não abertas e mensagens não lidas</span>
+                </span>
+            {%- endif %}
+        </a>
+    </nav>
+{% endmacro %}
+
+{#
+  O estado de um convite enviado pela empresa (D87), na língua de quem o enviou.
+
+  Só o que o dado sustenta. "Respondeu" exige saber que o convidado escreveu, e o item não traz
+  isso: `man_situacao = RESPONDIDA` é gravado na primeira mensagem de QUALQUER das partes, então
+  uma segunda mensagem da própria empresa já o marcaria. Por isso "Respondeu" só aparece quando há
+  mensagem do convidado ainda não lida (`nao_lidas > 0`, que só conta mensagem do outro lado), e o
+  resto de uma conversa em andamento diz "Em conversa", que é verdade nos dois casos.
+#}
+{% macro situacao_convite(i) %}
+    {#- `respondeu`: o convidado escreveu ao menos uma vez (D87). `man_situacao` não serve para
+        isso, porque vira RESPONDIDA com a mensagem de qualquer das partes. -#}
+    {%- if i.respondeu|default(false) -%}
+        <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Respondeu</span>
+    {%- elseif i.man_dt_visualizacao -%}
+        <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Visto pela pessoa em {{ i.man_dt_visualizacao|date('d/m') }}</span>
+    {%- else -%}
+        <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Enviado</span>
     {%- endif -%}
 {% endmacro %}
 

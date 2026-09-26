@@ -1,160 +1,224 @@
 {% extends 'layout/base.html.twig' %}
 {% import 'layout/_ui.html.twig' as ui %}
 
-{% block titulo %}Interessados · {{ demanda.dem_titulo }} · Pro-Link{% endblock %}
+{% block titulo %}Contatos · {{ demanda.dem_titulo }} · Pro-Link{% endblock %}
 
 {#
-    O outro lado do cenário 4: quem se interessou por uma demanda minha.
+    Contatos de uma demanda (D87): quem se candidatou e quem a empresa convidou.
 
-    docs/mockups/prolink-interacoes.html não desenha esta tela (ele traz a confirmação e a
-    denúncia), e o que veio de lá são as peças: a nota neutra `.miniinfo` (aqui `.pl-miniinfo`) e
-    o vocabulário de situação em pílula. A declaração de não-ranking continua em `.pl-nota` em
-    texto corrido, e não dentro da caixa: ela é exigência do item 10.1 e não pode ser lida como
-    nota de rodapé ao lado de uma explicação de funcionamento.
+    Era "Interessados", uma lista só que misturava as duas origens, e o nome servia só à primeira:
+    a pessoa que a empresa convidou não "se interessou" por nada ainda. As duas viram conversa, e
+    por isso moram na mesma tela, em dois grupos com vocabulário próprio:
 
-    Falta de dado anotada no relatório: `man_origem` diz se a linha nasceu de uma manifestação do
-    titular ou de um interesse registrado pelo demandante, e não chega aqui (não está em
-    `ManifestacaoRepository::CAMPOS`). Sem ele a tela não pode distinguir as duas origens, e por
-    isso não afirma nenhuma das duas na linha: o rótulo da coluna é "Interessado".
+    - **Candidaturas** (`man_origem = 'C'`): o profissional se candidatou pela vitrine. O cartão da
+      D78, com a mensagem em destaque e o quadro "o que você pediu · o que respondeu", e a marca
+      "Nova" enquanto a empresa não abriu (`man_dt_visualizacao` nulo).
+    - **Convites que você enviou** (`man_origem = 'D'`): a empresa chamou o perfil a partir dos
+      compatíveis. Linha curta: quem, quando, em que pé está e se há mensagem nova. Não há quadro
+      de respostas: o convidado não passou pelo formulário.
+
+    Nenhum dos dois grupos é ordenado por mérito, e nenhum por "atende" (item 10.1): a ordem é a de
+    chegada, que é a do serviço. Os termos do edital ("manifestar interesse", "registrar
+    interesse") ficam no "i", como explicação, e não nos rótulos.
 #}
 
 {#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
 {% set shell = 'app' %}
 {% set ativo = 'demandas' %}
 
-{% block titulo_tela %}Interessados{% endblock %}
+{% block titulo_tela %}Contatos{% endblock %}
 
-{#  Lista de pessoas sobre uma mesma demanda. Era tabela; com a D78 cada interessado traz a
-    mensagem e o quadro "o que você pediu · o que respondeu", e as duas coisas espremidas numa
-    célula viravam um bloco ilegível. Agora cada um é um cartão, numa coluna só, em ordem de
-    chegada: coluna única porque a ordem precisa ser lida de cima para baixo, e duas colunas de
-    cartões fariam o olho ir e voltar sem saber quem chegou antes. #}
+{#  Cartões numa coluna só, em ordem de chegada: a ordem precisa ser lida de cima para baixo. #}
 {% block classe_main %}pl-wrap densa{% endblock %}
 
 {% block conteudo %}
-{% set nao_lidas = interessados|reduce((soma, i) => soma + i.nao_lidas, 0) %}
+{% set candidaturas = interessados|filter(i => (i.man_origem|default('C')) == 'C') %}
+{% set convites     = interessados|filter(i => (i.man_origem|default('C')) == 'D') %}
+{% set novas        = candidaturas|filter(i => not i.man_dt_visualizacao)|length %}
+{% set nao_lidas    = interessados|reduce((soma, i) => soma + i.nao_lidas, 0) %}
 
+{#  O mesmo cabeçalho das outras duas abas da demanda: o título dela, e não o nome da tela, para
+    trocar de aba não fazer o título pular. O nome da tela está na aba acesa e na topbar. #}
 <div class="pl-head">
     <div class="tit">
-        <p class="mb-2">
-            <a class="pl-link-voltar" href="{{ app_url }}/demandas/{{ demanda.dem_id }}">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H6"/><path d="M11 6l-6 6 6 6"/></svg>
-                Voltar para a demanda
-            </a>
-        </p>
-        <h1>Interessados</h1>
+        <h1>{{ demanda.dem_titulo }}</h1>
         <p class="sub">
-            <span>{{ demanda.dem_titulo }}</span>
-            <span class="pl-sep" aria-hidden="true"></span>
             {{ ui.situacao(demanda.dem_situacao, demanda.dem_dt_publicacao is not null) }}
-            {% if interessados is not empty %}
-                <span class="pl-sep" aria-hidden="true"></span>
-                <span><span class="n">{{ interessados|length }}</span>
-                    {{ interessados|length == 1 ? 'manifestação recebida' : 'manifestações recebidas' }}</span>
-            {% endif %}
+            <span class="pl-sep" aria-hidden="true"></span>
+            <span><span class="n">{{ candidaturas|length }}</span> {{ candidaturas|length == 1 ? 'candidatura' : 'candidaturas' }}</span>
+            <span class="pl-sep" aria-hidden="true"></span>
+            <span><span class="n">{{ convites|length }}</span> {{ convites|length == 1 ? 'convite enviado' : 'convites enviados' }}</span>
             {% if nao_lidas > 0 %}
                 <span class="pl-sep" aria-hidden="true"></span>
-                <span><span class="n">{{ nao_lidas }}</span>
-                    {{ nao_lidas == 1 ? 'mensagem não lida' : 'mensagens não lidas' }}</span>
+                <span><span class="n">{{ nao_lidas }}</span> {{ nao_lidas == 1 ? 'mensagem não lida' : 'mensagens não lidas' }}</span>
             {% endif %}
         </p>
     </div>
 </div>
 
-{% if interessados is empty %}
-    <div class="pl-card pl-vazio">
-        <p class="t">Ninguém manifestou interesse nesta demanda ainda</p>
-        <p class="s">
-            Quem manifestar aparece aqui com o perfil que tinha no momento do envio, e você poderá
-            responder por dentro da plataforma, sem trocar contato antes de querer.
-        </p>
-        {% if demanda.dem_dt_publicacao is not null %}
-            <div class="a">
-                <a class="pl-btn" href="{{ app_url }}/demandas/{{ demanda.dem_id }}/compativeis">
-                    Ver quem já comprovou fazer isto
-                </a>
-            </div>
+{{ ui.abas_demanda(demanda, painel|default(null), 'contatos') }}
+
+{#  Declaração visível, e não atrás do "i" (D53, regra 3): é uma lista de pessoas reunidas por uma
+    demanda, e sem a frase alguém leria a ordem como classificação. #}
+{#  <div> e não <p>: o "i" é um <details>, e o navegador fecharia o parágrafo antes dele. #}
+<div class="pl-nota pl-contatos-nota">
+    Em ordem de chegada. A plataforma não classifica, ordena por mérito nem recomenda contatos, e as
+    respostas de cada um não mudam essa ordem: a decisão é sua.
+    {{ ui.info('Candidatura e convite',
+        'Candidatura é quando o profissional se oferece pela vitrine de demandas abertas; o edital chama isso de "manifestar interesse". Convite é quando você chama um perfil a partir dos compatíveis; o edital chama isso de "registrar interesse". Os dois abrem uma conversa, e cada um traz o retrato do perfil como ele estava no envio.', 'fim') }}
+</div>
+
+{# ---------------------------------------------------------------- candidaturas #}
+<section class="pl-contatos-grupo" aria-labelledby="grupo-candidaturas">
+    <div class="pl-linha-titulo">
+        <h2 class="pl-secao" id="grupo-candidaturas">Candidaturas</h2>
+        <span class="cnt">{{ candidaturas|length }}</span>
+        {% if novas > 0 %}
+            <span class="pl-novas"><span class="pd" aria-hidden="true"></span>{{ novas }} {{ novas == 1 ? 'nova' : 'novas' }}</span>
         {% endif %}
     </div>
-{% else %}
-    <div class="pl-card">
-        <div class="pl-linha-titulo">
-            {#  Origem-neutro de propósito: a mesma lista recebe a manifestação que partiu do
-                titular do perfil e o interesse que você registrou a partir dos compatíveis. Sem
-                `man_origem` na consulta, "quem manifestou" afirmaria a primeira origem para as
-                duas. #}
-            <h2 class="pl-secao">Quem se interessou por esta demanda</h2>
-            <span class="cnt">{{ interessados|length }}</span>
-            {{ ui.info('O que você recebeu de cada um',
-                'Cada manifestação traz um retrato do perfil do candidato como ele estava no envio, com o que aquele titular tinha aberto para você. Abrir a manifestação marca a data em que você a viu, e essa data aparece para quem manifestou.', 'fim') }}
+
+    {% if candidaturas is empty %}
+        <div class="pl-card pl-vazio pl-vazio-grupo">
+            <p class="t">Ninguém se candidatou ainda</p>
+            <p class="s">
+                Quem se candidatar pela vitrine aparece aqui, com o perfil que tinha no momento do
+                envio e as respostas às perguntas da demanda.
+            </p>
         </div>
-
-        {#  Declaração visível, e não atrás do "i" (D53, regra 3): esta é uma lista de pessoas
-            reunidas por uma demanda, e sem a frase alguém leria a ordem como classificação. #}
-        <p class="pl-nota mb-0">
-            Em ordem de chegada. A plataforma não classifica, ordena por mérito nem recomenda
-            interessados, e as respostas de cada um não mudam essa ordem: a decisão é sua.
-        </p>
-
-    </div>
-
-    <div class="pl-int-lista">
-        {% for i in interessados %}
-            {%- set resp = i.respostas|default([]) -%}
-            <article class="pl-card pl-int" aria-labelledby="int-{{ i.man_id }}">
-                <header class="cab">
-                    <div class="id">
-                        <a class="nm" id="int-{{ i.man_id }}" href="{{ app_url }}/manifestacoes/{{ i.man_id }}">{{ i.nome|nome_proprio }}</a>
-                        <span class="sub">
-                            {{ i.man_candidato_tipo == 'E' ? 'Empresa registrada no CREA' : 'Profissional registrado no CREA' }}
-                            <span class="pl-sep" aria-hidden="true"></span>
-                            Recebida em <span class="pl-mono">{{ i.man_dt_registro|date('d/m/Y') }}</span>
-                        </span>
-                    </div>
-                    <div class="st">
-                        {{ ui.situacao_manifestacao(i.man_situacao) }}
-                        {% if i.nao_lidas > 0 %}
-                            <span class="pl-novas">
-                                <span class="pd" aria-hidden="true"></span>
-                                {{ i.nao_lidas }} {{ i.nao_lidas == 1 ? 'mensagem nova' : 'mensagens novas' }}
+    {% else %}
+        <div class="pl-int-lista">
+            {% for i in candidaturas %}
+                {%- set resp = i.respostas|default([]) -%}
+                {%- set nova = not i.man_dt_visualizacao -%}
+                <article class="pl-card pl-int{% if nova %} nova{% endif %}" aria-labelledby="int-{{ i.man_id }}">
+                    <header class="cab">
+                        <div class="id">
+                            <span class="nm-lin">
+                                <a class="nm" id="int-{{ i.man_id }}" href="{{ app_url }}/manifestacoes/{{ i.man_id }}">{{ i.nome|nome_proprio }}</a>
+                                {% if nova %}
+                                    <span class="pl-pill ok mini" title="Você ainda não abriu esta candidatura"><span class="pd" aria-hidden="true"></span>Nova</span>
+                                {% endif %}
                             </span>
-                        {% elseif i.mensagens > 0 %}
-                            <span class="conv">{{ i.mensagens }} {{ i.mensagens == 1 ? 'mensagem trocada' : 'mensagens trocadas' }}</span>
-                        {% else %}
-                            <span class="conv">Sem resposta sua ainda</span>
-                        {% endif %}
-                        <a class="pl-btn sm" href="{{ app_url }}/manifestacoes/{{ i.man_id }}">Ver perfil e conversar</a>
-                    </div>
-                </header>
+                            <span class="sub">
+                                {{ i.man_candidato_tipo == 'E' ? 'Empresa registrada no CREA' : 'Profissional registrado no CREA' }}
+                                <span class="pl-sep" aria-hidden="true"></span>
+                                Candidatou-se em <span class="pl-mono">{{ i.man_dt_registro|date('d/m/Y') }}</span>
+                            </span>
+                        </div>
+                        <div class="st">
+                            {% if i.nao_lidas > 0 %}
+                                <span class="pl-novas">
+                                    <span class="pd" aria-hidden="true"></span>
+                                    {{ i.nao_lidas }} {{ i.nao_lidas == 1 ? 'mensagem nova' : 'mensagens novas' }}
+                                </span>
+                            {% elseif i.mensagens > 0 %}
+                                <span class="conv">{{ i.mensagens }} {{ i.mensagens == 1 ? 'mensagem trocada' : 'mensagens trocadas' }}</span>
+                            {% else %}
+                                <span class="conv">Sem resposta sua ainda</span>
+                            {% endif %}
+                            <a class="pl-btn sm" href="{{ app_url }}/manifestacoes/{{ i.man_id }}">Abrir conversa<span class="visually-hidden"> com {{ i.nome|nome_proprio }}</span></a>
+                        </div>
+                    </header>
 
-                {#  A mensagem em destaque: a equipe não sabia onde ela aparecia. Ela é a voz do
-                    interessado, e vem antes do quadro, que é a resposta a um formulário. Sem
-                    mensagem e com quadro, diz-se que não houve mensagem; sem os dois (interesse
-                    registrado pela empresa), o cartão é só o cabeçalho. #}
-                {% if i.man_mensagem or resp is not empty %}
-                    <div class="corpo{% if resp is not empty and i.man_mensagem %} com-quadro{% endif %}">
-                        {% if i.man_mensagem %}
-                            <blockquote class="pl-msg-envio">
-                                <p class="rot">Mensagem enviada com o interesse</p>
-                                <p class="tx">{{ i.man_mensagem }}</p>
-                            </blockquote>
-                        {% else %}
-                            <p class="pl-msg-sem">Não escreveu mensagem no envio.</p>
-                        {% endif %}
-                        {{ ui.respostas(resp, 'demandante') }}
-                    </div>
-                {% endif %}
-            </article>
-        {% endfor %}
+                    {#  A mensagem em destaque (D78), antes do quadro: ela é a voz da pessoa, e o
+                        quadro é a resposta a um formulário. #}
+                    {% if i.man_mensagem or resp is not empty %}
+                        <div class="corpo{% if resp is not empty and i.man_mensagem %} com-quadro{% endif %}">
+                            {% if i.man_mensagem %}
+                                <blockquote class="pl-msg-envio">
+                                    <p class="rot">Mensagem enviada com a candidatura</p>
+                                    <p class="tx">{{ i.man_mensagem }}</p>
+                                </blockquote>
+                            {% else %}
+                                <p class="pl-msg-sem">Não escreveu mensagem na candidatura.</p>
+                            {% endif %}
+                            {{ ui.respostas(resp, 'demandante') }}
+                        </div>
+                    {% endif %}
+                </article>
+            {% endfor %}
+        </div>
+    {% endif %}
+</section>
+
+{# ---------------------------------------------------------------- convites #}
+{#  Linha curta, e não o cartão da candidatura: o convidado não mandou mensagem nem respondeu a
+    formulário, então o que interessa é em que pé está o convite. Tabela, porque são registros
+    comparáveis entre si pelas mesmas três colunas. #}
+<section class="pl-contatos-grupo" aria-labelledby="grupo-convites">
+    <div class="pl-linha-titulo">
+        <h2 class="pl-secao" id="grupo-convites">Convites que você enviou</h2>
+        <span class="cnt">{{ convites|length }}</span>
     </div>
 
-    {#  A promessa do retrato, dita na lista e não só dentro de cada registro: quem varre esta
-        tela precisa saber que "Ver perfil" abre o perfil daquele instante, e não o de hoje. Mesma
-        caixa neutra da confirmação e de "Meus interesses". #}
+    {% if convites is empty %}
+        <div class="pl-card pl-vazio pl-vazio-grupo">
+            <p class="t">Você ainda não convidou ninguém</p>
+            <p class="s">
+                Em Compatíveis, cada perfil do conjunto tem o botão Convidar. O convite avisa a
+                pessoa e abre uma conversa com ela aqui.
+            </p>
+            {% if demanda.dem_dt_publicacao is not null %}
+                <div class="a">
+                    <a class="pl-btn" href="{{ app_url }}/demandas/{{ demanda.dem_id }}/compativeis">Ver os compatíveis</a>
+                </div>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="pl-card pl-convites">
+            <div class="table-responsive" tabindex="0" role="region" aria-label="Convites que você enviou">
+                <table class="pl-table">
+                    <caption class="visually-hidden">Convites enviados nesta demanda, com a data, em que pé está cada um e as mensagens não lidas</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Convidado</th>
+                            <th scope="col">Enviado em</th>
+                            <th scope="col">Situação</th>
+                            <th scope="col">Conversa</th>
+                            <th scope="col"><span class="visually-hidden">Ação</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in convites %}
+                            <tr>
+                                <td>
+                                    <a class="lin-tt" href="{{ app_url }}/manifestacoes/{{ i.man_id }}">{{ i.nome|nome_proprio }}</a>
+                                    <span class="lin-sub">{{ i.man_candidato_tipo == 'E' ? 'Empresa registrada no CREA' : 'Profissional registrado no CREA' }}</span>
+                                </td>
+                                <td><span class="pl-mono">{{ i.man_dt_registro|date('d/m/Y') }}</span></td>
+                                <td>{{ ui.situacao_convite(i) }}</td>
+                                <td>
+                                    {% if i.nao_lidas > 0 %}
+                                        <span class="pl-novas">
+                                            <span class="pd" aria-hidden="true"></span>
+                                            {{ i.nao_lidas }} {{ i.nao_lidas == 1 ? 'mensagem nova' : 'mensagens novas' }}
+                                        </span>
+                                    {% elseif i.mensagens > 0 %}
+                                        <span class="lin-sub">{{ i.mensagens }} {{ i.mensagens == 1 ? 'mensagem trocada' : 'mensagens trocadas' }}</span>
+                                    {% else %}
+                                        <span class="lin-sub">Nenhuma mensagem ainda</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a class="pl-btn sm" href="{{ app_url }}/manifestacoes/{{ i.man_id }}">Abrir conversa<span class="visually-hidden"> com {{ i.nome|nome_proprio }}</span></a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+</section>
+
+{#  A promessa do retrato, dita na lista e não só dentro de cada registro: quem abre um contato
+    precisa saber que o perfil ali é o daquele instante, e não o de hoje. #}
+{% if interessados is not empty %}
     <p class="pl-miniinfo mt-3">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></svg>
         <span>
-            Cada cartão abre o perfil congelado no instante do envio, com o que aquele titular
+            Cada contato abre o perfil congelado no instante do envio, com o que aquele titular
             tinha aberto para você. O perfil de hoje pode estar diferente, e o que você recebeu
             não muda com ele.
         </span>

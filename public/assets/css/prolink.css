@@ -4481,3 +4481,136 @@ html.js-seg .pl-seg-painel:focus-visible { outline: 0; box-shadow: 0 -3px 0 0 va
 /* Sem mensagem, o quadro ocupa o cartão sozinho: esticado na largura de 1400px, o pedido e a
    resposta ficavam a meia tela um do outro. A medida é a da coluna que ele teria ao lado dela. */
 .pl-int > .corpo:not(.com-quadro) .pl-respostas { max-width: 760px; }
+
+/* ---------- 44. Candidatura, convite e contatos: a demanda diz o que espera (D87) ----------
+   Três queixas, um desenho: o feed mostrava quem já tinha sido chamado, "Interessados" misturava
+   quem se candidatou com quem a empresa convidou, e dentro da demanda não havia como saber que
+   havia gente esperando. O vocabulário passou a ser o mesmo em toda a aplicação:
+   **candidatura** (o profissional se oferece pela vitrine), **convite** (a empresa chama a partir
+   dos compatíveis), **contatos** (os dois juntos, porque os dois viram conversa) e **dispensar**
+   (tirar da lista de quem falta avaliar, sem avisar ninguém).
+
+   a) **Sub-navegação da demanda** (`.pl-abas-dem`, `ui.abas_demanda`). O `.pl-seg` do perfil,
+      com os contadores: "Compatíveis" leva quantos faltam avaliar, "Contatos" leva o total e, à
+      parte, as novidades (`.pl-seg-novas`), que é o que pede ação agora. Contador é quantidade de
+      pendência, nunca nota.
+   b) **Feed.** "Convidar" continua a única ação laranja; "Dispensar" é fantasma e neutra; o
+      perfil completo vira link na ponta da fileira, porque é consulta e não decisão. Os
+      dispensados ficam num `<details>` recolhido no rodapé, com "Trazer de volta".
+   c) **Contatos.** Candidaturas em cartão (o da D78), convites em tabela curta, cada grupo com o
+      próprio estado vazio. A candidatura ainda não aberta ganha a marca "Nova" e um fio azul
+      escuro à esquerda; nada de laranja, que é ação.
+   d) **Minhas demandas.** A coluna "Acompanhamento" é uma lista de até quatro links curtos, cada
+      um levando à aba certa; zero não vira número.
+   e) **Sino e menu.** O contador de `pendencias()` no sino e no item a que ele leva, em azul de
+      marca: vermelho leria como alarme, e laranja é só da ação preenchida.
+
+   Nenhuma cor nova: tudo sai da seção 1. */
+
+/* ---- a) A sub-navegação da demanda ---- */
+.pl-abas-dem { margin: 0 0 18px; }
+/* Logo abaixo do cabeçalho da demanda, as abas encostam nele: são a navegação daquele título. */
+.pl-head + .pl-abas-dem { margin-top: -10px; }
+.pl-abas-dem .pl-seg-b { gap: 7px; }
+.pl-seg-novas { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px;
+    border-radius: 10px; background: var(--pl-blue-100); color: var(--pl-data);
+    font-family: var(--pl-body); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pl-seg-novas .pd { width: 6px; height: 6px; border-radius: 50%; background: var(--pl-data); flex: none; }
+/* Na aba acesa o fundo já é azul escuro: a marca vira vidro claro sobre ele. */
+.pl-seg-b.aqui .pl-seg-novas { background: rgba(255, 255, 255, .18); color: #fff; }
+.pl-seg-b.aqui .pl-seg-novas .pd { background: #fff; }
+/* No feed a sub-navegação encosta na mesma margem do cabeçalho do feed. */
+.pl-feed-abas { padding: 18px 40px 0; flex: none; }
+.pl-feed-abas .pl-abas-dem { margin: 0; }
+
+/* ---- b) O feed ---- */
+.pl-feed-cab .fato .ja { color: var(--pl-blue); font-weight: 600; text-decoration: none; }
+.pl-feed-cab .fato .ja:hover { text-decoration: underline; }
+.pl-feed-cab .fato .ja:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; border-radius: 4px; }
+.pl-perfil-lk { margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 600; color: var(--pl-data); text-decoration: none; white-space: nowrap; }
+.pl-perfil-lk:hover { color: var(--pl-blue); text-decoration: none; }
+.pl-perfil-lk:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 3px; border-radius: 6px; }
+.pl-feed .pl-nota-acao { align-items: flex-start; }
+.pl-feed .pl-nota-acao .pl-info { flex: none; }
+
+/* Os dispensados: um fio de texto no rodapé, recolhido. Aberto, uma lista curta com o nome, a
+   data e "Trazer de volta" na ponta. */
+.pl-dispensados { margin: 0 40px 14px; font-size: 12.5px; color: var(--pl-muted); }
+.pl-dispensados > summary { display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+    list-style: none; font-weight: 600; padding: 4px 0; border-radius: 6px; }
+.pl-dispensados > summary::-webkit-details-marker { display: none; }
+.pl-dispensados > summary:hover { color: var(--pl-data); }
+.pl-dispensados > summary:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; }
+.pl-dispensados > summary .ch { width: 14px; height: 14px; transition: transform .15s ease; }
+.pl-dispensados[open] > summary .ch { transform: rotate(90deg); }
+.pl-dispensados ul { list-style: none; margin: 8px 0 0; padding: 4px 14px; max-width: 640px;
+    background: var(--pl-card); border: 1px solid var(--pl-border); border-radius: 12px; }
+.pl-dispensados li { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; padding: 8px 0;
+    border-bottom: 1px solid var(--pl-border-2); }
+.pl-dispensados li:last-child { border-bottom: 0; }
+.pl-dispensados .nm { font-weight: 600; color: var(--pl-ink); }
+.pl-dispensados .qd { font-size: 12px; color: var(--pl-faint); }
+.pl-dispensados form { margin: 0 0 0 auto; }
+@media (prefers-reduced-motion: reduce) { .pl-dispensados > summary .ch { transition: none; } }
+
+/* ---- c) Contatos ---- */
+.pl-contatos-nota { margin: 0 0 22px; max-width: 110ch; }
+.pl-contatos-nota .pl-info { margin-left: 4px; }
+.pl-contatos-grupo + .pl-contatos-grupo { margin-top: 30px; }
+.pl-contatos-grupo > .pl-linha-titulo { margin-bottom: 12px; }
+.pl-contatos-grupo .pl-int-lista { margin-top: 0; }
+/* O estado vazio de um grupo é menor que o de uma tela inteira: é metade da página. */
+.pl-vazio.pl-vazio-grupo { padding: 26px 24px; }
+.pl-vazio.pl-vazio-grupo .t { font-size: 15px; }
+.pl-int .nm-lin { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px 9px; }
+.pl-int.nova { box-shadow: inset 3px 0 0 var(--pl-data), 0 8px 22px rgba(11,42,74,.05); }
+
+/* O convite recebido e ainda não aberto, na lista do profissional: a linha em fundo de dado claro. */
+.pl-table tr.novo td { background: var(--pl-blue-100); }
+.pl-table tr.novo:hover td { background: var(--pl-blue-100); }
+
+/* ---- d) Minhas demandas: o que espera em cada uma ---- */
+.pl-table.fixa.acomp .c-assunto  { width: 29%; }
+.pl-table.fixa.acomp .c-regime   { width: 13%; }
+.pl-table.fixa.acomp .c-data     { width: 11%; }
+.pl-table.fixa.acomp .c-situacao { width: 13%; }
+.pl-table.fixa.acomp .c-acomp    { width: 22%; }
+.pl-table.fixa.acomp .c-acao     { width: 12%; }
+.pl-acomp { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px;
+    font-size: 12.5px; }
+.pl-acomp a { color: var(--pl-data); text-decoration: none; font-weight: 600;
+    font-variant-numeric: tabular-nums; }
+.pl-acomp a:hover { text-decoration: underline; }
+.pl-acomp a:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; border-radius: 4px; }
+.pl-acomp .dest { display: inline-flex; align-items: center; gap: 6px; }
+.pl-acomp .dest .pd { width: 6px; height: 6px; border-radius: 50%; background: var(--pl-data); flex: none; }
+.pl-acomp .nv { font-weight: 700; }
+.pl-acomp .calc { font-weight: 500; color: var(--pl-muted); }
+.pl-acomp .nada { color: var(--pl-faint); }
+
+/* ---- e) O sino e o item do menu ---- */
+.pl-ibtn { position: relative; }
+.pl-ibtn .ct { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px;
+    border-radius: 9px; display: grid; place-items: center; background: var(--pl-blue); color: #fff;
+    font-size: 10.5px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1;
+    box-shadow: 0 0 0 2px var(--pl-card); }
+.pl-ibtn.tem { color: var(--pl-data); border-color: var(--pl-blue-2); }
+/* O número do menu é um selinho no canto do ícone, e não uma pílula no fim da linha: "Minhas
+   demandas" e "Candidaturas e convites" já ocupam a largura da barra, e com uma pílula ao lado o
+   rótulo era cortado em reticências. No canto do ícone ele cabe nos dois estados da barra, aberta
+   e recolhida, sem mexer em nenhum rótulo. A borda da cor da barra o separa do ícone. */
+.pl-nav a { position: relative; }
+.pl-nav a .ct { position: absolute; top: 3px; left: 21px; min-width: 16px; height: 16px; padding: 0 3px;
+    border-radius: 8px; display: grid; place-items: center; background: var(--pl-blue); color: #fff;
+    font-size: 9.5px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1;
+    box-shadow: 0 0 0 2px var(--pl-navy); }
+.pl-nav a.active .ct { box-shadow: 0 0 0 2px #fff; }
+.pl-app.collapsed .pl-nav a .ct { left: calc(50% + 2px); }
+
+@media (max-width: 640px) {
+    .pl-feed-abas { padding: 14px 16px 0; }
+    .pl-dispensados { margin: 0 16px 14px; }
+    .pl-perfil-lk { margin: 4px auto 0; }
+    .pl-abas-dem { width: 100%; }
+}
