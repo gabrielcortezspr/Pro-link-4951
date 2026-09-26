@@ -49,7 +49,7 @@ const DO_PROFISSIONAL = [
   // oferece a busca de profissionais, que é o que a landing usa, e não a lista de demandas.
   { caminho: '/demandas/abertas', nome: 'demandas abertas' },
   { caminho: '/perfil', nome: 'perfil' },
-  { caminho: '/manifestacoes', nome: 'interesses' },
+  { caminho: '/manifestacoes', nome: 'candidaturas e convites' },
   { caminho: '/privacidade', nome: 'privacidade' },
 ];
 

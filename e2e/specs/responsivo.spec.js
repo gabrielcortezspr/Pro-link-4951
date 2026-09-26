@@ -27,7 +27,7 @@ const DO_PROFISSIONAL = [
   ['/perfil', 'perfil'],
   ['/privacidade', 'privacidade'],
   ['/demandas/abertas', 'demandas abertas'],
-  ['/manifestacoes', 'meus interesses'],
+  ['/manifestacoes', 'candidaturas e convites'],
 ];
 
 const DA_EMPRESA = [

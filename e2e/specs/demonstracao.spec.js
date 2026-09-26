@@ -129,8 +129,8 @@ test.describe('Demonstração', () => {
     await sair(page);
 
     await entrar(page, EMPRESA);
-    await page.goto(`/demandas/${demandaId}/interessados`);
-    await legenda(page, 'Do outro lado', 'A empresa vê quem se interessou e abre o perfil que recebeu');
+    await page.goto(`/demandas/${demandaId}/contatos`);
+    await legenda(page, 'Do outro lado', 'A empresa vê a candidatura em Contatos e abre o perfil que recebeu');
     await respirar(page, 2500);
     await sair(page);
 

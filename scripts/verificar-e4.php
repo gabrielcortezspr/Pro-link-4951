@@ -327,8 +327,9 @@ if ($demandaPublicada === false) {
 
         conferir('o aviso vai para o candidato, e não para quem registrou',
             (int) ($aviso['not_usu_id'] ?? 0) === (int) $candidatoLivre);
-        conferir('o assunto diz que registraram interesse no perfil',
-            str_contains((string) ($aviso['not_assunto'] ?? ''), 'interesse no seu perfil'));
+        // "Convite" desde a D87: o assunto era "Registraram interesse no seu perfil".
+        conferir('o assunto diz que a pessoa recebeu um convite',
+            str_contains((string) ($aviso['not_assunto'] ?? ''), 'recebeu um convite'));
 
         conferir(
             'o mesmo par não recebe interesse duas vezes',

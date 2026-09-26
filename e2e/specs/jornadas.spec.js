@@ -99,7 +99,7 @@ test.describe('Jornadas por perfil', () => {
     // ---- O que ele já enviou
     await page.goto('/manifestacoes');
     await telaSaudavel(page);
-    await legenda(page, 'Meus interesses', 'O que foi enviado, e o retrato do perfil congelado no instante do envio');
+    await legenda(page, 'Candidaturas e convites', 'Convites recebidos e candidaturas enviadas, cada um com o retrato do perfil congelado');
     await respirar(page, 3400);
 
     // ---- Privacidade, que é requisito e não enfeite
@@ -137,7 +137,7 @@ test.describe('Jornadas por perfil', () => {
     // ---- O que já existe
     await page.goto('/demandas');
     await telaSaudavel(page);
-    await legenda(page, 'Minhas demandas', 'Rascunho, publicada, com interessados, encerrada. A situação tem vocabulário fixo e cor fixa');
+    await legenda(page, 'Minhas demandas', 'Rascunho, publicada, com contatos, encerrada. A situação tem vocabulário fixo e cor fixa');
     await respirar(page, 3400);
 
     // ---- O motor, que é o diferencial declarado
@@ -157,7 +157,7 @@ test.describe('Jornadas por perfil', () => {
     }
 
     // ---- Quem chegou
-    const interessados = page.locator('a[href*="/interessados"]').first();
+    const interessados = page.locator('a[href*="/contatos"]').first();
 
     if (await interessados.count()) {
       await page.goto((await interessados.getAttribute('href')) ?? '/demandas');

@@ -59,6 +59,7 @@ $falhou   = 0;
 function novaSessao(): void
 {
     file_put_contents($GLOBALS['cookie'], '');
+    $GLOBALS['cookies'] = [];
 }
 
 function requisitar(string $metodo, string $url, array $campos = []): array
@@ -73,6 +74,41 @@ function requisitar(string $metodo, string $url, array $campos = []): array
         CURLOPT_FOLLOWLOCATION => false,
         CURLOPT_TIMEOUT        => 20,
     ]);
+
+    // Os cookies vão à mão, além do arquivo. Desde a D86 a sessão é `__Host-PHPSESSID`, com
+    // Secure, e o curl do contêiner guarda esse cookie mas não o devolve a um host sem ponto como
+    // `nginx`: o POST chegava sem sessão e o CSRF recusava com 419. Pelo endereço público
+    // (`localhost`) o navegador e o curl devolvem normalmente; o problema era só do verificador.
+    $GLOBALS['cookies'] ??= [];
+
+    if ($GLOBALS['cookies'] !== []) {
+        $pares = [];
+
+        foreach ($GLOBALS['cookies'] as $nome => $valor) {
+            $pares[] = $nome . '=' . $valor;
+        }
+
+        curl_setopt($ch, CURLOPT_COOKIE, implode('; ', $pares));
+    }
+
+    curl_setopt($ch, CURLOPT_HEADERFUNCTION, static function ($h, string $linha): int {
+        if (preg_match('/^Set-Cookie:\s*([^=;\s]+)=([^;]*)/i', $linha, $c) === 1) {
+            $GLOBALS['cookies'][$c[1]] = $c[2];
+        }
+
+        return strlen($linha);
+    });
+
+    // Desde a D81 a porta HTTP só redireciona para o HTTPS, e um POST de cadastro para
+    // `http://nginx` recebe o 307 e nunca cria a conta. Dentro do contêiner o alvo é
+    // `https://nginx:8443`, e o PHP daqui não tem a autoridade local do mkcert (ela mora na
+    // máquina de quem desenvolve). Para o nome interno do serviço, e só para ele, a cadeia do
+    // certificado não é exigida: este verificador prova o comportamento da aplicação, e não o TLS,
+    // que tem conferência própria (`curl` do README, D81). Endereço de fora continua verificado.
+    if (parse_url($url, PHP_URL_SCHEME) === 'https' && parse_url($url, PHP_URL_HOST) === 'nginx') {
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+    }
 
     if ($metodo === 'POST') {
         curl_setopt($ch, CURLOPT_POST, true);

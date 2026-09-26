@@ -173,7 +173,8 @@ export async function manifestar(pagina, demandaId) {
     await inicio.fill(daqui);
   }
 
-  await pagina.getByRole('button', { name: /Manifestar interesse/i }).click();
+  // "Enviar candidatura" desde a D87 (antes, "Manifestar interesse").
+  await pagina.getByRole('button', { name: /Enviar candidatura/i }).click();
 
   try {
     await pagina.waitForURL(/\/manifestacoes/, { timeout: 8000 });
