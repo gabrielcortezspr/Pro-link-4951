@@ -199,9 +199,13 @@
             <span class="sub">· {{ v.sem_contato }} ainda sem candidatura ou convite</span>
         {%- endif %}
     </p>
+    {#  De onde vem "na sua área" (D92): a linha de origem, embaixo da contagem, substitui a frase
+        genérica que ficava aqui. Sem áreas no acervo (não deveria acontecer com acervo), volta a
+        frase. #}
+    {% set mostra_origem = f.minha_area and v.areas_acervo|default([]) is not empty %}
     <p class="vis">
         {% if f.minha_area %}
-            <span>Mostrando o que tem a ver com o seu acervo.</span>
+            {% if not mostra_origem %}<span>Mostrando o que tem a ver com o seu acervo.</span>{% endif %}
             <a href="{{ vit.url_vitrine(v, {minha_area: '0'}) }}">Ver todas as demandas</a>
         {% elseif v.tem_acervo %}
             <a href="{{ vit.url_vitrine(v, {minha_area: null}) }}">Só as da minha área</a>
@@ -216,6 +220,9 @@
             {% endif %}
         {% endif %}
     </p>
+    {% if mostra_origem %}
+        {{ ui.origem_area(v.areas_acervo, v.modalidades|default([]), (usuario().perfil|default(null)) == 'EMPRESA', true, conhecidas) }}
+    {% endif %}
 </div>
 
 {% if demandas is empty %}

@@ -36,7 +36,9 @@ final class VitrineService
      * @param string|null $perfil o código do perfil de quem olha (PROFISSIONAL, EMPRESA...)
      * @return array{demandas: list<array<string, mixed>>, areas: list<array{nivel1: int, grupo: string, quantidade: int}>,
      *               filtros: array<string, mixed>, total: int, pagina: int, paginas: int,
-     *               tem_acervo: bool, pode_candidatar: bool, sem_contato: int}
+     *               tem_acervo: bool, pode_candidatar: bool, sem_contato: int,
+     *               areas_acervo: list<array{nivel1: int, grupo: string, arts: int}>,
+     *               modalidades: list<string>}
      */
     public function buscar(array $get, ?int $usuarioId, ?string $perfil): array
     {
@@ -116,6 +118,15 @@ final class VitrineService
             'pagina'          => $pagina,
             'paginas'         => $paginas,
             'tem_acervo'      => $acervo !== [],
+            // De onde vem "na sua área" (D92): as áreas das atividades das ARTs de quem olha, que
+            // não são a modalidade do registro e com a massa de dados nem precisam parecer com ela.
+            'areas_acervo'    => $candidatoId === null ? [] : $this->evidencias->areasDoCandidato($tipo, $candidatoId),
+            // A modalidade do registro, só do profissional (a empresa não tem): a tela a põe ao lado
+            // das áreas do acervo para que "registro em Geografia" e "na sua área: Mecânica" não
+            // pareçam se contradizer.
+            'modalidades'     => $tipo === 'P' && $candidatoId !== null
+                ? array_column((new ProfissionalRepository())->modalidades($candidatoId), 'mod_nome')
+                : [],
             'pode_candidatar' => $pode,
             // Quantas, de todas as páginas, ainda não têm candidatura nem convite de quem olha.
             'sem_contato'     => count(array_filter(

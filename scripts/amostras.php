@@ -37,6 +37,7 @@ use ProLink\Service\ParametroService;
 use ProLink\Service\PerfilEmpresaService;
 use ProLink\Service\PerfilService;
 use ProLink\Service\PrivacidadeService;
+use ProLink\Service\VitrineService;
 use ProLink\Support\Database;
 use ProLink\Support\Preferencias;
 
@@ -276,11 +277,6 @@ return (static function (): array {
         'erros'   => [],
     ] + $vocabulario;
 
-    $telas['demanda/abertas.html.twig'] = [
-        'titulo'   => 'Demandas abertas',
-        'demandas' => (new DemandaRepository())->abertas(),
-    ];
-
     // As duas telas de Início. Sem sessão HTTP o `usuario()` do Twig devolve nulo e o shell de
     // barra lateral não chega a ser montado: o que esta entrada confere é o corpo da tela, que é
     // onde mora o dado. A barra em si é conferida no navegador, logado.
@@ -303,6 +299,22 @@ return (static function (): array {
        ORDER BY COUNT(dem_id) DESC
           LIMIT 1'
     )->fetchColumn();
+
+    // A vitrine pelo mesmo serviço do controller (D89), do ponto de vista de um profissional com
+    // acervo: é o caminho que mostra os chips, a relação com o acervo e a origem de "na sua área"
+    // (D92). Sem profissional, sai a vitrine do anônimo.
+    $vitrine = (new VitrineService())->buscar(
+        [],
+        $umProfissional !== false ? (int) $umProfissional : null,
+        $umProfissional !== false ? PERFIL_PROFISSIONAL : null,
+    );
+    $telas['demanda/abertas.html.twig'] = [
+        'titulo'              => 'Demandas abertas',
+        'demandas'            => $vitrine['demandas'],
+        'vitrine'             => $vitrine,
+        'contratos_possiveis' => Preferencias::CONTRATOS,
+        'ufs_possiveis'       => Preferencias::UFS,
+    ];
 
     // O Início pelo mesmo serviço do controller (D90): o que sai daqui é o que a pessoa vê.
     $inicio = new InicioService();

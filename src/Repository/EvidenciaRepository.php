@@ -117,6 +117,34 @@ final class EvidenciaRepository extends Repositorio
         return array_map('strval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
     }
 
+    /**
+     * As áreas (grupo da TOS, primeiro nível) em que o acervo do candidato tem atividade, com
+     * quantas ARTs sustentam cada uma. É o que a vitrine mostra para dizer de onde vem "na sua
+     * área" (D92): das atividades das ARTs, não da modalidade do registro.
+     *
+     * @return list<array{nivel1: int, grupo: string, arts: int}>
+     */
+    public function areasDoCandidato(string $tipo, int $candidatoId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT t.tos_nivel1 AS nivel1, t.tos_grupo AS grupo, COUNT(DISTINCT e.evi_art_numero) AS arts
+               FROM crea_evidencias e
+               JOIN crea_tos t ON t.tos_codigo = e.evi_tos_codigo
+              WHERE e.evi_candidato_tipo = :tipo AND e.evi_candidato_id = :id
+              GROUP BY t.tos_nivel1, t.tos_grupo
+              ORDER BY arts DESC, t.tos_grupo'
+        );
+        $stmt->bindValue(':tipo', $tipo);
+        $stmt->bindValue(':id', $candidatoId, \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return array_map(static fn (array $a): array => [
+            'nivel1' => (int) $a['nivel1'],
+            'grupo'  => (string) $a['grupo'],
+            'arts'   => (int) $a['arts'],
+        ], $stmt->fetchAll());
+    }
+
     public function totalDeArts(string $tipo, int $candidatoId): int
     {
         $stmt = $this->pdo->prepare(

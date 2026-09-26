@@ -88,6 +88,12 @@
             <a class="dir lk" href="{{ app_url }}/demandas/abertas">Ver na vitrine</a>
         </div>
 
+        {#  De onde vem "na sua área" (D92). O título já diz "na sua área", então a linha começa
+            pela definição. #}
+        {% if na.tem_acervo %}
+            {{ ui.origem_area(na.areas_acervo|default([]), na.modalidades|default([]), (usuario().perfil|default(null)) == 'EMPRESA', false) }}
+        {% endif %}
+
         {% if not na.tem_acervo %}
             <div class="pl-ini-vazio">
                 <p class="t">Sua área vem do seu acervo</p>

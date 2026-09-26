@@ -37,7 +37,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E7 — auditoria de RF por entidade e refino visual | D69, D70, D71, D72, D73 |
 | E7 — fechamento da entrega | D74, D75 |
 | E8 — CAT, atualização do acervo e preferências da demanda (pós-entrega) | D76, D77, D78, D79, D80 |
-| E9 — navegação da demanda (Teste-Demo) | D87, D88, D89, D90 |
+| E9 — navegação da demanda (Teste-Demo) | D87, D88, D89, D90, D92 |
 
 ---
 
@@ -3159,3 +3159,27 @@ da figura, e o giro continuaria saltando por baixo do apagamento. Na volta, a ce
 redesenha o anel de pulso, que ao contrário pareceria uma implosão. A face de cima entra e sai
 por opacidade proporcional à altura. `prefers-reduced-motion` segue recebendo o quadro final
 parado. O mockup `docs/mockups/prolink-landing.html` fica como estava: é referência de desenho.
+
+## D92 · A vitrine diz de onde vem "na sua área": das atividades das ARTs, ao lado da modalidade do registro
+
+`26/09/2026` · E9 · `src/Service/VitrineService.php`, `src/Repository/EvidenciaRepository.php`
+
+**Contexto.** Revisando a demo, a equipe viu o Thiago Lemos com registro em Geografia no perfil e,
+na vitrine, "na minha área" filtrado com o chip Mecânica. As duas telas estavam certas e diziam
+coisas diferentes: o perfil mostra a **modalidade do registro**; o filtro (D89) usa as **atividades
+da TOS nas ARTs** dele, que na massa de dados são sorteadas e cobrem oito áreas, entre elas Mecânica
+e Engenharia Nuclear. E o chip conta as demandas que sobraram, não descreve a pessoa. Nada na tela
+dizia isso, e a leitura natural era "a plataforma acha que sou mecânico".
+
+**Decisão.** A vitrine (e o bloco "Demandas na sua área" do Início) mostra a origem do filtro numa
+linha: a modalidade do registro e as áreas que o acervo cobre, com quantas ARTs sustentam cada uma.
+O critério continua o mesmo, a evidência documental; só passa a estar escrito.
+
+**Alternativa recusada: filtrar "na minha área" pela modalidade.** Seria voltar à autodeclaração
+que o projeto existe para superar: a modalidade diz o que a pessoa pode assinar, a ART diz o que
+ela já fez. E a modalidade não tem mapa para os grupos da TOS; qualquer tabela de correspondência
+seria inventada aqui.
+
+**Alternativa recusada: esconder as áreas "estranhas" do acervo.** Com dado real a lista coincide
+com a formação; com a massa, ela mostra a aleatoriedade que já está documentada. Filtrar a
+evidência para parecer coerente seria maquiar o dado da API.

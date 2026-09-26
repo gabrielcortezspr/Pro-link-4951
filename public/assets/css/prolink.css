@@ -4883,3 +4883,67 @@ html:not(.js-seg) .pl-seg-area:has(> #conta:target) > .pl-seg > .pl-seg-b[href="
     .pl-dem-lin > .acoes { justify-content: flex-start; }
     .pl-prop-lista > li { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---------- 48. De onde vem "na sua área": a linha de origem (D92) ---------------------------
+   Na vitrine e no Início, "na sua área" filtrava pelas atividades da TOS nas ARTs sem dizer isso,
+   e o chip "Mecânica" ao lado de um registro em Geografia lia como "a plataforma acha que sou
+   mecânico". A linha diz a regra e põe os dois fatos lado a lado: a modalidade do registro e as
+   áreas que o acervo cobre.
+
+   É nota, não painel: corpo de 12,5px em tinta de nota, sem fundo e sem borda, para não competir
+   com os cartões. As áreas são texto corrido em tinta cheia separado por ponto, sem borda, sem
+   fundo e sem cursor de clique, para nunca parecer o chip de filtro que mora logo acima. A lista
+   inteira abre no mesmo <details> do "i" (seção 15, fechado por info.js ao clicar fora e com
+   Esc), com o gatilho em texto e a caixa ancorada no bloco, não no gatilho: o gatilho cai em
+   qualquer ponto da linha e, ancorada nele, a caixa sairia da tela em 390px. Nenhuma cor nova;
+   o selo verde água está aqui porque a afirmação é sustentada por ART conferida. */
+.pl-origem { position: relative; flex: 1 0 100%; min-width: 0; margin: 0; display: flex;
+    flex-direction: column; gap: 3px; font-size: 12.5px; line-height: 1.55; color: var(--pl-muted); }
+.pl-origem .def { margin: 0; display: flex; align-items: flex-start; gap: 6px; }
+.pl-origem .def .pl-mark { width: 14px; height: 14px; margin-top: 2px; }
+.pl-origem .def b { font-weight: 600; color: var(--pl-ink); }
+/* A segunda linha alinha com o texto da primeira, e não com o selo. */
+.pl-origem .dd { padding-left: 20px; }
+/* Entre os dois fatos, um fio vertical; o ponto fica só entre os itens da lista de áreas, para a
+   lista não parecer continuar o registro. */
+.pl-origem .dd > .fato { display: inline-block; width: 1px; height: 11px; background: var(--pl-faint);
+    vertical-align: -1px; margin: 0 10px; }
+.pl-origem .mod b { font-weight: 600; color: var(--pl-ink); }
+
+.pl-origem .areas { display: inline; margin: 0; padding: 0; list-style: none; }
+.pl-origem .areas > li { display: inline; font-weight: 500; color: var(--pl-ink); }
+.pl-origem .areas > li + li::before { content: ""; display: inline-block; width: 3px; height: 3px;
+    border-radius: 50%; background: var(--pl-faint); vertical-align: middle; margin: 0 8px; }
+.pl-origem .areas .n, .pl-origem .lista .n { font-weight: 400; color: var(--pl-muted);
+    font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* O gatilho: texto na cor de dado, como "Mais filtros", com a seta que vira quando abre. */
+.pl-origem .pl-origem-mais { position: static; vertical-align: baseline; }
+.pl-origem .pl-origem-mais > summary { display: inline-flex; align-items: center; gap: 3px; width: auto;
+    height: auto; padding: 0 2px; border: 0; border-radius: 4px; background: none; color: var(--pl-data);
+    font-weight: 600; white-space: nowrap; }
+.pl-origem .pl-origem-mais > summary:hover { color: var(--pl-blue); border: 0; }
+.pl-origem .pl-origem-mais[open] > summary { background: none; color: var(--pl-blue); }
+.pl-origem .pl-origem-mais > summary svg { width: 13px; height: 13px; transition: transform .14s ease; }
+.pl-origem .pl-origem-mais[open] > summary svg { transform: rotate(180deg); }
+.pl-origem .pl-info-caixa { top: calc(100% + 6px); left: 20px; right: auto; transform: none;
+    width: min(400px, calc(100% - 20px)); }
+/* Com dado real a lista é curta; uma empresa de quadro grande pode passar de vinte áreas (a TOS
+   tem 46), e a caixa não pode crescer além da janela. */
+.pl-origem .lista { list-style: none; margin: 2px 0 0; padding: 0; max-height: min(55vh, 380px);
+    overflow-y: auto; overscroll-behavior: contain; }
+.pl-origem .lista > li { display: flex; align-items: baseline; justify-content: space-between; gap: 14px;
+    padding: 5px 0; border-top: 1px solid var(--pl-border-2); }
+.pl-origem .lista > li:first-child { border-top: 0; }
+.pl-origem .lista .nm { min-width: 0; color: var(--pl-ink); }
+.pl-origem .pl-info-caixa p { margin-top: 8px; font-size: 12px; color: var(--pl-faint); }
+
+/* Na vitrine, embaixo da contagem e dos links; no Início, entre o título do bloco e a lista. */
+.pl-vit-barra .pl-origem { margin-top: 2px; }
+.pl-ini-area > .pl-origem { margin: -4px 0 14px; }
+
+@media (max-width: 560px) {
+    .pl-origem .dd { padding-left: 0; }
+    .pl-origem .pl-info-caixa { left: 0; width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .pl-origem .pl-origem-mais > summary svg { transition: none; } }
