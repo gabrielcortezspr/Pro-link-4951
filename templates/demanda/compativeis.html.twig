@@ -248,7 +248,7 @@
                             "nenhuma com CAT" ao lado de um nome leria como nota baixa (item 10.1).
                             Um só <span>, para a frase quebrar como frase e não como três blocos. #}
                         {% set n_ev  = c.evidencias|length %}
-                        {% set n_cat = c.evidencias|filter(e => e.cat or e.cat_fechada|default(false))|length %}
+                        {% set n_cat = c.evidencias|filter(e => e.cat)|length %}
                         <svg class="pl-mark" role="img" aria-label="Verificado na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
                         <span>
                             {{ n_ev }} de {{ atividades|length }}
@@ -386,24 +386,10 @@
                                                 {% if e.arts|length > 3 %}
                                                     <span class="sem">e mais {{ e.arts|length - 3 }} {{ e.arts|length - 3 == 1 ? 'ART' : 'ARTs' }} nesta atividade</span>
                                                 {% endif %}
-                                                {#  Documento que o titular não abriu. Ele contou para a compatibilidade e não é
-                                                    identificado aqui: são finalidades distintas, e a escolha de exibição é dele.
-                                                    Omitir a linha faria a célula parecer "sem evidência", que é outra coisa. #}
-                                                {% if e.arts_fechadas|default(0) > 0 %}
-                                                    <span class="sem" title="A visibilidade de cada ART é escolhida pelo titular. O documento fechado continua sustentando a compatibilidade e não é identificado.">
-                                                        {{ e.arts_fechadas }} {{ e.arts_fechadas == 1 ? 'ART registrada, não aberta' : 'ARTs registradas, não abertas' }} pelo titular
-                                                    </span>
-                                                {% endif %}
-                                                {#  `e.cat` só vem com CAT vigente (D76). Por isso a ausência
-                                                    diz "vigente": a certidão pode existir e ter vencido, e
-                                                    "sem CAT" seria falso nesse caso.
-
-                                                    Com todas as ARTs da linha fechadas, a CAT que a reforça
-                                                    certifica uma ART fechada, e ela herda a visibilidade da
-                                                    ART: o reforço é dito, o número não. #}
-                                                {% if e.cat_fechada|default(false) %}
-                                                    <span class="sem" title="A certidão segue a visibilidade da ART que ela certifica. Ela reforça esta atividade e não é identificada.">Certificada por CAT vigente, não aberta pelo titular</span>
-                                                {% elseif e.cat %}
+                                                {#  `e.cat` só vem com CAT vigente de ART aberta (D76, D95). Por isso a
+                                                    ausência diz "vigente": a certidão pode existir e ter vencido, e
+                                                    "sem CAT" seria falso nesse caso. CAT de ART fechada não é mencionada. #}
+                                                {% if e.cat %}
                                                     <span class="doc" title="Certidão de Acervo Técnico vigente. Reforça a competência nesta atividade.">CAT {{ e.cat }}<svg class="pl-mark" role="img" aria-label="Certidão conferida na API do CREA-AM"><use href="#pl-sym-seal"/></svg></span>
                                                 {% elseif e.cat_vencida|default(null) %}
                                                     <span class="sem" title="A certidão existe e venceu. Não reforça mais esta atividade, e a ART continua contando pelo que é.">CAT {{ e.cat_vencida }} vencida · não reforça</span>

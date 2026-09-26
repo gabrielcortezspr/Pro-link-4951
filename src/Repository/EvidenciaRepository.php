@@ -145,6 +145,51 @@ final class EvidenciaRepository extends Repositorio
         ], $stmt->fetchAll());
     }
 
+    /**
+     * O id de cada ART pelo número, que é a chave da visibilidade (`pro_visibilidade`, alvo
+     * ART:<art_id>). O índice de evidência traz só o número.
+     *
+     * @param list<string> $numeros
+     * @return array<string, int> número => art_id
+     */
+    public function idsPorNumero(array $numeros): array
+    {
+        $numeros = array_values(array_unique(array_filter(array_map('strval', $numeros))));
+
+        if ($numeros === []) {
+            return [];
+        }
+
+        // Marcadores próprios: o helper do Repositorio liga como inteiro, e número de ART é texto.
+        $marcadores = [];
+        $params     = [];
+
+        foreach ($numeros as $i => $numero) {
+            $marcadores[]     = ":n{$i}";
+            $params[":n{$i}"] = $numero;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT art_numero, art_id FROM crea_arts
+              WHERE art_numero IN (' . implode(', ', $marcadores) . ') AND art_status = :ativo'
+        );
+
+        foreach ($params as $nome => $valor) {
+            $stmt->bindValue($nome, $valor);
+        }
+
+        $stmt->bindValue(':ativo', STATUS_ATIVO);
+        $stmt->execute();
+
+        $ids = [];
+
+        foreach ($stmt->fetchAll() as $linha) {
+            $ids[(string) $linha['art_numero']] = (int) $linha['art_id'];
+        }
+
+        return $ids;
+    }
+
     public function totalDeArts(string $tipo, int $candidatoId): int
     {
         $stmt = $this->pdo->prepare(

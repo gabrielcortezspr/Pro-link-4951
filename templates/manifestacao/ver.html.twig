@@ -279,9 +279,8 @@
                 <p class="pl-grp">Acervo verificado na API do CREA</p>
                 {% if p.arts is empty %}
                     <p class="vazio">
-                        Nenhuma ART foi aberta neste envio. O acervo pode existir e estar fechado:
-                        documento fechado continua sustentando a compatibilização sem ser
-                        identificado.
+                        Nenhuma ART foi aberta neste envio. O que o titular não abriu não aparece
+                        aqui e não conta na compatibilização.
                     </p>
                 {% else %}
                     {#  `default` no filtro: o retrato gravado antes da D76 não tem a chave `cat`, e

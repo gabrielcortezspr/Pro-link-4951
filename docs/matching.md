@@ -198,6 +198,13 @@ Sinais de força dentro da dimensão de competência, em ordem:
 A CAT só reforça enquanto vigente (`cat_dt_validade` igual ou posterior à data da sessão; validade
 ausente conta como vigente). Vencida, a ART continua contando pelo que é (D76).
 
+**Só conta o que o titular abriu para quem publicou a demanda** (D95, que revê a D52). Antes de
+qualquer dimensão, o acervo de cada candidato é reduzido às ARTs que a `Visao` do dono do perfil
+deixa o demandante ver: nível "quem tem conta" ou "qualquer pessoa". ART fechada não pesa na
+competência, no local nem no reforço da CAT, que segue a ART que certifica. Na empresa, quem
+escolhe é a conta da empresa, sobre as ARTs do quadro. Candidato sem ART visível nos grupos
+pedidos não entra no pool. A mesma regra vale na busca pública e na releitura do feed.
+
 Multiplicidade conta, mas com retorno decrescente: cinco ARTs no mesmo código valem mais que uma,
 e menos que cinco vezes uma. Use raiz ou logaritmo pra volume não esmagar precisão — e porque
 volume alto de ART não pode virar ranking implícito por antiguidade de carreira.

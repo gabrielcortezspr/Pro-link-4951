@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ProLink\Service;
 
 use ProLink\Repository\BuscaRepository;
+use ProLink\Support\Tos;
 use ProLink\Support\Visibilidade;
 
 /**
@@ -61,9 +62,10 @@ final class BuscaService
 
         $abertos = $this->visibilidade->perfisAbertos(array_column($linhas, 'prf_usu_id'));
         $visoes  = $this->visibilidade->visoes(array_column($linhas, 'prf_usu_id'), $espectadorId);
-        $ids         = array_map('intval', array_column($linhas, 'prf_id'));
-        $acervos     = $this->busca->acervoEmLote($ids);
-        $modalidades = $this->busca->modalidadesEmLote($ids);
+        $ids          = array_map('intval', array_column($linhas, 'prf_id'));
+        $acervos      = $this->busca->acervoPorArtEmLote($ids);
+        $modalidades  = $this->busca->modalidadesEmLote($ids);
+        $experiencias = $termo === '' ? [] : $this->busca->experienciasEmLote($ids);
 
         $resultados = [];
 
@@ -75,13 +77,46 @@ final class BuscaService
             }
 
             $visao  = $visoes[$usuarioId] ?? null;
-            $acervo = $acervos[(int) $linha['prf_id']] ?? ['arts' => 0, 'cats' => 0, 'grupos' => [], 'subgrupos' => []];
+            $prfId  = (int) $linha['prf_id'];
+
+            // Só o acervo que o titular abriu para quem busca (D95): a ART fechada não conta no
+            // cartão, e a CAT segue a ART que certifica.
+            $artsVisiveis = array_values(array_filter(
+                $acervos[$prfId] ?? [],
+                static fn (array $a): bool => $visao !== null && $visao->podeVer(Visibilidade::ART, $a['art_id']),
+            ));
+            $acervo = self::resumirAcervo($artsVisiveis);
 
             // Campo a campo, pela mesma Visao que monta o perfil. O resumo de quem só abriu para
             // autenticados não pode vazar no resultado de busca de um anônimo — seria a tela de
             // busca contornando a escolha que a tela de perfil respeita.
             $podeVer = static fn (string $campo): bool =>
                 $visao !== null && $visao->podeVer(Visibilidade::PERFIL, null, $campo);
+
+            // O banco achou o termo em qualquer lugar do perfil; aqui só vale se ele estiver no que
+            // o titular abriu para quem busca (D95). Resumo, experiência ou ART fechada não fazem
+            // ninguém ser encontrado, senão a busca revelaria o que a tela do perfil esconde.
+            if ($termo !== '') {
+                $textos = [(string) $linha['nome'], (string) $linha['usu_nome'], ...($modalidades[$prfId] ?? [])];
+
+                if ($podeVer('RESUMO')) {
+                    $textos[] = (string) $linha['prf_resumo'];
+                }
+
+                foreach ($experiencias[$prfId] ?? [] as $e) {
+                    if ($visao !== null && $visao->podeVer(Visibilidade::EXPERIENCIA, $e['exp_id'])) {
+                        $textos[] = $e['titulo'] . ' ' . $e['descricao'];
+                    }
+                }
+
+                foreach ($artsVisiveis as $a) {
+                    $textos[] = $a['grupo'] . ' ' . $a['subgrupo'];
+                }
+
+                if (!str_contains(Tos::normalizar(implode(' | ', $textos)), Tos::normalizar($termo))) {
+                    continue;
+                }
+            }
 
             $resultados[] = [
                 'usuario_id'      => $usuarioId,
@@ -110,6 +145,25 @@ final class BuscaService
             'truncado'      => $truncado,
             'total'         => count($resultados),
             'resultados'    => $resultados,
+        ];
+    }
+
+    /**
+     * @param list<array{art_id: int, art_numero: string, cat: ?string, grupo: string, subgrupo: string}> $arts
+     * @return array{arts: int, cats: int, grupos: list<string>, subgrupos: list<string>}
+     */
+    private static function resumirAcervo(array $arts): array
+    {
+        $grupos    = array_values(array_unique(array_column($arts, 'grupo')));
+        $subgrupos = array_values(array_unique(array_column($arts, 'subgrupo')));
+        sort($grupos);
+        sort($subgrupos);
+
+        return [
+            'arts'      => count(array_unique(array_column($arts, 'art_numero'))),
+            'cats'      => count(array_unique(array_filter(array_column($arts, 'cat')))),
+            'grupos'    => $grupos,
+            'subgrupos' => $subgrupos,
         ];
     }
 }

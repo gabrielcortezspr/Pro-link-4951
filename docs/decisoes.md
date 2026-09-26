@@ -37,7 +37,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E7 — auditoria de RF por entidade e refino visual | D69, D70, D71, D72, D73 |
 | E7 — fechamento da entrega | D74, D75 |
 | E8 — CAT, atualização do acervo e preferências da demanda (pós-entrega) | D76, D77, D78, D79, D80 |
-| E9 — navegação da demanda (Teste-Demo) | D87, D88, D89, D90, D92, D93, D94 |
+| E9 — navegação da demanda (Teste-Demo) | D87, D88, D89, D90, D92, D93, D94, D95 |
 
 ---
 
@@ -3228,3 +3228,47 @@ empresa sem ela pedir, e com várias secundárias não haveria critério para es
 **Alternativa recusada: permitir e deixar o motor tratar.** O motor faz média ponderada pelos
 pesos: com todas secundárias o resultado é o mesmo de todas principais, e a marcação diria à
 empresa que algo pesa menos quando nada pesa menos.
+
+## D95 · ART fechada não conta em nada que chegue a outra pessoa (revê a D52)
+
+`26/09/2026` · E9 · `src/Service/CompatibilizacaoService.php` (`soOVisivel`), `src/Service/BuscaService.php`
+
+**Contexto.** A D52 decidiu que a ART fechada continuava contando para o score e só não era
+citada pelo número. Na revisão da demo, o usuário viu o feed dizer "1 ART registrada, não aberta
+pelo titular" com a atividade dela ao lado, e rejeitou a premissa: se o titular escolheu não
+mostrar, a plataforma não pode usar. O argumento dele é o do próprio produto: o acervo entra
+**privado** por padrão justamente porque quem decide o que é mostrado é o titular. Na prática a
+D52 também vazava: a coluna "Coberta por" mostrava o código da atividade da ART fechada, e a busca
+pública casava o termo com ARTs, resumo e experiências fechados e contava ARTs fechadas no cartão.
+
+**Decisão.** A escolha de visibilidade do titular vale para tudo o que chega a outra pessoa:
+
+- **Motor:** antes de medir qualquer dimensão, o acervo do candidato é reduzido às ARTs que a
+  `Visao` do dono do perfil deixa o demandante ver. Fechada não pesa em competência, local nem
+  reforço de CAT. Sem ART visível nos grupos pedidos, o candidato não entra no pool.
+- **Feed:** a releitura da sessão (titular que fechou depois do cálculo) tira as linhas sem ART
+  aberta inteiras; nada de "não aberta", nem código da atividade, nem CAT de ART fechada.
+- **Busca pública:** o termo só encontra alguém pelo que ele abriu para quem busca (nome,
+  modalidade, resumo aberto, experiência aberta, área de ART aberta), e o cartão conta só ARTs e
+  CATs abertas. O anônimo vê o que é público; quem tem conta, também o que é para quem tem conta.
+- Na empresa, quem escolhe é a conta da empresa, sobre as ARTs do quadro, como no perfil dela.
+
+O que é mostrado **ao próprio titular** (Início, vitrine "na sua área", perfil próprio) continua
+usando o acervo inteiro: é o dado dele, para ele.
+
+**Alternativa recusada: manter a D52.** O argumento dela era que fechar uma ART não deveria
+custar posição. Continua verdadeiro que agora custa, e esse é o preço aceito: o titular sabe o que
+está fechando, e a tela da Visibilidade passa a dizer que documento fechado não conta. Usar em
+silêncio o que ele escondeu é pior do que pedir que ele abra o que quer que conte.
+
+**Alternativa recusada: contar e não mostrar nada.** Tirar da tela sem tirar do cálculo esconde o
+problema em vez de resolvê-lo: o número continuaria sustentado por algo que o demandante não pode
+conferir, que é a assimetria que a própria D52 listava como limitação.
+
+**Consequência.** Os pools encolhem para quem mantém o acervo fechado; na base de demonstração, as
+empresas semeadas nunca tinham tido ART aberta (o script de demo só procurava ARTs de
+profissional), e sem o ajuste do `abrir-visibilidade-demo.php --so-empresas` todas sairiam dos
+compatíveis. O rótulo de perfil em construção continua derivado do total de ARTs, abertas ou não:
+revela só que há ao menos três, e mudá-lo marcaria como iniciante quem escolheu privacidade. A
+Política de Privacidade (§8, "compara... com os códigos das suas ARTs") fica coerente, mas não diz
+"só as abertas"; deixar isso explícito é uma versão 1.1 da política, com novo aceite (§10).

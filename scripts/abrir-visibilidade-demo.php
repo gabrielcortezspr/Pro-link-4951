@@ -28,6 +28,11 @@ declare(strict_types=1);
  * Uso:
  *   docker compose exec php php scripts/abrir-visibilidade-demo.php
  *   docker compose exec php php scripts/abrir-visibilidade-demo.php --simular
+ *   docker compose exec php php scripts/abrir-visibilidade-demo.php --so-empresas
+ *
+ * `--so-empresas` existe desde a D95: a ART fechada deixou de contar na compatibilização, e as
+ * empresas semeadas nunca tinham tido ART aberta (o script só procurava ARTs de profissional).
+ * Rodar só nelas não reabre o que um profissional fechou à mão pela tela.
  */
 
 require_once dirname(__DIR__) . '/_config.php';
@@ -36,8 +41,9 @@ use ProLink\Service\VisibilidadeService;
 use ProLink\Support\Database;
 use ProLink\Support\Visibilidade;
 
-$opcoes  = getopt('', ['simular']);
-$simular = isset($opcoes['simular']);
+$opcoes     = getopt('', ['simular', 'so-empresas']);
+$simular    = isset($opcoes['simular']);
+$soEmpresas = isset($opcoes['so-empresas']);
 
 $pdo          = Database::conexao();
 $visibilidade = new VisibilidadeService();
@@ -102,7 +108,7 @@ $candidatos = $pdo->query(
        JOIN sis_perfis p ON p.per_id = u.usu_per_id
       WHERE u.usu_status = 'A'
         AND u.usu_email LIKE '%@prolink.local'
-        AND p.per_codigo IN ('PROFISSIONAL', 'EMPRESA')
+        AND p.per_codigo IN (" . ($soEmpresas ? "'EMPRESA'" : "'PROFISSIONAL', 'EMPRESA'") . ")
       ORDER BY u.usu_id"
 )->fetchAll();
 
@@ -131,10 +137,17 @@ foreach ($candidatos as $candidato) {
     $postura = postura();
     $campos  = $ehEmpresa ? Visibilidade::CAMPOS_DA_EMPRESA : Visibilidade::CAMPOS_DO_PERFIL;
 
-    $arts = array_map('intval', $pdo->query(
-        'SELECT a.art_id FROM crea_arts a
-           JOIN pro_profissionais p ON p.prf_rnp = a.art_pro_rnp
-          WHERE p.prf_usu_id = ' . $usuarioId . ' ORDER BY a.art_id'
+    // A empresa escolhe a visibilidade das ARTs do quadro técnico vigente, que são o acervo dela
+    // (D19); antes da D95 este passo só procurava ARTs de profissional, e nenhuma ART de empresa
+    // ficava aberta.
+    $arts = array_map('intval', $pdo->query($ehEmpresa
+        ? 'SELECT DISTINCT a.art_id FROM crea_arts a
+             JOIN crea_quadro_tecnico q ON q.qut_pro_rnp = a.art_pro_rnp AND q.qut_status = "A" AND q.qut_dt_fim IS NULL
+             JOIN pro_empresas e ON e.emp_registro_crea = q.qut_emp_registro_crea
+            WHERE e.emp_usu_id = ' . $usuarioId . ' AND a.art_status = "A" ORDER BY a.art_id'
+        : 'SELECT a.art_id FROM crea_arts a
+             JOIN pro_profissionais p ON p.prf_rnp = a.art_pro_rnp
+            WHERE p.prf_usu_id = ' . $usuarioId . ' ORDER BY a.art_id'
     )->fetchAll(PDO::FETCH_COLUMN));
 
     // Experiência tem alvo próprio de visibilidade, e esquecê-la deixava o bloco autodeclarado
