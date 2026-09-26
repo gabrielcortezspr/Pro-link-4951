@@ -4733,7 +4733,11 @@ html:not(.js-seg) .pl-seg-area:has(> #conta:target) > .pl-seg > .pl-seg-b[href="
 .pl-chip-filtro.ligado { background: var(--pl-data); border-color: var(--pl-data); color: #fff; }
 .pl-chip-filtro.ligado .n { background: rgba(255, 255, 255, .18); color: #fff; }
 
-.pl-vit-mais { margin: 0 0 4px; }
+/* "Mais filtros" e "Limpar filtros" dividem a fileira. O <details> é só o gatilho e o painel é
+   irmão dele, aberto por `details[open] ~`: dentro do <details>, o painel impediria o botão de
+   ficar ao lado do <summary>. O formulário envia os campos do painel mesmo recolhido. */
+.pl-vit-ctrl { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 4px; }
+.pl-vit-mais { margin: 0; }
 .pl-vit-mais > summary { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; list-style: none;
     font-size: 12.5px; font-weight: 600; color: var(--pl-data); padding: 4px 0; border-radius: 6px; }
 .pl-vit-mais > summary::-webkit-details-marker { display: none; }
@@ -4743,15 +4747,32 @@ html:not(.js-seg) .pl-seg-area:has(> #conta:target) > .pl-seg > .pl-seg-b[href="
 .pl-vit-mais > summary:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; }
 .pl-vit-mais > summary .em-uso { font-weight: 500; color: var(--pl-faint); }
 .pl-vit-mais > summary .em-uso::before { content: "· "; }
-.pl-vit-mais .grade { display: grid; grid-template-columns: minmax(0, 1.4fr) 118px minmax(0, 1.1fr) minmax(0, 1.2fr) minmax(0, 1.4fr) minmax(0, 1.2fr);
-    gap: 10px 12px; margin-top: 10px; padding: 14px 16px; background: var(--pl-card);
-    border: 1px solid var(--pl-border); border-radius: 12px 12px 0 0; border-bottom: 0; }
-.pl-vit-mais .grade .form-label { font-size: 12px; margin-bottom: 4px; }
-.pl-vit-mais .grade .form-control, .pl-vit-mais .grade .form-select { height: 38px; font-size: 13px; }
-.pl-vit-mais .acoes { display: flex; gap: 8px; padding: 0 16px 14px; background: var(--pl-card);
-    border: 1px solid var(--pl-border); border-top: 0; border-radius: 0 0 12px 12px; }
-@media (max-width: 1200px) { .pl-vit-mais .grade { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 640px)  { .pl-vit-mais .grade { grid-template-columns: minmax(0, 1fr); } }
+/* Secundário contornado, na escala pequena: o laranja fica com a ação que compromete. */
+.pl-vit-limpar svg { width: 13px; height: 13px; flex: none; }
+.pl-vit-limpar:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; }
+
+.pl-vit-painel { display: none; flex: 1 0 100%; min-width: 0; margin-top: 4px; background: var(--pl-card);
+    border: 1px solid var(--pl-border); border-radius: 12px; }
+.pl-vit-mais[open] ~ .pl-vit-painel { display: block; }
+/* Os dois recortes, na primeira fileira: são o corte mais largo da lista, antes dos campos. */
+.pl-vit-painel .recortes { display: flex; flex-wrap: wrap; gap: 8px 28px; padding: 13px 16px 12px;
+    border-bottom: 1px solid var(--pl-border-2); }
+.pl-vit-painel .recortes .form-check { margin: 0; min-height: 0; }
+.pl-vit-painel .recortes .form-check-label { font-size: 13px; font-weight: 600; cursor: pointer; }
+.pl-vit-painel .recortes .dica { font-weight: 400; font-size: 12px; color: var(--pl-muted); }
+.pl-vit-painel .recortes .dica::before { content: "· "; color: var(--pl-faint); }
+.pl-vit-painel .grade { display: grid; grid-template-columns: minmax(0, 1.4fr) 118px minmax(0, 1.1fr) minmax(0, 1.2fr) minmax(0, 1.4fr) minmax(0, 1.2fr);
+    gap: 10px 12px; padding: 14px 16px; }
+.pl-vit-painel .grade .form-label { font-size: 12px; margin-bottom: 4px; }
+.pl-vit-painel .grade .form-control, .pl-vit-painel .grade .form-select { height: 38px; font-size: 13px; }
+.pl-vit-painel .acoes { display: flex; gap: 8px; padding: 0 16px 14px; }
+@media (max-width: 1200px) { .pl-vit-painel .grade { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px)  {
+    .pl-vit-painel .grade { grid-template-columns: minmax(0, 1fr); }
+    /* A dica desce para baixo do rótulo em vez de partir a frase no meio. */
+    .pl-vit-painel .recortes .dica { display: block; }
+    .pl-vit-painel .recortes .dica::before { content: none; }
+}
 
 /* ---- A barra de resultado ---- */
 .pl-vit-barra { margin: 4px 0 14px; }

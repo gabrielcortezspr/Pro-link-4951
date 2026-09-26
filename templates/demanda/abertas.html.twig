@@ -15,11 +15,13 @@
     Os filtros vivem na URL, num formulário GET, e tudo funciona sem JavaScript:
     - as áreas (o grupo da TOS) são chips com contagem, e cada chip é um link que liga ou desliga
       só aquela área, preservando o resto da busca;
-    - "na minha área" vem ligado para quem tem acervo e "só o que posso me candidatar" para quem
-      pode se candidatar. Os dois viram frases na barra de resultado, cada uma com o link que a
-      desliga, em vez de caixas de marcar escondidas num painel;
+    - "na minha área" vem ligado para quem tem acervo e "só demandas para o meu perfil" para quem
+      pode se candidatar. Os dois são caixas de marcar na primeira fileira de "Mais filtros";
     - atividade, local, regime, início e ordem ficam em "Mais filtros", recolhido, aberto sozinho
-      quando algum deles está em uso.
+      quando algum deles está em uso;
+    - "Limpar filtros", ao lado de "Mais filtros", desliga tudo, inclusive os dois recortes ligados
+      por padrão, e só existe quando algo estreita a lista. Para quem tem acervo, isso é já na
+      chegada.
 
     Não é ranking (item 10.1): a relação com o acervo sai como frase, a lista não se ordena por
     ela, e não existe ordem "mais compatível".
@@ -66,7 +68,16 @@
 }) %}
 {% set f = v.filtros %}
 {% set mais_em_uso = f.atividade or f.uf or f.municipio or f.contrato or f.inicio or f.ordem != 'recentes' %}
-{% set filtros_em_uso = mais_em_uso or f.texto or f.areas is not empty %}
+{#  O que o usuário escolheu, fora os dois recortes que vêm ligados; e tudo o que estreita a lista,
+    que é quando "Limpar filtros" existe. #}
+{% set outros_em_uso = mais_em_uso or f.texto or f.areas is not empty %}
+{% set filtros_em_uso = outros_em_uso or f.minha_area or f.para_mim %}
+{#  Limpar desliga tudo: sem busca, sem área, sem os campos de "Mais filtros", e com os dois
+    recortes desligados para quem os tem (só entra na URL o que se aplica a quem olha). #}
+{% set url_limpa = vit.url_vitrine(v, {q: null, area: null, atividade: null, uf: null, municipio: null,
+    contrato: null, inicio: null, ordem: null,
+    minha_area: v.tem_acervo ? '0' : null, para: v.pode_candidatar ? 'todas' : null}) %}
+{% set empresa = (usuario().perfil|default(null)) == 'EMPRESA' %}
 
 <div class="pl-head">
     <div class="tit">
@@ -79,11 +90,10 @@
 
 {#  ------------------------------------------------------------------ a busca e os filtros #}
 <form class="pl-vit-filtros" method="get" action="{{ app_url }}/demandas/abertas" role="search">
-    {#  O que não tem campo visível viaja escondido, para "Buscar" não desligar em silêncio a
-        área escolhida nem o "na minha área". #}
+    {#  A área não tem campo visível e viaja escondida, para "Buscar" não desligá-la em silêncio.
+        Os dois recortes viajam pelas caixas de "Mais filtros", que o formulário envia mesmo com o
+        painel recolhido. #}
     {% for a in f.areas %}<input type="hidden" name="area[]" value="{{ a }}">{% endfor %}
-    {% if v.tem_acervo and not f.minha_area %}<input type="hidden" name="minha_area" value="0">{% endif %}
-    {% if v.pode_candidatar and not f.para_mim %}<input type="hidden" name="para" value="todas">{% endif %}
 
     <div class="pl-busca-row">
         <div class="cx">
@@ -130,67 +140,101 @@
         </nav>
     {% endif %}
 
-    <details class="pl-vit-mais"{% if mais_em_uso %} open{% endif %}>
-        <summary>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg>
-            Mais filtros
-            {% if mais_em_uso %}<span class="em-uso">em uso</span>{% endif %}
-        </summary>
-        <div class="grade">
-            <div>
-                <label class="form-label" for="vit-atividade">Atividade</label>
-                <input type="text" id="vit-atividade" name="atividade" class="form-control" maxlength="80"
-                       value="{{ f.atividade }}" placeholder="Nome do serviço ou código TOS">
-            </div>
-            <div>
-                <label class="form-label" for="vit-uf">UF</label>
-                <select id="vit-uf" name="uf" class="form-select">
-                    <option value="">Qualquer</option>
-                    {% for uf in ufs_possiveis|default([]) %}<option value="{{ uf }}"{% if f.uf == uf %} selected{% endif %}>{{ uf }}</option>{% endfor %}
-                </select>
-            </div>
-            <div>
-                <label class="form-label" for="vit-municipio">Município</label>
-                <input type="text" id="vit-municipio" name="municipio" class="form-control" maxlength="120" value="{{ f.municipio }}">
-            </div>
-            <div>
-                <label class="form-label" for="vit-contrato">Regime</label>
-                <select id="vit-contrato" name="contrato" class="form-select">
-                    <option value="">Qualquer</option>
-                    {% for chave, rotulo in contratos_possiveis|default({}) %}
-                        {% if chave != 'QUALQUER' %}<option value="{{ chave }}"{% if f.contrato == chave %} selected{% endif %}>{{ rotulo }}</option>{% endif %}
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                <label class="form-label" for="vit-inicio">Início</label>
-                <select id="vit-inicio" name="inicio" class="form-select">
-                    <option value="">Qualquer prazo</option>
-                    <option value="30"{% if f.inicio == 'ate' %} selected{% endif %}>Começa em até 30 dias</option>
-                    <option value="aberto"{% if f.inicio == 'aberto' %} selected{% endif %}>Prazo em aberto</option>
-                </select>
-            </div>
-            <div>
-                <label class="form-label" for="vit-ordem">Ordem</label>
-                <select id="vit-ordem" name="ordem" class="form-select">
-                    <option value="recentes"{% if f.ordem == 'recentes' %} selected{% endif %}>Mais recentes</option>
-                    <option value="inicio"{% if f.ordem == 'inicio' %} selected{% endif %}>Início mais próximo</option>
-                </select>
-            </div>
-        </div>
-        <div class="acoes">
-            <button type="submit" class="pl-btn sm">Aplicar filtros</button>
-            {% if filtros_em_uso %}
-                <a class="pl-btn sm ghost" href="{{ vit.url_vitrine(v, {q: null, area: null, atividade: null, uf: null, municipio: null, contrato: null, inicio: null, ordem: null}) }}">Limpar filtros</a>
+    {#  "Mais filtros" e "Limpar filtros" na mesma fileira. O <details> é só o gatilho, e o painel
+        é irmão dele, aberto por CSS (`details[open] ~ .pl-vit-painel`): com o painel dentro do
+        <details>, o botão ao lado não teria como dividir a linha com o <summary>. #}
+    <div class="pl-vit-ctrl">
+        <details class="pl-vit-mais"{% if mais_em_uso %} open{% endif %}>
+            <summary aria-controls="vit-painel">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg>
+                Mais filtros
+                {% if mais_em_uso %}<span class="em-uso">em uso</span>{% endif %}
+            </summary>
+        </details>
+        {% if filtros_em_uso %}
+            <a class="pl-btn sm pl-vit-limpar" href="{{ url_limpa }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>
+                Limpar filtros
+            </a>
+        {% endif %}
+
+        <div class="pl-vit-painel" id="vit-painel">
+            {#  Os dois recortes. Caixa desmarcada não envia nada, e o serviço lê ausência como
+                ligado; por isso cada caixa vem depois de um campo escondido com o valor que
+                desliga, e, marcada, o valor dela chega por último e vence. #}
+            {% if v.tem_acervo or v.pode_candidatar %}
+                <div class="recortes">
+                    {% if v.tem_acervo %}
+                        <div class="form-check">
+                            <input type="hidden" name="minha_area" value="0">
+                            <input class="form-check-input" type="checkbox" id="vit-minha-area" name="minha_area" value="1"{% if f.minha_area %} checked{% endif %}>
+                            <label class="form-check-label" for="vit-minha-area">Na minha área
+                                <span class="dica">{{ empresa ? 'pelas atividades das ARTs do quadro' : 'pelas atividades das suas ARTs' }}</span></label>
+                        </div>
+                    {% endif %}
+                    {% if v.pode_candidatar %}
+                        <div class="form-check">
+                            <input type="hidden" name="para" value="todas">
+                            <input class="form-check-input" type="checkbox" id="vit-para" name="para" value="mim"{% if f.para_mim %} checked{% endif %}>
+                            <label class="form-check-label" for="vit-para">Só demandas para o meu perfil
+                                <span class="dica">{{ empresa ? 'sem as dirigidas só a profissionais' : 'sem as dirigidas só a empresas' }}</span></label>
+                        </div>
+                    {% endif %}
+                </div>
             {% endif %}
+            <div class="grade">
+                <div>
+                    <label class="form-label" for="vit-atividade">Atividade</label>
+                    <input type="text" id="vit-atividade" name="atividade" class="form-control" maxlength="80"
+                           value="{{ f.atividade }}" placeholder="Nome do serviço ou código TOS">
+                </div>
+                <div>
+                    <label class="form-label" for="vit-uf">UF</label>
+                    <select id="vit-uf" name="uf" class="form-select">
+                        <option value="">Qualquer</option>
+                        {% for uf in ufs_possiveis|default([]) %}<option value="{{ uf }}"{% if f.uf == uf %} selected{% endif %}>{{ uf }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label" for="vit-municipio">Município</label>
+                    <input type="text" id="vit-municipio" name="municipio" class="form-control" maxlength="120" value="{{ f.municipio }}">
+                </div>
+                <div>
+                    <label class="form-label" for="vit-contrato">Regime</label>
+                    <select id="vit-contrato" name="contrato" class="form-select">
+                        <option value="">Qualquer</option>
+                        {% for chave, rotulo in contratos_possiveis|default({}) %}
+                            {% if chave != 'QUALQUER' %}<option value="{{ chave }}"{% if f.contrato == chave %} selected{% endif %}>{{ rotulo }}</option>{% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label" for="vit-inicio">Início</label>
+                    <select id="vit-inicio" name="inicio" class="form-select">
+                        <option value="">Qualquer prazo</option>
+                        <option value="30"{% if f.inicio == 'ate' %} selected{% endif %}>Começa em até 30 dias</option>
+                        <option value="aberto"{% if f.inicio == 'aberto' %} selected{% endif %}>Prazo em aberto</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label" for="vit-ordem">Ordem</label>
+                    <select id="vit-ordem" name="ordem" class="form-select">
+                        <option value="recentes"{% if f.ordem == 'recentes' %} selected{% endif %}>Mais recentes</option>
+                        <option value="inicio"{% if f.ordem == 'inicio' %} selected{% endif %}>Início mais próximo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="acoes">
+                <button type="submit" class="pl-btn sm">Aplicar filtros</button>
+            </div>
         </div>
-    </details>
+    </div>
 </form>
 
 {#  ------------------------------------------------------------------ o resultado
 
-    Quantas, e de que recorte: "na sua área" e "só o que você pode se candidatar" são escolhas
-    ligadas por padrão, e quem olha precisa ver que estão ligadas e como desligar. #}
+    Quantas, e de que recorte: "na sua área" vem ligado por padrão, e a contagem diz isso e a
+    linha de origem diz de onde a área vem. #}
 <div class="pl-busca-barra pl-vit-barra">
     <p class="ct">
         <b>{{ v.total }}</b> {{ v.total == 1 ? 'demanda' : 'demandas' }}
@@ -203,48 +247,35 @@
         genérica que ficava aqui. Sem áreas no acervo (não deveria acontecer com acervo), volta a
         frase. #}
     {% set mostra_origem = f.minha_area and v.areas_acervo|default([]) is not empty %}
-    <p class="vis">
-        {% if f.minha_area %}
-            {% if not mostra_origem %}<span>Mostrando o que tem a ver com o seu acervo.</span>{% endif %}
-            <a href="{{ vit.url_vitrine(v, {minha_area: '0'}) }}">Ver todas as demandas</a>
-        {% elseif v.tem_acervo %}
-            <a href="{{ vit.url_vitrine(v, {minha_area: null}) }}">Só as da minha área</a>
-        {% endif %}
-        {% if v.pode_candidatar %}
-            {% if f.para_mim %}
-                <span class="pl-sep" aria-hidden="true"></span>
-                <a href="{{ vit.url_vitrine(v, {para: 'todas'}) }}" title="Mostra também as demandas dirigidas só a empresas ou só a profissionais">Incluir as que não são para o meu perfil</a>
-            {% else %}
-                <span class="pl-sep" aria-hidden="true"></span>
-                <a href="{{ vit.url_vitrine(v, {para: null}) }}">Só as que posso me candidatar</a>
-            {% endif %}
-        {% endif %}
-    </p>
+    {#  Os links que desligavam cada recorte saíram: desligar é "Limpar filtros", religar é a caixa
+        em "Mais filtros". #}
+    {% if f.minha_area and not mostra_origem %}
+        <p class="vis"><span>Mostrando o que tem a ver com o seu acervo.</span></p>
+    {% endif %}
     {% if mostra_origem %}
-        {{ ui.origem_area(v.areas_acervo, v.modalidades|default([]), (usuario().perfil|default(null)) == 'EMPRESA', true, conhecidas) }}
+        {{ ui.origem_area(v.areas_acervo, v.modalidades|default([]), empresa, true, conhecidas) }}
     {% endif %}
 </div>
 
 {% if demandas is empty %}
     <div class="pl-card pl-vazio">
-        {% if filtros_em_uso %}
+        {#  Um vocabulário só: toda saída de lista vazia é "Limpar filtros", com o mesmo destino do
+            botão de cima. #}
+        {% if outros_em_uso %}
             <p class="t">Nenhuma demanda com esses filtros</p>
             <p class="s">Tire um filtro de cada vez para ver o que aparece, ou comece de novo.</p>
-            <div class="a">
-                <a class="pl-btn" href="{{ vit.url_vitrine(v, {q: null, area: null, atividade: null, uf: null, municipio: null, contrato: null, inicio: null, ordem: null}) }}">Limpar filtros</a>
-                {% if f.minha_area %}
-                    <a class="pl-btn ghost" href="{{ vit.url_vitrine(v, {minha_area: '0'}) }}">Ver todas as demandas</a>
-                {% endif %}
-            </div>
+            <div class="a"><a class="pl-btn" href="{{ url_limpa }}">Limpar filtros</a></div>
         {% elseif f.minha_area %}
             <p class="t">Nenhuma demanda aberta na sua área agora</p>
             <p class="s">
-                "Sua área" são as atividades que o seu acervo registrado no CREA já tem, e as do mesmo
-                subgrupo. Há demandas abertas em outras áreas.
+                Nenhuma demanda aberta tem atividade {{ empresa ? 'das ARTs do seu quadro' : 'das suas ARTs' }},
+                nem do mesmo subgrupo. Limpe os filtros para ver as de todas as áreas.
             </p>
-            <div class="a">
-                <a class="pl-btn" href="{{ vit.url_vitrine(v, {minha_area: '0'}) }}">Ver todas as demandas</a>
-            </div>
+            <div class="a"><a class="pl-btn" href="{{ url_limpa }}">Limpar filtros</a></div>
+        {% elseif f.para_mim %}
+            <p class="t">Nenhuma demanda aberta para o seu perfil agora</p>
+            <p class="s">Limpe os filtros para ver também as dirigidas {{ empresa ? 'só a profissionais' : 'só a empresas' }}.</p>
+            <div class="a"><a class="pl-btn" href="{{ url_limpa }}">Limpar filtros</a></div>
         {% else %}
             <p class="t">Nenhuma demanda publicada no momento</p>
             <p class="s">
