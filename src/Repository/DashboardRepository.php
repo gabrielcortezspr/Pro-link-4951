@@ -5,16 +5,11 @@ declare(strict_types=1);
 namespace ProLink\Repository;
 
 /**
- * Os números do início de sessão de cada perfil, como o mockup `prolink-profissional.html` e o
- * `prolink-empresa-1.html` desenharam.
+ * O que o Início e o sino contam sobre a própria conta: a linha de identidade (D90) e o que chegou
+ * e ainda não foi visto (D87).
  *
- * ## Uma métrica do desenho não existe, e não foi inventada
- *
- * O mockup do profissional traz "Visualizações do perfil". **Não há registro de quem viu o perfil
- * de quem**, e criar um exigiria rastrear visita por titular, que é dado novo de comportamento,
- * com implicação de privacidade que a Política não declara. A regra do projeto é não preencher
- * lacuna com suposição, então o tile foi trocado por um número que existe e diz mais: quantos
- * demandantes **registraram interesse** naquele perfil, que é ato, não passagem de olho.
+ * Até a D90 daqui saíam os quatro indicadores do Início, como os mockups desenharam. Saíram porque
+ * não pediam ação nenhuma; o que deles ainda orienta a pessoa virou a linha de identidade.
  *
  * ## Nada aqui ordena gente
  *
@@ -25,63 +20,63 @@ namespace ProLink\Repository;
 final class DashboardRepository extends Repositorio
 {
     /**
-     * Os quatro números do início do profissional.
+     * A linha de identidade do Início do profissional (D90) e o que o "Para fazer agora" precisa
+     * saber do perfil: o tamanho do acervo, as CATs vigentes, quando o acervo foi consultado no
+     * CREA e se as preferências de trabalho foram informadas.
      *
-     * @return array{compativeis: int, manifestacoes: int, arts: int, interesses: int}
+     * @return array{arts: int, cats: int, cats_vigentes: int, acervo_em: ?string,
+     *               preferencias_vazias: bool}
      */
-    public function doProfissional(int $usuarioId): array
+    public function resumoDoProfissional(int $usuarioId, string $hoje): array
     {
+        $stmt = $this->pdo->prepare(
+            'SELECT p.prf_rnp, p.prf_dt_sincronizacao, p.prf_tipo_contrato, p.prf_disponibilidade
+               FROM pro_profissionais p
+              WHERE p.prf_usu_id = :usuario AND p.prf_status = :ativo'
+        );
+        $stmt->execute([':usuario' => $usuarioId, ':ativo' => STATUS_ATIVO]);
+        $perfil = $stmt->fetch();
+
+        if ($perfil === false) {
+            return ['arts' => 0, 'cats' => 0, 'cats_vigentes' => 0, 'acervo_em' => null, 'preferencias_vazias' => false];
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) AS cats,
+                    SUM(CASE WHEN cat_dt_validade IS NULL OR cat_dt_validade >= :hoje THEN 1 ELSE 0 END) AS vigentes
+               FROM crea_cats
+              WHERE cat_pro_rnp = :rnp AND cat_status = :ativo'
+        );
+        $stmt->execute([':hoje' => substr($hoje, 0, 10), ':rnp' => (string) $perfil['prf_rnp'], ':ativo' => STATUS_ATIVO]);
+        $cats = $stmt->fetch() ?: [];
+
         return [
-            'compativeis'   => $this->demandasEmQueApareceComoCandidato($usuarioId),
-            'manifestacoes' => $this->manifestacoesEnviadas($usuarioId),
-            'arts'          => $this->artsDoAcervo($usuarioId),
-            'interesses'    => $this->interessesRecebidos($usuarioId),
+            'arts'                => $this->artsDoAcervo($usuarioId),
+            'cats'                => (int) ($cats['cats'] ?? 0),
+            'cats_vigentes'       => (int) ($cats['vigentes'] ?? 0),
+            'acervo_em'           => $perfil['prf_dt_sincronizacao'] !== null ? (string) $perfil['prf_dt_sincronizacao'] : null,
+            'preferencias_vazias' => $perfil['prf_tipo_contrato'] === null && $perfil['prf_disponibilidade'] === null,
         ];
     }
 
     /**
-     * Os quatro números do início da empresa.
+     * A linha de identidade do Início da empresa (D90): o acervo herdado do quadro vigente, o
+     * tamanho do quadro e quando o CREA foi consultado.
      *
-     * A empresa é demandante e candidata ao mesmo tempo (Anexo I, item 3), e o painel reflete os
-     * dois papéis: o que ela publicou e o que o acervo dela sustenta.
-     *
-     * @return array{demandas: int, publicadas: int, interessados: int, acervo: int, quadro: int}
+     * @return array{acervo: int, quadro: int, acervo_em: ?string}
      */
-    public function daEmpresa(int $usuarioId): array
+    public function resumoDaEmpresa(int $usuarioId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT COUNT(*) AS total,
-                    SUM(CASE WHEN dem_dt_publicacao IS NOT NULL THEN 1 ELSE 0 END) AS publicadas
-               FROM pro_demandas
-              WHERE dem_usu_id = :usuario AND dem_status = :ativo'
+            'SELECT emp_dt_sincronizacao FROM pro_empresas WHERE emp_usu_id = :usuario AND emp_status = :ativo'
         );
-        $stmt->bindValue(':usuario', $usuarioId, \PDO::PARAM_INT);
-        $stmt->bindValue(':ativo', STATUS_ATIVO);
-        $stmt->execute();
-        $demandas = $stmt->fetch() ?: [];
-
-        $stmt = $this->pdo->prepare(
-            'SELECT COUNT(*)
-               FROM pro_manifestacoes m
-               JOIN pro_demandas d ON d.dem_id = m.man_dem_id
-              WHERE d.dem_usu_id = :usuario
-                AND m.man_status = :ativo
-                AND m.man_origem = :origem'
-        );
-        $stmt->bindValue(':usuario', $usuarioId, \PDO::PARAM_INT);
-        $stmt->bindValue(':ativo', STATUS_ATIVO);
-        // Só quem se candidatou: o interesse que a própria empresa registrou não é "interessado
-        // que chegou", e somar os dois faria o painel contar o próprio ato como resultado.
-        $stmt->bindValue(':origem', 'C');
-        $stmt->execute();
-        $interessados = (int) $stmt->fetchColumn();
+        $stmt->execute([':usuario' => $usuarioId, ':ativo' => STATUS_ATIVO]);
+        $sincronizada = $stmt->fetchColumn();
 
         return [
-            'demandas'     => (int) ($demandas['total'] ?? 0),
-            'publicadas'   => (int) ($demandas['publicadas'] ?? 0),
-            'interessados' => $interessados,
-            'acervo'       => $this->acervoDaEmpresa($usuarioId),
-            'quadro'       => $this->quadroVigente($usuarioId),
+            'acervo'    => $this->acervoDaEmpresa($usuarioId),
+            'quadro'    => $this->quadroVigente($usuarioId),
+            'acervo_em' => $sincronizada !== false && $sincronizada !== null ? (string) $sincronizada : null,
         ];
     }
 
@@ -153,61 +148,6 @@ final class DashboardRepository extends Repositorio
         $stmt->bindValue(':do_demandante', 'D');
         $stmt->bindValue(':ativo', STATUS_ATIVO);
         $stmt->bindValue(':ativo2', STATUS_ATIVO);
-        $stmt->execute();
-
-        return (int) $stmt->fetchColumn();
-    }
-
-    /**
-     * Em quantas demandas distintas este profissional entrou no pool do motor.
-     *
-     * Lê `mat_sessao_pool`, que é o que o motor gravou, e não recalcula: o número tem de ser o
-     * mesmo que a auditoria de sessões mostra, senão a plataforma diz duas coisas diferentes sobre
-     * o mesmo fato.
-     */
-    private function demandasEmQueApareceComoCandidato(int $usuarioId): int
-    {
-        $stmt = $this->pdo->prepare(
-            'SELECT COUNT(DISTINCT s.mts_dem_id)
-               FROM mat_sessao_pool sp
-               JOIN mat_sessoes s ON s.mts_id = sp.msp_mts_id
-               JOIN pro_profissionais p ON p.prf_id = sp.msp_candidato_id
-              WHERE sp.msp_candidato_tipo = :tipo
-                AND p.prf_usu_id = :usuario
-                AND s.mts_status = :ativo'
-        );
-        $stmt->bindValue(':tipo', 'P');
-        $stmt->bindValue(':usuario', $usuarioId, \PDO::PARAM_INT);
-        $stmt->bindValue(':ativo', STATUS_ATIVO);
-        $stmt->execute();
-
-        return (int) $stmt->fetchColumn();
-    }
-
-    private function manifestacoesEnviadas(int $usuarioId): int
-    {
-        $stmt = $this->pdo->prepare(
-            'SELECT COUNT(*) FROM pro_manifestacoes
-              WHERE man_usu_id = :usuario AND man_status = :ativo AND man_origem = :origem'
-        );
-        $stmt->bindValue(':usuario', $usuarioId, \PDO::PARAM_INT);
-        $stmt->bindValue(':ativo', STATUS_ATIVO);
-        $stmt->bindValue(':origem', 'C');
-        $stmt->execute();
-
-        return (int) $stmt->fetchColumn();
-    }
-
-    /** O que um demandante registrou de interesse neste perfil: o substituto de "visualizações". */
-    private function interessesRecebidos(int $usuarioId): int
-    {
-        $stmt = $this->pdo->prepare(
-            'SELECT COUNT(*) FROM pro_manifestacoes
-              WHERE man_usu_id = :usuario AND man_status = :ativo AND man_origem = :origem'
-        );
-        $stmt->bindValue(':usuario', $usuarioId, \PDO::PARAM_INT);
-        $stmt->bindValue(':ativo', STATUS_ATIVO);
-        $stmt->bindValue(':origem', 'D');
         $stmt->execute();
 
         return (int) $stmt->fetchColumn();

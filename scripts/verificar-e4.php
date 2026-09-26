@@ -266,11 +266,12 @@ secao('O demandante registra interesse (Anexo I item 3)');
 // consequência a todo demandante, o direito de registrar interesse em profissional ou empresa.
 $interesse = new ProLink\Service\ManifestacaoService();
 
-$demandaPublicada = $pdo->query(
-    'SELECT dem_id, dem_usu_id FROM pro_demandas
-      WHERE dem_dt_publicacao IS NOT NULL AND dem_status = "A"
-      ORDER BY dem_id DESC LIMIT 1'
-)->fetch();
+// A própria demanda de verificação desta rodada, publicada agora: ela já tem sessão do motor, e
+// não depende do que houver no banco. Pegar "a última demanda publicada" quebrava depois do
+// limpar-rastro (D80), que encerra as de verificação, e podia cair numa demanda da demonstração.
+$demandas->publicar($demandaId);
+
+$demandaPublicada = ['dem_id' => $demandaId, 'dem_usu_id' => $demandanteId];
 
 if ($demandaPublicada === false) {
     conferir('há demanda publicada para exercitar o registro de interesse', false,

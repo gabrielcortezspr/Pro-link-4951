@@ -404,15 +404,9 @@
                 <dt>Situação</dt>
                 <dd>{{ ui.situacao_manifestacao(m.man_situacao) }}</dd>
 
-                {#  "Visto" é de quem recebeu (D87): a empresa numa candidatura, a pessoa num convite. #}
-                <dt>{{ do_demandante ? (eh_demandante ? 'Aberto pela pessoa' : 'Aberto por você') : (eh_demandante ? 'Aberta por você' : 'Aberta pela empresa') }}</dt>
-                <dd>
-                    {% if m.man_dt_visualizacao %}
-                        <span class="pl-mono">{{ m.man_dt_visualizacao|date('d/m/Y') }} às {{ m.man_dt_visualizacao|date('H\\hi') }}</span>
-                    {% else %}
-                        Ainda não
-                    {% endif %}
-                </dd>
+                {#  Sem "Aberta pela empresa em" nem "Aberto pela pessoa em" (D88): nenhuma das partes
+                    vê quando a outra abriu. O que importa, se houve resposta, é a mensagem, e ela
+                    está na conversa ao lado. #}
             </dl>
         </section>
 

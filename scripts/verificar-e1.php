@@ -407,11 +407,15 @@ $stmt->execute([':id' => $primeira['id']]);
 conferir('sessão registrada em sis_sessoes com hash do identificador',
     strlen((string) $stmt->fetchColumn()) === 64);
 
-// Entra com a última conta e confere que o painel de privacidade abre autenticado.
+// Entra com a última conta e confere que o painel de privacidade abre autenticado. Desde a D88 ele
+// é a aba "Conta e dados" do perfil, e `/privacidade` só redireciona para lá.
 $ultima = end($criados);
 entrar($ultima['email']);
-conferir('painel de privacidade abre para quem está autenticado',
-    requisitar('GET', $base . '/privacidade')['status'] === 200);
+$painelConta = requisitar('GET', $base . '/perfil');
+conferir('painel de privacidade abre para quem está autenticado, dentro do perfil',
+    $painelConta['status'] === 200 && str_contains($painelConta['corpo'], 'id="conta"'));
+conferir('o endereço antigo do painel leva à aba Conta e dados',
+    requisitar('GET', $base . '/privacidade')['status'] === 303);
 
 $exportacao = requisitar('GET', $base . '/privacidade/exportar');
 $json       = json_decode($exportacao['corpo'], true);
@@ -423,10 +427,10 @@ conferir('exportação não contém senha nem hash de senha',
     is_array($json) && !str_contains(strtolower($exportacao['corpo']), 'senha_hash')
         && !str_contains($exportacao['corpo'], '$argon2'));
 
-$saida = requisitar('POST', $base . '/sair', ['_csrf' => csrf('/privacidade')]);
+$saida = requisitar('POST', $base . '/sair', ['_csrf' => csrf('/perfil')]);
 conferir('logout por POST encerra a sessão', $saida['status'] === 303);
 conferir('depois do logout o painel exige login de novo',
-    requisitar('GET', $base . '/privacidade')['status'] === 401);
+    requisitar('GET', $base . '/perfil')['status'] === 401);
 
 // ---------------------------------------------------------------- força bruta
 secao('Bloqueio por tentativas (OWASP A07)');
@@ -463,7 +467,7 @@ conferir('liberado o bloqueio, a senha correta volta a funcionar', entrar($alvo[
 secao('Revogação de consentimento e de sessão');
 
 requisitar('POST', $base . '/privacidade/consentimento', [
-    '_csrf'      => csrf('/privacidade'),
+    '_csrf'      => csrf('/perfil'),
     'finalidade' => FINALIDADE_CONSULTA_API,
     'acao'       => 'revogar',
 ]);
@@ -482,7 +486,7 @@ conferir('revogação preserva quando a finalidade foi concedida',
 // Revogar a sessão no banco é o que o administrador vai fazer na E6 ao bloquear um usuário.
 $pdo->prepare('UPDATE sis_sessoes SET ses_dt_revogacao = NOW() WHERE ses_usu_id = :id')
     ->execute([':id' => $alvo['id']]);
-$depoisDaRevogacao = requisitar('GET', $base . '/privacidade');
+$depoisDaRevogacao = requisitar('GET', $base . '/perfil');
 conferir('sessão revogada no servidor derruba a requisição seguinte',
     $depoisDaRevogacao['status'] === 303);
 
@@ -548,12 +552,12 @@ secao('Exclusão da conta pelo titular (edital 11.3 e 8.6j)');
 $excluir = $criados[CADASTRO_TERCEIRO_PJ] ?? $primeira;
 entrar($excluir['email']);
 
-requisitar('POST', $base . '/privacidade/excluir', ['_csrf' => csrf('/privacidade'), 'confirmacao' => 'talvez']);
+requisitar('POST', $base . '/privacidade/excluir', ['_csrf' => csrf('/perfil'), 'confirmacao' => 'talvez']);
 $stmt = $pdo->prepare('SELECT usu_status FROM sis_usuarios WHERE usu_id = :id');
 $stmt->execute([':id' => $excluir['id']]);
 conferir('confirmação errada não exclui a conta', $stmt->fetchColumn() === STATUS_ATIVO);
 
-requisitar('POST', $base . '/privacidade/excluir', ['_csrf' => csrf('/privacidade'), 'confirmacao' => 'EXCLUIR']);
+requisitar('POST', $base . '/privacidade/excluir', ['_csrf' => csrf('/perfil'), 'confirmacao' => 'EXCLUIR']);
 $stmt->execute([':id' => $excluir['id']]);
 conferir('exclusão é lógica: status X, nada apagado fisicamente',
     $stmt->fetchColumn() === STATUS_EXCLUIDO);

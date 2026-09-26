@@ -37,7 +37,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E7 — auditoria de RF por entidade e refino visual | D69, D70, D71, D72, D73 |
 | E7 — fechamento da entrega | D74, D75 |
 | E8 — CAT, atualização do acervo e preferências da demanda (pós-entrega) | D76, D77, D78, D79, D80 |
-| E9 — navegação da demanda (Teste-Demo) | D87 |
+| E9 — navegação da demanda (Teste-Demo) | D87, D88, D89, D90 |
 
 ---
 
@@ -3014,3 +3014,127 @@ uma ação esperando; somado, toda demanda pareceria urgente o tempo todo.
 
 **Consequência.** Tabela nova: banco existente precisa da migração em `_arq/migracoes/` **e** de
 rodar de novo o provisionamento do usuário restrito (D82), cujo privilégio é por tabela.
+
+---
+
+## D88 · O convite leva mensagem de um modelo da empresa, conta e dados entram no perfil, e ninguém vê quando o outro abriu
+
+`25/09/2026` · E9 · `src/Support/ModeloConvite.php`, `src/Service/ModeloConviteService.php`,
+`src/Controller/CompativelController.php`, `src/Controller/PrivacidadeController.php`,
+`_arq/migracoes/2026-09-25-d88-modelo-convite.sql` · revê parte da D87
+
+**Contexto.** Três pontos que o usuário levantou olhando as telas da D87. O convite chegava sem
+mensagem nenhuma: o backend aceitava texto, mas o botão do feed não tinha onde escrevê-lo. "Conta
+e dados" era um item de menu separado de "Meu perfil", que já tinha uma aba "Privacidade" de
+outra coisa (quem vê cada campo). E quem se candidatava via "Vista pela empresa em 24/09" e, na
+conversa, a hora exata em que a empresa abriu; a D87 tinha acrescentado o espelho, com a empresa
+vendo quando o convidado abriu.
+
+**Decisão.**
+
+1. **Cada conta tem um modelo de mensagem de convite** (`usu_modelo_convite`), com os marcadores
+   `{nome}`, `{demanda}` e `{local}`. Sem modelo salvo vale o padrão da plataforma, curto de
+   propósito: *"Olá, {nome}. Vimos o seu perfil e gostaríamos de conversar sobre a demanda
+   "{demanda}". Se tiver interesse, responda por aqui."* A cada convite a mensagem vem montada e
+   editável só para aquela pessoa. É da conta, e não de `pro_empresas`, porque o contratante
+   pessoa física também publica demanda.
+2. **Conta e dados vira aba do Meu perfil**, ao lado da que controla a visibilidade (que passa a
+   se chamar "Visibilidade", para as duas não parecerem a mesma coisa). O endereço `/privacidade`
+   leva à aba; a administração, que não tem Meu perfil, continua com a tela própria.
+3. **Nenhuma das partes vê quando a outra abriu.** Sai a coluna "Retorno da empresa", o "Aberta
+   pela empresa em … às …", o "Visto pela pessoa em …" e a situação "Vista", que era o mesmo
+   aviso com outro nome. A situação fica em Enviada, Em conversa e Encerrada. A data continua
+   gravada para uma coisa só: a marca "Nova" para quem recebeu, sobre o que ele mesmo ainda não
+   abriu.
+
+**Alternativa recusada: manter o "visto" como transparência.** Aviso de leitura cria cobrança
+("abriu e não respondeu") sem ajudar ninguém a decidir, e numa plataforma que liga profissionais
+a contratantes essa pressão cai sobre a parte mais fraca da relação. O que importa, se houve
+resposta, continua visível: a mensagem.
+
+**Alternativa recusada: mensagem pronta fixa, sem modelo da empresa.** Resolveria o convite vazio,
+mas cada empresa escreve do seu jeito, e reescrever o mesmo texto a cada convite é o atrito que o
+modelo existe para tirar.
+
+**Consequência.** Coluna nova em tabela existente: a migração em `_arq/migracoes/` basta, sem
+reprovisionar o usuário restrito (o privilégio é por tabela, D82).
+
+---
+
+## D89 · A vitrine de demandas se organiza pela TOS, filtra pela URL e diz a quem olha onde ele já tem acervo
+
+`25/09/2026` · E9 · `src/Service/VitrineService.php`, `src/Support/Vitrine.php`,
+`src/Repository/DemandaRepository.php`
+
+**Contexto.** A vitrine de demandas abertas era uma lista de cartões por data, cortada em 50,
+sem filtro nenhum, e sem as duas coisas que o mockup mostra em cada demanda: quem publicou e a
+atividade da TOS. Com demandas de nove áreas misturadas, o profissional não tinha como achar o que
+tinha a ver com ele, e via ao lado das suas as demandas dirigidas só a empresas.
+
+**Decisão.** A área da demanda é o **grupo da Tabela de Obras e Serviços** (o primeiro nível do
+código): é o vocabulário do Conselho e é o que liga a demanda a quem sabe fazer, então nenhuma
+categoria é inventada aqui. A vitrine filtra por área (chips com contagem), atividade (pelo nome do
+serviço ou pelo código), local, regime, prazo de início, público e busca livre; ordena por mais
+recentes ou início mais próximo; e pagina de 20 em 20. Os filtros vivem na URL, para a lista
+filtrada ser um link e funcionar sem JavaScript.
+
+**"Na minha área" vem ligado** para quem tem acervo: mostra as demandas em que o acervo de quem olha
+tem a mesma atividade ou uma do mesmo subgrupo, pela afinidade do motor, com um link para ver
+todas. E cada cartão diz a relação ("seu acervo tem esta atividade" ou "...uma do mesmo
+subgrupo"). **"Para mim" também vem ligado**: some o que a pessoa não pode se candidatar.
+
+**Não é ranking.** A relação com o acervo é informação sobre a demanda, para quem olha decidir se
+vale se candidatar; sai como frase, nunca como número, e a vitrine não se ordena por ela. Não
+existe ordem "mais compatível", e a regra recusa esse valor na URL.
+
+**Alternativa recusada: a lista dividida em seções por área.** Uma demanda com atividades de duas
+áreas apareceria duas vezes, e com poucas demandas por área a página viraria uma sequência de
+títulos quase vazios. Os chips mostram as mesmas áreas, com contagem, sem repetir cartão.
+
+**Alternativa recusada: filtrar tudo no servidor por SQL.** Área, atividade e relação com o
+acervo dependem das atividades de cada demanda e da afinidade do motor, que está em PHP; a consulta
+resolve o que filtra bem em SQL e o serviço decide o resto, sobre no máximo 500 demandas abertas.
+
+## D90 · O Início troca os indicadores pelo que pede ação, pelo trabalho em andamento e pela linha do tempo
+
+`25/09/2026` · E9 · `src/Service/InicioService.php`, `src/Support/Inicio.php`,
+`src/Repository/AtividadeRecenteRepository.php`
+
+**Contexto.** O Início de profissional e empresa abria com quatro ou cinco indicadores ("ARTs no
+acervo", "demandas em que você aparece", "interesses recebidos") que não levavam a decisão
+nenhuma: o número mudava pouco, e o que pedia resposta (convite novo, candidatura, mensagem)
+continuava escondido dentro de outras telas. A parte que a equipe achou útil era a lista do que
+aconteceu por último.
+
+**Decisão.** O Início responde a três perguntas, nesta ordem:
+
+1. **Para fazer agora**: convite ou candidatura sem resposta, mensagem não lida, rascunho, prazo de
+   início vencendo, perfis compatíveis a avaliar, perfil fechado, preferências vazias, acervo
+   consultado há mais de 30 dias. Cada item diz o que é, de qual demanda, e leva à tela que o
+   resolve. Primeiro o que tem outra pessoa esperando, depois o trabalho da própria conta, por
+   último a manutenção do perfil. Sem nada, a lista vem vazia e a tela diz que está tudo em dia.
+2. **O trabalho em andamento**: para quem tem registro, as demandas abertas na área do acervo, pela
+   mesma regra da vitrine (D89), mostrando primeiro as que ainda não têm candidatura nem convite;
+   para quem publica, as próprias demandas com o que cada uma espera (D87).
+3. **Atividade recente**: a linha do tempo da conta, incluindo o que ela mesma fez (candidatura
+   enviada, convite enviado, demanda publicada, acervo atualizado), porque é assim que a pessoa
+   reconstrói onde parou.
+
+Dos indicadores sobra **uma linha discreta de identidade** no topo (por exemplo "3 ARTs · 1 CAT
+vigente · perfil visível"), que diz com que perfil a conta se apresenta sem virar painel.
+
+**A linha do tempo não tem evento de leitura.** "A empresa abriu a sua candidatura" não entra,
+pelo mesmo motivo da D88. E "acervo atualizado" só aparece quando a consulta ao CREA terminou bem.
+
+**A sugestão de atualizar o acervo respeita a janela da D77**: dentro dela o item não aparece,
+porque levaria a pessoa a uma tela que diz "espere".
+
+**Alternativa recusada: manter os indicadores e acrescentar os blocos abaixo.** A tela ficaria
+mais longa, e o que pede ação continuaria abaixo da dobra, atrás de números que não pedem nada.
+
+**Alternativa recusada: indicadores comparativos ("seu perfil apareceu mais que a média").** É
+ranking disfarçado de estímulo, vedado pelo item 10.1; a identidade só conta o próprio cadastro.
+
+**Alternativa recusada: uma consulta só (UNION) para a linha do tempo.** Seriam oito ramos com
+marcadores que não podem se repetir (`ATTR_EMULATE_PREPARES` desligado); consultas simples por
+tipo, juntadas no PHP, são mais fáceis de ler e de mudar, e cada uma usa um índice que já existe.

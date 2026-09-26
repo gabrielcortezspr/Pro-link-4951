@@ -1,7 +1,29 @@
 {% extends 'layout/base.html.twig' %}
 {% import 'layout/_ui.html.twig' as ui %}
+{% import _self as vit %}
 
 {% block titulo %}Demandas abertas · Pro-Link{% endblock %}
+
+{#
+    A vitrine de demandas abertas (D89).
+
+    A unidade de leitura é UMA demanda. Primário o título; secundário quem publicou, onde, sob que
+    regime, quando começa e a atividade da Tabela de Obras e Serviços (o chip do mockup, telas de
+    prolink-profissional.html e prolink-busca.html); terciário o escopo, a relação com o acervo de
+    quem olha e a ação.
+
+    Os filtros vivem na URL, num formulário GET, e tudo funciona sem JavaScript:
+    - as áreas (o grupo da TOS) são chips com contagem, e cada chip é um link que liga ou desliga
+      só aquela área, preservando o resto da busca;
+    - "na minha área" vem ligado para quem tem acervo e "só o que posso me candidatar" para quem
+      pode se candidatar. Os dois viram frases na barra de resultado, cada uma com o link que a
+      desliga, em vez de caixas de marcar escondidas num painel;
+    - atividade, local, regime, início e ordem ficam em "Mais filtros", recolhido, aberto sozinho
+      quando algum deles está em uso.
+
+    Não é ranking (item 10.1): a relação com o acervo sai como frase, a lista não se ordena por
+    ela, e não existe ordem "mais compatível".
+#}
 
 {#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
 {% set shell = 'app' %}
@@ -9,81 +31,236 @@
 
 {% block titulo_tela %}Demandas abertas{% endblock %}
 
-{#  Vitrine: muitos itens curtos e independentes. Em grade, a tela de 1600px mostra quatro
-    demandas por fileira; empilhadas em coluna única, cada uma ocupava uma faixa inteira para
-    dizer três linhas. #}
+{#  Vitrine: muitos itens curtos e independentes, em grade. #}
 {% block classe_main %}pl-wrap densa{% endblock %}
 
+{#  O endereço da vitrine com os filtros atuais e uma mudança. Parte do que o serviço entendeu
+    (`vitrine.filtros`), e não do $_GET cru, para nunca repetir na URL um valor que ele recusou.
+    O que fica vazio sai da URL; a página volta para a 1 a cada mudança de filtro. #}
+{% macro url_vitrine(v, mudar = {}) %}
+    {%- set f = v.filtros -%}
+    {%- set p = {
+        'q': f.texto,
+        'area': f.areas,
+        'atividade': f.atividade,
+        'uf': f.uf,
+        'municipio': f.municipio,
+        'contrato': f.contrato,
+        'inicio': f.inicio == 'ate' ? '30' : f.inicio,
+        'minha_area': (v.tem_acervo and not f.minha_area) ? '0' : null,
+        'para': (v.pode_candidatar and not f.para_mim) ? 'todas' : null,
+        'ordem': f.ordem != 'recentes' ? f.ordem : null,
+        'pagina': null
+    }|merge(mudar)|filter(x => x is not null and x != '' and x != []) -%}
+    {{- app_url ~ '/demandas/abertas' ~ (p is empty ? '' : '?' ~ p|url_encode) -}}
+{% endmacro %}
+
 {% block conteudo %}
-{#  Quem pode manifestar interesse: conta com registro no CREA (D51), que não seja a dona da
-    demanda e que caiba no alvo escolhido por ela. O mesmo vocabulário de `dem_alvo`: 'A' para
-    todos, 'E' para empresa, 'P' para profissional. Sem esta conferência, a vitrine ofereceria um
-    botão que o serviço recusaria no fim, que é a pior versão de uma ação. #}
-{% set u = usuario() %}
-{% set meu_tipo = u and u.perfil == 'EMPRESA' ? 'E' : 'P' %}
-{% set com_registro = u and u.perfil in ['PROFISSIONAL', 'EMPRESA'] %}
+{#  `vitrine` pode faltar só na amostra do verificador, que ainda monta a vitrine antiga (lista
+    simples de demandas). Na rota ela sempre vem de `VitrineService`. #}
+{% set v = vitrine|default({
+    areas: [], total: demandas|length, pagina: 1, paginas: 1,
+    tem_acervo: false, pode_candidatar: false, sem_contato: 0,
+    filtros: {areas: [], atividade: null, texto: null, uf: null, municipio: null, contrato: null,
+              inicio: null, minha_area: false, para_mim: false, ordem: 'recentes', pagina: 1}
+}) %}
+{% set f = v.filtros %}
+{% set mais_em_uso = f.atividade or f.uf or f.municipio or f.contrato or f.inicio or f.ordem != 'recentes' %}
+{% set filtros_em_uso = mais_em_uso or f.texto or f.areas is not empty %}
 
 <div class="pl-head">
     <div class="tit">
         <h1>Demandas abertas</h1>
         <p class="sub">
-            {% if demandas is not empty %}
-                <span><span class="n">{{ demandas|length }}</span>
-                    {{ demandas|length == 1 ? 'demanda publicada' : 'demandas publicadas' }}</span>
-                <span class="pl-sep" aria-hidden="true"></span>
-            {% endif %}
-            <span>Publicadas por empresas e contratantes</span>
+            <span>Publicadas por empresas e contratantes, organizadas pela Tabela de Obras e Serviços</span>
         </p>
     </div>
 </div>
 
+{#  ------------------------------------------------------------------ a busca e os filtros #}
+<form class="pl-vit-filtros" method="get" action="{{ app_url }}/demandas/abertas" role="search">
+    {#  O que não tem campo visível viaja escondido, para "Buscar" não desligar em silêncio a
+        área escolhida nem o "na minha área". #}
+    {% for a in f.areas %}<input type="hidden" name="area[]" value="{{ a }}">{% endfor %}
+    {% if v.tem_acervo and not f.minha_area %}<input type="hidden" name="minha_area" value="0">{% endif %}
+    {% if v.pode_candidatar and not f.para_mim %}<input type="hidden" name="para" value="todas">{% endif %}
+
+    <div class="pl-busca-row">
+        <div class="cx">
+            <span class="lupa" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.6-3.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <label class="visually-hidden" for="vit-q">Buscar demandas pelo título ou pelo escopo</label>
+            <input type="search" id="vit-q" name="q" maxlength="120" autocomplete="off" value="{{ f.texto }}"
+                   placeholder="Buscar pelo título ou pelo escopo. Ex.: galpão, incêndio, piscicultura">
+        </div>
+        <button type="submit" class="pl-btn">Buscar</button>
+    </div>
+
+    {#  As áreas: o grupo da TOS, com quantas demandas há em cada uma. Link, e não caixa de marcar:
+        o clique já aplica, sem botão de aplicar e sem script. `aria-pressed` não vale em link, e
+        por isso o estado vai escrito para o leitor de tela. #}
+    {#  Área escolhida que não voltou na lista (os outros filtros a zeraram) ainda precisa de um
+        chip, senão não há como desligá-la. O serviço não manda o nome dela nesse caso, e o chip
+        diz o código do grupo da TOS. #}
+    {% set conhecidas = v.areas|map(a => a.nivel1) %}
+    {% set orfas = f.areas|filter(x => x not in conhecidas) %}
+    {% if v.areas is not empty or orfas is not empty %}
+        <nav class="pl-vit-areas" aria-label="Áreas da Tabela de Obras e Serviços">
+            {% for x in orfas %}
+                <a class="pl-chip-filtro ligado" href="{{ vit.url_vitrine(v, {area: f.areas|filter(y => y != x)}) }}"
+                   title="Nenhuma demanda desta área com os outros filtros. Clique para tirar esta área.">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                    <span class="nm">Área escolhida · TOS {{ x }}</span>
+                    <span class="n">0</span>
+                    <span class="visually-hidden"> (filtro ativo, clique para tirar)</span>
+                </a>
+            {% endfor %}
+            {% for a in v.areas %}
+                {%- set ligada = a.nivel1 in f.areas -%}
+                {%- set nova = ligada ? f.areas|filter(x => x != a.nivel1) : f.areas|merge([a.nivel1]) -%}
+                <a class="pl-chip-filtro{% if ligada %} ligado{% endif %}"
+                   href="{{ vit.url_vitrine(v, {area: nova}) }}" title="{{ a.grupo }}">
+                    {%- if ligada %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>{% endif -%}
+                    <span class="nm">{{ a.grupo }}</span>
+                    <span class="n">{{ a.quantidade }}</span>
+                    {%- if ligada %}<span class="visually-hidden"> (filtro ativo, clique para tirar)</span>{% endif -%}
+                </a>
+            {% endfor %}
+        </nav>
+    {% endif %}
+
+    <details class="pl-vit-mais"{% if mais_em_uso %} open{% endif %}>
+        <summary>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg>
+            Mais filtros
+            {% if mais_em_uso %}<span class="em-uso">em uso</span>{% endif %}
+        </summary>
+        <div class="grade">
+            <div>
+                <label class="form-label" for="vit-atividade">Atividade</label>
+                <input type="text" id="vit-atividade" name="atividade" class="form-control" maxlength="80"
+                       value="{{ f.atividade }}" placeholder="Nome do serviço ou código TOS">
+            </div>
+            <div>
+                <label class="form-label" for="vit-uf">UF</label>
+                <select id="vit-uf" name="uf" class="form-select">
+                    <option value="">Qualquer</option>
+                    {% for uf in ufs_possiveis|default([]) %}<option value="{{ uf }}"{% if f.uf == uf %} selected{% endif %}>{{ uf }}</option>{% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label" for="vit-municipio">Município</label>
+                <input type="text" id="vit-municipio" name="municipio" class="form-control" maxlength="120" value="{{ f.municipio }}">
+            </div>
+            <div>
+                <label class="form-label" for="vit-contrato">Regime</label>
+                <select id="vit-contrato" name="contrato" class="form-select">
+                    <option value="">Qualquer</option>
+                    {% for chave, rotulo in contratos_possiveis|default({}) %}
+                        {% if chave != 'QUALQUER' %}<option value="{{ chave }}"{% if f.contrato == chave %} selected{% endif %}>{{ rotulo }}</option>{% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label" for="vit-inicio">Início</label>
+                <select id="vit-inicio" name="inicio" class="form-select">
+                    <option value="">Qualquer prazo</option>
+                    <option value="30"{% if f.inicio == 'ate' %} selected{% endif %}>Começa em até 30 dias</option>
+                    <option value="aberto"{% if f.inicio == 'aberto' %} selected{% endif %}>Prazo em aberto</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label" for="vit-ordem">Ordem</label>
+                <select id="vit-ordem" name="ordem" class="form-select">
+                    <option value="recentes"{% if f.ordem == 'recentes' %} selected{% endif %}>Mais recentes</option>
+                    <option value="inicio"{% if f.ordem == 'inicio' %} selected{% endif %}>Início mais próximo</option>
+                </select>
+            </div>
+        </div>
+        <div class="acoes">
+            <button type="submit" class="pl-btn sm">Aplicar filtros</button>
+            {% if filtros_em_uso %}
+                <a class="pl-btn sm ghost" href="{{ vit.url_vitrine(v, {q: null, area: null, atividade: null, uf: null, municipio: null, contrato: null, inicio: null, ordem: null}) }}">Limpar filtros</a>
+            {% endif %}
+        </div>
+    </details>
+</form>
+
+{#  ------------------------------------------------------------------ o resultado
+
+    Quantas, e de que recorte: "na sua área" e "só o que você pode se candidatar" são escolhas
+    ligadas por padrão, e quem olha precisa ver que estão ligadas e como desligar. #}
+<div class="pl-busca-barra pl-vit-barra">
+    <p class="ct">
+        <b>{{ v.total }}</b> {{ v.total == 1 ? 'demanda' : 'demandas' }}
+        {%- if f.minha_area %} na sua área{% endif %}
+        {%- if v.total > 0 and v.sem_contato|default(0) > 0 and v.sem_contato < v.total %}
+            <span class="sub">· {{ v.sem_contato }} ainda sem candidatura ou convite</span>
+        {%- endif %}
+    </p>
+    <p class="vis">
+        {% if f.minha_area %}
+            <span>Mostrando o que tem a ver com o seu acervo.</span>
+            <a href="{{ vit.url_vitrine(v, {minha_area: '0'}) }}">Ver todas as demandas</a>
+        {% elseif v.tem_acervo %}
+            <a href="{{ vit.url_vitrine(v, {minha_area: null}) }}">Só as da minha área</a>
+        {% endif %}
+        {% if v.pode_candidatar %}
+            {% if f.para_mim %}
+                <span class="pl-sep" aria-hidden="true"></span>
+                <a href="{{ vit.url_vitrine(v, {para: 'todas'}) }}" title="Mostra também as demandas dirigidas só a empresas ou só a profissionais">Incluir as que não são para o meu perfil</a>
+            {% else %}
+                <span class="pl-sep" aria-hidden="true"></span>
+                <a href="{{ vit.url_vitrine(v, {para: null}) }}">Só as que posso me candidatar</a>
+            {% endif %}
+        {% endif %}
+    </p>
+</div>
+
 {% if demandas is empty %}
     <div class="pl-card pl-vazio">
-        <p class="t">Nenhuma demanda publicada no momento</p>
-        <p class="s">
-            Quando uma empresa ou contratante publicar, a demanda aparece aqui com o escopo e o
-            local do serviço.
-        </p>
+        {% if filtros_em_uso %}
+            <p class="t">Nenhuma demanda com esses filtros</p>
+            <p class="s">Tire um filtro de cada vez para ver o que aparece, ou comece de novo.</p>
+            <div class="a">
+                <a class="pl-btn" href="{{ vit.url_vitrine(v, {q: null, area: null, atividade: null, uf: null, municipio: null, contrato: null, inicio: null, ordem: null}) }}">Limpar filtros</a>
+                {% if f.minha_area %}
+                    <a class="pl-btn ghost" href="{{ vit.url_vitrine(v, {minha_area: '0'}) }}">Ver todas as demandas</a>
+                {% endif %}
+            </div>
+        {% elseif f.minha_area %}
+            <p class="t">Nenhuma demanda aberta na sua área agora</p>
+            <p class="s">
+                "Sua área" são as atividades que o seu acervo registrado no CREA já tem, e as do mesmo
+                subgrupo. Há demandas abertas em outras áreas.
+            </p>
+            <div class="a">
+                <a class="pl-btn" href="{{ vit.url_vitrine(v, {minha_area: '0'}) }}">Ver todas as demandas</a>
+            </div>
+        {% else %}
+            <p class="t">Nenhuma demanda publicada no momento</p>
+            <p class="s">
+                Quando uma empresa ou contratante publicar, a demanda aparece aqui com o escopo, o
+                local e a atividade da Tabela de Obras e Serviços.
+            </p>
+        {% endif %}
     </div>
 {% else %}
-    <div class="pl-grade">
-        {% for d in demandas %}
-            <article class="pl-card">
-                <div class="pl-dem">
-                    <div class="tp">
-                        <a class="tt" href="{{ app_url }}/demandas/{{ d.dem_id }}">{{ d.dem_titulo }}</a>
-                        {{ ui.situacao(d.dem_situacao, true) }}
-                    </div>
-
-                    <p class="meta">
-                        {% if d.dem_local_municipio %}
-                            <span>{{ d.dem_local_municipio }}{% if d.dem_local_uf %}/{{ d.dem_local_uf }}{% endif %}</span>
-                            <span class="pl-sep" aria-hidden="true"></span>
-                        {% endif %}
-                        {#  Mesmo motivo do detalhe da demanda: o gravado é a chave da lista fechada
-                            (OBRA_CERTA), e chave em caixa alta não chega na tela. O valor cru fica
-                            no title. #}
-                        <span{% if d.dem_tipo_contrato %} title="{{ d.dem_tipo_contrato }}"{% endif %}>{{ d.dem_tipo_contrato|rotulo_contrato ?: 'Contrato a combinar' }}</span>
-                    </p>
-
-                    <p class="esc">{{ d.dem_escopo|slice(0, 260) }}{% if d.dem_escopo|length > 260 %}…{% endif %}</p>
-
-                    <div class="pe">
-                        <span class="meta">Publicada em {{ d.dem_dt_publicacao|date('d/m/Y') }}</span>
-                        <div class="acoes">
-                            <a class="pl-btn sm" href="{{ app_url }}/demandas/{{ d.dem_id }}">Ver demanda</a>
-                            {#  Manifestar é de quem tem registro no CREA e não é o dono (D51). A
-                                ação preenchida fica no detalhe, depois do escopo lido: a vitrine é
-                                triagem, e vinte botões laranja numa grade não seriam a única ação
-                                que compromete (D34). #}
-                            {% if com_registro and d.dem_usu_id != u.id and d.dem_alvo in ['A', meu_tipo] %}
-                                <a class="pl-btn sm" href="{{ app_url }}/demandas/{{ d.dem_id }}/manifestar">Candidatar-me</a>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </article>
-        {% endfor %}
+    <div class="pl-grade pl-vit-grade">
+        {% for d in demandas %}{{ ui.demanda_cartao(d) }}{% endfor %}
     </div>
+
+    {% if v.paginas > 1 %}
+        <nav class="pl-paginas" aria-label="Páginas de resultados">
+            {% if v.pagina > 1 %}
+                <a class="pl-btn sm" href="{{ vit.url_vitrine(v, {pagina: v.pagina - 1}) }}" rel="prev">Anterior</a>
+            {% endif %}
+            <span class="pg">Página <b>{{ v.pagina }}</b> de {{ v.paginas }}</span>
+            {% if v.pagina < v.paginas %}
+                <a class="pl-btn sm" href="{{ vit.url_vitrine(v, {pagina: v.pagina + 1}) }}" rel="next">Próxima</a>
+            {% endif %}
+        </nav>
+    {% endif %}
 {% endif %}
 {% endblock %}

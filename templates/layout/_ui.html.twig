@@ -518,21 +518,19 @@
 {% endmacro %}
 
 {#
-  Situação de uma manifestação de interesse. Vocabulário e cor fixos por estado, num lugar só: as
-  três telas de manifestação mostram a mesma coluna, e o valor gravado (`ENVIADA`, `VISUALIZADA`)
-  é constante de sistema, que não chega à tela por regra.
+  Situação de uma candidatura ou de um convite. Vocabulário e cor fixos por estado, num lugar só,
+  e o valor gravado (`ENVIADA`, `VISUALIZADA`) é constante de sistema, que não chega à tela.
 
-  Só "Respondida" é verde: é o único estado em que houve retorno de verdade. Vista e enviada são
-  passos do caminho, não desfecho, e pintá-los de verde diria ao candidato que algo aconteceu
-  quando nada aconteceu ainda.
+  Três palavras, e não quatro (D88): "Vista" saiu. Ela dizia à outra parte que a mensagem tinha
+  sido aberta, e aviso de leitura cria cobrança ("abriu e não respondeu") sem ajudar ninguém a
+  decidir. ENVIADA e VISUALIZADA leem as duas como "Enviada". Só "Em conversa" é verde: é o único
+  estado em que houve troca de verdade.
 #}
 {% macro situacao_manifestacao(situacao) %}
     {%- if situacao == 'RESPONDIDA' -%}
-        <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Respondida</span>
-    {%- elseif situacao == 'VISUALIZADA' -%}
-        <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Vista</span>
+        <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Em conversa</span>
     {%- elseif situacao == 'ARQUIVADA' -%}
-        <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Arquivada</span>
+        <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Encerrada</span>
     {%- else -%}
         <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Enviada</span>
     {%- endif -%}
@@ -644,13 +642,187 @@
 {% macro situacao_convite(i) %}
     {#- `respondeu`: o convidado escreveu ao menos uma vez (D87). `man_situacao` não serve para
         isso, porque vira RESPONDIDA com a mensagem de qualquer das partes. -#}
+    {#- Sem "Visto pela pessoa em" (D88): nenhuma das partes vê quando a outra abriu. -#}
     {%- if i.respondeu|default(false) -%}
         <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Respondeu</span>
-    {%- elseif i.man_dt_visualizacao -%}
-        <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Visto pela pessoa em {{ i.man_dt_visualizacao|date('d/m') }}</span>
     {%- else -%}
         <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Enviado</span>
     {%- endif -%}
+{% endmacro %}
+
+{#
+  Data relativa curta (D90): "agora há pouco", "há 12 min", "há 3 h", "ontem", "há 4 dias", e a
+  data cheia depois de uma semana. É o jeito como a pessoa lembra de quando algo aconteceu; a data
+  completa fica no `title`, para quem precisa da hora exata. Só para o passado: data futura sai
+  cheia.
+#}
+{% macro quando(dt) %}
+    {%- set seg = 'now'|date('U') - dt|date('U') -%}
+    {%- set dias = (seg / 86400)|round(0, 'floor') -%}
+    <time datetime="{{ dt|date('Y-m-d\\TH:i') }}" title="{{ dt|date('d/m/Y \\à\\s H\\hi') }}">
+        {%- if seg < 0 -%}{{ dt|date('d/m/Y') }}
+        {%- elseif seg < 120 -%}agora há pouco
+        {%- elseif seg < 3600 -%}há {{ (seg / 60)|round(0, 'floor') }} min
+        {%- elseif seg < 86400 -%}há {{ (seg / 3600)|round(0, 'floor') }} h
+        {%- elseif dias == 1 -%}ontem
+        {%- elseif dias < 7 -%}há {{ dias }} dias
+        {%- else -%}{{ dt|date('d/m/Y') }}
+        {%- endif -%}
+    </time>
+{% endmacro %}
+
+{#
+  As peças de uma demanda na vitrine (D89) e no Início (D90). Uma demanda chega no formato da
+  vitrine: os campos `dem_*`, `publicante`, `tos` (as atividades), `relacao_acervo`
+  ('mesma' | 'proxima' | null), `meu_contato` ({man_id, origem} ou null) e `propria`.
+
+  O rótulo da atividade é o subgrupo da TOS, que é o que o mockup mostra ("Construção Civil,
+  Alvenaria"). O subgrupo da tabela vem com meia-risca ("Zootecnia – Produção..."), que na tela é
+  travessão; vira dois-pontos. O código e a descrição inteira ficam no `title` do chip.
+#}
+{% macro demanda_chip(d) %}
+    {%- import _self as ui -%}
+    {%- set lista = d.tos|default([]) -%}
+    {%- if lista is not empty -%}
+        {%- set principal = lista|filter(t => t.dts_peso|default(1) >= 1)|first ?: lista|first -%}
+        {#- A meia-risca e o travessão montados pelos bytes UTF-8 (E2 80 93 e E2 80 94): escritos
+            aqui, eles seriam o próprio caractere que a regra do padrão visual proíbe na tela. -#}
+        {%- set meia = '%c%c%c'|format(226, 128, 147) -%}
+        {%- set trav = '%c%c%c'|format(226, 128, 148) -%}
+        {%- set rotulo = (principal.tos_subgrupo ?: principal.tos_grupo)|default('')|replace({(' ' ~ meia ~ ' '): ': ', (' ' ~ trav ~ ' '): ': '}) -%}
+        <span class="pl-vit-tos">
+            {{- ui.tos(principal.dts_tos_codigo, rotulo) -}}
+            {%- if lista|length > 1 %}<span class="mais">e mais {{ lista|length - 1 }} {{ lista|length - 1 == 1 ? 'atividade' : 'atividades' }}</span>{% endif -%}
+        </span>
+    {%- endif -%}
+{% endmacro %}
+
+{#  Quem publicou, onde, sob que regime, quando começa, e para quem. Uma linha, separada por `·`. #}
+{% macro demanda_meta(d) %}
+    {%- set partes = [] -%}
+    {%- if d.publicante|default(null) %}{% set partes = partes|merge([d.publicante|nome_proprio]) %}{% endif -%}
+    {%- if d.dem_local_municipio %}{% set partes = partes|merge([d.dem_local_municipio ~ (d.dem_local_uf ? '/' ~ d.dem_local_uf : '')]) %}{% elseif d.dem_local_uf %}{% set partes = partes|merge([d.dem_local_uf]) %}{% endif -%}
+    {%- set partes = partes|merge([d.dem_tipo_contrato ? d.dem_tipo_contrato|rotulo_contrato : 'Contrato a combinar']) -%}
+    {%- set partes = partes|merge([d.dem_inicio_ate|default(null) ? 'Início até ' ~ d.dem_inicio_ate|date('d/m') : 'Início em aberto']) -%}
+    {%- if d.dem_alvo|default('A') == 'P' %}{% set partes = partes|merge(['Só para profissionais']) %}{% elseif d.dem_alvo|default('A') == 'E' %}{% set partes = partes|merge(['Só para empresas']) %}{% endif -%}
+    <p class="meta">
+        {%- for p in partes -%}
+            <span>{{ p }}</span>{% if not loop.last %}<span class="pl-sep" aria-hidden="true"></span>{% endif %}
+        {%- endfor -%}
+    </p>
+{% endmacro %}
+
+{#  A relação com o acervo de quem olha (D89), como frase e nunca como número nem posição. Leva o
+    selo porque é afirmação sustentada por ART conferida no CREA. As duas frases têm o mesmo peso:
+    "tem esta atividade" e "tem uma do mesmo subgrupo" são fatos diferentes, e não dois degraus de
+    uma nota. #}
+{% macro demanda_relacao(d) %}
+    {%- if d.relacao_acervo|default(null) -%}
+        <p class="pl-vit-rel">
+            <svg class="pl-mark" role="img" aria-label="Com base no seu acervo conferido na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+            {{ d.relacao_acervo == 'mesma' ? 'Seu acervo tem esta atividade' : 'Seu acervo tem uma atividade do mesmo subgrupo' }}
+        </p>
+    {%- endif -%}
+{% endmacro %}
+
+{#  A ação sobre a demanda, pelo que quem olha já tem com ela. Uma só por demanda, e nunca laranja
+    na vitrine: vinte botões preenchidos numa grade não seriam "a única ação que compromete" (D34);
+    o laranja fica no "Enviar candidatura" da confirmação.
+    - própria: "Sua demanda", e o caminho para ela;
+    - com contato: "Candidatura enviada" ou "Você foi convidado", levando à conversa;
+    - quem pode se candidatar (registro no CREA e alvo que o inclui): "Candidatar-me";
+    - os demais: só "Ver demanda". #}
+{% macro demanda_acao(d) %}
+    {%- set u = usuario() -%}
+    {%- set meu_tipo = u and u.perfil == 'EMPRESA' ? 'E' : 'P' -%}
+    {%- set pode = u and u.perfil in ['PROFISSIONAL', 'EMPRESA'] and d.dem_alvo|default('A') in ['A', meu_tipo] -%}
+    {%- set c = d.meu_contato|default(null) -%}
+    <div class="acoes">
+        {% if d.propria|default(false) %}
+            <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Sua demanda</span>
+            <a class="pl-btn sm" href="{{ app_url }}/demandas/{{ d.dem_id }}">Abrir</a>
+        {% elseif c %}
+            <a class="pl-vit-contato" href="{{ app_url }}/manifestacoes/{{ c.man_id }}">
+                <span class="pd" aria-hidden="true"></span>{{ c.origem == 'D' ? 'Você foi convidado' : 'Candidatura enviada' }}
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="M13 6l6 6-6 6"/></svg>
+            </a>
+        {% else %}
+            <a class="pl-btn sm ghost" href="{{ app_url }}/demandas/{{ d.dem_id }}">Ver demanda</a>
+            {% if pode %}
+                <a class="pl-btn sm" href="{{ app_url }}/demandas/{{ d.dem_id }}/manifestar">Candidatar-me</a>
+            {% endif %}
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{#  O cartão da vitrine (D89). Primário: o título. Secundário: quem publicou, local, regime,
+    início e o chip da atividade. Terciário: o escopo em três linhas, a relação com o acervo e a
+    ação, presa ao rodapé para a fileira da grade terminar alinhada. #}
+{% macro demanda_cartao(d) %}
+    {%- import _self as ui -%}
+    <article class="pl-card pl-vit{% if d.propria|default(false) %} propria{% endif %}">
+        <div class="pl-dem">
+            <a class="tt" href="{{ app_url }}/demandas/{{ d.dem_id }}">{{ d.dem_titulo }}</a>
+            {{ ui.demanda_meta(d) }}
+            {{ ui.demanda_chip(d) }}
+            <p class="esc">{{ d.dem_escopo|default('')|slice(0, 260) }}{% if d.dem_escopo|default('')|length > 260 %}…{% endif %}</p>
+            {{ ui.demanda_relacao(d) }}
+            <div class="pe">
+                <span class="qd">Publicada {{ ui.quando(d.dem_dt_publicacao) }}</span>
+                {{ ui.demanda_acao(d) }}
+            </div>
+        </div>
+    </article>
+{% endmacro %}
+
+{#  A mesma demanda numa linha de lista (Início, D90): sem escopo, porque a lista é para varrer. #}
+{% macro demanda_linha(d) %}
+    {%- import _self as ui -%}
+    <li class="pl-dem-lin">
+        <div class="tx">
+            <a class="tt" href="{{ app_url }}/demandas/{{ d.dem_id }}">{{ d.dem_titulo }}</a>
+            {{ ui.demanda_meta(d) }}
+            <div class="lin2">
+                {{ ui.demanda_chip(d) }}
+                {{ ui.demanda_relacao(d) }}
+            </div>
+        </div>
+        {{ ui.demanda_acao(d) }}
+    </li>
+{% endmacro %}
+
+{#  O que espera numa demanda da própria conta (D87), cada item levando à aba certa. Zero não vira
+    número. Serve a "Minhas demandas" e ao Início. `painel` nulo é rascunho ou encerrada. #}
+{% macro acompanhamento(d, painel) %}
+    {%- set pn = painel|default({}) -%}
+    {%- set base = app_url ~ '/demandas/' ~ d.dem_id -%}
+    {% if d.dem_dt_publicacao is null %}
+        <span class="lin-sub">Publique para ver compatíveis</span>
+    {% elseif painel is null %}
+        <span class="lin-sub">Nada pendente</span>
+    {% else %}
+        <ul class="pl-acomp">
+            {% if pn.nao_lidas|default(0) > 0 %}
+                <li><a class="dest" href="{{ base }}/contatos"><span class="pd" aria-hidden="true"></span>{{ pn.nao_lidas }} {{ pn.nao_lidas == 1 ? 'mensagem não lida' : 'mensagens não lidas' }}</a></li>
+            {% endif %}
+            {% if pn.candidaturas|default(0) > 0 %}
+                <li><a href="{{ base }}/contatos">{{ pn.candidaturas }} {{ pn.candidaturas == 1 ? 'candidatura' : 'candidaturas' }}
+                    {%- if pn.candidaturas_novas|default(0) > 0 %} <span class="nv">· {{ pn.candidaturas_novas }} {{ pn.candidaturas_novas == 1 ? 'nova' : 'novas' }}</span>{% endif %}</a></li>
+            {% endif %}
+            {% if pn.convites|default(0) > 0 %}
+                <li><a href="{{ base }}/contatos">{{ pn.convites }} {{ pn.convites == 1 ? 'convite' : 'convites' }}</a></li>
+            {% endif %}
+            {% if pn.a_analisar is defined and pn.a_analisar is null %}
+                <li><a class="calc" href="{{ base }}/compativeis">Abra os compatíveis para calcular</a></li>
+            {% elseif pn.a_analisar|default(0) > 0 %}
+                <li><a href="{{ base }}/compativeis">{{ pn.a_analisar }} para avaliar</a></li>
+            {% endif %}
+            {% if pn.nao_lidas|default(0) == 0 and pn.candidaturas|default(0) == 0 and pn.convites|default(0) == 0
+                  and pn.a_analisar is defined and pn.a_analisar is not null and pn.a_analisar == 0 %}
+                <li class="nada">Nada esperando por você</li>
+            {% endif %}
+        </ul>
+    {% endif %}
 {% endmacro %}
 
 {#

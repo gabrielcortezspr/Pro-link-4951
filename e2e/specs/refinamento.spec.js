@@ -50,7 +50,7 @@ const DO_PROFISSIONAL = [
   { caminho: '/demandas/abertas', nome: 'demandas abertas' },
   { caminho: '/perfil', nome: 'perfil' },
   { caminho: '/manifestacoes', nome: 'candidaturas e convites' },
-  { caminho: '/privacidade', nome: 'privacidade' },
+  { caminho: '/perfil#conta', nome: 'conta e dados' },
 ];
 
 const DA_ADMINISTRACAO = [

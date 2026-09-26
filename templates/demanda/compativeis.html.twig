@@ -147,6 +147,47 @@
             {{ ui.info('Como este pool foi montado',
                 'O pool sai do cruzamento entre as atividades da Tabela de Obras e Serviços escolhidas nesta demanda e o acervo de ART e CAT registrado no CREA. Cada dimensão é medida em separado e quem fica acima do limiar da sessão entra na lista; a ordem é sorteada, e não há nota agregada nem posição. O registro completo do sorteio fica na trilha de auditoria da plataforma.') }}
         </div>
+
+        {#  O modelo da mensagem de convite (D88), recolhido perto do resumo: é ajuste da conta,
+            feito uma vez, e não pode competir com o perfil em foco. <details> nativo, sem
+            script. "Voltar ao padrão" é um segundo formulário, ligado ao botão pelo atributo
+            `form`, porque formulário dentro de formulário não existe. #}
+        {%- set mc = modelo_convite|default(null) -%}
+        {% if mc %}
+            <details class="pl-modelo">
+                <summary>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>
+                    Meu modelo de convite
+                    <span class="est">{{ mc.personalizado ? 'personalizado' : 'padrão da plataforma' }}</span>
+                </summary>
+                <div class="pl-modelo-caixa">
+                    <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/modelo-convite">
+                        {{ form.csrf() }}
+                        <label class="form-label" for="campo-modelo">Mensagem que abre cada convite</label>
+                        <textarea name="modelo" id="campo-modelo" class="form-control" rows="4" maxlength="1000"
+                                  aria-describedby="campo-modelo-ajuda">{{ mc.texto }}</textarea>
+                        <p class="form-text" id="campo-modelo-ajuda">
+                            Ao convidar, <code>{nome}</code> vira o primeiro nome da pessoa,
+                            <code>{demanda}</code> o título da demanda e <code>{local}</code> o local da
+                            obra. O modelo vale para todas as suas demandas, e cada convite ainda pode
+                            ser editado antes de sair.
+                        </p>
+                        <div class="acoes">
+                            <button type="submit" class="pl-btn sm">Salvar modelo</button>
+                            {% if mc.personalizado %}
+                                <button type="submit" form="modelo-restaurar" class="pl-btn ghost sm">Voltar ao padrão</button>
+                            {% endif %}
+                        </div>
+                    </form>
+                    {% if mc.personalizado %}
+                        <form id="modelo-restaurar" method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/modelo-convite" hidden>
+                            {{ form.csrf() }}
+                            <input type="hidden" name="restaurar" value="1">
+                        </form>
+                    {% endif %}
+                </div>
+            </details>
+        {% endif %}
     </div>
 
     <form class="act" method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/compativeis">
@@ -384,12 +425,30 @@
                     porque não é nota sobre a pessoa, e ela nem fica sabendo. As duas tiram o perfil
                     desta lista; a de dispensar se desfaz no rodapé da tela. O perfil completo é
                     consulta, não decisão, e fica como link na ponta da fileira. #}
+                {#  Convidar abre a mensagem, e só "Enviar convite" envia (D88): antes todo convite saía
+                    vazio. <details> nativo, sem script: o resumo tem a cara do botão laranja, e
+                    aberto ele mesmo vira "Cancelar", que é fechar sem enviar. Enquanto a mensagem
+                    está aberta, Dispensar e o link do perfil saem da fileira (seção 45), para a
+                    decisão em curso não dividir a atenção com a outra. #}
                 <div class="pl-acoes">
-                    <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/interesse">
-                        {{ form.csrf() }}
-                        <input type="hidden" name="candidato" value="{{ c.usuario_id }}">
-                        <button type="submit" class="pl-cta lg">Convidar</button>
-                    </form>
+                    <details class="pl-convidar">
+                        <summary class="pl-cta lg">
+                            <span class="fechado">Convidar<span class="visually-hidden"> {{ c.nome|nome_proprio }}</span></span>
+                            <span class="aberto">Cancelar<span class="visually-hidden"> o convite</span></span>
+                        </summary>
+                        <form class="pl-convite-caixa" method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/interesse">
+                            {{ form.csrf() }}
+                            <input type="hidden" name="candidato" value="{{ c.usuario_id }}">
+                            <label class="form-label" for="convite-{{ idc }}">Mensagem para {{ c.nome|nome_proprio }}</label>
+                            <textarea name="mensagem" id="convite-{{ idc }}" class="form-control" rows="5" maxlength="1000"
+                                      aria-describedby="convite-{{ idc }}-ajuda">{{ c.mensagem_convite|default('') }}</textarea>
+                            <p class="form-text" id="convite-{{ idc }}-ajuda">
+                                Vem do seu modelo, com o nome e a demanda já preenchidos. O que você mudar aqui
+                                vale só para este convite.
+                            </p>
+                            <button type="submit" class="pl-cta">Enviar convite</button>
+                        </form>
+                    </details>
                     <form method="post" action="{{ app_url }}/demandas/{{ demanda.dem_id }}/dispensar">
                         {{ form.csrf() }}
                         <input type="hidden" name="candidato" value="{{ c.usuario_id }}">

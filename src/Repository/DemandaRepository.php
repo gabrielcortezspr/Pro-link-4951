@@ -63,6 +63,106 @@ final class DemandaRepository extends Repositorio
      *
      * @return list<array<string, mixed>>
      */
+    /**
+     * As demandas da vitrine com os filtros que o banco resolve bem (D89): local, regime, público,
+     * prazo de início e busca livre. Cada linha vem com quem publicou e com as atividades TOS da
+     * demanda; área, atividade e "na minha área" são decididos no serviço, que precisa das
+     * atividades para contar por área.
+     *
+     * @param array{uf?: ?string, municipio?: ?string, contrato?: ?string, alvos?: list<string>,
+     *              inicio?: ?string, ate?: ?string, texto?: ?string} $f
+     * @return list<array<string, mixed>>
+     */
+    public function vitrine(array $f): array
+    {
+        $onde   = ['d.dem_status = :ativo', 'd.dem_situacao <> :encerrada', 'd.dem_dt_publicacao IS NOT NULL'];
+        $params = [':ativo' => STATUS_ATIVO, ':encerrada' => 'ENCERRADA'];
+
+        if (($f['uf'] ?? null) !== null) {
+            $onde[] = 'd.dem_local_uf = :uf';
+            $params[':uf'] = $f['uf'];
+        }
+
+        if (($f['municipio'] ?? null) !== null) {
+            $onde[] = 'd.dem_local_municipio LIKE :municipio';
+            $params[':municipio'] = '%' . addcslashes((string) $f['municipio'], '%_\\') . '%';
+        }
+
+        if (($f['contrato'] ?? null) !== null) {
+            $onde[] = 'd.dem_tipo_contrato = :contrato';
+            $params[':contrato'] = $f['contrato'];
+        }
+
+        if (($f['alvos'] ?? []) !== []) {
+            $marcas = [];
+
+            foreach (array_values($f['alvos']) as $i => $alvo) {
+                $marcas[] = ":alvo{$i}";
+                $params[":alvo{$i}"] = $alvo;
+            }
+
+            $onde[] = 'd.dem_alvo IN (' . implode(', ', $marcas) . ')';
+        }
+
+        if (($f['inicio'] ?? null) === 'aberto') {
+            $onde[] = 'd.dem_inicio_ate IS NULL';
+        } elseif (($f['inicio'] ?? null) === 'ate' && ($f['ate'] ?? null) !== null) {
+            $onde[] = 'd.dem_inicio_ate IS NOT NULL AND d.dem_inicio_ate <= :ate';
+            $params[':ate'] = $f['ate'];
+        }
+
+        if (($f['texto'] ?? null) !== null) {
+            // Dois marcadores, e não um repetido: ATTR_EMULATE_PREPARES está desligado.
+            $onde[] = '(d.dem_titulo LIKE :texto_t OR d.dem_escopo LIKE :texto_e)';
+            $termo = '%' . addcslashes((string) $f['texto'], '%_\\') . '%';
+            $params[':texto_t'] = $termo;
+            $params[':texto_e'] = $termo;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT d.dem_id, d.dem_usu_id, d.dem_titulo, d.dem_escopo, d.dem_local_uf,
+                    d.dem_local_municipio, d.dem_tipo_contrato, d.dem_inicio_ate, d.dem_alvo,
+                    d.dem_situacao, d.dem_dt_publicacao,
+                    COALESCE(e.emp_razao_social, u.usu_nome) AS publicante
+               FROM pro_demandas d
+               JOIN sis_usuarios u      ON u.usu_id = d.dem_usu_id
+               LEFT JOIN pro_empresas e ON e.emp_usu_id = d.dem_usu_id
+              WHERE ' . implode(' AND ', $onde) . '
+              ORDER BY d.dem_dt_publicacao DESC, d.dem_id DESC
+              LIMIT 500'
+        );
+        $stmt->execute($params);
+        $demandas = $stmt->fetchAll();
+
+        if ($demandas === []) {
+            return [];
+        }
+
+        [$marcas, $ids] = $this->marcadores(array_map('intval', array_column($demandas, 'dem_id')));
+
+        $tos = $this->pdo->prepare(
+            'SELECT x.dts_dem_id, x.dts_tos_codigo, x.dts_peso, t.tos_nivel1, t.tos_grupo,
+                    t.tos_subgrupo, t.tos_obra_servico, t.tos_complementar
+               FROM pro_demanda_tos x
+               JOIN crea_tos t ON t.tos_codigo = x.dts_tos_codigo
+              WHERE x.dts_dem_id IN (' . implode(', ', $marcas) . ') AND x.dts_status = :ativo_x
+              ORDER BY x.dts_peso DESC, x.dts_id'
+        );
+        $tos->execute($ids + [':ativo_x' => STATUS_ATIVO]);
+
+        $porDemanda = [];
+
+        foreach ($tos->fetchAll() as $t) {
+            $porDemanda[(int) $t['dts_dem_id']][] = $t;
+        }
+
+        foreach ($demandas as $i => $d) {
+            $demandas[$i]['tos'] = $porDemanda[(int) $d['dem_id']] ?? [];
+        }
+
+        return $demandas;
+    }
+
     public function abertas(int $limite = 50): array
     {
         $stmt = $this->pdo->prepare(

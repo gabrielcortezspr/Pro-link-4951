@@ -144,35 +144,7 @@
                                 vira número: "0 candidaturas" em cinza, repetido em vinte linhas, leria
                                 como acusação. Sem nada pendente, uma frase neutra diz isso; sem sessão
                                 do motor ainda, o convite para calcular. #}
-                            {%- set pn = d.painel|default({}) -%}
-                            {%- set base = app_url ~ '/demandas/' ~ d.dem_id -%}
-                            <td class="acomp">
-                                {% if d.dem_dt_publicacao is null %}
-                                    <span class="lin-sub">Publique para ver compatíveis</span>
-                                {% else %}
-                                    <ul class="pl-acomp">
-                                        {% if pn.nao_lidas|default(0) > 0 %}
-                                            <li><a class="dest" href="{{ base }}/contatos"><span class="pd" aria-hidden="true"></span>{{ pn.nao_lidas }} {{ pn.nao_lidas == 1 ? 'mensagem não lida' : 'mensagens não lidas' }}</a></li>
-                                        {% endif %}
-                                        {% if pn.candidaturas|default(0) > 0 %}
-                                            <li><a href="{{ base }}/contatos">{{ pn.candidaturas }} {{ pn.candidaturas == 1 ? 'candidatura' : 'candidaturas' }}
-                                                {%- if pn.candidaturas_novas|default(0) > 0 %} <span class="nv">· {{ pn.candidaturas_novas }} {{ pn.candidaturas_novas == 1 ? 'nova' : 'novas' }}</span>{% endif %}</a></li>
-                                        {% endif %}
-                                        {% if pn.convites|default(0) > 0 %}
-                                            <li><a href="{{ base }}/contatos">{{ pn.convites }} {{ pn.convites == 1 ? 'convite' : 'convites' }}</a></li>
-                                        {% endif %}
-                                        {% if pn.a_analisar is defined and pn.a_analisar is null %}
-                                            <li><a class="calc" href="{{ base }}/compativeis">Abra os compatíveis para calcular</a></li>
-                                        {% elseif pn.a_analisar|default(0) > 0 %}
-                                            <li><a href="{{ base }}/compativeis">{{ pn.a_analisar }} para avaliar</a></li>
-                                        {% endif %}
-                                        {% if pn.nao_lidas|default(0) == 0 and pn.candidaturas|default(0) == 0 and pn.convites|default(0) == 0
-                                              and pn.a_analisar is defined and pn.a_analisar is not null and pn.a_analisar == 0 %}
-                                            <li class="nada">Nada esperando por você</li>
-                                        {% endif %}
-                                    </ul>
-                                {% endif %}
-                            </td>
+                            <td class="acomp">{{ ui.acompanhamento(d, d.painel|default(null)) }}</td>
                             <td class="text-end">
                                 <a class="pl-btn sm" href="{{ app_url }}/demandas/{{ d.dem_id }}">Ver detalhes</a>
                             </td>

@@ -102,10 +102,10 @@ test.describe('Jornadas por perfil', () => {
     await legenda(page, 'Candidaturas e convites', 'Convites recebidos e candidaturas enviadas, cada um com o retrato do perfil congelado');
     await respirar(page, 3400);
 
-    // ---- Privacidade, que é requisito e não enfeite
-    await page.goto('/privacidade');
+    // ---- Conta e dados, que é requisito e não enfeite (aba do perfil desde a D88)
+    await page.goto('/perfil#conta');
     await telaSaudavel(page);
-    await legenda(page, 'Privacidade', 'Consentimentos com data e hora, exportação em JSON, sessões abertas e exclusão da conta');
+    await legenda(page, 'Conta e dados', 'Dentro do perfil: consentimentos com data e hora, exportação em JSON, sessões abertas e exclusão da conta');
     await respirar(page, 4000);
 
     await sair(page);

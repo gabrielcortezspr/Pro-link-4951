@@ -8,6 +8,8 @@ use ProLink\Service\CompatibilizacaoService;
 use ProLink\Service\DemandaService;
 use ProLink\Service\ManifestacaoService;
 use ProLink\Service\PainelDemandaService;
+use ProLink\Service\ModeloConviteService;
+use ProLink\Support\ModeloConvite;
 use ProLink\Repository\UsuarioRepository;
 use ProLink\Service\ValidacaoException;
 use ProLink\Support\Flash;
@@ -71,7 +73,24 @@ final class CompativelController
             static fn (array $c): bool => !isset($jaAnalisados[(int) ($c['usuario_id'] ?? 0)]),
         ));
 
+        // A mensagem do convite vem montada para cada perfil, a partir do modelo da conta (D88):
+        // a empresa pode enviar como está, editar só para aquela pessoa, ou mudar o modelo.
+        $modelo = (new ModeloConviteService())->modelo($usuarioId);
+        $local  = trim(((string) ($demanda['dem_local_municipio'] ?? '')) !== ''
+            ? $demanda['dem_local_municipio'] . '/' . $demanda['dem_local_uf']
+            : (string) ($demanda['dem_local_uf'] ?? ''));
+
+        foreach ($sessao['candidatos'] as $i => $c) {
+            $sessao['candidatos'][$i]['mensagem_convite'] = ModeloConvite::montar($modelo['texto'], [
+                'nome'    => (string) ($c['nome'] ?? ''),
+                'empresa' => ($c['tipo'] ?? 'P') === 'E',
+                'demanda' => (string) $demanda['dem_titulo'],
+                'local'   => $local,
+            ]);
+        }
+
         return View::render('demanda/compativeis.html.twig', [
+            'modelo_convite' => $modelo,
             'titulo'      => 'Compatíveis',
             'demanda'     => $demanda,
             'sessao'      => $sessao,
@@ -129,6 +148,28 @@ final class CompativelController
             'Convite enviado para %s. A pessoa foi avisada por e-mail, e a conversa está em Contatos.',
             $this->nome((int) ($_POST['candidato'] ?? 0)),
         ));
+        View::redirecionar('/demandas/' . (int) $id . '/compativeis');
+    }
+
+    /**
+     * Salva o modelo de mensagem de convite da conta, ou volta ao padrão (D88). Fica sob a demanda
+     * só para voltar ao feed de onde a pessoa veio; o modelo é da conta, e vale em toda demanda.
+     */
+    public function salvarModelo(string $id): never
+    {
+        try {
+            (new ModeloConviteService())->salvar(
+                (int) Sessao::usuarioId(),
+                ($_POST['restaurar'] ?? '') === '1' ? '' : (string) ($_POST['modelo'] ?? ''),
+            );
+        } catch (ValidacaoException $e) {
+            Flash::erro($e->getMessage());
+            View::redirecionar('/demandas/' . (int) $id . '/compativeis');
+        }
+
+        Flash::sucesso(($_POST['restaurar'] ?? '') === '1'
+            ? 'O modelo de convite voltou ao padrão da plataforma.'
+            : 'Modelo de convite salvo. Ele vale para os próximos convites, em todas as suas demandas.');
         View::redirecionar('/demandas/' . (int) $id . '/compativeis');
     }
 

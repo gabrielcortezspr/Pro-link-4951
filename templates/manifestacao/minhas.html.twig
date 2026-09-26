@@ -12,8 +12,9 @@
     - **Convites recebidos** (`man_origem = 'D'`), primeiro, porque é o que pede resposta. A marca
       "Novo" enquanto a pessoa não abriu (`man_dt_visualizacao` nulo, que num convite é de quem
       recebeu).
-    - **Minhas candidaturas** (`man_origem = 'C'`): o que ela enviou pela vitrine, com o retorno
-      da empresa ("Vista em", mensagens novas).
+    - **Minhas candidaturas** (`man_origem = 'C'`): o que ela enviou pela vitrine, e se há
+      mensagem nova da empresa. Sem "Vista pela empresa em" (D88): nenhuma das partes vê quando a
+      outra abriu.
 
     Os termos do edital ficam no "i". Cada linha abre a conversa.
 #}
@@ -99,12 +100,14 @@
                                 </td>
                                 <td><span class="pl-mono">{{ m.man_dt_registro|date('d/m/Y') }}</span></td>
                                 <td>
+                                    {#  "Novo" é sobre o que a própria pessoa ainda não abriu, e só
+                                        ela vê. Depois disso, a situação comum a todos. #}
                                     {% if not m.man_dt_visualizacao %}
                                         <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Novo</span>
                                     {% elseif m.man_situacao == 'RESPONDIDA' %}
-                                        <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Em conversa</span>
+                                        <span class="pl-pill ok"><span class="pd" aria-hidden="true"></span>Em conversa</span>
                                     {% else %}
-                                        <span class="lin-sub">Aberto em {{ m.man_dt_visualizacao|date('d/m/Y') }}</span>
+                                        <span class="pl-pill neutral"><span class="pd" aria-hidden="true"></span>Recebido</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -113,8 +116,6 @@
                                             <span class="pd" aria-hidden="true"></span>
                                             {{ m.nao_lidas }} {{ m.nao_lidas == 1 ? 'mensagem nova' : 'mensagens novas' }}
                                         </span>
-                                    {% else %}
-                                        <span class="lin-sub">Nenhuma mensagem nova</span>
                                     {% endif %}
                                 </td>
                                 <td class="text-end">
@@ -156,7 +157,7 @@
                         <tr>
                             <th scope="col" class="assunto">Demanda</th>
                             <th scope="col">Situação</th>
-                            <th scope="col">Retorno da empresa</th>
+                            <th scope="col">Conversa</th>
                             <th scope="col">Enviada em</th>
                             <th scope="col"><span class="visually-hidden">Ação</span></th>
                         </tr>
@@ -174,18 +175,13 @@
                                 </td>
                                 <td>{{ ui.situacao_manifestacao(m.man_situacao) }}</td>
                                 <td>
-                                    {#  Mensagem não lida é o que pede ação, e vem antes da data; a data
-                                        em que a empresa abriu fica de apoio, embaixo. #}
+                                    {#  Só mensagem nova, ou nada (D88). A data em que a empresa abriu
+                                        saiu: ninguém vê quando o outro abriu. #}
                                     {% if m.nao_lidas > 0 %}
                                         <span class="pl-novas">
                                             <span class="pd" aria-hidden="true"></span>
                                             {{ m.nao_lidas }} {{ m.nao_lidas == 1 ? 'mensagem nova' : 'mensagens novas' }}
                                         </span>
-                                    {% endif %}
-                                    {% if m.man_dt_visualizacao %}
-                                        <span class="lin-sub">Vista pela empresa em {{ m.man_dt_visualizacao|date('d/m/Y') }}</span>
-                                    {% elseif m.nao_lidas == 0 %}
-                                        <span class="lin-sub">Ainda não aberta pela empresa</span>
                                     {% endif %}
                                 </td>
                                 <td><span class="pl-mono">{{ m.man_dt_registro|date('d/m/Y') }}</span></td>

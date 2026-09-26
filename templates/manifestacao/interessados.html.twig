@@ -185,6 +185,12 @@
                                 <td>
                                     <a class="lin-tt" href="{{ app_url }}/manifestacoes/{{ i.man_id }}">{{ i.nome|nome_proprio }}</a>
                                     <span class="lin-sub">{{ i.man_candidato_tipo == 'E' ? 'Empresa registrada no CREA' : 'Profissional registrado no CREA' }}</span>
+                                    {#  A mensagem que foi com o convite (D88), compacta: duas linhas presas
+                                        ao nome, com o texto inteiro no title e na conversa, onde ela
+                                        abre a lista com o destaque da mensagem do envio. #}
+                                    {% if i.man_mensagem %}
+                                        <p class="pl-msg-conv" title="{{ i.man_mensagem }}"><span class="rot">Sua mensagem</span> {{ i.man_mensagem }}</p>
+                                    {% endif %}
                                 </td>
                                 <td><span class="pl-mono">{{ i.man_dt_registro|date('d/m/Y') }}</span></td>
                                 <td>{{ ui.situacao_convite(i) }}</td>

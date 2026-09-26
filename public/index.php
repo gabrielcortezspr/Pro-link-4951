@@ -118,6 +118,7 @@ $router->post('/demandas/{id}/compativeis', CompativelController::class, 'atuali
 // O caminho inverso do Anexo I item 3: o demandante registra interesse num candidato.
 $router->post('/demandas/{id}/interesse',  CompativelController::class, 'registrarInteresse', PERFIS_DEMANDANTES);
 $router->post('/demandas/{id}/dispensar',  CompativelController::class, 'dispensar', PERFIS_DEMANDANTES);
+$router->post('/demandas/{id}/modelo-convite', CompativelController::class, 'salvarModelo', PERFIS_DEMANDANTES);
 $router->post('/demandas/{id}/dispensados/desfazer', CompativelController::class, 'desfazerDispensa', PERFIS_DEMANDANTES);
 
 // ---------------------------------------------------------------- manifestação (RF05)

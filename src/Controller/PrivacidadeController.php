@@ -30,6 +30,13 @@ final class PrivacidadeController
     {
         $usuarioId = Sessao::usuarioId();
 
+        // Desde a D88 conta e dados moram numa aba do Meu perfil. O endereço antigo leva para lá,
+        // com o aviso de uma ação que acabou de acontecer preservado pelo flash. A administração
+        // não tem Meu perfil, e continua com esta tela.
+        if (!Sessao::temPerfil(PERFIL_ADMIN)) {
+            View::redirecionar('/perfil#conta');
+        }
+
         return View::render('privacidade/index.html.twig', [
             'painel'      => $this->privacidade->painel((int) $usuarioId),
             'finalidades' => PrivacidadeService::FINALIDADES_REVOGAVEIS,

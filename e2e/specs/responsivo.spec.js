@@ -25,7 +25,7 @@ const PUBLICAS = [
 
 const DO_PROFISSIONAL = [
   ['/perfil', 'perfil'],
-  ['/privacidade', 'privacidade'],
+  ['/perfil#conta', 'conta e dados'],
   ['/demandas/abertas', 'demandas abertas'],
   ['/manifestacoes', 'candidaturas e convites'],
 ];

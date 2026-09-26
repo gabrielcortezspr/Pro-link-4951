@@ -22,6 +22,23 @@ final class UsuarioRepository extends Repositorio
                             usu_dt_ultimo_login, usu_tentativas, usu_bloqueado_ate, usu_dt_registro,
                             usu_status';
 
+    /** O modelo de mensagem de convite salvo pela conta, ou null quando ela usa o padrão (D88). */
+    public function modeloConvite(int $id): ?string
+    {
+        $stmt = $this->pdo->prepare('SELECT usu_modelo_convite FROM sis_usuarios WHERE usu_id = :id');
+        $stmt->execute([':id' => $id]);
+        $valor = $stmt->fetchColumn();
+
+        return $valor === false || $valor === null ? null : (string) $valor;
+    }
+
+    /** Grava o modelo de convite; null volta ao padrão da plataforma. */
+    public function salvarModeloConvite(int $id, ?string $modelo): void
+    {
+        $stmt = $this->pdo->prepare('UPDATE sis_usuarios SET usu_modelo_convite = :modelo WHERE usu_id = :id');
+        $stmt->execute([':modelo' => $modelo, ':id' => $id]);
+    }
+
     public function porId(int $id): ?array
     {
         $stmt = $this->pdo->prepare(

@@ -145,7 +145,7 @@
         <strong>O perfil da empresa está fechado.</strong>
         Ninguém além de você o enxerga, mesmo o que estiver marcado como público. Isso acontece
         quando o consentimento de exibição está revogado
-        (<a href="{{ app_url }}/privacidade">painel de privacidade</a>)
+        (na aba <a href="#conta">Conta e dados</a>)
         ou enquanto o registro no CREA não estiver validado.
     </div>
 {% endif %}
@@ -161,7 +161,14 @@
     {id: 'quadro', rotulo: 'Quadro técnico',     cnt: n_quadro}
 ] %}
 {% if p.eh_dono %}
-    {% set abas = abas|merge([{id: 'privacidade', rotulo: 'Privacidade', cnt: null}]) %}
+    {#  "Visibilidade", e não mais "Privacidade" (D88): ao lado dela entrou "Conta e dados", e
+        duas abas com cara de privacidade pareceriam a mesma coisa. A âncora continua
+        `privacidade`, que é o que os links e a suíte do navegador já usam. "Conta e dados" só
+        existe na rota do dono, que é a única que recebe `conta`. #}
+    {% set abas = abas|merge([{id: 'privacidade', rotulo: 'Visibilidade', cnt: null}]) %}
+    {% if conta is defined and conta %}
+        {% set abas = abas|merge([{id: 'conta', rotulo: 'Conta e dados', cnt: null}]) %}
+    {% endif %}
 {% endif %}
 
 <div class="pl-seg-area">
@@ -303,7 +310,7 @@
                         ser enviado. #}
                     <section class="pl-card">
                         <div class="pl-linha-titulo">
-                            <h2 class="pl-secao">Privacidade</h2>
+                            <h2 class="pl-secao">Visibilidade</h2>
                             {{ ui.info('Como a visibilidade funciona',
                                 'Cada item tem o seu próprio nível, e o padrão de todos é "Só eu". A escolha é conferida toda vez que alguém lê o perfil, inclusive na compatibilização: um documento fechado continua sustentando a aderência sem ser identificado.') }}
                         </div>
@@ -389,14 +396,26 @@
                         </div>
                         <p class="pl-nota">
                             Esta aba decide quem enxerga cada item <strong>deste perfil</strong>. O que
-                            a plataforma guarda sobre a <strong>sua conta</strong> fica em outra tela:
+                            a plataforma guarda sobre a <strong>sua conta</strong> fica na aba ao lado:
                             consentimentos com data, sessões abertas, exportação em JSON e exclusão da
                             conta.
                         </p>
-                        <a class="pl-btn" href="{{ app_url }}/privacidade">Abrir conta e dados</a>
+                        <a class="pl-btn" href="#conta">Abrir Conta e dados</a>
                     </section>
                 </div>
             </div>
+        </div>
+    {% endif %}
+
+    {# ---------------------------------------------------------------- aba: conta e dados
+
+        O que era a tela /privacidade (D88): conta, consentimentos, sessões, levar os dados e
+        excluir a conta. O conteúdo mora em privacidade/_conta.html.twig, o mesmo que a tela da
+        administração usa, para os três lugares não divergirem. Só do dono: é a única rota que
+        recebe `conta`. #}
+    {% if p.eh_dono and conta is defined and conta %}
+        <div class="pl-seg-painel" id="conta">
+            {% include 'privacidade/_conta.html.twig' with {painel: conta, finalidades: finalidades, ponte: true} only %}
         </div>
     {% endif %}
 </div>

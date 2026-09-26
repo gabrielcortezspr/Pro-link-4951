@@ -59,6 +59,7 @@ CREATE TABLE sis_usuarios (
   usu_documento_cif   VARBINARY(255)   NULL COMMENT 'CPF/CNPJ cifrado (AES-256-GCM)',
   usu_documento_hash  CHAR(64)         NULL COMMENT 'SHA-256 com pepper, só para busca exata',
   usu_telefone        VARCHAR(20)      NULL,
+  usu_modelo_convite  TEXT             NULL COMMENT 'modelo da mensagem de convite, com {nome}, {demanda} e {local}; NULL = o padrão da plataforma (D88)',
   usu_email_verificado TINYINT(1)      NOT NULL DEFAULT 0,
   usu_dt_ultimo_login DATETIME         NULL,
   usu_tentativas      TINYINT UNSIGNED NOT NULL DEFAULT 0,

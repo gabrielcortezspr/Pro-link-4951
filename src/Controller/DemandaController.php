@@ -53,11 +53,25 @@ final class DemandaController
     }
 
     /** A vitrine: demandas publicadas e abertas, para quem procura oportunidade. */
+    /**
+     * A vitrine, organizada pela Tabela de Obras e Serviços e com filtros na URL (D89). Os filtros
+     * chegam por GET, para a lista filtrada ser um link que se compartilha e funcionar sem JS.
+     */
     public function abertas(): string
     {
+        $usuario = Sessao::usuarioAtual();
+        $vitrine = (new \ProLink\Service\VitrineService())->buscar(
+            $_GET,
+            Sessao::usuarioId(),
+            is_array($usuario) ? (string) ($usuario['perfil'] ?? '') : null,
+        );
+
         return View::render('demanda/abertas.html.twig', [
             'titulo'   => 'Demandas abertas',
-            'demandas' => $this->repositorio->abertas(),
+            'demandas' => $vitrine['demandas'],
+            'vitrine'  => $vitrine,
+            'contratos_possiveis' => \ProLink\Support\Preferencias::CONTRATOS,
+            'ufs_possiveis'       => \ProLink\Support\Preferencias::UFS,
         ]);
     }
 
