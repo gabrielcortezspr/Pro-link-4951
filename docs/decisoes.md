@@ -37,6 +37,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E7 — auditoria de RF por entidade e refino visual | D69, D70, D71, D72, D73 |
 | E7 — fechamento da entrega | D74, D75 |
 | E8 — CAT, atualização do acervo e preferências da demanda (pós-entrega) | D76, D77, D78, D79, D80 |
+| E9 — navegação da demanda (Teste-Demo) | D87 |
 
 ---
 
@@ -2965,3 +2966,51 @@ Pelo navegador (Playwright, HTTPS 8443, conta descartável de Terceiro que não 
 excluída logicamente depois): o navegador aceita o `__Host-PHPSESSID`, e cadastro, login, `/inicio`
 e `/perfil` funcionam com o nome novo. Por `curl` em 8443 o `Set-Cookie` traz `secure` e o prefixo;
 em 8080 a resposta é o 307 de redirecionamento, sem cookie.
+
+---
+
+## D87 · Candidatura, convite e contatos: a demanda diz o que falta fazer, e o feed mostra só quem falta avaliar
+
+`25/09/2026` · E9 · `src/Service/PainelDemandaService.php`, `src/Repository/DispensaRepository.php`,
+`src/Controller/CompativelController.php`, `src/Service/InteressadoService.php`,
+`_arq/migracoes/2026-09-25-d87-dispensas.sql`
+
+**Contexto.** Percorrendo "Minhas demandas" como empresa, o usuário achou três falhas de fluxo.
+O feed de compatíveis mostrava um perfil a quem ela já tinha registrado interesse, e o botão só
+recusava depois do clique. A tela "Interessados" juntava duas coisas diferentes (quem se candidatou
+e quem a empresa chamou) com um nome que só servia para a primeira, e o lado do profissional
+contava como "manifestação enviada" o interesse que ele recebeu. E dentro da demanda não havia
+como saber se tinha gente esperando; só olhando de fora.
+
+**Decisão.** Um par demanda × perfil passa a ter nome para cada situação, e as telas o usam:
+**candidatura** (o profissional se candidatou, `man_origem = 'C'`), **convite** (a empresa chamou,
+`'D'`) e **contatos** (os dois, porque os dois viram conversa). A demanda ganha abas com contadores
+(Demanda · Compatíveis · Contatos), o sino da topbar ganha número, e "Minhas demandas" mostra o que
+falta em cada linha. O feed mostra só quem **falta avaliar**: quem já é contato ou foi **dispensado**
+sai dele. Dispensar é ação nova (`pro_dispensas`), não avisa o titular e pode ser desfeita.
+Convidar deixa a empresa no feed, em vez de levá-la para outra tela no meio da avaliação.
+
+Junto, uma correção de sentido: **"visto" é de quem recebeu o contato** (a empresa, numa
+candidatura; o profissional, num convite). Antes só a empresa carimbava, e um convite ficava
+"visto" quando a própria empresa o reabria, enquanto o convidado nunca tinha "novo". É o mesmo
+sentido que `DashboardRepository::naoVistas()` já contava.
+
+**Os contadores leem o que já foi calculado.** "A analisar" vem da última sessão gravada do motor,
+menos contatos e dispensados, com o mesmo portão de visibilidade do feed. Rodar o motor a cada
+tela criaria uma sessão por clique e poluiria a auditoria do sorteio. Demanda sem sessão não
+ganha número inventado.
+
+**Alternativa recusada: marcar no feed quem já foi analisado, em vez de tirar.** O usuário
+preferiu tirar: a empresa já decidiu sobre essas pessoas, e mantê-las no fluxo de avaliação só
+repete trabalho. A sessão do motor continua gravando o conjunto inteiro, então tirar do feed não
+muda a auditoria (D55).
+
+**Alternativa recusada: avisar o titular quando é dispensado.** Exporia a pessoa a uma recusa
+que ela não pediu, numa etapa em que ninguém a contatou. A dispensa fica na trilha de auditoria
+(`DISPENSAR`), visível para a administração.
+
+**Alternativa recusada: somar "a analisar" às pendências do sino.** É o tamanho do conjunto, não
+uma ação esperando; somado, toda demanda pareceria urgente o tempo todo.
+
+**Consequência.** Tabela nova: banco existente precisa da migração em `_arq/migracoes/` **e** de
+rodar de novo o provisionamento do usuário restrito (D82), cujo privilégio é por tabela.

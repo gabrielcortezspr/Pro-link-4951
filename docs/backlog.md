@@ -523,6 +523,20 @@ Metade da nota depende disto. Não é "se sobrar tempo".
 
 ---
 
+## E9 — Navegação da demanda (25/09, branch Teste-Demo)
+
+> **Em andamento na `Teste-Demo`**, a partir da revisão de usabilidade feita pelo usuário em
+> "Minhas demandas" (D87):
+>
+> · **Vocabulário**: candidatura, convite e contatos, nas telas, nos e-mails e no menu.
+> · **A demanda com abas e contadores** (Demanda · Compatíveis · Contatos), o sino com número, e
+>   "Minhas demandas" dizendo o que falta em cada linha.
+> · **O feed só com quem falta avaliar**: convidar e o novo dispensar tiram o perfil da lista;
+>   dispensar não avisa ninguém e pode ser desfeito. Convidar não tira a empresa do feed.
+> · **"Visto" é de quem recebe** o contato, e "respondeu" é do convidado de fato.
+> · **Bateria de volta a 9 de 9**: o E1 estava quebrado desde a D81/D86 (HTTP só redireciona, e o
+>   cookie `__Host-` não voltava a um host sem ponto); corrigido no verificador.
+
 ## Se apertar: o que cortar, nesta ordem
 
 1. Mensagens dentro da manifestação (E5) → só notificação por e-mail e exibição do contato
