@@ -115,6 +115,10 @@ final class CompatibilizacaoService
         // reintroduzia logo abaixo.
         $abertos = $this->visibilidade->perfisAbertos(array_column($perfis, 'usuario_id'));
 
+        // Só conta o que o titular abriu para quem publicou a demanda (D95). ART fechada não
+        // pesa em nada: nem competência, nem local, nem reforço de CAT.
+        $acervos = $this->soOVisivel($acervos, $perfis, (int) $demanda['dem_usu_id']);
+
         $pool      = [];
         $avaliados = 0;
 
@@ -355,7 +359,7 @@ final class CompatibilizacaoService
             $criterios = json_decode((string) $linha['msp_criterios'], true);
             $criterios = is_array($criterios) ? $criterios : [];
 
-            $evidencias = $this->evidenciasVisiveis($criterios['evidencias'] ?? [], $espectadorId);
+            $evidencias = $this->evidenciasVisiveis($criterios['evidencias'] ?? [], $espectadorId, (int) $candidato['usuario_id']);
 
             $saida[] = [
                 'chave'         => $chave,
@@ -373,52 +377,116 @@ final class CompatibilizacaoService
             ];
         }
 
+        return $this->comNomesDaTos($saida);
+    }
+
+    /**
+     * Acrescenta a cada linha de evidência o que a atividade do acervo tem em comum com a pedida
+     * (D96) e os nomes da TOS para a tela dizer isso em palavras: "só o mesmo grupo · Construção
+     * Civil" em vez de "atividade vizinha", que prometia uma proximidade que às vezes não existe.
+     *
+     * @param list<array<string, mixed>> $candidatos
+     * @return list<array<string, mixed>>
+     */
+    private function comNomesDaTos(array $candidatos): array
+    {
+        $codigos = [];
+
+        foreach ($candidatos as $c) {
+            foreach ($c['evidencias'] as $e) {
+                $codigos[] = (string) ($e['codigo_acervo'] ?? '');
+            }
+        }
+
+        $tos = (new \ProLink\Repository\TosRepository())->porCodigos($codigos);
+
+        foreach ($candidatos as $i => $c) {
+            foreach ($c['evidencias'] as $j => $e) {
+                $acervo = (string) ($e['codigo_acervo'] ?? '');
+                $linha  = $tos[$acervo] ?? [];
+
+                $candidatos[$i]['evidencias'][$j] += [
+                    'relacao'          => Tos::relacao((string) ($e['codigo_demanda'] ?? ''), $acervo),
+                    'grupo_nome'       => $linha['tos_grupo'] ?? null,
+                    'subgrupo_nome'    => $linha['tos_subgrupo'] ?? null,
+                    'descricao_acervo' => $linha['tos_obra_servico'] ?? null,
+                ];
+            }
+        }
+
+        return $candidatos;
+    }
+
+
+    /**
+     * O acervo de cada candidato reduzido às ARTs que o titular do perfil abriu para quem olha
+     * (D95, que revê a D52).
+     *
+     * O titular decide o que mostra, e o que ele não mostra não pode pesar a favor nem contra ele
+     * em nada que chegue a outra pessoa. É o mesmo portão do perfil: a Visao do dono do perfil
+     * candidato, olhada por quem publicou a demanda. Na empresa, o dono é a conta da empresa, que
+     * escolhe a visibilidade das ARTs do quadro, como na tela do perfil dela.
+     *
+     * Candidato que fica sem ART visível nos grupos pedidos sai do laço, como se não tivesse acervo
+     * ali: para quem publicou, não tem.
+     *
+     * @param array<string, list<array<string, mixed>>> $acervos chave do candidato => linhas do índice
+     * @param array<string, array<string, mixed>> $perfis
+     * @return array<string, list<array<string, mixed>>>
+     */
+    private function soOVisivel(array $acervos, array $perfis, int $espectadorId): array
+    {
+        $numeros = [];
+
+        foreach ($acervos as $linhas) {
+            foreach ($linhas as $linha) {
+                $numeros[] = (string) $linha['evi_art_numero'];
+            }
+        }
+
+        $ids    = $this->evidencias->idsPorNumero($numeros);
+        $visoes = $this->visibilidade->visoes(array_column($perfis, 'usuario_id'), $espectadorId);
+        $saida  = [];
+
+        foreach ($acervos as $chave => $linhas) {
+            $visao = isset($perfis[$chave]) ? ($visoes[(int) $perfis[$chave]['usuario_id']] ?? null) : null;
+
+            if ($visao === null) {
+                continue;
+            }
+
+            $visiveis = array_values(array_filter($linhas, static function (array $l) use ($ids, $visao): bool {
+                $id = $ids[(string) $l['evi_art_numero']] ?? null;
+
+                return $id !== null && $visao->podeVer(Visibilidade::ART, $id);
+            }));
+
+            if ($visiveis !== []) {
+                $saida[$chave] = $visiveis;
+            }
+        }
+
         return $saida;
     }
 
     /**
-     * Tira das evidências os números de ART que o titular não abriu (D52).
-     *
-     * **A ART fechada continua contando para o score, e não pode ser citada pelo número.** São
-     * duas finalidades distintas: `EXIBICAO_PERFIL` — "autorizo exibir meu perfil para
-     * demandantes e na busca" — é o que autoriza ser encontrado, e é o portão que a D22 chama de
-     * global; a visibilidade por ART governa o que a vitrine mostra. Fundir as duas faria o
-     * controle de exibição virar controle de elegibilidade, punindo com menos correspondências
-     * quem usou a privacidade que a plataforma oferece.
-     *
-     * A evidência **não é descartada** quando fica sem ART aberta: ela guarda o código da TOS e
-     * a CAT, que explicam a correspondência sem identificar documento. `arts_fechadas` diz à tela
-     * quantas ficaram de fora, para ela ser honesta sobre o que existe e não está aberto em vez
-     * de parecer que não há evidência nenhuma.
-     *
-     * @param  mixed $evidencias como saiu do JSON gravado
-     * @return list<array<string, mixed>>
-     */
-    /**
      * A CAT que a tela pode nomear nesta linha de evidência (D76).
      *
-     * A CAT herda a visibilidade da ART que certifica: só é nomeada a certidão de uma ART aberta.
-     * Quando ela existe e todas as ARTs que certifica estão fechadas, a tela diz que há reforço
-     * (`cat_fechada`) sem identificar o documento. A CAT vencida segue a mesma regra, para a tela
+     * A CAT herda a visibilidade da ART que certifica: só é nomeada a certidão de uma ART aberta,
+     * e a de ART fechada não é mencionada (D95). A CAT vencida segue a mesma regra, para a tela
      * poder dizer "vencida" em vez de "sem CAT", que seria falso.
      *
      * Sessão gravada antes da D76 não tem o mapa `cats`: nesse caso vale o que ela gravou em
-     * `cat`, e a tela esconde o número quando nenhuma ART da linha está aberta.
+     * `cat`, que só é mostrado quando a linha tem ART aberta.
      *
      * @param array<string, mixed> $evidencia
      * @param list<string> $abertas
-     * @return array{cat: ?string, cat_fechada: bool, cat_vencida: ?string}
+     * @return array{cat: ?string, cat_vencida: ?string}
      */
     private function certidaoVisivel(array $evidencia, array $abertas): array
     {
         if (!isset($evidencia['cats'])) {
-            $cat = $evidencia['cat'] ?? null;
-
-            return [
-                'cat'         => $abertas === [] ? null : $cat,
-                'cat_fechada' => $abertas === [] && $cat !== null,
-                'cat_vencida' => null,
-            ];
+            return ['cat' => $abertas === [] ? null : ($evidencia['cat'] ?? null), 'cat_vencida' => null];
         }
 
         $vigentes = (array) $evidencia['cats'];
@@ -433,12 +501,20 @@ final class CompatibilizacaoService
 
         return [
             'cat'         => $cat === null ? null : (string) $cat,
-            'cat_fechada' => $cat === null && $vigentes !== [],
-            'cat_vencida' => $cat === null && $vigentes === [] && $vencida !== null ? (string) $vencida : null,
+            'cat_vencida' => $cat === null && $vencida !== null ? (string) $vencida : null,
         ];
     }
 
-    private function evidenciasVisiveis(mixed $evidencias, int $espectadorId): array
+    /**
+     * As evidências de uma sessão gravada, só com o que o titular abriu hoje para quem olha
+     * (D95). A sessão nova já foi calculada só com ARTs visíveis; a releitura existe para o
+     * titular que fechou uma ART depois do cálculo, e para sessões anteriores à D95. Linha que
+     * fica sem ART aberta some inteira: nem o código da atividade nem a CAT dela aparecem.
+     *
+     * @param  mixed $evidencias como saiu do JSON gravado
+     * @return list<array<string, mixed>>
+     */
+    private function evidenciasVisiveis(mixed $evidencias, int $espectadorId, int $titularId): array
     {
         if (!is_array($evidencias) || $evidencias === []) {
             return [];
@@ -452,27 +528,23 @@ final class CompatibilizacaoService
             }
         }
 
-        $donos  = $this->evidencias->donosPorNumero($numeros);
-        $visoes = $this->visibilidade->visoes(array_column($donos, 'usuario_id'), $espectadorId);
-
+        $ids   = $this->evidencias->idsPorNumero($numeros);
+        $visao = $this->visibilidade->visoes([$titularId], $espectadorId)[$titularId] ?? null;
         $saida = [];
 
         foreach ($evidencias as $evidencia) {
-            $abertas  = [];
-            $fechadas = 0;
+            $abertas = [];
 
             foreach ((array) ($evidencia['arts'] ?? []) as $numero) {
-                $dono = $donos[(string) $numero] ?? null;
-                $visao = $dono === null ? null : ($visoes[$dono['usuario_id']] ?? null);
+                $id = $ids[(string) $numero] ?? null;
 
-                // ART que não se resolve a um dono ativo não é exibida: falhar fechado é a regra
-                // da D22, e aqui o caso acontece quando o profissional foi excluído depois da
-                // sessão ter sido gravada.
-                if ($visao !== null && $visao->podeVer(Visibilidade::ART, $dono['id'])) {
+                if ($visao !== null && $id !== null && $visao->podeVer(Visibilidade::ART, $id)) {
                     $abertas[] = (string) $numero;
-                } else {
-                    $fechadas++;
                 }
+            }
+
+            if ($abertas === []) {
+                continue;
             }
 
             // Os mapas ART => CAT carregam números de ARTs fechadas, e por isso não seguem para a
@@ -480,9 +552,7 @@ final class CompatibilizacaoService
             $linha = (array) $evidencia;
             unset($linha['cats'], $linha['cats_vencidas']);
 
-            $saida[] = ['arts' => $abertas, 'arts_fechadas' => $fechadas]
-                + $this->certidaoVisivel((array) $evidencia, $abertas)
-                + $linha;
+            $saida[] = ['arts' => $abertas] + $this->certidaoVisivel((array) $evidencia, $abertas) + $linha;
         }
 
         return $saida;

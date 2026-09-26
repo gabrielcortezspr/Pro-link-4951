@@ -548,6 +548,18 @@ Metade da nota depende disto. Não é "se sobrar tempo".
 >   recente com as ações da própria pessoa. Os indicadores saíram.
 > · Verificado: 255 testes · 44 telas · 74 conferências de padrão · E2 159 · E4 62 · E6 70. E1 e
 >   navegador não rodaram nesta rodada (o E1 gasta chamadas da API).
+>
+> **Segunda rodada, 26/09, mesclada na `main`** (commits `01bfcb1`..`9229567`):
+>
+> · **Origem de "na sua área"** (D92) e **"Limpar filtros"** na vitrine, no lugar de quatro links.
+> · **Minhas demandas por situação** (D93): abas Abertas, Rascunhos, Encerradas e Todas, filtros da
+>   vitrine, e caminho de volta no topo da demanda.
+> · **Sempre uma atividade principal** na demanda (D94).
+> · **ART fechada não conta** em nada que chegue a outra pessoa (D95, revê a D52): motor, feed e
+>   busca pública. Política de Privacidade 1.1, afinidade dita pelo nível e reforço da CAT
+>   proporcional (D96).
+> · Verificado: 267 testes · 44 telas · 74 conferências de padrão · E2 159 · E4 53 · E6 70 (o E4
+>   caiu com o pool menor, não com falha). E1 e navegador não rodaram.
 
 ## Se apertar: o que cortar, nesta ordem
 

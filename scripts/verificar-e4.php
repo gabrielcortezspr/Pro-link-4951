@@ -159,6 +159,26 @@ foreach ($r['pool'] as $c) {
     conferir("candidato {$c['chave']} traz evidência documental", $c['criterios']['evidencias'] !== []);
 }
 
+// D95: o motor só usa ART que o titular do perfil candidato abriu para quem publicou a demanda.
+// Toda ART citada nas evidências do pool tem de passar pelo mesmo portão do perfil.
+$usadas = [];
+
+foreach ($r['pool'] as $c) {
+    foreach ($c['criterios']['evidencias'] as $e) {
+        foreach ((array) ($e['arts'] ?? []) as $numero) {
+            $usadas[] = [(string) $numero, (int) $perfis[$c['chave']]['usuario_id']];
+        }
+    }
+}
+
+$idsDasArts = $evidencias->idsPorNumero(array_column($usadas, 0));
+$visoesDoPool = (new ProLink\Service\VisibilidadeService())->visoes(array_column($usadas, 1), $demandanteId);
+$fechadasUsadas = array_filter($usadas, static fn (array $u): bool =>
+    !isset($idsDasArts[$u[0]], $visoesDoPool[$u[1]])
+    || !$visoesDoPool[$u[1]]->podeVer(ProLink\Support\Visibilidade::ART, $idsDasArts[$u[0]]));
+conferir('nenhuma ART fechada para o demandante entrou no cálculo (D95)', $fechadasUsadas === [],
+    count($fechadasUsadas) . ' de ' . count($usadas) . ' ART(s) usadas estão fechadas');
+
 $gravada = $sessoes->porId($r['sessao_id']);
 conferir('a sessão é recuperável pelo id', $gravada !== null);
 conferir('a semente gravada é a mesma devolvida', ($gravada['mts_semente'] ?? '') === $r['semente']);

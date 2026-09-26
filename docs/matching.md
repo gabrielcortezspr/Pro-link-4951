@@ -72,6 +72,10 @@ Três abordagens, da mais barata à mais elaborada:
 
 Vale permitir peso por código: atividade principal versus secundária.
 
+Principal pesa 1,0 e secundária 0,5 (`DemandaService::PESO_*`). **Toda demanda com atividade tem
+ao menos uma principal** (D94): o motor faz média ponderada, e com todas secundárias o peso some
+da conta. Tornar secundária a única principal, ou removê-la deixando só secundárias, é recusado.
+
 ## Etapa 2: do candidato à capacidade
 
 Pra cada candidato, montar o conjunto `C = {tos_codigo...}` do que ele comprovou.
@@ -193,6 +197,16 @@ Sinais de força dentro da dimensão de competência, em ordem:
 
 A CAT só reforça enquanto vigente (`cat_dt_validade` igual ou posterior à data da sessão; validade
 ausente conta como vigente). Vencida, a ART continua contando pelo que é (D76).
+O reforço é proporcional à afinidade (D96): a CAT cobre `0,30 × afinidade` do caminho até 1. Na
+mesma atividade, 30% do que falta; numa atividade que só divide o grupo com a pedida (afinidade
+0,15), 4,5%. A certidão prova a atividade que certifica, não o grupo inteiro.
+
+**Só conta o que o titular abriu para quem publicou a demanda** (D95, que revê a D52). Antes de
+qualquer dimensão, o acervo de cada candidato é reduzido às ARTs que a `Visao` do dono do perfil
+deixa o demandante ver: nível "quem tem conta" ou "qualquer pessoa". ART fechada não pesa na
+competência, no local nem no reforço da CAT, que segue a ART que certifica. Na empresa, quem
+escolhe é a conta da empresa, sobre as ARTs do quadro. Candidato sem ART visível nos grupos
+pedidos não entra no pool. A mesma regra vale na busca pública e na releitura do feed.
 
 Multiplicidade conta, mas com retorno decrescente: cinco ARTs no mesmo código valem mais que uma,
 e menos que cinco vezes uma. Use raiz ou logaritmo pra volume não esmagar precisão — e porque

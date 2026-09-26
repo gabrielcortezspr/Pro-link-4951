@@ -4733,7 +4733,11 @@ html:not(.js-seg) .pl-seg-area:has(> #conta:target) > .pl-seg > .pl-seg-b[href="
 .pl-chip-filtro.ligado { background: var(--pl-data); border-color: var(--pl-data); color: #fff; }
 .pl-chip-filtro.ligado .n { background: rgba(255, 255, 255, .18); color: #fff; }
 
-.pl-vit-mais { margin: 0 0 4px; }
+/* "Mais filtros" e "Limpar filtros" dividem a fileira. O <details> é só o gatilho e o painel é
+   irmão dele, aberto por `details[open] ~`: dentro do <details>, o painel impediria o botão de
+   ficar ao lado do <summary>. O formulário envia os campos do painel mesmo recolhido. */
+.pl-vit-ctrl { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 4px; }
+.pl-vit-mais { margin: 0; }
 .pl-vit-mais > summary { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; list-style: none;
     font-size: 12.5px; font-weight: 600; color: var(--pl-data); padding: 4px 0; border-radius: 6px; }
 .pl-vit-mais > summary::-webkit-details-marker { display: none; }
@@ -4743,15 +4747,32 @@ html:not(.js-seg) .pl-seg-area:has(> #conta:target) > .pl-seg > .pl-seg-b[href="
 .pl-vit-mais > summary:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; }
 .pl-vit-mais > summary .em-uso { font-weight: 500; color: var(--pl-faint); }
 .pl-vit-mais > summary .em-uso::before { content: "· "; }
-.pl-vit-mais .grade { display: grid; grid-template-columns: minmax(0, 1.4fr) 118px minmax(0, 1.1fr) minmax(0, 1.2fr) minmax(0, 1.4fr) minmax(0, 1.2fr);
-    gap: 10px 12px; margin-top: 10px; padding: 14px 16px; background: var(--pl-card);
-    border: 1px solid var(--pl-border); border-radius: 12px 12px 0 0; border-bottom: 0; }
-.pl-vit-mais .grade .form-label { font-size: 12px; margin-bottom: 4px; }
-.pl-vit-mais .grade .form-control, .pl-vit-mais .grade .form-select { height: 38px; font-size: 13px; }
-.pl-vit-mais .acoes { display: flex; gap: 8px; padding: 0 16px 14px; background: var(--pl-card);
-    border: 1px solid var(--pl-border); border-top: 0; border-radius: 0 0 12px 12px; }
-@media (max-width: 1200px) { .pl-vit-mais .grade { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 640px)  { .pl-vit-mais .grade { grid-template-columns: minmax(0, 1fr); } }
+/* Secundário contornado, na escala pequena: o laranja fica com a ação que compromete. */
+.pl-vit-limpar svg { width: 13px; height: 13px; flex: none; }
+.pl-vit-limpar:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; }
+
+.pl-vit-painel { display: none; flex: 1 0 100%; min-width: 0; margin-top: 4px; background: var(--pl-card);
+    border: 1px solid var(--pl-border); border-radius: 12px; }
+.pl-vit-mais[open] ~ .pl-vit-painel { display: block; }
+/* Os dois recortes, na primeira fileira: são o corte mais largo da lista, antes dos campos. */
+.pl-vit-painel .recortes { display: flex; flex-wrap: wrap; gap: 8px 28px; padding: 13px 16px 12px;
+    border-bottom: 1px solid var(--pl-border-2); }
+.pl-vit-painel .recortes .form-check { margin: 0; min-height: 0; }
+.pl-vit-painel .recortes .form-check-label { font-size: 13px; font-weight: 600; cursor: pointer; }
+.pl-vit-painel .recortes .dica { font-weight: 400; font-size: 12px; color: var(--pl-muted); }
+.pl-vit-painel .recortes .dica::before { content: "· "; color: var(--pl-faint); }
+.pl-vit-painel .grade { display: grid; grid-template-columns: minmax(0, 1.4fr) 118px minmax(0, 1.1fr) minmax(0, 1.2fr) minmax(0, 1.4fr) minmax(0, 1.2fr);
+    gap: 10px 12px; padding: 14px 16px; }
+.pl-vit-painel .grade .form-label { font-size: 12px; margin-bottom: 4px; }
+.pl-vit-painel .grade .form-control, .pl-vit-painel .grade .form-select { height: 38px; font-size: 13px; }
+.pl-vit-painel .acoes { display: flex; gap: 8px; padding: 0 16px 14px; }
+@media (max-width: 1200px) { .pl-vit-painel .grade { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px)  {
+    .pl-vit-painel .grade { grid-template-columns: minmax(0, 1fr); }
+    /* A dica desce para baixo do rótulo em vez de partir a frase no meio. */
+    .pl-vit-painel .recortes .dica { display: block; }
+    .pl-vit-painel .recortes .dica::before { content: none; }
+}
 
 /* ---- A barra de resultado ---- */
 .pl-vit-barra { margin: 4px 0 14px; }
@@ -4883,3 +4904,132 @@ html:not(.js-seg) .pl-seg-area:has(> #conta:target) > .pl-seg > .pl-seg-b[href="
     .pl-dem-lin > .acoes { justify-content: flex-start; }
     .pl-prop-lista > li { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---------- 48. De onde vem "na sua área": a linha de origem (D92) ---------------------------
+   Na vitrine e no Início, "na sua área" filtrava pelas atividades da TOS nas ARTs sem dizer isso,
+   e o chip "Mecânica" ao lado de um registro em Geografia lia como "a plataforma acha que sou
+   mecânico". A linha diz a regra e põe os dois fatos lado a lado: a modalidade do registro e as
+   áreas que o acervo cobre.
+
+   É nota, não painel: corpo de 12,5px em tinta de nota, sem fundo e sem borda, para não competir
+   com os cartões. As áreas são texto corrido em tinta cheia separado por ponto, sem borda, sem
+   fundo e sem cursor de clique, para nunca parecer o chip de filtro que mora logo acima. A lista
+   inteira abre no mesmo <details> do "i" (seção 15, fechado por info.js ao clicar fora e com
+   Esc), com o gatilho em texto e a caixa ancorada no bloco, não no gatilho: o gatilho cai em
+   qualquer ponto da linha e, ancorada nele, a caixa sairia da tela em 390px. Nenhuma cor nova;
+   o selo verde água está aqui porque a afirmação é sustentada por ART conferida. */
+.pl-origem { position: relative; flex: 1 0 100%; min-width: 0; margin: 0; display: flex;
+    flex-direction: column; gap: 3px; font-size: 12.5px; line-height: 1.55; color: var(--pl-muted); }
+.pl-origem .def { margin: 0; display: flex; align-items: flex-start; gap: 6px; }
+.pl-origem .def .pl-mark { width: 14px; height: 14px; margin-top: 2px; }
+.pl-origem .def b { font-weight: 600; color: var(--pl-ink); }
+/* A segunda linha alinha com o texto da primeira, e não com o selo. */
+.pl-origem .dd { padding-left: 20px; }
+/* Entre os dois fatos, um fio vertical; o ponto fica só entre os itens da lista de áreas, para a
+   lista não parecer continuar o registro. */
+.pl-origem .dd > .fato { display: inline-block; width: 1px; height: 11px; background: var(--pl-faint);
+    vertical-align: -1px; margin: 0 10px; }
+.pl-origem .mod b { font-weight: 600; color: var(--pl-ink); }
+
+.pl-origem .areas { display: inline; margin: 0; padding: 0; list-style: none; }
+.pl-origem .areas > li { display: inline; font-weight: 500; color: var(--pl-ink); }
+.pl-origem .areas > li + li::before { content: ""; display: inline-block; width: 3px; height: 3px;
+    border-radius: 50%; background: var(--pl-faint); vertical-align: middle; margin: 0 8px; }
+.pl-origem .areas .n, .pl-origem .lista .n { font-weight: 400; color: var(--pl-muted);
+    font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* O gatilho: texto na cor de dado, como "Mais filtros", com a seta que vira quando abre. */
+.pl-origem .pl-origem-mais { position: static; vertical-align: baseline; }
+.pl-origem .pl-origem-mais > summary { display: inline-flex; align-items: center; gap: 3px; width: auto;
+    height: auto; padding: 0 2px; border: 0; border-radius: 4px; background: none; color: var(--pl-data);
+    font-weight: 600; white-space: nowrap; }
+.pl-origem .pl-origem-mais > summary:hover { color: var(--pl-blue); border: 0; }
+.pl-origem .pl-origem-mais[open] > summary { background: none; color: var(--pl-blue); }
+.pl-origem .pl-origem-mais > summary svg { width: 13px; height: 13px; transition: transform .14s ease; }
+.pl-origem .pl-origem-mais[open] > summary svg { transform: rotate(180deg); }
+.pl-origem .pl-info-caixa { top: calc(100% + 6px); left: 20px; right: auto; transform: none;
+    width: min(400px, calc(100% - 20px)); }
+/* Com dado real a lista é curta; uma empresa de quadro grande pode passar de vinte áreas (a TOS
+   tem 46), e a caixa não pode crescer além da janela. */
+.pl-origem .lista { list-style: none; margin: 2px 0 0; padding: 0; max-height: min(55vh, 380px);
+    overflow-y: auto; overscroll-behavior: contain; }
+.pl-origem .lista > li { display: flex; align-items: baseline; justify-content: space-between; gap: 14px;
+    padding: 5px 0; border-top: 1px solid var(--pl-border-2); }
+.pl-origem .lista > li:first-child { border-top: 0; }
+.pl-origem .lista .nm { min-width: 0; color: var(--pl-ink); }
+.pl-origem .pl-info-caixa p { margin-top: 8px; font-size: 12px; color: var(--pl-faint); }
+
+/* Na vitrine, embaixo da contagem e dos links; no Início, entre o título do bloco e a lista. */
+.pl-vit-barra .pl-origem { margin-top: 2px; }
+.pl-ini-area > .pl-origem { margin: -4px 0 14px; }
+
+@media (max-width: 560px) {
+    .pl-origem .dd { padding-left: 0; }
+    .pl-origem .pl-info-caixa { left: 0; width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .pl-origem .pl-origem-mais > summary svg { transition: none; } }
+
+/* ---------- 49. Minhas demandas por situação, e o caminho de volta da demanda (D93) ------------
+   Minhas demandas separa por situação em abas (o `.pl-seg` das abas da demanda, porque são lugares
+   irmãos) e, dentro da aba, usa as peças da vitrine (seção 46): busca, chips de área, a fileira de
+   "Limpar filtros" e a barra de resultado. O que é só daqui: o chip de pendência, a ordem como
+   links na barra, a atividade da TOS na linha e a linha encerrada, que não grita.
+
+   O caminho de volta é um link pequeno acima do título, em tinta de nota: é navegação, não ação,
+   e não compete com o título nem com as abas da demanda. Nenhuma cor nova. */
+
+/* ---- O caminho de volta ---- */
+.pl-volta { margin: 0 0 10px; }
+.pl-volta a { display: inline-flex; align-items: center; gap: 4px; min-height: 24px; padding: 0 4px 0 0;
+    border-radius: 6px; font-size: 12.5px; font-weight: 600; color: var(--pl-muted); text-decoration: none; }
+.pl-volta a svg { width: 15px; height: 15px; flex: none; transition: transform .14s ease; }
+.pl-volta a .det { font-weight: 500; color: var(--pl-faint); }
+.pl-volta a:hover { color: var(--pl-blue); text-decoration: none; }
+.pl-volta a:hover svg { transform: translateX(-2px); }
+.pl-volta a:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; }
+.pl-feed-abas .pl-volta { margin-bottom: 10px; }
+/* O `main.pl-content` é coluna flex com 18px de vão entre filhos: somado à margem, o link ficava
+   a 28px do título e lia como coisa solta. Aqui ele fica a 10px, como no feed. */
+.pl-content > .pl-volta { margin-bottom: -8px; }
+
+/* ---- As abas de situação ---- */
+.pl-md-abas { margin-bottom: 16px; }
+/* Em 390px as quatro não cabem numa linha, e a quarta caía sozinha na segunda: grade de 2 por 2. */
+@media (max-width: 640px) {
+    .pl-md-abas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .pl-md-abas .pl-seg-b { justify-content: center; }
+}
+
+/* ---- O chip de pendência: o ponto de "espera por você" das abas da demanda, na cor de dado ---- */
+.pl-md-pend .pd { width: 6px; height: 6px; border-radius: 50%; background: var(--pl-data); flex: none; }
+
+/* ---- A ordem, na barra de resultado ----
+   `.pl-md-ordem`, e não `.pl-ordem`, que é a reprodução do motor (seção 21). */
+.pl-md-ordem { gap: 4px 9px; }
+.pl-md-ordem .rt { color: var(--pl-faint); margin-right: 2px; }
+.pl-md-ordem a { font-weight: 500; color: var(--pl-muted); text-decoration: none; }
+.pl-md-ordem a:hover { color: var(--pl-blue); text-decoration: underline; }
+.pl-md-ordem a:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; border-radius: 4px; }
+.pl-md-ordem .aqui { font-weight: 600; color: var(--pl-ink); }
+
+/* ---- A linha ---- */
+/* A atividade da TOS embaixo do local, no mesmo chip da vitrine: é por ela que a busca e o chip de
+   área acham a linha. */
+.pl-table .lin-tos { margin-top: 6px; }
+.pl-table .lin-tos .pl-vit-tos .mais { font-size: 11px; }
+/* O regime quebra em vez de cortar: "Obra certa (empr..." cortava um valor de lista fechada no
+   meio. As larguras abrem espaço para o título, que agora divide a célula com a atividade. */
+.pl-table.fixa.acomp .c-assunto  { width: 33%; }
+.pl-table.fixa.acomp .c-regime   { width: 12%; }
+.pl-table.fixa.acomp .c-data     { width: 10%; }
+.pl-table.fixa.acomp .c-situacao { width: 12%; }
+.pl-table.fixa.acomp .c-acomp    { width: 21%; }
+.pl-table.fixa.acomp .c-acao     { width: 12%; }
+/* A encerrada: título em tinta de nota e acompanhamento sem azul nem ponto de novidade. */
+.pl-table tr.encerrada .lin-tt { color: var(--pl-muted); }
+.pl-table tr.encerrada .lin-tt:hover { color: var(--pl-blue); }
+.pl-acomp.fechada { color: var(--pl-muted); }
+.pl-acomp.fechada a { font-weight: 500; color: var(--pl-muted); }
+.pl-acomp.fechada a:hover { color: var(--pl-blue); }
+
+@media (prefers-reduced-motion: reduce) { .pl-volta a svg { transition: none; } }

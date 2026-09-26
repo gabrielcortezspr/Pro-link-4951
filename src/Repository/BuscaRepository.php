@@ -153,46 +153,69 @@ final class BuscaRepository extends Repositorio
     }
 
     /**
-     * Quantas ARTs e CATs cada profissional tem no acervo, em uma consulta para o lote todo.
+     * O acervo de cada profissional, uma linha por ART e atividade, em uma consulta para o lote.
      *
-     * A tela diz "N ARTs" por resultado, e perguntar por profissional seria o N+1 que o feed
-     * acabou de evitar do outro lado.
+     * Sai por ART, e não já contado, porque quem conta é o serviço, depois de tirar as ARTs que o
+     * titular não abriu para quem busca (D95). Contar aqui somaria as fechadas, e o cartão diria
+     * "5 ARTs" de alguém que mostra duas.
      *
      * @param  list<int> $profissionalIds
-     * @return array<int, array{arts: int, cats: int, grupos: list<string>, subgrupos: list<string>}>
+     * @return array<int, list<array{art_id: int, art_numero: string, cat: ?string, grupo: string, subgrupo: string}>>
      */
-    public function acervoEmLote(array $profissionalIds): array
+    public function acervoPorArtEmLote(array $profissionalIds): array
     {
         $linhas = $this->buscarPorIds(
             static fn (array $m): string =>
-                'SELECT evi_candidato_id AS id,
-                        COUNT(DISTINCT evi_art_numero) AS arts,
-                        COUNT(DISTINCT evi_cat_numero) AS cats,
-                        GROUP_CONCAT(DISTINCT t.tos_grupo ORDER BY t.tos_grupo SEPARATOR "|") AS grupos,
-                        GROUP_CONCAT(DISTINCT t.tos_subgrupo ORDER BY t.tos_subgrupo SEPARATOR "|") AS subgrupos
+                'SELECT ev.evi_candidato_id AS id, a.art_id, ev.evi_art_numero, ev.evi_cat_numero,
+                        t.tos_grupo, t.tos_subgrupo
                    FROM crea_evidencias ev
-                   JOIN crea_tos t ON t.tos_codigo = ev.evi_tos_codigo
+                   JOIN crea_tos t  ON t.tos_codigo = ev.evi_tos_codigo
+                   JOIN crea_arts a ON a.art_numero = ev.evi_art_numero
                   WHERE ev.evi_candidato_tipo = "P"
-                    AND ev.evi_candidato_id IN (' . implode(', ', $m) . ')
-                  GROUP BY evi_candidato_id',
+                    AND ev.evi_candidato_id IN (' . implode(', ', $m) . ')',
             $profissionalIds,
         );
 
         $saida = [];
 
         foreach ($linhas as $linha) {
-            $grupos = (string) ($linha['grupos'] ?? '');
+            $saida[(int) $linha['id']][] = [
+                'art_id'     => (int) $linha['art_id'],
+                'art_numero' => (string) $linha['evi_art_numero'],
+                'cat'        => $linha['evi_cat_numero'] !== null ? (string) $linha['evi_cat_numero'] : null,
+                'grupo'      => (string) $linha['tos_grupo'],
+                'subgrupo'   => (string) $linha['tos_subgrupo'],
+            ];
+        }
 
-            $sub = (string) ($linha['subgrupos'] ?? '');
+        return $saida;
+    }
 
-            $saida[(int) $linha['id']] = [
-                'arts'      => (int) $linha['arts'],
-                'cats'      => (int) $linha['cats'],
-                'grupos'    => $grupos === '' ? [] : explode('|', $grupos),
-                // O subgrupo é o nível onde o termo costuma casar: a busca procura nele, mas o
-                // cartão só mostrava o grupo. Quem digitava "elétrica" recebia gente cujo grupo
-                // diz "Eletrotécnica" — resultado certo, e sem nada na tela explicando por quê.
-                'subgrupos' => $sub === '' ? [] : explode('|', $sub),
+    /**
+     * As experiências declaradas de cada profissional, para o serviço conferir se o termo casou
+     * numa experiência que o titular abriu (D95).
+     *
+     * @param  list<int> $profissionalIds
+     * @return array<int, list<array{exp_id: int, titulo: string, descricao: string}>>
+     */
+    public function experienciasEmLote(array $profissionalIds): array
+    {
+        $linhas = $this->buscarPorIds(
+            static fn (array $m): string =>
+                'SELECT exp_prf_id AS id, exp_id, exp_titulo, exp_descricao
+                   FROM pro_experiencias
+                  WHERE exp_prf_id IN (' . implode(', ', $m) . ') AND exp_status = :ativo',
+            $profissionalIds,
+            [':ativo' => STATUS_ATIVO],
+        );
+
+        $saida = [];
+
+        foreach ($linhas as $linha) {
+            $saida[(int) $linha['id']][] = [
+                'exp_id'    => (int) $linha['exp_id'],
+                'titulo'    => (string) $linha['exp_titulo'],
+                'descricao' => (string) ($linha['exp_descricao'] ?? ''),
             ];
         }
 

@@ -178,7 +178,7 @@ final class PainelDemandaService
             return null;
         }
 
-        // Mesmo portão do feed: quem fechou o perfil depois da sessão não aparece (D52).
+        // Mesmo portão do feed: quem fechou o perfil depois da sessão não aparece.
         $abertos = $this->visibilidade->perfisAbertos($pool);
         $fora    = array_fill_keys($excluidos, true);
 

@@ -138,6 +138,23 @@ final class DemandaRepository extends Repositorio
             return [];
         }
 
+        return $this->comAtividades($demandas);
+    }
+
+    /**
+     * As mesmas demandas, cada uma com a chave `tos`: as atividades da Tabela de Obras e Serviços,
+     * da de maior peso para a de menor. Uma consulta só para a lista inteira. Serve à vitrine
+     * (D89) e a Minhas demandas (D93), que filtram e contam por área.
+     *
+     * @param list<array<string, mixed>> $demandas
+     * @return list<array<string, mixed>>
+     */
+    public function comAtividades(array $demandas): array
+    {
+        if ($demandas === []) {
+            return [];
+        }
+
         [$marcas, $ids] = $this->marcadores(array_map('intval', array_column($demandas, 'dem_id')));
 
         $tos = $this->pdo->prepare(

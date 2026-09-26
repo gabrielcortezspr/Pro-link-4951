@@ -50,25 +50,52 @@ final class Tos
      */
     public static function afinidade(string $demanda, string $acervo, array $pesos): float
     {
-        $a = self::niveis($demanda);
-        $b = self::niveis($acervo);
+        $iguais = self::niveisEmComum($demanda, $acervo);
+
+        if ($iguais === count(self::niveis($demanda)) && $iguais === count(self::niveis($acervo))) {
+            return (float) $pesos[4];
+        }
+
+        return (float) $pesos[min($iguais, 3)];
+    }
+
+    /** Quantos níveis, a partir do grupo, os dois códigos têm iguais. */
+    public static function niveisEmComum(string $a, string $b): int
+    {
+        $x = self::niveis($a);
+        $y = self::niveis($b);
 
         $iguais = 0;
-        $limite = min(count($a), count($b));
+        $limite = min(count($x), count($y));
 
         for ($i = 0; $i < $limite; $i++) {
-            if ($a[$i] !== $b[$i]) {
+            if ($x[$i] !== $y[$i]) {
                 break;
             }
 
             $iguais++;
         }
 
-        if ($iguais === count($a) && $iguais === count($b)) {
-            return (float) $pesos[4];
+        return $iguais;
+    }
+
+    /**
+     * O que a atividade do acervo tem em comum com a pedida, em palavras que a tela usa (D96):
+     * `mesma` (o mesmo código), `servico` (a mesma obra ou serviço, em outra variação), `subgrupo`,
+     * `grupo` ou null (nada em comum). A afinidade do motor é o peso de cada caso; esta é a frase.
+     */
+    public static function relacao(string $demanda, string $acervo): ?string
+    {
+        if ($demanda === $acervo) {
+            return 'mesma';
         }
 
-        return (float) $pesos[min($iguais, 3)];
+        return match (self::niveisEmComum($demanda, $acervo)) {
+            0       => null,
+            1       => 'grupo',
+            2       => 'subgrupo',
+            default => 'servico',
+        };
     }
 
     /**

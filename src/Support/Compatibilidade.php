@@ -34,6 +34,7 @@ final class Compatibilidade
      * administrador): são a forma da curva de reforço. Ficam aqui, e não no banco, porque mexer
      * neles é mudar o desenho do cálculo, não calibrar uma preferência.
      */
+    /** Fração do caminho até 1 que uma CAT vigente cobre, na afinidade máxima (D96). */
     public const REFORCO_CAT = 0.30;
 
     /** As seis dimensões do item 3.2, na ordem em que a interface as apresenta. */
@@ -140,8 +141,11 @@ final class Compatibilidade
 
             $valor = self::reforcarPorVolume($melhor, count($arts));
 
+            // O reforço da CAT é proporcional à afinidade (D96): a certidão prova a atividade que
+            // ela certifica, e não a que só divide o grupo com a pedida. Com fração fixa, uma
+            // ligação só pelo grupo (0,15) virava 0,41, quase dois terços vindos da CAT.
             if ($temCat) {
-                $valor = self::saturar($valor, self::REFORCO_CAT);
+                $valor = self::saturar($valor, self::REFORCO_CAT * $melhor);
             }
 
             $somaPonderada += $peso * $valor;

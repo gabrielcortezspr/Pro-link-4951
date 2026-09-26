@@ -38,17 +38,13 @@ final class DemandaController
      */
     public function index(): string
     {
-        $usuarioId = (int) Sessao::usuarioId();
-        $demandas  = $this->repositorio->doUsuario($usuarioId);
-        $painel    = new PainelDemandaService();
-
-        foreach ($demandas as $i => $d) {
-            $demandas[$i]['painel'] = $painel->painel($usuarioId, (int) $d['dem_id']);
-        }
+        // Situação, busca, áreas e ordem pela URL, como na vitrine (D93).
+        $lista = (new \ProLink\Service\MinhasDemandasService())->listar((int) Sessao::usuarioId(), $_GET);
 
         return View::render('demanda/index.html.twig', [
             'titulo'   => 'Minhas demandas',
-            'demandas' => $demandas,
+            'demandas' => $lista['demandas'],
+            'lista'    => $lista,
         ]);
     }
 

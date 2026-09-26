@@ -37,7 +37,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E7 — auditoria de RF por entidade e refino visual | D69, D70, D71, D72, D73 |
 | E7 — fechamento da entrega | D74, D75 |
 | E8 — CAT, atualização do acervo e preferências da demanda (pós-entrega) | D76, D77, D78, D79, D80 |
-| E9 — navegação da demanda (Teste-Demo) | D87, D88, D89, D90 |
+| E9 — navegação da demanda (Teste-Demo) | D87, D88, D89, D90, D92, D93, D94, D95, D96 |
 
 ---
 
@@ -3159,3 +3159,154 @@ da figura, e o giro continuaria saltando por baixo do apagamento. Na volta, a ce
 redesenha o anel de pulso, que ao contrário pareceria uma implosão. A face de cima entra e sai
 por opacidade proporcional à altura. `prefers-reduced-motion` segue recebendo o quadro final
 parado. O mockup `docs/mockups/prolink-landing.html` fica como estava: é referência de desenho.
+
+## D92 · A vitrine diz de onde vem "na sua área": das atividades das ARTs, ao lado da modalidade do registro
+
+`26/09/2026` · E9 · `src/Service/VitrineService.php`, `src/Repository/EvidenciaRepository.php`
+
+**Contexto.** Revisando a demo, a equipe viu o Thiago Lemos com registro em Geografia no perfil e,
+na vitrine, "na minha área" filtrado com o chip Mecânica. As duas telas estavam certas e diziam
+coisas diferentes: o perfil mostra a **modalidade do registro**; o filtro (D89) usa as **atividades
+da TOS nas ARTs** dele, que na massa de dados são sorteadas e cobrem oito áreas, entre elas Mecânica
+e Engenharia Nuclear. E o chip conta as demandas que sobraram, não descreve a pessoa. Nada na tela
+dizia isso, e a leitura natural era "a plataforma acha que sou mecânico".
+
+**Decisão.** A vitrine (e o bloco "Demandas na sua área" do Início) mostra a origem do filtro numa
+linha: a modalidade do registro e as áreas que o acervo cobre, com quantas ARTs sustentam cada uma.
+O critério continua o mesmo, a evidência documental; só passa a estar escrito.
+
+**Alternativa recusada: filtrar "na minha área" pela modalidade.** Seria voltar à autodeclaração
+que o projeto existe para superar: a modalidade diz o que a pessoa pode assinar, a ART diz o que
+ela já fez. E a modalidade não tem mapa para os grupos da TOS; qualquer tabela de correspondência
+seria inventada aqui.
+
+**Alternativa recusada: esconder as áreas "estranhas" do acervo.** Com dado real a lista coincide
+com a formação; com a massa, ela mostra a aleatoriedade que já está documentada. Filtrar a
+evidência para parecer coerente seria maquiar o dado da API.
+
+## D93 · Minhas demandas separa por situação e filtra como a vitrine; a demanda tem caminho de volta
+
+`26/09/2026` · E9 · `src/Service/MinhasDemandasService.php`, `src/Support/MinhasDemandas.php`
+
+**Contexto.** Na revisão da demo, a equipe não achou as demandas encerradas: elas estavam na mesma
+tabela que as abertas e os rascunhos, e só um filtro de texto no navegador, digitando "encerrada",
+as separava. E, dentro de uma demanda (Demanda, Compatíveis, Contatos), o único caminho de volta
+era a barra lateral, que a pessoa não lia como "voltar".
+
+**Decisão.** A situação vira a primeira escolha da tela, em abas com contagem: Abertas (padrão),
+Rascunhos, Encerradas e Todas. Dentro da aba, o molde da vitrine (D89): busca no servidor por
+título, escopo, município e atividade da TOS; chips de área; "com algo esperando você" (candidatura
+não aberta ou mensagem não lida, D87); ordem por mais recentes, por pendência ou por início mais
+próximo; tudo na URL. As páginas da demanda ganham o caminho de volta no topo, para Minhas demandas
+quando quem olha é a dona e para Demandas abertas quando não é.
+
+**Alternativa recusada: manter o filtro instantâneo no navegador.** Ele só via o texto da linha:
+não filtrava por área nem por pendência, sumia sem JavaScript, e não deixava link para uma aba.
+
+**Alternativa recusada: paginar.** Uma conta tem poucas demandas, e o custo real é o painel de
+cada uma, que já era calculado para a lista inteira. Paginar só esconderia demandas.
+
+**Ordenar por pendência não é ranking** (item 10.1): ordena as demandas da própria conta pelo que
+espera resposta nelas, sem comparar pessoa nenhuma.
+
+## D94 · Toda demanda com atividade tem ao menos uma principal
+
+`26/09/2026` · E9 · `src/Service/DemandaService.php` (`exigirPrincipal`), `docs/matching.md`
+
+**Contexto.** Na revisão da demo, a equipe viu que dava para tornar secundária a única atividade
+da TOS de uma demanda. O serviço aceitava qualquer troca de peso, e a tela oferecia o botão em
+toda linha.
+
+**Decisão.** O conjunto de atividades de uma demanda, depois de qualquer alteração, tem ao menos
+uma principal. Tornar secundária a única principal é recusado, e removê-la também, quando sobram
+só secundárias. A tela não oferece esses botões, e o serviço recusa mesmo assim, para a regra não
+depender da tela. O conjunto vazio continua permitido no rascunho; a publicação é que o recusa.
+
+**Alternativa recusada: promover sozinha outra atividade a principal.** Mudaria uma escolha da
+empresa sem ela pedir, e com várias secundárias não haveria critério para escolher qual.
+
+**Alternativa recusada: permitir e deixar o motor tratar.** O motor faz média ponderada pelos
+pesos: com todas secundárias o resultado é o mesmo de todas principais, e a marcação diria à
+empresa que algo pesa menos quando nada pesa menos.
+
+## D95 · ART fechada não conta em nada que chegue a outra pessoa (revê a D52)
+
+`26/09/2026` · E9 · `src/Service/CompatibilizacaoService.php` (`soOVisivel`), `src/Service/BuscaService.php`
+
+**Contexto.** A D52 decidiu que a ART fechada continuava contando para o score e só não era
+citada pelo número. Na revisão da demo, o usuário viu o feed dizer "1 ART registrada, não aberta
+pelo titular" com a atividade dela ao lado, e rejeitou a premissa: se o titular escolheu não
+mostrar, a plataforma não pode usar. O argumento dele é o do próprio produto: o acervo entra
+**privado** por padrão justamente porque quem decide o que é mostrado é o titular. Na prática a
+D52 também vazava: a coluna "Coberta por" mostrava o código da atividade da ART fechada, e a busca
+pública casava o termo com ARTs, resumo e experiências fechados e contava ARTs fechadas no cartão.
+
+**Decisão.** A escolha de visibilidade do titular vale para tudo o que chega a outra pessoa:
+
+- **Motor:** antes de medir qualquer dimensão, o acervo do candidato é reduzido às ARTs que a
+  `Visao` do dono do perfil deixa o demandante ver. Fechada não pesa em competência, local nem
+  reforço de CAT. Sem ART visível nos grupos pedidos, o candidato não entra no pool.
+- **Feed:** a releitura da sessão (titular que fechou depois do cálculo) tira as linhas sem ART
+  aberta inteiras; nada de "não aberta", nem código da atividade, nem CAT de ART fechada.
+- **Busca pública:** o termo só encontra alguém pelo que ele abriu para quem busca (nome,
+  modalidade, resumo aberto, experiência aberta, área de ART aberta), e o cartão conta só ARTs e
+  CATs abertas. O anônimo vê o que é público; quem tem conta, também o que é para quem tem conta.
+- Na empresa, quem escolhe é a conta da empresa, sobre as ARTs do quadro, como no perfil dela.
+
+O que é mostrado **ao próprio titular** (Início, vitrine "na sua área", perfil próprio) continua
+usando o acervo inteiro: é o dado dele, para ele.
+
+**Alternativa recusada: manter a D52.** O argumento dela era que fechar uma ART não deveria
+custar posição. Continua verdadeiro que agora custa, e esse é o preço aceito: o titular sabe o que
+está fechando, e a tela da Visibilidade passa a dizer que documento fechado não conta. Usar em
+silêncio o que ele escondeu é pior do que pedir que ele abra o que quer que conte.
+
+**Alternativa recusada: contar e não mostrar nada.** Tirar da tela sem tirar do cálculo esconde o
+problema em vez de resolvê-lo: o número continuaria sustentado por algo que o demandante não pode
+conferir, que é a assimetria que a própria D52 listava como limitação.
+
+**Consequência.** Os pools encolhem para quem mantém o acervo fechado; na base de demonstração, as
+empresas semeadas nunca tinham tido ART aberta (o script de demo só procurava ARTs de
+profissional), e sem o ajuste do `abrir-visibilidade-demo.php --so-empresas` todas sairiam dos
+compatíveis. O rótulo de perfil em construção continua derivado do total de ARTs, abertas ou não:
+revela só que há ao menos três, e mudá-lo marcaria como iniciante quem escolheu privacidade. A
+Política de Privacidade (§8, "compara... com os códigos das suas ARTs") fica coerente, mas não diz
+"só as abertas"; deixar isso explícito é uma versão 1.1 da política, com novo aceite (§10).
+
+## D96 · Política de Privacidade 1.1, afinidade dita pelo nível e reforço da CAT proporcional
+
+`26/09/2026` · E9 · `_arq/migracoes/2026-09-26-d96-politica-privacidade-1-1.sql`,
+`src/Support/Compatibilidade.php`, `src/Support/Tos.php`
+
+**Contexto.** Três pontas que a revisão do feed de compatíveis deixou depois da D95. Uma linha da
+Júlia Melo dizia "TOS 1.6.4 · TOS 1.2.6 · Atividade vizinha na tabela · Certificada por CAT · 41%":
+as duas atividades só dividiam o grupo (Construção Civil), e quase dois terços dos 41% vinham da
+CAT de uma atividade que não era a pedida. E a Política dizia que o motor comparava a demanda
+"com os códigos das suas ARTs", sem dizer que só as abertas contam.
+
+**Decisão.**
+
+1. **Política de Privacidade 1.1**: os itens 4 e 8 dizem que documento fechado não entra na
+   compatibilização nem na busca de quem não pode vê-lo, que isso pode reduzir as listas em que a
+   pessoa aparece, e que o painel do próprio titular usa o acervo inteiro. O texto termina com o
+   que mudou em relação à 1.0. A 1.0 continua gravada, e o aceite de cada um aponta para a versão
+   que aceitou.
+2. **A relação entre atividades é dita pelo nível da tabela**: "mesmo serviço, em outra
+   variação", "mesmo subgrupo · nome" ou "só o mesmo grupo · nome", no lugar de "atividade
+   vizinha".
+3. **O reforço da CAT é proporcional à afinidade**: a CAT cobre `0,30 × afinidade` do caminho até
+   1. A mesma linha da Júlia passa de 41% a 19%; uma atividade idêntica com CAT continua indo a 1.
+
+**Alternativa recusada: exigir novo aceite da 1.1 de quem já tem conta.** A própria política diz
+que mudança relevante exige novo aceite, e a pergunta é se esta é relevante nesse sentido. Não é:
+ela só restringe o uso dos dados, não cria tratamento nem finalidade nova, e a pessoa não tem o que
+consentir além do que já consentiu. Um bloqueio de novo aceite para uma mudança que só protege
+seria atrito sem ganho. Quem se cadastra a partir de agora aceita a 1.1.
+
+**Alternativa recusada: reforço da CAT por degrau (só na mesma atividade).** Descartaria a CAT
+de uma variação do mesmo serviço, que é evidência forte; a proporção mantém esse caso e encolhe o
+reforço onde a ligação é fraca.
+
+**Consequência.** As sessões antigas guardam os números calculados com a regra anterior; as
+demandas abertas da demonstração foram recalculadas. O deck, que mostra porcentagem por dimensão,
+precisa ser conferido contra os números novos.

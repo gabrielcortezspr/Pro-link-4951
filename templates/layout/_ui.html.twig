@@ -599,6 +599,35 @@
   `painel` pode faltar (demanda de outra conta, rascunho): o macro só é chamado para a dona de uma
   demanda publicada, e mesmo assim lê tudo com `default`.
 #}
+{#
+  O caminho de volta das páginas da demanda (D93). A barra lateral levava de volta, mas ninguém a
+  lia como "voltar": dentro de Demanda, Compatíveis ou Contatos, o único jeito de sair era um
+  menu que parecia navegação geral.
+
+  Um nível só, e não trilha inteira: o nível de baixo seria o próprio título da página, que está
+  logo embaixo em 26px. A dona volta para Minhas demandas, na aba da situação da própria demanda
+  (a encerrada volta para Encerradas), o que dispensa guardar de onde a pessoa veio; qualquer
+  outra conta volta para Demandas abertas.
+#}
+{% macro volta_demanda(d, eh_dono = true) %}
+    {%- if eh_dono -%}
+        {%- set aba = d.dem_dt_publicacao is null ? 'rascunhos' : (d.dem_situacao == 'ENCERRADA' ? 'encerradas' : 'abertas') -%}
+        {%- set href = app_url ~ '/demandas' ~ (aba != 'abertas' ? '?situacao=' ~ aba : '') -%}
+        {%- set rotulo = 'Minhas demandas' -%}
+        {%- set detalhe = {abertas: 'Abertas', rascunhos: 'Rascunhos', encerradas: 'Encerradas'}[aba] -%}
+    {%- else -%}
+        {%- set href = app_url ~ '/demandas/abertas' -%}
+        {%- set rotulo = 'Demandas abertas' -%}
+        {%- set detalhe = '' -%}
+    {%- endif -%}
+    <nav class="pl-volta" aria-label="Voltar">
+        <a href="{{ href }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+            <span>{{ rotulo }}{% if detalhe %}<span class="det"> · {{ detalhe }}</span>{% endif %}</span>
+        </a>
+    </nav>
+{% endmacro %}
+
 {% macro abas_demanda(d, painel, atual) %}
     {%- set p = painel|default({}) -%}
     {%- set base = app_url ~ '/demandas/' ~ d.dem_id -%}
@@ -725,6 +754,61 @@
     {%- endif -%}
 {% endmacro %}
 
+{#  De onde vem "na sua área" (D92), na vitrine e no Início. O filtro usa as atividades da TOS nas
+    ARTs, e não a modalidade do registro; sem isto escrito, "registro em Geografia" no perfil e o
+    chip "Mecânica" na vitrine pareciam se contradizer.
+
+    Primário a definição; secundário os dois fatos lado a lado (a modalidade, só do profissional,
+    e as áreas que o acervo cobre); a lista inteira, com quantas ARTs sustentam cada área, abre sob
+    demanda. As áreas são texto corrido separado por ponto, e não chip: descrevem a pessoa, não
+    filtram nada, e o chip ao lado já é o filtro. Ponto e não vírgula porque o nome do grupo da TOS
+    tem vírgula dentro ("Agronomia, Agrícola, Florestal, Pesca e Aquicultura").
+
+    A ordem é a do repositório (mais ARTs primeiro): é o acervo da própria pessoa, não comparação
+    entre pessoas. Na vitrine, `destaque` traz os grupos que têm chip, e a prévia começa por eles:
+    cada chip ganha à vista a evidência que o explica, e a área sem demanda nenhuma cede o lugar.
+    Até quatro áreas cabem inteiras; esconder uma só atrás de um clique não vale. #}
+{% macro origem_area(areas, modalidades = [], empresa = false, com_rotulo = true, destaque = []) %}
+    {%- if areas|default([]) is not empty -%}
+        {%- set n = areas|length -%}
+        {%- set ordem = areas|filter(a => a.nivel1 in destaque)|merge(areas|filter(a => a.nivel1 not in destaque)) -%}
+        {%- set previa = n > 4 ? ordem|slice(0, 3) : ordem -%}
+        {%- set resto = n - previa|length -%}
+        {%- set de_quem = empresa ? 'das ARTs do seu quadro técnico' : 'das suas ARTs' -%}
+        <div class="pl-origem">
+            <p class="def">
+                <svg class="pl-mark" role="img" aria-label="Com base no acervo conferido na API do CREA-AM"><use href="#pl-sym-seal"/></svg>
+                <span>{% if com_rotulo %}<b>Na sua área:</b> demandas{% else %}Demandas{% endif %} com atividades {{ de_quem }}, ou do mesmo subgrupo.</span>
+            </p>
+            <div class="dd">
+                {%- if not empresa and modalidades|default([]) is not empty -%}
+                    <span class="mod">Registro em <b>{{ modalidades|join(', ', ' e ') }}</b></span><span class="fato" aria-hidden="true"></span>
+                {%- endif -%}
+                <span class="k">{{ empresa ? 'O acervo do quadro cobre' : 'Suas ARTs cobrem' }} {{ n }} {{ n == 1 ? 'área' : 'áreas' }}:</span>
+                <ul class="areas">
+                    {%- for a in previa -%}
+                        <li title="{{ a.arts }} {{ a.arts == 1 ? 'ART' : 'ARTs' }} com atividade nesta área">{{ a.grupo }}{% if a.arts > 1 %} <span class="n">({{ a.arts }} ARTs)</span>{% endif %}</li>
+                    {%- endfor -%}
+                </ul>
+                {%- if resto > 0 %}
+                    <details class="pl-info pl-origem-mais">
+                        <summary>e mais {{ resto }} {{ resto == 1 ? 'área' : 'áreas' }}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+                        <div class="pl-info-caixa" role="note">
+                            <b>As {{ n }} áreas {{ de_quem }}</b>
+                            <ul class="lista">
+                                {%- for a in areas -%}
+                                    <li><span class="nm">{{ a.grupo }}</span><span class="n">{{ a.arts }} {{ a.arts == 1 ? 'ART' : 'ARTs' }}</span></li>
+                                {%- endfor -%}
+                            </ul>
+                            <p>Uma ART com atividades de mais de uma área conta em cada uma.</p>
+                        </div>
+                    </details>
+                {%- endif -%}
+            </div>
+        </div>
+    {%- endif -%}
+{% endmacro %}
+
 {#  A ação sobre a demanda, pelo que quem olha já tem com ela. Uma só por demanda, e nunca laranja
     na vitrine: vinte botões preenchidos numa grade não seriam "a única ação que compromete" (D34);
     o laranja fica no "Enviar candidatura" da confirmação.
@@ -792,12 +876,22 @@
 {% endmacro %}
 
 {#  O que espera numa demanda da própria conta (D87), cada item levando à aba certa. Zero não vira
-    número. Serve a "Minhas demandas" e ao Início. `painel` nulo é rascunho ou encerrada. #}
+    número. Serve a "Minhas demandas" e ao Início. `painel` nulo é rascunho ou encerrada.
+
+    Encerrada não tem o que fazer (D93): em vez das pendências em azul, a data em que fechou e
+    quantos contatos teve, em tinta de nota, levando à conversa para consulta. #}
 {% macro acompanhamento(d, painel) %}
     {%- set pn = painel|default({}) -%}
     {%- set base = app_url ~ '/demandas/' ~ d.dem_id -%}
     {% if d.dem_dt_publicacao is null %}
         <span class="lin-sub">Publique para ver compatíveis</span>
+    {% elseif d.dem_situacao == 'ENCERRADA' %}
+        <ul class="pl-acomp fechada">
+            <li>{{ d.dem_dt_encerramento|default(null) ? 'Encerrada em ' ~ d.dem_dt_encerramento|date('d/m/Y') : 'Encerrada' }}</li>
+            {% if pn.contatos|default(0) > 0 %}
+                <li><a href="{{ base }}/contatos">{{ pn.contatos }} {{ pn.contatos == 1 ? 'contato' : 'contatos' }}</a></li>
+            {% endif %}
+        </ul>
     {% elseif painel is null %}
         <span class="lin-sub">Nada pendente</span>
     {% else %}

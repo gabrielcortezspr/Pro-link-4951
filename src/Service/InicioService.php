@@ -105,10 +105,12 @@ final class InicioService
                 static fn (array $d): bool => $d['meu_contato'] === null && !$d['propria'],
             ));
             $naArea = [
-                'demandas'    => array_slice($livres, 0, self::NA_AREA),
-                'total'       => $busca['total'],
-                'sem_contato' => $busca['sem_contato'],
-                'tem_acervo'  => $busca['tem_acervo'],
+                'demandas'     => array_slice($livres, 0, self::NA_AREA),
+                'total'        => $busca['total'],
+                'sem_contato'  => $busca['sem_contato'],
+                'tem_acervo'   => $busca['tem_acervo'],
+                'areas_acervo' => $busca['areas_acervo'],
+                'modalidades'  => $busca['modalidades'],
             ];
         }
 

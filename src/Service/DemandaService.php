@@ -125,6 +125,8 @@ final class DemandaService
             $atuais[$codigo] = $acao === 'secundaria' ? self::PESO_SECUNDARIO : self::PESO_PRINCIPAL;
         }
 
+        self::exigirPrincipal($atuais, $acao);
+
         return Database::transacao(function (PDO $pdo) use ($usuarioId, $demandaId, $atuais, $codigo, $acao): array {
             $this->demandas->sincronizarTos($demandaId, $atuais);
 
@@ -135,6 +137,29 @@ final class DemandaService
 
             return $atuais;
         });
+    }
+
+    /**
+     * Uma demanda com atividades tem sempre ao menos uma principal (D94).
+     *
+     * "Secundária" só quer dizer algo em relação a uma principal: o motor faz a média ponderada
+     * pelos pesos, e com todas secundárias o peso some da conta e a marcação vira enfeite, que
+     * diz à empresa uma coisa que não acontece. Vale para tornar secundária a única principal e
+     * para remover a última principal deixando só secundárias. Conjunto vazio passa: é o
+     * rascunho sem atividade, que a publicação já recusa.
+     *
+     * @param array<string, float> $pesos código => peso, já com a alteração aplicada
+     * @throws ValidacaoException
+     */
+    public static function exigirPrincipal(array $pesos, string $acao = ''): void
+    {
+        if ($pesos === [] || max($pesos) >= self::PESO_PRINCIPAL) {
+            return;
+        }
+
+        throw new ValidacaoException($acao === 'remover'
+            ? 'Esta é a única atividade principal da demanda. Torne outra atividade principal antes de removê-la.'
+            : 'A demanda precisa de ao menos uma atividade principal. Para tornar esta secundária, torne outra principal primeiro.');
     }
 
     /**

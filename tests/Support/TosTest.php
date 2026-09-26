@@ -58,4 +58,15 @@ final class TosTest extends TestCase
         self::assertSame('de instalacoes eletricas', Tos::normalizar('  de instalações elétricas '));
         self::assertSame('quimica', Tos::normalizar('Química'));
     }
+
+    public function testRelacaoEntreAtividadesEmPalavras(): void
+    {
+        self::assertSame('mesma', Tos::relacao('TOS_1.6.4', 'TOS_1.6.4'));
+        self::assertSame('grupo', Tos::relacao('TOS_1.6.4', 'TOS_1.2.6'));
+        self::assertSame('subgrupo', Tos::relacao('TOS_16.3.2', 'TOS_16.3.12'));
+        self::assertSame('servico', Tos::relacao('TOS_16.3.20.1', 'TOS_16.3.20.2'));
+        self::assertNull(Tos::relacao('TOS_1.6.4', 'TOS_2.6.4'));
+        // Grupo 1 e grupo 10 não têm nada em comum: a comparação é por nível, não por texto.
+        self::assertSame(0, Tos::niveisEmComum('TOS_1.2', 'TOS_10.2'));
+    }
 }
