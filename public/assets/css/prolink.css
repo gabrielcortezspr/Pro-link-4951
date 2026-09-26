@@ -4968,3 +4968,68 @@ html:not(.js-seg) .pl-seg-area:has(> #conta:target) > .pl-seg > .pl-seg-b[href="
     .pl-origem .pl-info-caixa { left: 0; width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .pl-origem .pl-origem-mais > summary svg { transition: none; } }
+
+/* ---------- 49. Minhas demandas por situação, e o caminho de volta da demanda (D93) ------------
+   Minhas demandas separa por situação em abas (o `.pl-seg` das abas da demanda, porque são lugares
+   irmãos) e, dentro da aba, usa as peças da vitrine (seção 46): busca, chips de área, a fileira de
+   "Limpar filtros" e a barra de resultado. O que é só daqui: o chip de pendência, a ordem como
+   links na barra, a atividade da TOS na linha e a linha encerrada, que não grita.
+
+   O caminho de volta é um link pequeno acima do título, em tinta de nota: é navegação, não ação,
+   e não compete com o título nem com as abas da demanda. Nenhuma cor nova. */
+
+/* ---- O caminho de volta ---- */
+.pl-volta { margin: 0 0 10px; }
+.pl-volta a { display: inline-flex; align-items: center; gap: 4px; min-height: 24px; padding: 0 4px 0 0;
+    border-radius: 6px; font-size: 12.5px; font-weight: 600; color: var(--pl-muted); text-decoration: none; }
+.pl-volta a svg { width: 15px; height: 15px; flex: none; transition: transform .14s ease; }
+.pl-volta a .det { font-weight: 500; color: var(--pl-faint); }
+.pl-volta a:hover { color: var(--pl-blue); text-decoration: none; }
+.pl-volta a:hover svg { transform: translateX(-2px); }
+.pl-volta a:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; }
+.pl-feed-abas .pl-volta { margin-bottom: 10px; }
+/* O `main.pl-content` é coluna flex com 18px de vão entre filhos: somado à margem, o link ficava
+   a 28px do título e lia como coisa solta. Aqui ele fica a 10px, como no feed. */
+.pl-content > .pl-volta { margin-bottom: -8px; }
+
+/* ---- As abas de situação ---- */
+.pl-md-abas { margin-bottom: 16px; }
+/* Em 390px as quatro não cabem numa linha, e a quarta caía sozinha na segunda: grade de 2 por 2. */
+@media (max-width: 640px) {
+    .pl-md-abas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .pl-md-abas .pl-seg-b { justify-content: center; }
+}
+
+/* ---- O chip de pendência: o ponto de "espera por você" das abas da demanda, na cor de dado ---- */
+.pl-md-pend .pd { width: 6px; height: 6px; border-radius: 50%; background: var(--pl-data); flex: none; }
+
+/* ---- A ordem, na barra de resultado ----
+   `.pl-md-ordem`, e não `.pl-ordem`, que é a reprodução do motor (seção 21). */
+.pl-md-ordem { gap: 4px 9px; }
+.pl-md-ordem .rt { color: var(--pl-faint); margin-right: 2px; }
+.pl-md-ordem a { font-weight: 500; color: var(--pl-muted); text-decoration: none; }
+.pl-md-ordem a:hover { color: var(--pl-blue); text-decoration: underline; }
+.pl-md-ordem a:focus-visible { outline: 2px solid var(--pl-blue); outline-offset: 2px; border-radius: 4px; }
+.pl-md-ordem .aqui { font-weight: 600; color: var(--pl-ink); }
+
+/* ---- A linha ---- */
+/* A atividade da TOS embaixo do local, no mesmo chip da vitrine: é por ela que a busca e o chip de
+   área acham a linha. */
+.pl-table .lin-tos { margin-top: 6px; }
+.pl-table .lin-tos .pl-vit-tos .mais { font-size: 11px; }
+/* O regime quebra em vez de cortar: "Obra certa (empr..." cortava um valor de lista fechada no
+   meio. As larguras abrem espaço para o título, que agora divide a célula com a atividade. */
+.pl-table.fixa.acomp .c-assunto  { width: 33%; }
+.pl-table.fixa.acomp .c-regime   { width: 12%; }
+.pl-table.fixa.acomp .c-data     { width: 10%; }
+.pl-table.fixa.acomp .c-situacao { width: 12%; }
+.pl-table.fixa.acomp .c-acomp    { width: 21%; }
+.pl-table.fixa.acomp .c-acao     { width: 12%; }
+/* A encerrada: título em tinta de nota e acompanhamento sem azul nem ponto de novidade. */
+.pl-table tr.encerrada .lin-tt { color: var(--pl-muted); }
+.pl-table tr.encerrada .lin-tt:hover { color: var(--pl-blue); }
+.pl-acomp.fechada { color: var(--pl-muted); }
+.pl-acomp.fechada a { font-weight: 500; color: var(--pl-muted); }
+.pl-acomp.fechada a:hover { color: var(--pl-blue); }
+
+@media (prefers-reduced-motion: reduce) { .pl-volta a svg { transition: none; } }

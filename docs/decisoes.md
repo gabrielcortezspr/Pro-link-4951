@@ -37,7 +37,7 @@ Para que serve, em ordem de urgência: responder à banca no Demo Day; escrever 
 | E7 — auditoria de RF por entidade e refino visual | D69, D70, D71, D72, D73 |
 | E7 — fechamento da entrega | D74, D75 |
 | E8 — CAT, atualização do acervo e preferências da demanda (pós-entrega) | D76, D77, D78, D79, D80 |
-| E9 — navegação da demanda (Teste-Demo) | D87, D88, D89, D90, D92 |
+| E9 — navegação da demanda (Teste-Demo) | D87, D88, D89, D90, D92, D93 |
 
 ---
 
@@ -3183,3 +3183,28 @@ seria inventada aqui.
 **Alternativa recusada: esconder as áreas "estranhas" do acervo.** Com dado real a lista coincide
 com a formação; com a massa, ela mostra a aleatoriedade que já está documentada. Filtrar a
 evidência para parecer coerente seria maquiar o dado da API.
+
+## D93 · Minhas demandas separa por situação e filtra como a vitrine; a demanda tem caminho de volta
+
+`26/09/2026` · E9 · `src/Service/MinhasDemandasService.php`, `src/Support/MinhasDemandas.php`
+
+**Contexto.** Na revisão da demo, a equipe não achou as demandas encerradas: elas estavam na mesma
+tabela que as abertas e os rascunhos, e só um filtro de texto no navegador, digitando "encerrada",
+as separava. E, dentro de uma demanda (Demanda, Compatíveis, Contatos), o único caminho de volta
+era a barra lateral, que a pessoa não lia como "voltar".
+
+**Decisão.** A situação vira a primeira escolha da tela, em abas com contagem: Abertas (padrão),
+Rascunhos, Encerradas e Todas. Dentro da aba, o molde da vitrine (D89): busca no servidor por
+título, escopo, município e atividade da TOS; chips de área; "com algo esperando você" (candidatura
+não aberta ou mensagem não lida, D87); ordem por mais recentes, por pendência ou por início mais
+próximo; tudo na URL. As páginas da demanda ganham o caminho de volta no topo, para Minhas demandas
+quando quem olha é a dona e para Demandas abertas quando não é.
+
+**Alternativa recusada: manter o filtro instantâneo no navegador.** Ele só via o texto da linha:
+não filtrava por área nem por pendência, sumia sem JavaScript, e não deixava link para uma aba.
+
+**Alternativa recusada: paginar.** Uma conta tem poucas demandas, e o custo real é o painel de
+cada uma, que já era calculado para a lista inteira. Paginar só esconderia demandas.
+
+**Ordenar por pendência não é ranking** (item 10.1): ordena as demandas da própria conta pelo que
+espera resposta nelas, sem comparar pessoa nenhuma.

@@ -1,24 +1,28 @@
 {% extends 'layout/base.html.twig' %}
 {% import 'layout/_ui.html.twig' as ui %}
+{% import _self as md %}
 
 {#
-    O painel de quem publica, portado do bloco "03 Minhas Demandas" de
-    docs/mockups/prolink-empresa-1.html.
+    Minhas demandas (D93). Portada do bloco "03 Minhas Demandas" de docs/mockups/prolink-empresa-1.html
+    e, desde a D93, no molde da vitrine (D89).
 
-    A composição é a de lá: título do conjunto com a contagem embaixo, a linha de filtro com a
-    ação de publicar presa à direita, e um quadro só com a tabela de largura fixa, título cortado
-    em reticências e contagem centrada. O que mudou, e só o que tinha de mudar:
+    A unidade de leitura é UMA demanda da conta, numa linha da tabela. Primário o título;
+    secundário onde, a atividade da TOS e a situação; terciário o que espera nela (D87) e a ação.
 
-    1. A coluna "Atividade TOS" do mockup precisa das atividades de cada demanda, e
-       DemandaRepository::doUsuario() não as carrega. No lugar dela fica o regime de contratação,
-       que é dado real desta rota e ocupa o mesmo posto na leitura da linha.
-    2. As colunas "Compatíveis" e "Interessados" do mockup viraram uma só, "Acompanhamento" (D87):
-       o que espera em cada demanda, com cada número levando à aba certa dela ("3 para avaliar"
-       leva a Compatíveis; candidaturas, convites e mensagens levam a Contatos). É quantidade de
-       pendência, nunca nota, e nada aqui ordena pessoas (item 10.1).
-    3. O filtro do mockup é instantâneo, sobre a lista já carregada, e aqui também: não há rota
-       de busca em /demandas, e a lista é a da própria conta. Sem JavaScript o campo não aparece,
-       porque campo de busca que não busca é pior que a ausência dele.
+    A situação é a primeira escolha da tela, em abas com contagem: Abertas (padrão), Rascunhos,
+    Encerradas e Todas. As encerradas ficavam misturadas às abertas e só um filtro de texto no
+    navegador as separava. A contagem da aba é sobre todas as demandas da conta, e não muda com a
+    busca: diz quantas há naquela situação.
+
+    Dentro da aba, o vocabulário da vitrine, tudo na URL e sem JavaScript:
+    - a busca vai ao servidor (título, escopo, município e atividade da TOS);
+    - as áreas da TOS são chips com contagem, cada um um link que liga ou desliga aquela área;
+    - "Com algo esperando você" é um chip de alternância, ao lado de "Limpar filtros";
+    - a ordem é da lista, e não do filtro: fica na barra de resultado, como links.
+    "Limpar filtros" existe só quando há filtro além da aba, e mantém a aba.
+
+    Ordenar por pendência não é ranking (item 10.1): ordena as demandas da própria conta pelo que
+    espera resposta nelas, sem comparar pessoa nenhuma.
 #}
 
 {% block titulo %}Minhas demandas · Pro-Link{% endblock %}
@@ -29,44 +33,54 @@
 
 {% block titulo_tela %}Minhas demandas{% endblock %}
 
-{#  Tabela: o painel do demandante é uma lista de registros comparáveis entre si, e comparar pede
-    colunas alinhadas. Densa porque a tabela ganha com a largura. #}
+{#  Tabela: uma lista de registros comparáveis entre si, e comparar pede colunas alinhadas. Densa
+    porque a tabela ganha com a largura. #}
 {% block classe_main %}pl-wrap densa{% endblock %}
+
+{#  O endereço da lista com os filtros atuais e uma mudança. Parte do que o serviço entendeu
+    (`lista.filtros`), e não do $_GET cru, para nunca repetir na URL um valor que ele recusou. O
+    padrão (aba Abertas, ordem Mais recentes) sai da URL. #}
+{% macro url_lista(l, mudar = {}) %}
+    {%- set f = l.filtros -%}
+    {%- set p = {
+        'situacao': f.situacao != 'abertas' ? f.situacao : null,
+        'q': f.texto,
+        'area': f.areas,
+        'pendentes': f.pendentes ? '1' : null,
+        'ordem': f.ordem != 'recentes' ? f.ordem : null
+    }|merge(mudar)|filter(x => x is not null and x != '' and x != []) -%}
+    {{- app_url ~ '/demandas' ~ (p is empty ? '' : '?' ~ p|url_encode) -}}
+{% endmacro %}
 
 {% block conteudo %}
 {% set u = usuario() %}
-{% set publicadas = demandas|filter(d => d.dem_dt_publicacao is not null)|length %}
+{#  `lista` pode faltar só na amostra do verificador, que monta a lista simples de antes. Na rota
+    ela sempre vem de `MinhasDemandasService`. #}
+{% set l = lista|default({
+    total: demandas|length, areas: [], com_pendencia: 0,
+    situacoes: {abertas: demandas|length, rascunhos: 0, encerradas: 0, todas: demandas|length},
+    filtros: {situacao: 'abertas', texto: null, areas: [], pendentes: false, ordem: 'recentes'}
+}) %}
+{% set f = l.filtros %}
+{% set aba = f.situacao %}
+{% set na_aba = l.situacoes[aba]|default(0) %}
+{% set filtros_em_uso = f.texto or f.areas is not empty or f.pendentes or f.ordem != 'recentes' %}
+{#  Limpar tira tudo menos a aba: a situação é o lugar, e não um filtro. #}
+{% set url_limpa = md.url_lista(l, {q: null, area: null, pendentes: null, ordem: null}) %}
+{% set nomes_aba = {abertas: 'Abertas', rascunhos: 'Rascunhos', encerradas: 'Encerradas', todas: 'Todas'} %}
+{#  Como a contagem da barra chama as demandas desta aba. #}
+{% set coletivo = {
+    abertas:    ['demanda aberta', 'demandas abertas'],
+    rascunhos:  ['rascunho', 'rascunhos'],
+    encerradas: ['demanda encerrada', 'demandas encerradas'],
+    todas:      ['demanda', 'demandas']
+} %}
 
 <div class="pl-head">
     <div class="tit">
-        <h1>Todas as demandas</h1>
-        <p class="sub">
-            {% if demandas is not empty %}
-                <span><span class="n">{{ demandas|length }}</span>
-                    {{ demandas|length == 1 ? 'demanda cadastrada' : 'demandas cadastradas' }}</span>
-                <span class="pl-sep" aria-hidden="true"></span>
-                <span><span class="n">{{ publicadas }}</span>
-                    {{ publicadas == 1 ? 'publicada' : 'publicadas' }}</span>
-                <span class="pl-sep" aria-hidden="true"></span>
-            {% endif %}
-            <span>{% if u %}{{ u.nome|nome_proprio }}{% else %}Desta conta{% endif %}</span>
-        </p>
+        <h1>Minhas demandas</h1>
+        <p class="sub"><span>{% if u %}{{ u.nome|nome_proprio }}{% else %}Desta conta{% endif %}</span></p>
     </div>
-</div>
-
-{#  A linha do mockup: filtro à esquerda, ação de publicar presa à direita. O campo nasce com
-    `hidden` e o script o revela, pelo mesmo motivo do botão de recolher a barra lateral. #}
-<div class="pl-busca-row">
-    {% if demandas is not empty %}
-        <div class="cx" hidden data-filtro-demandas>
-            <span class="lupa" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.6-3.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-            </span>
-            <label class="visually-hidden" for="filtro-demandas">Filtrar as suas demandas por título, local ou situação</label>
-            <input type="search" id="filtro-demandas" autocomplete="off" maxlength="80"
-                   placeholder="Filtrar por título, local ou situação">
-        </div>
-    {% endif %}
     <div class="pl-head-acoes">
         <a class="pl-cta" href="{{ app_url }}/demandas/nova">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
@@ -75,7 +89,9 @@
     </div>
 </div>
 
-{% if demandas is empty %}
+{% if l.situacoes.todas == 0 %}
+    {#  Conta sem demanda nenhuma: abas zeradas e busca seriam ruído em volta de uma lista que
+        não existe. #}
     <div class="pl-card pl-vazio">
         <p class="t">Você ainda não publicou nenhuma demanda</p>
         <p class="s">
@@ -87,14 +103,160 @@
         </div>
     </div>
 {% else %}
+
+{#  ------------------------------------------------------------------ as abas de situação
+    Mudar de aba mantém a busca e os filtros: a contagem da aba é sempre a da situação inteira, e
+    a barra de resultado diz quantas dela sobraram. #}
+<nav class="pl-seg pl-md-abas" aria-label="Situação das demandas">
+    {% for chave, nome in nomes_aba %}
+        <a class="pl-seg-b{% if aba == chave %} aqui{% endif %}"
+           href="{{ md.url_lista(l, {situacao: chave == 'abertas' ? null : chave}) }}"
+           {%- if aba == chave %} aria-current="page"{% endif %}>
+            {{ nome }}
+            <span class="n">{{ l.situacoes[chave]|default(0) }}<span class="visually-hidden"> {{ l.situacoes[chave]|default(0) == 1 ? 'demanda' : 'demandas' }}</span></span>
+        </a>
+    {% endfor %}
+</nav>
+
+{#  Aba vazia não tem o que buscar nem contar: fica só o estado vazio dela. #}
+{% if na_aba > 0 %}
+{#  ------------------------------------------------------------------ a busca e os filtros #}
+<form class="pl-vit-filtros" method="get" action="{{ app_url }}/demandas" role="search">
+    {#  O que não tem campo visível viaja escondido, para "Buscar" não perder a aba, as áreas, a
+        alternância de pendência nem a ordem. #}
+    {% if aba != 'abertas' %}<input type="hidden" name="situacao" value="{{ aba }}">{% endif %}
+    {% for a in f.areas %}<input type="hidden" name="area[]" value="{{ a }}">{% endfor %}
+    {% if f.pendentes %}<input type="hidden" name="pendentes" value="1">{% endif %}
+    {% if f.ordem != 'recentes' %}<input type="hidden" name="ordem" value="{{ f.ordem }}">{% endif %}
+
+    <div class="pl-busca-row">
+        <div class="cx">
+            <span class="lupa" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.6-3.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <label class="visually-hidden" for="md-q">Buscar nas suas demandas pelo título, escopo, município ou atividade</label>
+            <input type="search" id="md-q" name="q" maxlength="120" autocomplete="off" value="{{ f.texto }}"
+                   placeholder="Buscar por título, escopo, município ou atividade. Ex.: incêndio, Manaus">
+        </div>
+        <button type="submit" class="pl-btn">Buscar</button>
+    </div>
+
+    {#  As áreas, iguais às da vitrine: o grupo da TOS, contado com todos os filtros menos o de área.
+        A área escolhida que não voltou na lista ainda ganha chip, para poder ser desligada. #}
+    {% set conhecidas = l.areas|map(a => a.nivel1) %}
+    {% set orfas = f.areas|filter(x => x not in conhecidas) %}
+    {% if l.areas is not empty or orfas is not empty %}
+        <nav class="pl-vit-areas" aria-label="Áreas da Tabela de Obras e Serviços">
+            {% for x in orfas %}
+                <a class="pl-chip-filtro ligado" href="{{ md.url_lista(l, {area: f.areas|filter(y => y != x)}) }}"
+                   title="Nenhuma demanda desta área com os outros filtros. Clique para tirar esta área.">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                    <span class="nm">Área escolhida · TOS {{ x }}</span>
+                    <span class="n">0</span>
+                    <span class="visually-hidden"> (filtro ativo, clique para tirar)</span>
+                </a>
+            {% endfor %}
+            {% for a in l.areas %}
+                {%- set ligada = a.nivel1 in f.areas -%}
+                {%- set nova = ligada ? f.areas|filter(x => x != a.nivel1) : f.areas|merge([a.nivel1]) -%}
+                <a class="pl-chip-filtro{% if ligada %} ligado{% endif %}"
+                   href="{{ md.url_lista(l, {area: nova}) }}" title="{{ a.grupo }}">
+                    {%- if ligada %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>{% endif -%}
+                    <span class="nm">{{ a.grupo }}</span>
+                    <span class="n">{{ a.quantidade }}</span>
+                    {%- if ligada %}<span class="visually-hidden"> (filtro ativo, clique para tirar)</span>{% endif -%}
+                </a>
+            {% endfor %}
+        </nav>
+    {% endif %}
+
+    {#  A alternância de pendência e o "Limpar filtros", na fileira que na vitrine é de "Mais
+        filtros". A alternância só aparece quando há o que mostrar, ou quando está ligada (para
+        poder ser desligada): na aba Encerradas não há o que esperar. #}
+    {#  Na aba Encerradas a alternância não aparece: o serviço ainda conta candidatura não aberta
+        numa demanda encerrada, mas ali não há o que responder. #}
+    {% set mostra_pend = (l.com_pendencia > 0 and aba != 'encerradas') or f.pendentes %}
+    {% if mostra_pend or filtros_em_uso %}
+        <div class="pl-vit-ctrl">
+            {% if mostra_pend %}
+                <a class="pl-chip-filtro pl-md-pend{% if f.pendentes %} ligado{% endif %}"
+                   href="{{ md.url_lista(l, {pendentes: f.pendentes ? null : '1'}) }}"
+                   title="Candidatura ainda não aberta ou mensagem não lida">
+                    {%- if f.pendentes -%}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                    {%- else -%}
+                        <span class="pd" aria-hidden="true"></span>
+                    {%- endif -%}
+                    <span class="nm">Com algo esperando você</span>
+                    <span class="n">{{ l.com_pendencia }}</span>
+                    {%- if f.pendentes %}<span class="visually-hidden"> (filtro ativo, clique para tirar)</span>{% endif -%}
+                </a>
+            {% endif %}
+            {% if filtros_em_uso %}
+                <a class="pl-btn sm pl-vit-limpar" href="{{ url_limpa }}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>
+                    Limpar filtros
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+</form>
+
+{#  ------------------------------------------------------------------ o resultado
+    Quantas, e de quantas da aba quando há filtro; a ordem do lado, porque é da lista. "Mais
+    pendências" some nas abas em que não há o que esperar, a não ser que já esteja escolhida. #}
+{% set ordens = {recentes: 'Mais recentes', pendencias: 'Mais pendências', inicio: 'Início mais próximo'} %}
+<div class="pl-busca-barra pl-vit-barra">
+    <p class="ct">
+        <b>{{ l.total }}</b>
+        {%- if filtros_em_uso and l.total != na_aba %} de {{ na_aba }}{% endif %}
+        {{ (filtros_em_uso and l.total != na_aba ? na_aba : l.total) == 1 ? coletivo[aba][0] : coletivo[aba][1] }}
+    </p>
+    {% if na_aba > 1 %}
+        {% set opcoes = ordens|filter((nome, chave) => chave != 'pendencias' or aba in ['abertas', 'todas'] or f.ordem == chave) %}
+        <p class="vis pl-md-ordem">
+            <span class="rt">Ordem</span>
+            {% for chave, nome in opcoes %}
+                {% if f.ordem == chave %}
+                    <span class="aqui" aria-current="true">{{ nome }}</span>
+                {% else %}
+                    <a href="{{ md.url_lista(l, {ordem: chave == 'recentes' ? null : chave}) }}">{{ nome }}</a>
+                {% endif %}
+                {% if not loop.last %}<span class="pl-sep" aria-hidden="true"></span>{% endif %}
+            {% endfor %}
+        </p>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if demandas is empty %}
+    <div class="pl-card pl-vazio">
+        {% if na_aba > 0 %}
+            <p class="t">Nenhuma {{ aba == 'rascunhos' ? 'demanda em rascunho' : (aba == 'todas' ? 'demanda' : coletivo[aba][0]) }} com esses filtros</p>
+            <p class="s">Tire um filtro de cada vez para ver o que aparece, ou comece de novo.</p>
+            <div class="a"><a class="pl-btn" href="{{ url_limpa }}">Limpar filtros</a></div>
+        {% elseif aba == 'abertas' %}
+            <p class="t">Nenhuma demanda aberta</p>
+            <p class="s">A demanda publicada fica aqui enquanto recebe candidaturas e convites.</p>
+            {% if l.situacoes.rascunhos > 0 %}
+                <div class="a"><a class="pl-btn" href="{{ md.url_lista(l, {situacao: 'rascunhos'}) }}">Ver {{ l.situacoes.rascunhos == 1 ? 'o rascunho' : 'os ' ~ l.situacoes.rascunhos ~ ' rascunhos' }}</a></div>
+            {% endif %}
+        {% elseif aba == 'rascunhos' %}
+            <p class="t">Nenhum rascunho</p>
+            <p class="s">A demanda salva e ainda não publicada fica aqui até você publicar. Ninguém a vê antes disso.</p>
+        {% else %}
+            <p class="t">Nenhuma demanda encerrada</p>
+            <p class="s">Quando você encerrar uma demanda, ela sai da vitrine e continua aqui, inteira, para consulta.</p>
+        {% endif %}
+    </div>
+{% else %}
     <div class="pl-card">
         <div class="table-responsive" tabindex="0" role="region"
              aria-label="Demandas publicadas por você">
             <table class="pl-table fixa acomp">
                 <caption class="visually-hidden">Demandas publicadas por você, com situação e o que espera em cada uma</caption>
                 {#  Largura por coluna, como o `colgroup` do mockup: sem ela a coluna do assunto
-                    encolhia ou crescia conforme o título mais longo da página, e duas visitas à
-                    mesma tela tinham desenhos diferentes. #}
+                    encolhia ou crescia conforme o título mais longo da página. #}
                 <colgroup>
                     <col class="c-assunto"><col class="c-regime"><col class="c-data">
                     <col class="c-situacao"><col class="c-acomp"><col class="c-acao">
@@ -109,15 +271,11 @@
                         <th scope="col"><span class="visually-hidden">Ação</span></th>
                     </tr>
                 </thead>
-                <tbody data-filtro-alvo>
+                <tbody>
                     {% for d in demandas %}
-                        {#  O que o filtro lê. Fica num atributo, e não no texto da célula, para o
-                            termo encontrar também a situação escrita por extenso e o local que
-                            aparece abreviado na linha. #}
-                        {% set situacao_texto = d.dem_dt_publicacao is null ? 'rascunho'
-                            : (d.dem_situacao == 'ENCERRADA' ? 'encerrada'
-                            : (d.dem_situacao == 'COM_INTERESSADOS' ? 'com contatos' : 'aberta')) %}
-                        <tr data-busca="{{ d.dem_titulo }} {{ d.dem_local_municipio }} {{ d.dem_local_uf }} {{ d.dem_tipo_contrato|rotulo_contrato }} {{ situacao_texto }}">
+                        {#  A encerrada se diz na linha inteira, e não só na pílula: título em tinta
+                            de nota, e o acompanhamento sem pendência (não há o que fazer ali). #}
+                        <tr{% if d.dem_situacao == 'ENCERRADA' and d.dem_dt_publicacao %} class="encerrada"{% endif %}>
                             <td class="assunto">
                                 <a class="lin-tt trunc" href="{{ app_url }}/demandas/{{ d.dem_id }}"
                                    title="{{ d.dem_titulo }}">{{ d.dem_titulo }}</a>
@@ -128,9 +286,12 @@
                                         Local não informado
                                     {%- endif -%}
                                 </span>
+                                {#  A atividade da TOS: é por ela que a busca e o chip de área
+                                    acham a linha, e sem ela a linha não diria por que bateu. #}
+                                {% if d.tos|default([]) is not empty %}<div class="lin-tos">{{ ui.demanda_chip(d) }}</div>{% endif %}
                             </td>
                             <td{% if d.dem_tipo_contrato %} title="{{ d.dem_tipo_contrato }}"{% endif %}>
-                                <span class="trunc">{{ d.dem_tipo_contrato|rotulo_contrato ?: 'A combinar' }}</span>
+                                {{ d.dem_tipo_contrato|rotulo_contrato ?: 'A combinar' }}
                             </td>
                             <td>
                                 {%- if d.dem_dt_publicacao -%}
@@ -140,33 +301,17 @@
                                 {%- endif -%}
                             </td>
                             <td>{{ ui.situacao(d.dem_situacao, d.dem_dt_publicacao is not null) }}</td>
-                            {#  O que espera nesta demanda (D87), cada item levando à aba dele. Zero não
-                                vira número: "0 candidaturas" em cinza, repetido em vinte linhas, leria
-                                como acusação. Sem nada pendente, uma frase neutra diz isso; sem sessão
-                                do motor ainda, o convite para calcular. #}
+                            {#  O que espera nesta demanda (D87), cada item levando à aba dele. #}
                             <td class="acomp">{{ ui.acompanhamento(d, d.painel|default(null)) }}</td>
                             <td class="text-end">
-                                <a class="pl-btn sm" href="{{ app_url }}/demandas/{{ d.dem_id }}">Ver detalhes</a>
+                                <a class="pl-btn sm" href="{{ app_url }}/demandas/{{ d.dem_id }}">Ver detalhes<span class="visually-hidden">: {{ d.dem_titulo }}</span></a>
                             </td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-
-        {#  Lista filtrada sem resultado é tela também. Nasce escondida e só o script a mostra,
-            porque só ele consegue esvaziar a tabela. #}
-        <div class="pl-vazio tracejado mt-3" hidden data-filtro-vazio>
-            <p class="t">Nenhuma demanda corresponde ao filtro</p>
-            <p class="s">
-                Limpe o campo para voltar
-                {{ demandas|length == 1 ? 'à demanda desta conta' : 'às ' ~ demandas|length ~ ' demandas desta conta' }}.
-            </p>
-        </div>
     </div>
 {% endif %}
-{% endblock %}
-
-{% block scripts %}
-<script src="{{ url_assets }}/js/filtro-demandas.js?v={{ assets_v }}" defer></script>
+{% endif %}
 {% endblock %}

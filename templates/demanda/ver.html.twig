@@ -6,7 +6,9 @@
 
 {#  Tela de dentro da conta: shell de barra lateral (layout/base.html.twig). #}
 {% set shell = 'app' %}
-{% set ativo = usuario() and usuario().perfil in ['EMPRESA', 'TERCEIRO'] ? 'demandas' : 'abertas' %}
+{#  O menu aceso é o do caminho que trouxe a pessoa: a dona chega por Minhas demandas; qualquer
+    outra conta, inclusive empresa olhando a demanda de outra, chega pela vitrine. #}
+{% set ativo = eh_dono ? 'demandas' : 'abertas' %}
 {% set medida = 'registro' %}
 
 {% block titulo_tela %}Demanda{% endblock %}
@@ -30,6 +32,10 @@
 {% set u = usuario() %}
 {% set meu_tipo = u and u.perfil == 'EMPRESA' ? 'E' : 'P' %}
 {% set com_registro = u and u.perfil in ['PROFISSIONAL', 'EMPRESA'] %}
+
+{#  O caminho de volta (D93): a dona para Minhas demandas, na aba da situação desta demanda;
+    qualquer outra conta para a vitrine. #}
+{{ ui.volta_demanda(d, eh_dono) }}
 
 <div class="pl-head">
     <div class="tit">

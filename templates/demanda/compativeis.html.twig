@@ -50,6 +50,8 @@
 {#  A sub-navegação da demanda (D87): de qualquer uma das três telas, as outras duas e o que
     espera em cada uma. #}
 <div class="pl-feed-abas">
+    {#  O caminho de volta (D93). Compatíveis é sempre da dona. #}
+    {{ ui.volta_demanda(demanda) }}
     {{ ui.abas_demanda(demanda, painel|default(null), 'compativeis') }}
 </div>
 

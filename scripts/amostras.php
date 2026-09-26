@@ -18,7 +18,6 @@ declare(strict_types=1);
 use ProLink\Repository\IntegracaoRepository;
 use ProLink\Repository\AuditoriaRepository;
 use ProLink\Repository\CompatibilizacaoRepository;
-use ProLink\Repository\DemandaRepository;
 use ProLink\Repository\IndicadorRepository;
 use ProLink\Repository\LixeiraRepository;
 use ProLink\Repository\ManifestacaoRepository;
@@ -33,6 +32,7 @@ use ProLink\Service\InicioService;
 use ProLink\Service\InteressadoService;
 use ProLink\Service\LixeiraService;
 use ProLink\Service\ManifestacaoService;
+use ProLink\Service\MinhasDemandasService;
 use ProLink\Service\ParametroService;
 use ProLink\Service\PerfilEmpresaService;
 use ProLink\Service\PerfilService;
@@ -226,9 +226,13 @@ return (static function (): array {
         ->fetchColumn();
 
     if ($donoDeDemanda !== false) {
+        // Pelo mesmo serviço do controller (D93), na aba "Todas": a que mostra aberta, rascunho e
+        // encerrada juntas, com as abas, os chips e a coluna de acompanhamento.
+        $minhas = (new MinhasDemandasService())->listar((int) $donoDeDemanda, ['situacao' => 'todas']);
         $telas['demanda/index.html.twig'] = [
             'titulo'   => 'Minhas demandas',
-            'demandas' => (new DemandaRepository())->doUsuario((int) $donoDeDemanda),
+            'demandas' => $minhas['demandas'],
+            'lista'    => $minhas,
         ];
     }
 

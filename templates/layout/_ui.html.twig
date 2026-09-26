@@ -599,6 +599,35 @@
   `painel` pode faltar (demanda de outra conta, rascunho): o macro só é chamado para a dona de uma
   demanda publicada, e mesmo assim lê tudo com `default`.
 #}
+{#
+  O caminho de volta das páginas da demanda (D93). A barra lateral levava de volta, mas ninguém a
+  lia como "voltar": dentro de Demanda, Compatíveis ou Contatos, o único jeito de sair era um
+  menu que parecia navegação geral.
+
+  Um nível só, e não trilha inteira: o nível de baixo seria o próprio título da página, que está
+  logo embaixo em 26px. A dona volta para Minhas demandas, na aba da situação da própria demanda
+  (a encerrada volta para Encerradas), o que dispensa guardar de onde a pessoa veio; qualquer
+  outra conta volta para Demandas abertas.
+#}
+{% macro volta_demanda(d, eh_dono = true) %}
+    {%- if eh_dono -%}
+        {%- set aba = d.dem_dt_publicacao is null ? 'rascunhos' : (d.dem_situacao == 'ENCERRADA' ? 'encerradas' : 'abertas') -%}
+        {%- set href = app_url ~ '/demandas' ~ (aba != 'abertas' ? '?situacao=' ~ aba : '') -%}
+        {%- set rotulo = 'Minhas demandas' -%}
+        {%- set detalhe = {abertas: 'Abertas', rascunhos: 'Rascunhos', encerradas: 'Encerradas'}[aba] -%}
+    {%- else -%}
+        {%- set href = app_url ~ '/demandas/abertas' -%}
+        {%- set rotulo = 'Demandas abertas' -%}
+        {%- set detalhe = '' -%}
+    {%- endif -%}
+    <nav class="pl-volta" aria-label="Voltar">
+        <a href="{{ href }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+            <span>{{ rotulo }}{% if detalhe %}<span class="det"> · {{ detalhe }}</span>{% endif %}</span>
+        </a>
+    </nav>
+{% endmacro %}
+
 {% macro abas_demanda(d, painel, atual) %}
     {%- set p = painel|default({}) -%}
     {%- set base = app_url ~ '/demandas/' ~ d.dem_id -%}
@@ -847,12 +876,22 @@
 {% endmacro %}
 
 {#  O que espera numa demanda da própria conta (D87), cada item levando à aba certa. Zero não vira
-    número. Serve a "Minhas demandas" e ao Início. `painel` nulo é rascunho ou encerrada. #}
+    número. Serve a "Minhas demandas" e ao Início. `painel` nulo é rascunho ou encerrada.
+
+    Encerrada não tem o que fazer (D93): em vez das pendências em azul, a data em que fechou e
+    quantos contatos teve, em tinta de nota, levando à conversa para consulta. #}
 {% macro acompanhamento(d, painel) %}
     {%- set pn = painel|default({}) -%}
     {%- set base = app_url ~ '/demandas/' ~ d.dem_id -%}
     {% if d.dem_dt_publicacao is null %}
         <span class="lin-sub">Publique para ver compatíveis</span>
+    {% elseif d.dem_situacao == 'ENCERRADA' %}
+        <ul class="pl-acomp fechada">
+            <li>{{ d.dem_dt_encerramento|default(null) ? 'Encerrada em ' ~ d.dem_dt_encerramento|date('d/m/Y') : 'Encerrada' }}</li>
+            {% if pn.contatos|default(0) > 0 %}
+                <li><a href="{{ base }}/contatos">{{ pn.contatos }} {{ pn.contatos == 1 ? 'contato' : 'contatos' }}</a></li>
+            {% endif %}
+        </ul>
     {% elseif painel is null %}
         <span class="lin-sub">Nada pendente</span>
     {% else %}
