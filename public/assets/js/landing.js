@@ -5,8 +5,9 @@
  * Compatibilidade) e o terceiro é a profundidade que transforma o plano em volume (Contato). A
  * mesma figura aparece quatro vezes: uma no hero e uma em cada cartão da faixa escura.
  *
- * A geometria, os tempos e o comportamento são os de `docs/mockups/prolink-landing.html`. Só o
- * lugar do arquivo mudou: lá o código é um <script> embutido, e a CSP (`script-src 'self'`)
+ * A geometria e os tempos de subida são os de `docs/mockups/prolink-landing.html`. O fim do ciclo
+ * não é mais o do mockup: lá a figura some num quadro e recomeça; aqui ela volta ao plano antes de
+ * se erguer de novo (D91). O lugar do arquivo também mudou: lá o código é um <script> embutido, e a CSP (`script-src 'self'`)
  * recusa inline. Arquivo servido pela própria aplicação ela aceita, que é o caso deste, do
  * `feed-compativeis.js`, do `info.js`, do `confirmar-acao.js` e do `perfil-abrangencia.js`.
  *
@@ -37,11 +38,11 @@
     var h=1.5*ease(Math.min(1,Math.max(0,(p-0.1)/0.5)));
     if(h>0.01){var cc=[[-A,-A],[A,-A],[A,A],[-A,A]];var top=cc.map(function(k){return P(k[0],h,k[1],st);});
       cc.forEach(function(k,i){ln(c,base[i],P(k[0],h,k[1],st),COL.z,1.8,COL.z);});ln(c,P(0,0,0,st),P(0,h,0,st),COL.z,2.4,COL.z);
-      if(h>1){c.fillStyle='rgba(143,227,255,.10)';c.beginPath();top.forEach(function(q,i){i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y);});c.closePath();c.fill();
-        for(var i=0;i<4;i++)ln(c,top[i],top[(i+1)%4],COL.z,1.8,COL.z);top.forEach(function(q){nd(c,q,2.6,COL.node,COL.z);});}}}
-  function sceneX(c,W,H,p){var st={yaw:0.5,pitch:0.5,cam:8.5,scale:Math.min(W,H)*1.05,cx:W/2,cyv:H*0.56};grid(c,st,A);
+      if(h>1){c.globalAlpha=ease((h-1)/0.35);c.fillStyle='rgba(143,227,255,.10)';c.beginPath();top.forEach(function(q,i){i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y);});c.closePath();c.fill();
+        for(var i=0;i<4;i++)ln(c,top[i],top[(i+1)%4],COL.z,1.8,COL.z);top.forEach(function(q){nd(c,q,2.6,COL.node,COL.z);});c.globalAlpha=1;}}}
+  function sceneX(c,W,H,p,el,volta){var st={yaw:0.5,pitch:0.5,cam:8.5,scale:Math.min(W,H)*1.05,cx:W/2,cyv:H*0.56};grid(c,st,A);
     var g=ease(Math.min(1,p/0.55));ln(c,P(-A,0,0,st),P(-A+2*A*g,0,0,st),COL.x,2.4,COL.x);var end=P(A,0,0,st);
-    if(p>0.5){var q=ease(Math.min(1,(p-0.5)/0.5));nd(c,end,3+2*q,COL.node,COL.x);c.strokeStyle='rgba(143,227,255,'+(0.7*(1-q))+')';c.lineWidth=2;c.beginPath();c.arc(end.x,end.y,6+20*q,0,7);c.stroke();
+    if(p>0.5){var q=ease(Math.min(1,(p-0.5)/0.5));nd(c,end,3+2*q,COL.node,COL.x);if(!volta){c.strokeStyle='rgba(143,227,255,'+(0.7*(1-q))+')';c.lineWidth=2;c.beginPath();c.arc(end.x,end.y,6+20*q,0,7);c.stroke();}
       if(q>0.4){c.strokeStyle=COL.z;c.lineWidth=2.4;c.shadowColor=COL.z;c.shadowBlur=9;c.beginPath();c.moveTo(end.x-5,end.y);c.lineTo(end.x-1,end.y+4);c.lineTo(end.x+6,end.y-6);c.stroke();c.shadowBlur=0;}}}
   function sceneY(c,W,H,p){var st={yaw:0.55,pitch:0.52,cam:8.2,scale:Math.min(W,H)*1.05,cx:W/2,cyv:H*0.56};grid(c,st,A);
     var gx=ease(Math.min(1,p/0.32)),gy=ease(Math.min(1,Math.max(0,(p-0.28)/0.32)));var cn=[P(-A,0,-A,st),P(A,0,-A,st),P(A,0,A,st),P(-A,0,A,st)];
@@ -54,8 +55,8 @@
     ln(c,base[0],base[1],COL.x,2,COL.x);ln(c,base[3],base[2],COL.x,2);ln(c,base[0],base[3],COL.y,2,COL.y);ln(c,base[1],base[2],COL.y,2);
     var h=1.3*ease(Math.min(1,Math.max(0,(p-0.15)/0.5)));if(h>0.01){var cc=[[-A,-A],[A,-A],[A,A],[-A,A]];var top=cc.map(function(k){return P(k[0],h,k[1],st);});
       cc.forEach(function(k,i){ln(c,base[i],P(k[0],h,k[1],st),COL.z,2,COL.z);});ln(c,P(0,0,0,st),P(0,h,0,st),COL.z,2.6,COL.z);
-      if(h>0.9){c.fillStyle='rgba(143,227,255,.12)';c.beginPath();top.forEach(function(q,i){i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y);});c.closePath();c.fill();for(var i=0;i<4;i++)ln(c,top[i],top[(i+1)%4],COL.z,2,COL.z);top.forEach(function(q){nd(c,q,2.6,COL.node,COL.z);});}}}
-  var SC={hero:sceneHero,x:sceneX,y:sceneY,z:sceneZ},DUR={hero:3800,x:2600,y:3200,z:3400},HOLD=1600;
+      if(h>0.9){c.globalAlpha=ease((h-0.9)/0.3);c.fillStyle='rgba(143,227,255,.12)';c.beginPath();top.forEach(function(q,i){i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y);});c.closePath();c.fill();for(var i=0;i<4;i++)ln(c,top[i],top[(i+1)%4],COL.z,2,COL.z);top.forEach(function(q){nd(c,q,2.6,COL.node,COL.z);});c.globalAlpha=1;}}}
+  var SC={hero:sceneHero,x:sceneX,y:sceneY,z:sceneZ},DUR={hero:3800,x:2600,y:3200,z:3400},HOLD=1600,VOLTA=0.45,PAUSA=500;
   document.querySelectorAll('canvas[data-scene]').forEach(function(cv){
     var ctx=cv.getContext('2d'),name=cv.getAttribute('data-scene'),fn=SC[name],W,H,DPR;
     if(!ctx||!fn){return;}
@@ -72,8 +73,14 @@
       estatico();window.addEventListener('resize',estatico);return;
     }
     rz();window.addEventListener('resize',rz);
-    var t0=null,total=DUR[name]+HOLD;
-    function loop(ts){if(t0===null)t0=ts;var e=(ts-t0)%total,p=Math.min(1,e/DUR[name]);ctx.clearRect(0,0,W,H);fn(ctx,W,H,p,(ts-t0)/1000);requestAnimationFrame(loop);}
+    // A tampa do volume entra e sai por opacidade (globalAlpha nas cenas hero e z), e não de um
+    // quadro para o outro quando a altura cruza o limiar.
+    // O ciclo não recomeça com um corte. Depois da pausa no quadro final, a figura volta ao plano
+    // pelo mesmo caminho, mais depressa, e só então se ergue de novo. Antes o módulo levava o
+    // progresso de 1 a 0 num quadro só: o volume sumia de uma vez e o giro saltava.
+    var dur=DUR[name],volta=Math.round(dur*VOLTA),total=dur+HOLD+volta+PAUSA,t0=null;
+    function progresso(e){if(e<dur)return e/dur;e-=dur;if(e<HOLD)return 1;e-=HOLD;if(e<volta)return 1-e/volta;return 0;}
+    function loop(ts){if(t0===null)t0=ts;var e=(ts-t0)%total;ctx.clearRect(0,0,W,H);fn(ctx,W,H,progresso(e),(ts-t0)/1000,e>=dur+HOLD);requestAnimationFrame(loop);}
     requestAnimationFrame(loop);
   });
 })();

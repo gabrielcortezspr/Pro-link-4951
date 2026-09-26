@@ -3138,3 +3138,24 @@ ranking disfarçado de estímulo, vedado pelo item 10.1; a identidade só conta 
 **Alternativa recusada: uma consulta só (UNION) para a linha do tempo.** Seriam oito ramos com
 marcadores que não podem se repetir (`ATTR_EMULATE_PREPARES` desligado); consultas simples por
 tipo, juntadas no PHP, são mais fáceis de ler e de mudar, e cada uma usa um índice que já existe.
+
+## D91 · As figuras 3D voltam ao plano no fim do ciclo, em vez de sumirem num quadro
+
+`26/09/2026` · `public/assets/js/landing.js`, `public/assets/js/entrada-3d.js`
+
+**Contexto.** O laço das animações da landing (as quatro cenas) e da tela de entrar calculava o
+progresso com `(t % ciclo) / duração`. No fim da pausa sobre o quadro final, o módulo levava o
+progresso de 1 a 0 de um quadro para o outro: o volume sumia de uma vez e o giro saltava meio
+radiano. Medido em navegador sem cabeça, a maior diferença entre quadros seguidos caía exatamente
+nessa virada, de cinco a quinze vezes acima de qualquer outro momento da animação. A face de cima
+do volume tinha o mesmo defeito em escala menor: aparecia inteira quando a altura cruzava o limiar.
+
+**Alternativas.** Apagar o desenho por opacidade no fim do ciclo e reacender do zero; ou fazer a
+figura voltar pelo mesmo caminho até o plano e só então subir de novo.
+
+**Decisão.** Voltar pelo mesmo caminho, em 45% do tempo de subida na landing e 1,6 s na entrada,
+seguido de meio segundo parado no plano. A opacidade apagaria também a grade, que é o chão fixo
+da figura, e o giro continuaria saltando por baixo do apagamento. Na volta, a cena do eixo X não
+redesenha o anel de pulso, que ao contrário pareceria uma implosão. A face de cima entra e sai
+por opacidade proporcional à altura. `prefers-reduced-motion` segue recebendo o quadro final
+parado. O mockup `docs/mockups/prolink-landing.html` fica como estava: é referência de desenho.
