@@ -27,6 +27,9 @@
     5. A barra de navegação do layout não aparece: ela pertence a quem já está dentro da
        aplicação, e o mockup tem a própria barra dentro do hero. As entradas que ela dava a quem
        tem sessão (perfil, sair) continuam aqui, na barra do hero.
+    6. O texto foi revisto contra o produto de 26/09: candidatura, convite e contatos no lugar de
+       "manifestar interesse" (D87), ordem sorteada em vez de "por aderência" (item 10.1), quem
+       contrata sem registro no CREA também publica, e o motor de regras não é chamado de IA.
 #}
 
 {% block titulo %}Pro-Link · identidade técnica verificada{% endblock %}
@@ -64,7 +67,7 @@
                         <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
                         <button type="submit" class="pl-lp-ghost">Sair</button>
                     </form>
-                    <a class="pl-cta" href="{{ app_url }}/demandas/abertas">Ir para a plataforma</a>
+                    <a class="pl-cta" href="{{ app_url }}/inicio">Ir para a plataforma</a>
                 {% else %}
                     <a class="pl-lp-ghost" href="{{ app_url }}/login">Entrar</a>
                     <a class="pl-cta" href="{{ app_url }}/cadastro">Usar a plataforma</a>
@@ -83,9 +86,9 @@
                     </p>
                 {% else %}
                     <p class="sub">
-                        O Pro-Link conecta empresas a engenheiros pelo que eles já provaram fazer,
-                        com ARTs e CATs validadas pela API oficial do CREA-AM. Sem dado não
-                        verificado, sem ranking de pessoas.
+                        O Pro-Link conecta quem contrata a profissionais e empresas do CREA-AM pelo
+                        que eles já provaram fazer: ARTs, CATs e acervo validados pela API oficial.
+                        Sem dado não verificado, sem ranking de pessoas.
                     </p>
                 {% endif %}
 
@@ -150,12 +153,12 @@
             <div class="pl-card">
                 <div class="num" aria-hidden="true">2</div>
                 <h3>Demanda por atividade</h3>
-                <p>A empresa publica a demanda escolhendo as atividades técnicas (Tabela TOS). O motor cruza demanda e capacidade comprovada.</p>
+                <p>Quem contrata publica a demanda escolhendo as atividades técnicas (Tabela TOS). O motor cruza demanda e capacidade comprovada.</p>
             </div>
             <div class="pl-card">
                 <div class="num" aria-hidden="true">3</div>
-                <h3>Interesse e contato</h3>
-                <p>Os compatíveis aparecem por aderência. As partes manifestam interesse e conversam dentro da plataforma.</p>
+                <h3>Convite e candidatura</h3>
+                <p>Quem tem acervo compatível entra no conjunto, em ordem sorteada. A empresa convida, o profissional se candidata, e a conversa acontece dentro da plataforma.</p>
             </div>
         </div>
     </div>
@@ -167,7 +170,7 @@
         <div class="pl-lp-shead">
             <span class="ey">Tridimensionalidade</span>
             <h2>Três perspectivas. <span class="v">Uma dimensão a mais.</span></h2>
-            <p>Confiabilidade e compatibilidade formam o plano. O contato verificado é a profundidade que faltava. A mesma lógica governa a segurança, onde o terceiro eixo é a perspectiva do Atacante.</p>
+            <p>Confiabilidade e compatibilidade formam o plano. O contato verificado é a profundidade que faltava.</p>
         </div>
         <div class="pl-lp-cards3">
             <article class="pl-lp-c3 x">
@@ -229,7 +232,7 @@
                 <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg></span>
                 <div>
                     <h4>Compatibilidade, não ranking</h4>
-                    <p>O engenheiro é encontrado pela aderência à demanda, nunca por uma nota de qualidade.</p>
+                    <p>O profissional é encontrado pela aderência à demanda, nunca por uma nota de qualidade.</p>
                 </div>
             </div>
             <div class="pl-lp-pf">
@@ -257,13 +260,13 @@
                     <span class="em" aria-hidden="true"><span class="m"></span></span>
                     <div>
                         <h3>Sou Profissional</h3>
-                        <span class="ws">Engenheiro com registro no CREA-AM</span>
+                        <span class="ws">Profissional com registro no CREA-AM</span>
                     </div>
                 </div>
                 <ul class="pl-lp-checks">
                     <li>{{ fig.check() }}Perfil com ARTs e CATs verificadas pelo CREA-AM.</li>
                     <li>{{ fig.check() }}Você controla o que fica visível, campo por campo.</li>
-                    <li>{{ fig.check() }}Encontrado por demandas compatíveis, sem precisar se candidatar.</li>
+                    <li>{{ fig.check() }}Receba convites de demandas compatíveis e candidate-se às abertas na área do seu acervo.</li>
                 </ul>
                 <div class="pe">
                     <a class="pl-btn" href="{{ app_url }}/cadastro">Criar perfil verificado &rarr;</a>
@@ -273,14 +276,14 @@
                 <div class="pl-lp-whead">
                     <span class="em" aria-hidden="true"><span class="m"></span></span>
                     <div>
-                        <h3>Sou Empresa</h3>
-                        <span class="ws">Contratante técnico registrado no CREA-AM</span>
+                        <h3>Sou Contratante</h3>
+                        <span class="ws">Empresa, órgão ou pessoa física, com ou sem registro no CREA</span>
                     </div>
                 </div>
                 <ul class="pl-lp-checks">
                     <li>{{ fig.check() }}Publique a demanda por atividade técnica (Tabela TOS).</li>
-                    <li>{{ fig.check() }}Receba profissionais compatíveis por aderência real.</li>
-                    <li>{{ fig.check() }}Veja o acervo operacional verificado de cada empresa.</li>
+                    <li>{{ fig.check() }}Receba profissionais e empresas compatíveis, sem ranking entre eles.</li>
+                    <li>{{ fig.check() }}Com registro no CREA-AM, mostre o acervo operacional verificado da sua própria empresa.</li>
                 </ul>
                 <div class="pe">
                     <a class="pl-btn" href="{{ app_url }}/cadastro">Publicar uma demanda &rarr;</a>
@@ -301,7 +304,7 @@
             <div>
                 <span class="pl-lp-marca"><span class="m" aria-hidden="true"></span>Pro-Link</span>
                 <p class="pl-lp-ia">Plataforma de identidade técnica verificada para o Sistema Confea/CREA-AM. Projeto do Desafio CREA Pro-Link, II CENATEC 2026.</p>
-                <p class="pl-lp-ia">Recomendações geradas por motor de compatibilização com pesos configuráveis e amostragem auditável. Uso de IA declarado conforme o edital.</p>
+                <p class="pl-lp-ia">Os compatíveis vêm de um motor de regras com pesos configuráveis e sorteio auditável, sem nota nem posição. O uso de IA no desenvolvimento está declarado conforme o edital.</p>
             </div>
             <div class="col">
                 <h4>Plataforma</h4>
